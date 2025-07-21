@@ -36,6 +36,12 @@
     <div class="mt-2 text-sm text-gray-700">
       선택된 상품: {{ selectedProduct?.name || '없음' }}
     </div>
+    <BasicTable
+      :data="products"
+      :columns="productColumns"/>
+</template>
+<script setup>
+import BasicTable from '@/components/kimbap/table/BasicTable.vue'
     
     <Dependentselectbox v-model="selectedCode"
       :typeOptions="[
