@@ -75,7 +75,7 @@ vite.config.ts.timestamp-*
 *.ipr
 out/
 
-# Eclipse
+# Eclipse & STS (Spring Tool Suite)
 .metadata
 bin/
 tmp/
@@ -88,6 +88,9 @@ local.properties
 .factorypath
 .buildpath
 .target
+.springBeans
+.sts4-cache/
+*.prefs
 
 # ===========================
 # Operating System
