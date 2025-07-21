@@ -1,5 +1,6 @@
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';
+import stdRoutes from './standard';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -109,6 +110,8 @@ const router = createRouter({
                     name: 'tablecomp',
                     component: () => import('../components/kimbap/TableComponent.vue')
                 }
+                /** 냉동김밥 경로 */
+                ...stdRoutes,
             ]
         },
         {
