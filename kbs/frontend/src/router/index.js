@@ -105,6 +105,11 @@ const router = createRouter({
                     name: 'documentation',
                     component: () => import('@/views/pages/Documentation.vue')
                 },
+                {
+                    path: '/tablecomp',
+                    name: 'tablecomp',
+                    component: () => import('../components/kimbap/TableComponent.vue')
+                }
                 /** 냉동김밥 경로 */
                 ...stdRoutes,
             ]
