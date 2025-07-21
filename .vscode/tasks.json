@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Spring Boot Run",
+			"type": "shell",
+			"command": ".\\mvnw.cmd",
+			"args": [
+				"spring-boot:run"
+			],
+			"group": "build",
+			"isBackground": true,
+			"options": {
+				"cwd": "${workspaceFolder}/kbs/backend"
+			},
+			"problemMatcher": []
+		}
+	]
+}
