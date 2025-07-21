@@ -62,7 +62,7 @@
 
 [코딩 스타일 표준]
 - 모든 폴더와 파일의 이름은 소문자로 하고, 띄어쓰기는 ‘-’로 표시한다. <br>
-  ex) noodle, noodle-src.js
+  ex) kimbap, kimbap-src.js
 - 모든 vue 컴포넌트 파일은 파스칼 표기법에 따른다. <br>
   ex) SideBar.vue, MainMenu.vue
 - 모든 변수와 함수의 이름은 카멜 표기법에 따르고 의미 있는 이름을 쓴다. <br>
