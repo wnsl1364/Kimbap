@@ -4,5 +4,11 @@
         <p>This is the standard product view page.</p>
         <!-- Add your product-related content here -->
     </div>
+    <BasicTable
+      :data="products"
+      :columns="productColumns"/>
 </template>
-<script></script>
+<script setup>
+import BasicTable from '@/components/kimbap/table/BasicTable.vue'
+
+</script>
