@@ -103,6 +103,11 @@ const router = createRouter({
                     path: '/documentation',
                     name: 'documentation',
                     component: () => import('@/views/pages/Documentation.vue')
+                },
+                {
+                    path: '/tablecomp',
+                    name: 'tablecomp',
+                    component: () => import('../components/kimbap/TableComponent.vue')
                 }
             ]
         },
