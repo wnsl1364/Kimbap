@@ -2,6 +2,8 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
+import stdRouter from './router/standard';
+
 import Aura from '@primeuix/themes/aura';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
@@ -12,6 +14,8 @@ import '@/assets/styles.scss';
 const app = createApp(App);
 
 app.use(router);
+app.use(stdRouter);
+
 app.use(PrimeVue, {
     theme: {
         preset: Aura,
