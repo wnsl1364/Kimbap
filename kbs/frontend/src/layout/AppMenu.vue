@@ -18,6 +18,51 @@ const model = ref([
         ]
     },
     {
+        label: '주문',
+        items: [
+            {
+                label: '주문등록',
+                to: '/material/materialStockView'
+            },
+        ]
+    },
+    {
+        label: '자재',
+        items: [
+            {
+                label: '자재 재고 조회',
+                to: '/material/materialStockView'
+            },
+        ]
+    },
+    {
+        label: '생산',
+        items: [
+            {
+                label: '자재 재고 조회',
+                to: '/material/materialStockView'
+            },
+        ]
+    },
+    {
+        label: '물류',
+        items: [
+            {
+                label: '자재 재고 조회',
+                to: '/material/materialStockView'
+            },
+        ]
+    },
+    {
+        label: '결제',
+        items: [
+            {
+                label: '자재 재고 조회',
+                to: '/material/materialStockView'
+            },
+        ]
+    },
+    {
         label: 'UI Components',
         items: [
             { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', to: '/uikit/formlayout' },

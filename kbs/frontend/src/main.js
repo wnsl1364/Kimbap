@@ -3,6 +3,11 @@ import App from './App.vue';
 import router from './router';
 
 import stdRouter from './router/standard';
+import materialRouter from './router/material';
+import orderRouter from './router/order';
+import productionRouter from './router/production';
+import logisticsRouter from './router/logistics';
+import paymentRouter from './router/payment';
 
 import Aura from '@primeuix/themes/aura';
 import PrimeVue from 'primevue/config';
@@ -15,6 +20,11 @@ const app = createApp(App);
 
 app.use(router);
 app.use(stdRouter);
+app.use(materialRouter);
+app.use(orderRouter);
+app.use(productionRouter);  
+app.use(logisticsRouter);
+app.use(paymentRouter);
 
 app.use(PrimeVue, {
     theme: {

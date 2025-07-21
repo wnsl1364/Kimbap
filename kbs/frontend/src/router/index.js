@@ -1,6 +1,11 @@
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import stdRoutes from './standard';
+import materialRoutes from './material';
+import orderRoutes from './order';
+import productionRoutes from './production';
+import logisticsRoutes from './logistics';
+import paymentRoutes from './payment';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -112,6 +117,11 @@ const router = createRouter({
                 },
                 /** 냉동김밥 경로 */
                 ...stdRoutes,
+                ...orderRoutes,
+                ...materialRoutes,
+                ...productionRoutes,
+                ...logisticsRoutes,
+                ...paymentRoutes,
             ]
         },
         {
