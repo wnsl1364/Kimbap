@@ -109,7 +109,7 @@ const router = createRouter({
                     path: '/tablecomp',
                     name: 'tablecomp',
                     component: () => import('../components/kimbap/TableComponent.vue')
-                }
+                },
                 /** 냉동김밥 경로 */
                 ...stdRoutes,
             ]
