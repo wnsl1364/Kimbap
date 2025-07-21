@@ -1,5 +1,6 @@
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';
+import stdRoutes from './standard';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -103,7 +104,9 @@ const router = createRouter({
                     path: '/documentation',
                     name: 'documentation',
                     component: () => import('@/views/pages/Documentation.vue')
-                }
+                },
+                /** 냉동김밥 경로 */
+                ...stdRoutes,
             ]
         },
         {
