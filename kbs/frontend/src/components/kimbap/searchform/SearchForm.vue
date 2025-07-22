@@ -140,6 +140,11 @@ const handleReset = () => {
                                     dateFormat="yy-mm-dd" class="flex-1" showIcon />
                             </div>
 
+                            <!-- 드롭다운 -->
+                            <Dropdown v-else-if="column.type === 'dropdown'" :id="`search_${column.key}`"
+                                v-model="column.value" :options="column.options" :placeholder="column.placeholder"
+                                optionLabel="label" optionValue="value" class="w-full" />
+
                             <!-- 숫자 범위 -->
                             <div v-else-if="column.type === 'numberRange'" class="flex gap-2 items-center w-full">
                                 <InputText v-model="column.value.min" :min="0" :step="column.step"
@@ -154,7 +159,7 @@ const handleReset = () => {
                             </div>
 
                             <!-- 라디오 버튼 -->
-                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-2 gap-2 w-full">
+                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-3 gap-2 w-full">
                                 <div v-for="option in column.options" :key="option.value"
                                     class="mt-1.5 flex items-center">
                                     <RadioButton :id="`${column.key}_${option.value}`" v-model="column.value"

@@ -73,6 +73,10 @@ const model = ref([
                 label: '자재 입출고 내역',
                 to: '/material/materialInOutHistory'
             },
+            {
+                label: '자재 발주',
+                to: '/material/materialPurchase'
+            },
         ]
     },
     {

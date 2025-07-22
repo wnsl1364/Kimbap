@@ -19,44 +19,56 @@ const props = defineProps({
     searchColumns: {
         type: Array,
         default: () => [
-            { 
-                key: 'name', 
-                label: '이름', 
-                type: 'text', 
-                placeholder: '이름을 입력하세요' 
+            {
+                key: 'name',
+                label: '이름',
+                type: 'text',
+                placeholder: '이름을 입력하세요'
             },
-            { 
-                key: 'status', 
-                label: '상태', 
-                type: 'radio', 
+            {
+                key: 'status',
+                label: '상태',
+                type: 'radio',
                 options: [
                     { label: '활성', value: 'active' },
                     { label: '비활성', value: 'inactive' }
                 ]
             },
             // 숫자 범위 검색 예시  
-            { 
-                key: 'balanceRange', 
-                label: '잔액 범위', 
+            {
+                key: 'balanceRange',
+                label: '잔액 범위',
                 type: 'numberRange',
                 step: 1000,
                 minPlaceholder: '최소 잔액',
                 maxPlaceholder: '최대 잔액'
             },
             // 날짜 범위 검색 예시
-            { 
-                key: 'dateRange', 
-                label: '등록일 범위', 
+            {
+                key: 'dateRange',
+                label: '등록일 범위',
                 type: 'dateRange',
                 startPlaceholder: '시작일을 선택하세요',
                 endPlaceholder: '종료일을 선택하세요'
             },
-            { 
-                key: 'singleDate', 
-                label: '특정일', 
-                type: 'calendar', 
-                placeholder: '날짜를 선택하세요' 
-            }
+            {
+                key: 'singleDate',
+                label: '특정일',
+                type: 'calendar',
+                placeholder: '날짜를 선택하세요'
+            },
+            {
+                key: 'status',
+                label: '상태',
+                type: 'dropdown',
+                options: [
+                    { label: '정상', value: 'normal' },
+                    { label: '부족', value: 'shortage' },
+                    { label: '과재고', value: 'overstock' }
+                ],
+                value: '',
+                placeholder: '상태를 선택하세요'
+            },
         ]
     }
 });
@@ -84,19 +96,16 @@ const handleReset = () => {
 };
 </script>
 
-<template>          
+<template>
     <div class="flex flex-col gap-8">
         <!-- 검색 폼 컴포넌트 -->
-        <SearchForm 
-            :columns="searchColumns"
-            @search="handleSearch"
-            @reset="handleReset"
-        />
-        
+        <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
+
         <!-- 테이블 영역 -->
         <div class="card">
             <div class="font-semibold text-xl mb-4">Frozen Columns</div>
-            <ToggleButton v-model="balanceFrozen" onIcon="pi pi-lock" offIcon="pi pi-lock-open" onLabel="Balance" offLabel="Balance" />
+            <ToggleButton v-model="balanceFrozen" onIcon="pi pi-lock" offIcon="pi pi-lock-open" onLabel="Balance"
+                offLabel="Balance" />
 
             <DataTable :value="customers2" scrollable scrollHeight="400px" class="mt-6">
                 <Column field="name" header="Name" style="min-width: 200px" frozen class="font-bold"></Column>
@@ -108,7 +117,8 @@ const handleReset = () => {
                 <Column field="status" header="Status" style="min-width: 200px"></Column>
                 <Column field="activity" header="Activity" style="min-width: 200px"></Column>
                 <Column field="representative.name" header="Representative" style="min-width: 200px"></Column>
-                <Column field="balance" header="Balance" style="min-width: 200px" alignFrozen="right" :frozen="balanceFrozen">
+                <Column field="balance" header="Balance" style="min-width: 200px" alignFrozen="right"
+                    :frozen="balanceFrozen">
                     <template #body="{ data }">
                         <span class="font-bold">{{ formatCurrency(data.balance) }}</span>
                     </template>
@@ -118,6 +128,4 @@ const handleReset = () => {
     </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
