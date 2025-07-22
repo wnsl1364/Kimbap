@@ -35,6 +35,8 @@ const getAlignClass = (align) => {
                             <input
                                 v-model="slotProps.data[col.field]"
                                 :type="col.inputType || 'text'"
+                                :readonly="col.readonly"
+                                :disabled="col.disabled"
                                 :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(col.align)]"
                             />
                             <i
@@ -44,12 +46,10 @@ const getAlignClass = (align) => {
                             />
                         </div>
                     </template>
-
                     <template v-else>
                         {{ slotProps.data[col.field] }}
                     </template>
                 </template>
-
             </Column>
         </DataTable>
 

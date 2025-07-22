@@ -34,11 +34,15 @@ const getAlignClass = (align) => {
                 <template v-if="column.type === 'readonly'">
                     <span>{{ slotProps.data[column.field] }}</span>
                 </template>
+
+                
                 <template v-else-if="column.type === 'input'">
                     <div class="flex items-center border rounded w-full h-10">
                         <input
                             v-model="slotProps.data[column.field]"
                             :type="column.inputType || 'text'"
+                            :readonly="column.readonly"
+                            :disabled="column.disabled"
                             :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]"
                         />
                         <i
