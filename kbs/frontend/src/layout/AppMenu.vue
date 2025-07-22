@@ -22,7 +22,27 @@ const model = ref([
         items: [
             {
                 label: '주문등록',
-                to: '/material/materialStockView'
+                to: '/order/orderRegister'
+            },
+            {
+                label: '주문검토',
+                to: '/order/orderReview'
+            },
+            {
+                label: '주문목록',
+                to: '/order/orderList'
+            },
+            {
+                label: '거래내역',
+                to: '/order/transactionDetails'
+            },
+            {
+                label: '거래처원장',
+                to: '/order/orderLedger'
+            },
+            {
+                label: '반품관리',
+                to: '/order/orderRefund'
             },
         ]
     },
