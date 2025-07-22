@@ -25,14 +25,14 @@ const searchColumns = ref([]);
 const initializeColumns = () => {
     searchColumns.value = props.columns.map(column => {
         let initialValue = '';
-        
+
         // 범위 검색 타입들은 객체로 초기화
         if (column.type === 'dateRange') {
             initialValue = { start: null, end: null };
         } else if (column.type === 'numberRange') {
             initialValue = { min: null, max: null };
         }
-        
+
         return {
             ...column,
             value: initialValue
@@ -75,7 +75,7 @@ const handleReset = () => {
 
 <template>
     <Fluid>
-        <div class="flex flex-col gap-8">
+        <div class="flex flex-col border-2 border-black-600 gap-8">
             <!-- 검색 폼 영역 -->
             <div class="card flex flex-col gap-4">
                 <div class="font-semibold text-xl">검색 조건</div>
@@ -177,7 +177,56 @@ const handleReset = () => {
                                 >
                                     {{ option.label }}
                                 </label>
+            <div class="card flex flex-col gap-4 !rounded-none">
+
+                <!-- 동적 검색 필드들 - 2열 그리드 -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div v-for="(column, index) in searchColumns" :key="column.key" class="flex flex-col gap-2">
+                        <label :for="`search_${column.key}`" class="font-medium text-gray-700 mb-1">
+                            {{ column.label }}
+                        </label>
+                        <div class="w-full">
+                            <!-- 텍스트 입력 -->
+                            <InputText v-if="column.type === 'text'" :id="`search_${column.key}`" v-model="column.value"
+                                :placeholder="column.placeholder" class="w-full" />
+
+                            <!-- 캘린더 -->
+                            <Calendar v-else-if="column.type === 'calendar'" :id="`search_${column.key}`"
+                                v-model="column.value" :placeholder="column.placeholder" dateFormat="yy-mm-dd"
+                                class="w-full" showIcon />
+
+                            <!-- 날짜 범위 -->
+                            <div v-else-if="column.type === 'dateRange'" class="flex gap-2 items-center w-full">
+                                <Calendar v-model="column.value.start" :placeholder="column.startPlaceholder || '시작일'"
+                                    dateFormat="yy-mm-dd" class="flex-1" showIcon />
+                                <span class="text-gray-500 font-medium px-2">~</span>
+                                <Calendar v-model="column.value.end" :placeholder="column.endPlaceholder || '종료일'"
+                                    dateFormat="yy-mm-dd" class="flex-1" showIcon />
                             </div>
+
+                            <!-- 숫자 범위 -->
+                            <div v-else-if="column.type === 'numberRange'" class="flex gap-2 items-center w-full">
+                                <InputText v-model="column.value.min" :placeholder="column.minPlaceholder || '최소값'"
+                                    type="number" class="flex-1" />
+                                <span class="text-gray-500 font-medium px-2">~</span>
+                                <InputText v-model="column.value.max" :placeholder="column.maxPlaceholder || '최대값'"
+                                    type="number" class="flex-1" />
+                            </div>
+
+                            <!-- 라디오 버튼 -->
+                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-2 gap-2 w-full">
+                                <div v-for="option in column.options" :key="option.value" class="mt-1.5 flex items-center">
+                                    <RadioButton :id="`${column.key}_${option.value}`" v-model="column.value"
+                                        :value="option.value" :name="column.key" />
+                                    <label :for="`${column.key}_${option.value}`" class="ml-2 text-lg">
+                                        {{ option.label }}
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 기본 텍스트 (fallback) -->
+                            <InputText v-else :id="`search_${column.key}`" v-model="column.value"
+                                :placeholder="column.placeholder || '입력하세요'" class="w-full" />
                         </div>
                         
                         <!-- 기본 텍스트 (fallback) -->
@@ -190,12 +239,29 @@ const handleReset = () => {
                         />
                     </div>
                 </div>
-                
-                <div class="flex gap-2 justify-end">
-                    <Button label="초기화" severity="secondary" @click="handleReset" />
-                    <Button label="검색" @click="handleSearch" />
+
+                <div class="flex gap-2 items-center justify-center">
+                    <Button label="초기화" severity="secondary"  class="!w-auto !min-w-40 !px-6" @click="handleReset" />
+                    <Button label="검색" class="!w-auto !min-w-40 !px-6" @click="handleSearch" />
                 </div>
             </div>
         </div>
-    </Fluid>
+    </Fluid>F
 </template>
+<style scoped>
+:deep(.custom-fluid) {
+    /* PrimeVue가 강력해서 !important 필수야! */
+    background-color: #f8fafc !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 내부 컴포넌트들 */
+:deep(.p-fluid) {
+    padding: 24px !important;
+}
+
+:deep(.p-fluid .p-component) {
+    margin-bottom: 16px !important;
+}
+</style>
