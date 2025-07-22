@@ -4,9 +4,9 @@
 
 <select id="getUserInfo" resultType="MemberVO"> <!-- 로그인 -->
 		SELECT   a.id
-            ,a.pw
-            ,b.emp_name
-            ,b.tel
+                    ,a.pw
+                    ,b.emp_name
+                    ,b.tel
 		FROM    a t_member JOIN b t_employee
     ON      t_member.emp_code = t_employee.emp_code
     WHERE   id = #{id}
