@@ -34,14 +34,6 @@ const props = defineProps({
                     { label: '비활성', value: 'inactive' }
                 ]
             },
-            // 날짜 범위 검색 예시
-            { 
-                key: 'dateRange', 
-                label: '등록일 범위', 
-                type: 'dateRange',
-                startPlaceholder: '시작일을 선택하세요',
-                endPlaceholder: '종료일을 선택하세요'
-            },
             // 숫자 범위 검색 예시  
             { 
                 key: 'balanceRange', 
@@ -49,6 +41,14 @@ const props = defineProps({
                 type: 'numberRange',
                 minPlaceholder: '최소 잔액',
                 maxPlaceholder: '최대 잔액'
+            },
+            // 날짜 범위 검색 예시
+            { 
+                key: 'dateRange', 
+                label: '등록일 범위', 
+                type: 'dateRange',
+                startPlaceholder: '시작일을 선택하세요',
+                endPlaceholder: '종료일을 선택하세요'
             },
             { 
                 key: 'singleDate', 
