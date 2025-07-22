@@ -1,10 +1,3 @@
-<template>
-    <div class="space-y-4">
-        <InputTable :data="products" :columns="columns" />
-        <button @click="save">저장</button>
-    </div>
-</template>
-
 <script setup>
 import { ref, onMounted } from 'vue'
 /*import axios from 'axios'*/
@@ -46,7 +39,7 @@ const columns = [
     { field: 'name', header: '제품명', type: 'readonly' },
     { field: 'qty', header: '주문수량', type: 'input', inputType: 'number' },
     { field: 'price', header: '단가', type: 'readonly' },
-    { field: 'dueDate', header: '납기일자', type: 'input', inputType: 'date' }
+    { field: 'dueDate', header: '납기일자', type: 'calendar' }
 ]
 
 
@@ -73,3 +66,9 @@ const save = async () => {
 }
  */
 </script>
+<template>
+    <div class="space-y-4">
+        <InputTable :data="products" :columns="columns" title="타이틀 맘대로"/>
+        <button @click="save">저장</button>
+    </div>
+</template>
