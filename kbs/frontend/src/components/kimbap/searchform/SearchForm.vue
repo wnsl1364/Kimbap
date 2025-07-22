@@ -2,56 +2,18 @@
 import { ref, computed, watch, h } from 'vue';
 import InputText from 'primevue/inputtext';
 import RadioButton from 'primevue/radiobutton';
-import Calendar from 'primevue/calendar'; // 렌더 함수에서 사용
+import Calendar from 'primevue/calendar';
 import Button from 'primevue/button';
 import Fluid from 'primevue/fluid';
+import { defineProps, defineEmits } from 'vue';
 
-// 사용 방법
-// { 
-//     key: 'name', 
-//     label: '이름', 
-//     type: 'text', 
-//     placeholder: '이름을 입력하세요' 
-// },
-// { 
-//     key: 'status', 
-//     label: '상태', 
-//     type: 'radio', 
-//     options: [
-//         { label: '활성', value: 'active' },
-//         { label: '비활성', value: 'inactive' }
-//     ]
-// },
-//
-// { 
-//     key: 'dateRange', 
-//     label: '등록일 범위', 
-//     type: 'dateRange',
-//     startPlaceholder: '시작일을 선택하세요',
-//     endPlaceholder: '종료일을 선택하세요'
-// },
-//
-// { 
-//     key: 'balanceRange', 
-//     label: '잔액 범위', 
-//     type: 'numberRange',
-//     minPlaceholder: '최소 잔액',
-//     maxPlaceholder: '최대 잔액'
-// },
-// { 
-//     key: 'singleDate', 
-//     label: '특정일', 
-//     type: 'calendar', 
-//     placeholder: '날짜를 선택하세요' 
-// }
-
-// // Props 정의
-// const props = defineProps({
-//     columns: {
-//         type: Array,
-//         required: true
-//     }
-// });
+// Props 정의
+const props = defineProps({
+    columns: {
+        type: Array,
+        required: true
+    }
+});
 
 // Emits 정의
 const emit = defineEmits(['search', 'reset']);
@@ -90,105 +52,6 @@ const searchData = computed(() => {
     });
     return data;
 });
-
-// 렌더 함수들 - 각 타입별로 렌더링 로직
-const renderFunctions = {
-    text: (column) => h(InputText, {
-        id: `search_${column.key}`,
-        modelValue: column.value,
-        'onUpdate:modelValue': (value) => column.value = value,
-        placeholder: column.placeholder,
-        class: 'w-full'
-    }),
-    
-    calendar: (column) => h(Calendar, {
-        id: `search_${column.key}`,
-        modelValue: column.value,
-        'onUpdate:modelValue': (value) => column.value = value,
-        placeholder: column.placeholder,
-        dateFormat: 'yy-mm-dd',
-        class: 'w-full',
-        showIcon: true
-    }),
-    
-    // 날짜 범위 검색 - 시작일~종료일
-    dateRange: (column) => {
-        // value가 객체가 아니면 초기화
-        if (!column.value || typeof column.value !== 'object') {
-            column.value = { start: null, end: null };
-        }
-        
-        return h('div', { class: 'flex gap-2 items-center w-full' }, [
-            h(Calendar, {
-                modelValue: column.value.start,
-                'onUpdate:modelValue': (value) => column.value.start = value,
-                placeholder: column.startPlaceholder || '시작일',
-                dateFormat: 'yy-mm-dd',
-                class: 'flex-1',
-                showIcon: true
-            }),
-            h('span', { class: 'text-gray-500 font-medium px-2' }, '~'),
-            h(Calendar, {
-                modelValue: column.value.end,
-                'onUpdate:modelValue': (value) => column.value.end = value,
-                placeholder: column.endPlaceholder || '종료일',
-                dateFormat: 'yy-mm-dd',
-                class: 'flex-1',
-                showIcon: true
-            })
-        ]);
-    },
-    
-    // 숫자 범위 검색 - 최소~최대
-    numberRange: (column) => {
-        // value가 객체가 아니면 초기화
-        if (!column.value || typeof column.value !== 'object') {
-            column.value = { min: null, max: null };
-        }
-        
-        return h('div', { class: 'flex gap-2 items-center w-full' }, [
-            h(InputText, {
-                modelValue: column.value.min,
-                'onUpdate:modelValue': (value) => column.value.min = value,
-                placeholder: column.minPlaceholder || '최소값',
-                type: 'number',
-                class: 'flex-1'
-            }),
-            h('span', { class: 'text-gray-500 font-medium px-2' }, '~'),
-            h(InputText, {
-                modelValue: column.value.max,
-                'onUpdate:modelValue': (value) => column.value.max = value,
-                placeholder: column.maxPlaceholder || '최대값',
-                type: 'number',
-                class: 'flex-1'
-            })
-        ]);
-    },
-    
-    radio: (column) => h('div', { class: 'flex gap-4' }, 
-        column.options.map(option => 
-            h('div', { class: 'flex items-center', key: option.value }, [
-                h(RadioButton, {
-                    id: `${column.key}_${option.value}`,
-                    modelValue: column.value,
-                    'onUpdate:modelValue': (value) => column.value = value,
-                    value: option.value,
-                    name: column.key
-                }),
-                h('label', {
-                    for: `${column.key}_${option.value}`,
-                    class: 'ml-2'
-                }, option.label)
-            ])
-        )
-    )
-};
-
-// 컴포넌트 렌더링 함수
-const renderFieldComponent = (column) => {
-    const renderFn = renderFunctions[column.type] || renderFunctions.text;
-    return renderFn(column);
-};
 
 const handleSearch = () => {
     console.log('검색 실행:', searchData.value);
@@ -230,8 +93,101 @@ const handleReset = () => {
                         {{ column.label }}
                     </label>
                     <div class="col-span-12 md:col-span-10">
-                        <!-- 렌더 함수로 동적 컴포넌트 생성 -->
-                        <component :is="() => renderFieldComponent(column)" />
+                        <!-- 텍스트 입력 -->
+                        <InputText 
+                            v-if="column.type === 'text'"
+                            :id="`search_${column.key}`"
+                            v-model="column.value"
+                            :placeholder="column.placeholder"
+                            class="w-full"
+                        />
+                        
+                        <!-- 캘린더 -->
+                        <Calendar 
+                            v-else-if="column.type === 'calendar'"
+                            :id="`search_${column.key}`"
+                            v-model="column.value"
+                            :placeholder="column.placeholder"
+                            dateFormat="yy-mm-dd"
+                            class="w-full"
+                            showIcon
+                        />
+                        
+                        <!-- 날짜 범위 -->
+                        <div 
+                            v-else-if="column.type === 'dateRange'"
+                            class="flex gap-2 items-center w-full"
+                        >
+                            <Calendar
+                                v-model="column.value.start"
+                                :placeholder="column.startPlaceholder || '시작일'"
+                                dateFormat="yy-mm-dd"
+                                class="flex-1"
+                                showIcon
+                            />
+                            <span class="text-gray-500 font-medium px-2">~</span>
+                            <Calendar
+                                v-model="column.value.end"
+                                :placeholder="column.endPlaceholder || '종료일'"
+                                dateFormat="yy-mm-dd"
+                                class="flex-1"
+                                showIcon
+                            />
+                        </div>
+                        
+                        <!-- 숫자 범위 -->
+                        <div 
+                            v-else-if="column.type === 'numberRange'"
+                            class="flex gap-2 items-center w-full"
+                        >
+                            <InputText
+                                v-model="column.value.min"
+                                :placeholder="column.minPlaceholder || '최소값'"
+                                type="number"
+                                class="flex-1"
+                            />
+                            <span class="text-gray-500 font-medium px-2">~</span>
+                            <InputText
+                                v-model="column.value.max"
+                                :placeholder="column.maxPlaceholder || '최대값'"
+                                type="number"
+                                class="flex-1"
+                            />
+                        </div>
+                        
+                        <!-- 라디오 버튼 -->
+                        <div 
+                            v-else-if="column.type === 'radio'"
+                            class="flex gap-4"
+                        >
+                            <div 
+                                v-for="option in column.options" 
+                                :key="option.value"
+                                class="flex items-center"
+                            >
+                                <RadioButton
+                                    :id="`${column.key}_${option.value}`"
+                                    v-model="column.value"
+                                    :value="option.value"
+                                    :name="column.key"
+                                />
+                                <label 
+                                    :for="`${column.key}_${option.value}`"
+                                    class="ml-2"
+                                >
+                                    {{ option.label }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 기본 텍스트 (fallback) -->
+                        <InputText 
+                            v-else
+                            :id="`search_${column.key}`"
+                            v-model="column.value"
+                            :placeholder="column.placeholder || '입력하세요'"
+                            class="w-full"
+                        />
                     </div>
                 </div>
                 
