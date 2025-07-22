@@ -53,6 +53,26 @@ const model = ref([
                 label: '자재 재고 조회',
                 to: '/material/materialStockView'
             },
+            {
+                label: '자재 입고',
+                to: '/material/materialInbound'
+            },
+            {
+                label: '자재 적재 대기 목록',
+                to: '/material/materialLoadingWaitingList'
+            },
+            {
+                label: '자재 이동 요청 등록',
+                to: '/material/transferRequestForm'
+            },
+            {
+                label: '자재 이동 요청 목록',
+                to: '/material/transferRequestList'
+            },
+            {
+                label: '자재 입출고 내역',
+                to: '/material/materialInOutHistory'
+            },
         ]
     },
     {

@@ -39,6 +39,7 @@ const props = defineProps({
                 key: 'balanceRange', 
                 label: '잔액 범위', 
                 type: 'numberRange',
+                step: 1000,
                 minPlaceholder: '최소 잔액',
                 maxPlaceholder: '최대 잔액'
             },
@@ -68,12 +69,18 @@ onBeforeMount(() => {
 const handleSearch = (searchData) => {
     console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
     // 여기에 검색 로직 구현
+    props.searchColumns.forEach(column => {
+        column.value = searchData[column.key] || '';
+    });
 };
 
 // 리셋 이벤트 핸들러
 const handleReset = () => {
     console.log('검색 조건이 리셋되었습니다');
     // 여기에 리셋 로직 구현
+    props.searchColumns.forEach(column => {
+        column.value = '';
+    });
 };
 </script>
 
@@ -111,12 +118,6 @@ const handleReset = () => {
     </div>
 </template>
 
-<style scoped lang="scss">
-:deep(.p-datatable-frozen-tbody) {
-    font-weight: bold;
-}
+<style scoped>
 
-:deep(.p-datatable-scrollable .p-frozen-column) {
-    font-weight: bold;
-}
 </style>

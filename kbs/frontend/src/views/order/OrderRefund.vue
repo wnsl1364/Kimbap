@@ -21,7 +21,7 @@ const formFields = [
     { label: '납기요청일자', field: 'dueDate', type: 'date', readonly: true },
     { label: '입금예정일자', field: 'paymentDate', type: 'calendar', readonly: true },
     { label: '비고', field: 'memo', type: 'text' },
-    { label: '미수금', field: 'unpaid', type: 'text', readonly: true, suffixButton: '미수금 조회' }
+    { label: '미수금', field: 'unpaid', type: 'text', readonly: true }
 ]
 
 /** 

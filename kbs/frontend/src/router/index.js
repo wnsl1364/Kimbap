@@ -6,6 +6,7 @@ import orderRoutes from './order';
 import productionRoutes from './production';
 import logisticsRoutes from './logistics';
 import paymentRoutes from './payment';
+import loginRoutes from './login';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -134,12 +135,6 @@ const router = createRouter({
             name: 'notfound',
             component: () => import('@/views/pages/NotFound.vue')
         },
-
-        {
-            path: '/auth/login',
-            name: 'login',
-            component: () => import('@/views/pages/auth/Login.vue')
-        },
         {
             path: '/auth/access',
             name: 'accessDenied',
@@ -149,7 +144,8 @@ const router = createRouter({
             path: '/auth/error',
             name: 'error',
             component: () => import('@/views/pages/auth/Error.vue')
-        }
+        },
+        ...loginRoutes, // 로그인 페이지
     ]
 });
 
