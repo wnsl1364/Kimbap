@@ -32,4 +32,9 @@ export default [
         name: 'materialInOutHistory',
         component: () => import('@/views/material/MaterialInOutHistory.vue'),
     },
+    {
+        path: '/material/MaterialPurchase',
+        name: 'materialPurchase',
+        component: () => import('@/views/material/MaterialPurchase.vue'),
+    },
 ];
