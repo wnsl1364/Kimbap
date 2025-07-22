@@ -35,6 +35,6 @@ onMounted(async () => {
 </script>
 <template>
   <div class="space-y-4">
-    <BasicTable :data="products" :columns="productColumns" />
+    <BasicTable :data="products" :columns="productColumns" title="타이틀 맘대로"/>
   </div>
 </template>
