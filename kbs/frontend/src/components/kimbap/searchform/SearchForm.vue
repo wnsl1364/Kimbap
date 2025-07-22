@@ -77,23 +77,22 @@ const handleReset = () => {
     <Fluid>
         <div class="flex flex-col gap-8">
             <!-- 검색 폼 영역 -->
-            <div class="card flex flex-col gap-4 !rounded-none">
+            <div class="card flex flex-col gap-4">
                 <div class="font-semibold text-xl">검색 조건</div>
                 
-                <!-- 동적 검색 필드들 - 2열 그리드 -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div 
-                        v-for="(column, index) in searchColumns" 
-                        :key="column.key"
-                        class="flex flex-col gap-2"
+                <!-- 동적 검색 필드들 -->
+                <div 
+                    v-for="(column, index) in searchColumns" 
+                    :key="column.key"
+                    class="grid grid-cols-12 gap-2 items-center"
+                >
+                    <label 
+                        :for="`search_${column.key}`" 
+                        class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0"
                     >
-                        <label 
-                            :for="`search_${column.key}`" 
-                            class="font-medium text-gray-700 mb-1"
-                        >
-                            {{ column.label }}
-                        </label>
-                        <div class="w-full">
+                        {{ column.label }}
+                    </label>
+                    <div class="col-span-12 md:col-span-10">
                         <!-- 텍스트 입력 -->
                         <InputText 
                             v-if="column.type === 'text'"
@@ -189,7 +188,6 @@ const handleReset = () => {
                             :placeholder="column.placeholder || '입력하세요'"
                             class="w-full"
                         />
-                                            </div>
                     </div>
                 </div>
                 
