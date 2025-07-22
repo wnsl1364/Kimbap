@@ -1,112 +1,160 @@
-  <script setup>
-  import { ref } from 'vue'
-  import { CustomerService } from '@/service/CustomerService';
-  import { onBeforeMount} from 'vue';
-  import { defineProps } from 'vue';
-  import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
-  import InputForm from '@/components/kimbap/searchform/inputForm.vue';
+<script setup>
+import { ref, onMounted } from 'vue';
+import { CustomerService } from '@/service/CustomerService';
+import { onBeforeMount } from 'vue';
+import { defineProps } from 'vue';
+import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
+import InputForm from '@/components/kimbap/searchform/inputForm.vue';
+import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 
-  const customers2 = ref(null);
-  // SearchForm props 정의
-  const props = defineProps({
-      searchColumns: {
-          type: Array,
-          default: () => [
-              { 
-                  key: 'name', 
-                  label: '이름', 
-                  type: 'text', 
-                  placeholder: '이름을 입력하세요' 
-              },
-              { 
-                  key: 'status', 
-                  label: '상태', 
-                  type: 'radio', 
-                  options: [
-                      { label: '활성', value: 'active' },
-                      { label: '비활성', value: 'inactive' }
-                  ]
-              },
-              // 숫자 범위 검색 예시  
-              { 
-                  key: 'balanceRange', 
-                  label: '잔액 범위', 
-                  type: 'numberRange',
-                  minPlaceholder: '최소 잔액',
-                  maxPlaceholder: '최대 잔액'
-              },
-              // 날짜 범위 검색 예시
-              { 
-                  key: 'dateRange', 
-                  label: '등록일 범위', 
-                  type: 'dateRange',
-                  startPlaceholder: '시작일을 선택하세요',
-                  endPlaceholder: '종료일을 선택하세요'
-              },
-              { 
-                  key: 'singleDate', 
-                  label: '특정일', 
-                  type: 'calendar', 
-                  placeholder: '날짜를 선택하세요' 
-              }
-          ]
-      },
-      inputColumns: {
-          type: Array,
-          default: () => [
-          { key: 'materialCode', label: '자재코드', type: 'readonly', defaultValue: '자동생성' },
-          { key: 'materialName', label: '자재명', type: 'text' },
-          { key: 'materialType', label: '자재유형', type: 'dropdown', options: [{ label: '원자재', value: 'raw' }, { label: '부자재', value: 'sub' }] },
-          { key: 'unit', label: '단위', type: 'dropdown', options: [{ label: 'kg', value: 'kg' }, { label: 'box', value: 'box' }] },
-          { key: 'deliveryUnit', label: '납개단위', type: 'dropdown', options: [{ label: '매', value: '매' }, { label: '장', value: '장' }, { label: 'EA', value: 'ea' }] },
-          { key: 'minOrderUnit', label: '최소발주단위', type: 'text' },
-          { key: 'supplier', label: '공급사', type: 'text' },
-          { key: 'shelfLife', label: '소비기한(일)', type: 'text' },
-          { key: 'storageCondition', label: '보관조건', type: 'dropdown', options: [{ label: '냉동', value: '냉동' }, { label: '냉장', value: '냉장' }, { label: '상온', value: '상온' }] },
-          { key: 'spec', label: '규격', type: 'text' },
-          { key: 'conversionQty', label: '환산수량', type: 'text' },
-          { key: 'safeStock', label: '안전재고', type: 'text' },
-          { key: 'leadTime', label: '리드타임(일)', type: 'text' },
-          { key: 'origin', label: '원산지', type: 'text' },
-          { key: 'status', label: '사용여부', type: 'radio', options: [{ label: '활성화', value: 'active' }, { label: '비활성화', value: 'inactive' }] },
-          { key: 'changeReason', label: '변경사유', type: 'text' },
-          { key: 'note', label: '비고', type: 'text' },
-          { key: 'registrant', label: '등록일자', type: 'readonly', defaultValue: new Date().toISOString().slice(0, 10) }
+const handleViewHistory = (rowData) => {
+    console.log('이력조회 클릭됨:', rowData);
+    // 모달 열기 + 이력 데이터 세팅 등 처리
+};
+
+const products = ref([]);
+
+const productColumns = [
+    { field: 'mcode', header: '자재코드' },
+    { field: 'mateName', header: '자재명' },
+    { field: 'mateType', header: '유형' },
+    { field: 'stoCon', header: '보관조건' },
+    { field: 'edate', header: '소비기한' }
+];
+
+const customers2 = ref(null);
+// SearchForm props 정의
+
+const props = defineProps({
+    searchColumns: {
+        type: Array,
+        default: () => [
+            {
+                key: 'mateName',
+                label: '자재명',
+                type: 'text',
+                placeholder: '이름을 입력하세요'
+            },
+            {
+                key: 'mateType',
+                label: '자재유형',
+                type: 'dropdown',
+                options: [
+                    { label: '원자재', value: 'h1' },
+                    { label: '부자재', value: 'h2' }
+                ]
+            },
+            {
+                key: 'stoCon',
+                label: '보관조건',
+                type: 'dropdown',
+                options: [
+                    { label: '상온', value: 'o1' },
+                    { label: '냉장', value: 'o2' },
+                    { label: '냉동', value: 'o3' }
+                ]
+            }
         ]
-      }
-  });
-      
+    },
+    inputColumns: {
+        type: Array,
+        default: () => [
+            { key: 'mcode', label: '자재코드', type: 'disabled', defaultValue: '자동생성' },
+            { key: 'mateName', label: '자재명', type: 'text' },
+            {
+                key: 'mateType',
+                label: '자재유형',
+                type: 'dropdown',
+                options: [
+                    { label: '원자재', value: 'h1' },
+                    { label: '부자재', value: 'h2' }
+                ]
+            },
+            {
+                key: 'stoCon',
+                label: '보관조건',
+                type: 'dropdown',
+                options: [
+                    { label: '상온', value: 'o1' },
+                    { label: '냉장', value: 'o2' },
+                    { label: '냉동', value: 'o3' }
+                ]
+            },
+            {
+                key: 'unit',
+                label: '단위',
+                type: 'dropdown',
+                options: [
+                    { label: 'kg', value: 'g2' },
+                    { label: 'box', value: 'g6' }
+                ]
+            },
+            { key: 'std', label: '규격', type: 'text' },
+            {
+                key: 'deliveryUnit',
+                label: '낱개단위',
+                type: 'dropdown',
+                options: [
+                    { label: '매', value: '매' },
+                    { label: '장', value: '장' },
+                    { label: 'EA', value: 'ea' }
+                ]
+            },
+            { key: 'converQty', label: '환산수량', type: 'number' },
+            { key: 'moqty', label: '최소발주단위', type: 'text' },
+            { key: 'supplier', label: '공급사', type: 'text' },
+            { key: 'unitPrice', label: '단가(원)', type: 'number' },
+            { key: 'edate', label: '소비기한(일)', type: 'text' },
+            { key: 'safeStock', label: '안전재고', type: 'number' },
+            { key: 'ltime', label: '리드타임(일)', type: 'number' },
+            { key: 'corigin', label: '원산지', type: 'text' },
+            { key: 'regDt', label: '등록일자', type: 'disabled', defaultValue: new Date().toISOString().slice(0, 10) },
+            {
+                key: 'isUsed',
+                label: '사용여부',
+                type: 'radio',
+                options: [
+                    { label: '활성화', value: 'f1' },
+                    { label: '비활성화', value: 'f2' }
+                ]
+            },
+            { key: 'chaRea', label: '변경사유', type: 'text' },
+            { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20, placeholder: '특이사항을 입력하세요' }
+        ]
+    }
+});
 
-  function formatCurrency(value) {
-  return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  }
-  onBeforeMount(() => {
-  CustomerService.getCustomersLarge().then((data) => (customers2.value = data));
-  });
+function formatCurrency(value) {
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+onBeforeMount(() => {
+    CustomerService.getCustomersLarge().then((data) => (customers2.value = data));
+});
 
-  // 검색 이벤트 핸들러
-  const handleSearch = (searchData) => {
-      console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
-      // 여기에 검색 로직 구현
-  };
+// 검색 이벤트 핸들러
+const handleSearch = (searchData) => {
+    console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
+    // 여기에 검색 로직 구현
+};
 
-  // 리셋 이벤트 핸들러
-  const handleReset = () => {
-      console.log('검색 조건이 리셋되었습니다');
-      // 여기에 리셋 로직 구현
-  };
-  
-  </script>
+// 리셋 이벤트 핸들러
+const handleReset = () => {
+    console.log('검색 조건이 리셋되었습니다');
+    // 여기에 리셋 로직 구현
+};
+</script>
+
 <template>
-  <div>
-    <SearchForm 
-        :columns="searchColumns"
-        @search="handleSearch"
-        @reset="handleReset"
-    />
-  </div>
-    <InputForm
-       :columns="inputColumns"
-       class="mt-4"
-    />
+    <div>
+        <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-4 mt-6">
+        <div class="w-full md:basis-[55%]">
+            <StandardTable :data="products" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" />
+        </div>
+        <div class="w-full md:basis-[45%]">
+            <InputForm :columns="inputColumns" />
+        </div>
+    </div>
 </template>
