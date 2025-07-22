@@ -1,8 +1,39 @@
 export default [
     /** @/views/standard/products/ProductTable.vue 이런구조로*/
+    /**주문 등록 */
     {
-        path: '/standard/products',
-        name: 'stdProd',
-        component: () => import('@/views/standard/Products.vue'),
+        path: '/order/orderRegister',
+        name: 'ordRegister',
+        component: () => import('@/views/order/OrderRegisters.vue'),
+    },
+    /**주문 검토 */
+    {
+        path: '/order/orderReview',
+        name: 'ordReview',
+        component: () => import('@/views/order/OrderReview.vue'),
+    },
+    /**주문 목록 */
+    {
+        path: '/order/orderList',
+        name: 'ordList',
+        component: () => import('@/views/order/OrderList.vue'),
+    },
+    /**거래내역 */
+    {
+        path: '/order/transactionDetails',
+        name: 'ordTransactionDetails',
+        component: () => import('@/views/order/TransactionDetails.vue'),
+    },
+    /**거래처원장 */
+    {
+        path: '/order/orderLedger',
+        name: 'ordLedger',
+        component: () => import('@/views/order/OrderLedger.vue'),
+    },
+    /**반품관리 */
+    {
+        path: '/order/orderRefund',
+        name: 'ordRefund',
+        component: () => import('@/views/order/OrderRefund.vue'),
     },
 ];

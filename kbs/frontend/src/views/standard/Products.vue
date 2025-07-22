@@ -41,14 +41,15 @@
     <div class="mt-2 text-sm text-gray-700">
       선택된 상품: {{ selectedProduct?.name || '없음' }}
     </div>
-      <Dependentselectbox v-model="selectedCode"
+    <Dependentselectbox v-model="selectedCode"
       :typeOptions="[
         { label: '공급업체', value: 'supplier' },
         { label: '매출업체', value: 'customer' }
       ]"
-    />
+    />      
     </div>    
 </template>
+
 <script setup>
 import { ref } from 'vue'
 import Labelddropdown from '@/components/kimbap/labeldinputbar/labelddropdown.vue';
