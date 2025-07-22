@@ -18,8 +18,8 @@
 | ?? | 물류관리 |
 
 ## 프로젝트 구조
-/client  → 프론트(Vue + Vite)
-/server  → 백엔드(Spring Boot)
+/client  → 프론트(Vue3 + Vite)
+/server  → 백엔드(Spring Boot 버전:3.4.7)
 
 ## 사용 기술
 - **Backend**: Spring Boot, JPA, Oracle
@@ -36,6 +36,9 @@
 - git add .
 - git commit -m "feat: 기능 설명"
 - git push origin feature/기능명
+
+ # Git commit규칙
+- 20250722-이름-어떤걸 수정했는지 설명
 
 ## 개발 규칙
 [네트워크 통신규약]
