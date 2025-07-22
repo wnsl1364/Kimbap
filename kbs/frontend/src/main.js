@@ -29,12 +29,16 @@ app.use(paymentRouter);
 const CustomTheme = definePreset(Lara, {
   semantic: {
     primary: {
+      100: '#f5832cff',
+      200: '#ebb082ff',
+      300: '#F47D22',
+      400: '#F47D22',
       500: '#F47D22', // ✅ 여기에 원하는 색상
       600: '#ea580c',
       700: '#c2410c',
       800: '#9a3412',
       900: '#7c2d12'
-    }
+    },
   }
 })
 
