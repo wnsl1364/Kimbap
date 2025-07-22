@@ -110,10 +110,10 @@ const handleReset = () => {
 </script>
 
 <template>
-    <Fluid>
+    <Fluid >
         <div class="flex flex-col border-2 border-black-600 gap-8">
             <!-- 검색 폼 영역 -->
-            <div class="card flex flex-col gap-4 !rounded-none">
+            <div class="card flex flex-col gap-4 !p-5 !rounded-none">
 
                 <!-- 동적 검색 필드들 - 2열 그리드 -->
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
