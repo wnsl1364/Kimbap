@@ -1,11 +1,27 @@
-<script>
+<script setup>
+/**
+ * SearchForm Import 문제 해결 기록:
+ * 
+ * 1. 기존 문제점:
+ *    - <script>에서 defineProps, defineEmits를 import해서 사용했으나 
+ *      이는 <script setup> 전용 문법이므로 일반 <script>에서 사용 불가
+ *    - Composition API를 사용하면서 <script setup> 문법을 사용하지 않음
+ *    - props로 정의한 searchColumns를 템플릿에서 props.searchColumns로 접근
+ * 
+ * 2. 해결 방법:
+ *    - <script> → <script setup>으로 변경
+ *    - defineProps, defineEmits import 제거 (setup에서는 자동 제공)
+ *    - searchColumns를 props 대신 ref()로 reactive 데이터로 변경
+ *    - 템플릿에서 props.searchColumns → searchColumns로 변경
+ *    - 이벤트 핸들러에서 props.searchColumns → searchColumns.value로 변경
+ */
 import { CustomerService } from '@/service/CustomerService';
 import { onBeforeMount, ref } from 'vue';
-import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
+import inputForm from '@/components/kimbap/searchform/inputForm.vue';
+import InputTable from '@/components/kimbap/table/InputTable.vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ToggleButton from 'primevue/togglebutton';
-import { defineProps, defineEmits } from 'vue';
 
 const customers2 = ref(null);
 const balanceFrozen = ref(false);
@@ -15,51 +31,103 @@ function formatCurrency(value) {
 }
 
 // SearchForm props 정의
-const props = defineProps({
-  searchColumns: {
-    type: Array,
-    default: () => [
-      {
-        key: 'name',
-        label: '이름',
-        type: 'text',
-        placeholder: '이름을 입력하세요'
-      },
-      {
-        key: 'status',
-        label: '상태',
-        type: 'radio',
-        options: [
-          { label: '활성', value: 'active' },
-          { label: '비활성', value: 'inactive' }
-        ]
-      },
-      // 숫자 범위 검색 예시  
-      {
-        key: 'balanceRange',
-        label: '잔액 범위',
-        type: 'numberRange',
-        step: 1000,
-        minPlaceholder: '최소 잔액',
-        maxPlaceholder: '최대 잔액'
-      },
-      // 날짜 범위 검색 예시
-      {
-        key: 'dateRange',
-        label: '등록일 범위',
-        type: 'dateRange',
-        startPlaceholder: '시작일을 선택하세요',
-        endPlaceholder: '종료일을 선택하세요'
-      },
-      {
-        key: 'singleDate',
-        label: '특정일',
-        type: 'calendar',
-        placeholder: '날짜를 선택하세요'
-      }
-    ]
+const searchColumns = ref([
+  {
+    key: 'purc_cd',
+    label: '발주서코드',
+    type: 'text',
+    placeholder: '발주서코드를 입력하세요'
+  },
+  {
+    key: 'regi',
+    label: '등록자',
+    type: 'text',
+    placeholder: '등록자를 입력하세요'
+  },
+  {
+    key: 'singleDate',
+    label: '주문일자',
+    type: 'calendar',
+    placeholder: '날짜를 선택하세요'
   }
-});
+]);
+
+const purchaseColumns = ref([
+  {
+    field: 'materialName',
+    header: '자재명',
+    type: 'input',
+    placeholder: '자재명을 입력하세요'
+  },
+  {
+    field: 'buyer',
+    header: '거래처',
+    type: 'input',
+    placeholder: '거래처를 입력하세요'
+  },
+  {
+    field: 'number',
+    header: '수량',
+    type: 'input',
+    placeholder: '수량을 입력하세요'
+  },
+  {
+    field: 'unit',
+    header: '단위',
+    type: 'input',
+    placeholder: '단위를 입력하세요'
+  },
+  {
+    field: 'price',
+    header: '단가',
+    type: 'input',
+    placeholder: '단가를 입력하세요'
+  },
+  {
+    field: 'totalPrice',
+    header: '총액',
+    type: 'input',
+    placeholder: '총액을 입력하세요'
+  },
+  {
+    field: 'date',
+    header: '납기예정일',
+    type: 'calendar',
+    placeholder: '납기예정일을 선택하세요'
+  },
+  {
+    field: 'memo',
+    header: '비고',
+    type: 'input',
+    placeholder: '비고를 입력하세요'
+  }
+]);
+
+// 예시 데이터
+const purchaseData = ref([
+  {
+    id: 1,
+    materialName: '자재1',
+    buyer: '거래처1',
+    number: 100,
+    unit: '개',
+    price: 5000,
+    totalPrice: 500000,
+    date: '2025-07-22',
+    memo: '비고 내용'
+  },
+  {
+    id: 2,
+    materialName: '자재2',
+    buyer: '거래처2',
+    number: 200,
+    unit: '개',
+    price: 3000,
+    totalPrice: 600000,
+    date: '2025-07-23',
+    memo: '비고 내용'
+  }
+]);
 
 onBeforeMount(() => {
   CustomerService.getCustomersLarge().then((data) => (customers2.value = data));
@@ -69,7 +137,7 @@ onBeforeMount(() => {
 const handleSearch = (searchData) => {
   console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
   // 여기에 검색 로직 구현
-  props.searchColumns.forEach(column => {
+  searchColumns.value.forEach(column => {
     column.value = searchData[column.key] || '';
   });
 };
@@ -78,13 +146,24 @@ const handleSearch = (searchData) => {
 const handleReset = () => {
   console.log('검색 조건이 리셋되었습니다');
   // 여기에 리셋 로직 구현
-  props.searchColumns.forEach(column => {
+  searchColumns.value.forEach(column => {
     column.value = '';
   });
 };
 </script>
 <template>
   <div>
-    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
+    <inputForm 
+      :columns="searchColumns" 
+      @submit="handleSearch"
+    />    
+  </div>
+  <div>
+    <InputTable 
+      :columns="purchaseColumns"
+      :data="purchaseData"
+      @search="handleSearch"
+      @reset="handleReset"
+    />
   </div>
 </template>
