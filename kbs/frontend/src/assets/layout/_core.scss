@@ -35,3 +35,14 @@ select:focus {
         box-shadow var(--transition-duration),
         outline-color var(--transition-duration);
 }
+
+.text-right span{
+    text-align: right !important;
+    width:100%;
+    display: block;
+}
+.text-center span{
+    text-align: center !important;
+    width:100%;
+    display: block;
+}

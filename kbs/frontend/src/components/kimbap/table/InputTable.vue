@@ -19,11 +19,17 @@ const emit = defineEmits(['update:data'])
 const updateField = (field, value) => {
     emit('update:data', { ...props.data, [field]: value })
 }
+
+const getAlignClass = (align) => {
+    if (align === 'center') return 'text-center';
+    if (align === 'right') return 'text-right';
+    return 'text-left'; // 기본값
+};
 </script>
 <template>
   <div>
     <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines :rows="10" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
-        <Column v-for="column in columns" :key="column.field" :header="column.header">
+        <Column v-for="column in columns" :key="column.field" :header="column.header" :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)">
             <template #body="slotProps">
                 <template v-if="column.type === 'readonly'">
                     <span>{{ slotProps.data[column.field] }}</span>
@@ -33,7 +39,7 @@ const updateField = (field, value) => {
                         <input
                             v-model="slotProps.data[column.field]"
                             :type="column.inputType || 'text'"
-                            class="border-none outline-none flex-1 bg-transparent px-3 py-2"
+                            :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]"
                         />
                         <i
                             v-if="column.suffixIcon"
