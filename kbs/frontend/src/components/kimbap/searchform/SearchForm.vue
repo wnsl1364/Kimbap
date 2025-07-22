@@ -77,106 +77,6 @@ const handleReset = () => {
     <Fluid>
         <div class="flex flex-col border-2 border-black-600 gap-8">
             <!-- 검색 폼 영역 -->
-            <div class="card flex flex-col gap-4">
-                <div class="font-semibold text-xl">검색 조건</div>
-                
-                <!-- 동적 검색 필드들 -->
-                <div 
-                    v-for="(column, index) in searchColumns" 
-                    :key="column.key"
-                    class="grid grid-cols-12 gap-2 items-center"
-                >
-                    <label 
-                        :for="`search_${column.key}`" 
-                        class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0"
-                    >
-                        {{ column.label }}
-                    </label>
-                    <div class="col-span-12 md:col-span-10">
-                        <!-- 텍스트 입력 -->
-                        <InputText 
-                            v-if="column.type === 'text'"
-                            :id="`search_${column.key}`"
-                            v-model="column.value"
-                            :placeholder="column.placeholder"
-                            class="w-full"
-                        />
-                        
-                        <!-- 캘린더 -->
-                        <Calendar 
-                            v-else-if="column.type === 'calendar'"
-                            :id="`search_${column.key}`"
-                            v-model="column.value"
-                            :placeholder="column.placeholder"
-                            dateFormat="yy-mm-dd"
-                            class="w-full"
-                            showIcon
-                        />
-                        
-                        <!-- 날짜 범위 -->
-                        <div 
-                            v-else-if="column.type === 'dateRange'"
-                            class="flex gap-2 items-center w-full"
-                        >
-                            <Calendar
-                                v-model="column.value.start"
-                                :placeholder="column.startPlaceholder || '시작일'"
-                                dateFormat="yy-mm-dd"
-                                class="flex-1"
-                                showIcon
-                            />
-                            <span class="text-gray-500 font-medium px-2">~</span>
-                            <Calendar
-                                v-model="column.value.end"
-                                :placeholder="column.endPlaceholder || '종료일'"
-                                dateFormat="yy-mm-dd"
-                                class="flex-1"
-                                showIcon
-                            />
-                        </div>
-                        
-                        <!-- 숫자 범위 -->
-                        <div 
-                            v-else-if="column.type === 'numberRange'"
-                            class="flex gap-2 items-center w-full"
-                        >
-                            <InputText
-                                v-model="column.value.min"
-                                :placeholder="column.minPlaceholder || '최소값'"
-                                type="number"
-                                class="flex-1"
-                            />
-                            <span class="text-gray-500 font-medium px-2">~</span>
-                            <InputText
-                                v-model="column.value.max"
-                                :placeholder="column.maxPlaceholder || '최대값'"
-                                type="number"
-                                class="flex-1"
-                            />
-                        </div>
-                        
-                        <!-- 라디오 버튼 -->
-                        <div 
-                            v-else-if="column.type === 'radio'"
-                            class="flex gap-4"
-                        >
-                            <div 
-                                v-for="option in column.options" 
-                                :key="option.value"
-                                class="flex items-center"
-                            >
-                                <RadioButton
-                                    :id="`${column.key}_${option.value}`"
-                                    v-model="column.value"
-                                    :value="option.value"
-                                    :name="column.key"
-                                />
-                                <label 
-                                    :for="`${column.key}_${option.value}`"
-                                    class="ml-2"
-                                >
-                                    {{ option.label }}
-                                </label>
             <div class="card flex flex-col gap-4 !rounded-none">
 
                 <!-- 동적 검색 필드들 - 2열 그리드 -->
@@ -228,15 +128,6 @@ const handleReset = () => {
                             <InputText v-else :id="`search_${column.key}`" v-model="column.value"
                                 :placeholder="column.placeholder || '입력하세요'" class="w-full" />
                         </div>
-                        
-                        <!-- 기본 텍스트 (fallback) -->
-                        <InputText 
-                            v-else
-                            :id="`search_${column.key}`"
-                            v-model="column.value"
-                            :placeholder="column.placeholder || '입력하세요'"
-                            class="w-full"
-                        />
                     </div>
                 </div>
 
