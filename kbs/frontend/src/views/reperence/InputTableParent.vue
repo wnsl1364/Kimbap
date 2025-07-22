@@ -36,7 +36,7 @@ const products = ref([
 
 const columns = [
     { field: 'code', header: '제품코드', type: 'readonly' },
-    { field: 'name', header: '제품명', type: 'input', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal' },
+    { field: 'name', header: '제품명', type: 'input', readonly: true, suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal'},
     { field: 'qty', header: '주문수량', type: 'input', inputType: 'number', align: 'right'},
     { field: 'price', header: '단가', type: 'readonly', align: 'right' },
     { field: 'dueDate', header: '납기일자', type: 'calendar'}
