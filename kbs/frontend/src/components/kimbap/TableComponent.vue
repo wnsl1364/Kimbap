@@ -39,6 +39,7 @@ const props = defineProps({
                 key: 'balanceRange', 
                 label: '잔액 범위', 
                 type: 'numberRange',
+                step: 1000,
                 minPlaceholder: '최소 잔액',
                 maxPlaceholder: '최대 잔액'
             },
