@@ -106,6 +106,10 @@ const model = ref([
         label: 'UI Components',
         items: [
             { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', to: '/uikit/formlayout' },
+            { label: '싱글체크테이블', to: '/BasicTableCheckOneParent' },
+            { label: '더블체크테이블', to: '/BasicTableParent' },
+            { label: '등록테이블', to: '/InputTableParent' },
+            { label: '가로?테이블?', to: '/LeftAlignTableParent' },
             { label: 'Input', icon: 'pi pi-fw pi-check-square', to: '/uikit/input' },
             { label: 'Button', icon: 'pi pi-fw pi-mobile', to: '/uikit/button', class: 'rotated-icon' },
             { label: 'Table', icon: 'pi pi-fw pi-table', to: '/uikit/table' },

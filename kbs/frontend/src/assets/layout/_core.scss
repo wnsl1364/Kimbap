@@ -22,3 +22,16 @@ a {
 .layout-wrapper {
     min-height: 100vh;
 }
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline-width: var(--focus-ring-width);
+    outline-style: var(--focus-ring-style);
+    outline-color: var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    box-shadow: var(--focus-ring-shadow);
+    transition:
+        box-shadow var(--transition-duration),
+        outline-color var(--transition-duration);
+}

@@ -21,6 +21,26 @@ const router = createRouter({
                     component: () => import('@/views/Dashboard.vue')
                 },
                 {
+                    path: '/BasicTableCheckOneParent',
+                    name: 'BasicTableCheckOneParent',
+                    component: () => import('@/views/reperence/BasicTableCheckOneParent.vue')
+                },
+                {
+                    path: '/BasicTableParent',
+                    name: 'BasicTableParent',
+                    component: () => import('@/views/reperence/BasicTableParent.vue')
+                },
+                {
+                    path: '/InputTableParent',
+                    name: 'InputTableParent',
+                    component: () => import('@/views/reperence/InputTableParent.vue')
+                },
+                {
+                    path: '/LeftAlignTableParent',
+                    name: 'LeftAlignTableParent',
+                    component: () => import('@/views/reperence/LeftAlignTableParent.vue')
+                },
+                {
                     path: '/uikit/formlayout',
                     name: 'formlayout',
                     component: () => import('@/views/uikit/FormLayout.vue')

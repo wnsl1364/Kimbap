@@ -19,15 +19,33 @@ const props = defineProps({
 const selected = ref();
 </script>
 <template>
-    <div class="card">
-        <h2 v-if="title" class="text-lg font-semibold mb-4">{{ title }}</h2>
+    <div>
         <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines :rows="10" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
             <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-            <Column 
-                v-for="col in columns" 
-                :key="col.field" 
-                :field="col.field" 
-                :header="col.header" />
+            <Column v-for="col in columns" :key="col.field" :header="col.header">
+                <template #body="slotProps">
+                    <template v-if="col.type === 'input'">
+                        <div class="flex items-center border rounded w-full h-10">
+                            <input
+                                v-model="slotProps.data[col.field]"
+                                :type="col.inputType || 'text'"
+                                class="border-none outline-none flex-1 bg-transparent px-3 py-2"
+                            />
+                            <i
+                                v-if="col.suffixIcon"
+                                :class="[col.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2']"
+                                @click="$emit(col.suffixEvent, slotProps.data)"
+                            />
+                        </div>
+                    </template>
+
+                    <template v-else>
+                        {{ slotProps.data[col.field] }}
+                    </template>
+                </template>
+
+            </Column>
         </DataTable>
+
     </div>
 </template>

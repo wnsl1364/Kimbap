@@ -15,13 +15,13 @@ const formData = ref({
 
 const formFields = [
     { label: '주문번호', field: 'orderNo', type: 'text', disabled: true },
-    { label: '주문일자', field: 'orderDate', type: 'text', readonly: true },
-    { label: '거래처명', field: 'customerName', type: 'text', readonly: true },
+    { label: '주문일자', field: 'orderDate', type: 'text', disabled: true  },
+    { label: '거래처명', field: 'customerName', type: 'input', readonly: true, suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal' },
     { label: '배송지주소', field: 'address', type: 'text', readonly: true },
-    { label: '납기요청일자', field: 'dueDate', type: 'date', readonly: true },
+    { label: '납기요청일자', field: 'dueDate', type: 'calendar', readonly: true },
     { label: '입금예정일자', field: 'paymentDate', type: 'calendar', readonly: true },
     { label: '비고', field: 'memo', type: 'text' },
-    { label: '미수금', field: 'unpaid', type: 'text', readonly: true }
+    { label: '미수금', field: 'unpaid', type: 'text', readonly: true, suffixButton: '미수금 조회' }
 ]
 
 /** 
@@ -45,6 +45,6 @@ onMounted(async () => {
 
 <template>
     <div class="space-y-4">
-        <LeftAlignTable :data="formData" :fields="formFields" title="타이틀 맘대로"/>
+        <LeftAlignTable :data="formData" :fields="formFields"/>
     </div>
 </template>
