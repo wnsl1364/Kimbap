@@ -33,12 +33,14 @@
       :visible="show"
       @update:visible="show = $event"
     />
+    <!-- <Multipleselect
+      v-model="selectedItem"
+      :visible="show"
+      @update:visible="show = $event"
+    /> -->
     <div class="mt-2 text-sm text-gray-700">
       선택된 상품: {{ selectedProduct?.name || '없음' }}
     </div>
-    <BasicTable
-      :data="products"
-      :columns="productColumns"/>
       <Dependentselectbox v-model="selectedCode"
       :typeOptions="[
         { label: '공급업체', value: 'supplier' },
@@ -49,13 +51,13 @@
 </template>
 <script setup>
 import { ref } from 'vue'
-import BasicTable from '@/components/kimbap/table/BasicTable.vue'
 import Labelddropdown from '@/components/kimbap/labeldinputbar/labelddropdown.vue';
 import Labeldinputbar from '@/components/kimbap/labeldinputbar/labeldinputbar.vue';
 import Labelddatepicker from '@/components/kimbap/labeldinputbar/labelddatepicker.vue';
 import Labeldtextarea from '@/components/kimbap/labeldinputbar/labeldtextarea.vue';
 import Singleselect from '@/components/kimbap/modal/singleselect.vue';
 import Dependentselectbox from '@/components/kimbap/labeldinputbar/dependentselectbox.vue';
+import Multipleselect from '@/components/kimbap/modal/multipleselect.vue';
 
 const category = ref('')
 const comment = ref('')

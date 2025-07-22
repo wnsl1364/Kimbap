@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { definePreset } from '@primeuix/themes'
 import App from './App.vue';
 import router from './router';
 
@@ -8,8 +9,7 @@ import orderRouter from './router/order';
 import productionRouter from './router/production';
 import logisticsRouter from './router/logistics';
 import paymentRouter from './router/payment';
-
-import Aura from '@primeuix/themes/aura';
+import Lara from '@primeuix/themes/lara'
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
@@ -26,14 +26,26 @@ app.use(productionRouter);
 app.use(logisticsRouter);
 app.use(paymentRouter);
 
-app.use(PrimeVue, {
-    theme: {
-        preset: Aura,
-        options: {
-            darkModeSelector: '.app-dark'
-        }
+const CustomTheme = definePreset(Lara, {
+  semantic: {
+    primary: {
+      500: '#F47D22', // ✅ 여기에 원하는 색상
+      600: '#ea580c',
+      700: '#c2410c',
+      800: '#9a3412',
+      900: '#7c2d12'
     }
-});
+  }
+})
+
+app.use(PrimeVue, {
+  theme: {
+    preset: CustomTheme,
+    options: {
+      darkModeSelector: '.app-dark'
+    }
+  }
+})
 app.use(ToastService);
 app.use(ConfirmationService);
 

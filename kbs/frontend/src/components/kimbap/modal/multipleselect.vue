@@ -21,13 +21,18 @@
     <DataTable
       :value="filteredProducts"
       v-model:selection="selectedProduct"
-      selectionMode="single"
+      selectionMode="multiple"
       dataKey="code"
       tableStyle="min-width: 50rem"
       showGridlines
     >
       <!-- ✅ 단일 선택용 라디오 컬럼 -->
-      <Column selectionMode="single" headerStyle="width: 3rem" />
+      <Column
+        selectionMode="multiple"
+        headerClass="bg-gray-100 text-center"
+        bodyClass="text-center"
+        headerStyle="width: 3rem"
+      />
 
       <Column field="code" header="Code" />
       <Column field="name" header="Name" />
