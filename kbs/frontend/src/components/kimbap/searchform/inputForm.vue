@@ -1,10 +1,11 @@
 <script setup>
 import { ref, watch } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 import InputText from 'primevue/inputtext';
 import Dropdown from 'primevue/dropdown';
 import RadioButton from 'primevue/radiobutton';
 import Button from 'primevue/button';
-import { defineProps, defineEmits } from 'vue';
+import Textarea from 'primevue/textarea';
 
 const props = defineProps({
     columns: {
@@ -42,7 +43,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
-    <div class="p-4 bg-orange-50" >
+    <div class="p-4 bg-orange-50">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- 저장 버튼 -->
             <div class="col-span-1 md:col-span-2 flex justify-end">
@@ -52,13 +53,13 @@ const handleSubmit = () => {
                 <label :for="field.key" class="font-medium text-gray-700">
                     {{ field.label }}
                 </label>
-                
+
                 <!-- 텍스트 입력 -->
                 <InputText v-if="field.type === 'text'" v-model="formData[field.key]" :placeholder="field.placeholder" class="w-full" />
-                
+
                 <!-- 드롭다운 -->
                 <Dropdown v-else-if="field.type === 'dropdown'" v-model="formData[field.key]" :options="field.options" optionLabel="label" optionValue="value" :placeholder="field.placeholder" class="w-full" />
-                
+
                 <!-- 라디오 버튼 -->
                 <div v-else-if="field.type === 'radio'" class="flex gap-4 items-center">
                     <div v-for="option in field.options" :key="option.value" class="flex items-center">
@@ -68,10 +69,18 @@ const handleSubmit = () => {
                         </label>
                     </div>
                 </div>
-                
+                <!-- 숫자 입력 -->
+                <InputText v-else-if="field.type === 'number'" v-model="formData[field.key]" :placeholder="field.placeholder" type="number" class="w-full" />
+
                 <!-- 읽기 전용 -->
                 <InputText v-else-if="field.type === 'readonly'" v-model="formData[field.key]" class="w-full" readonly />
-                
+
+                <!-- 비활성화 (disabled) -->
+                <InputText v-else-if="field.type === 'disabled'" v-model="formData[field.key]" class="w-full" disabled />
+
+                <!-- 비고용 textarea -->
+                <Textarea v-else-if="field.type === 'textarea'" v-model="formData[field.key]" :placeholder="field.placeholder" :rows="field.rows || 3" :cols="field.cols || 40" class="w-full" />
+
                 <!-- 기본값 (fallback) -->
                 <InputText v-else v-model="formData[field.key]" class="w-full" />
             </div>
