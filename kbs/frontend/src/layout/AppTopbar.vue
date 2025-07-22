@@ -1,8 +1,14 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
+import { useRoute,useRouter } from 'vue-router';
 import AppConfigurator from './AppConfigurator.vue';
 
+const router = useRouter();
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
+
+const goToLogin = () => {
+  router.push('/login/loginForm')
+}
 </script>
 
 <template>
@@ -68,7 +74,7 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
                         <i class="pi pi-inbox"></i>
                         <span>Messages</span>
                     </button>
-                    <button type="button" class="layout-topbar-action">
+                    <button type="button" class="layout-topbar-action" @click="goToLogin">
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
                     </button>
