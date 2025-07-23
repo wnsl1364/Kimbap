@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import { CustomerService } from '@/service/CustomerService';
 import { onBeforeMount } from 'vue';
 import { defineProps } from 'vue';
-import { getMaterialList } from '@/api/mat';
+import { getMaterialList } from '@/api/standard';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -12,7 +12,6 @@ const handleViewHistory = (rowData) => {
     console.log('이력조회 클릭됨:', rowData);
     // 모달 열기 + 이력 데이터 세팅 등 처리
 };
-
 
 // 자재기준정보 테이블용
 const productColumns = [
@@ -26,14 +25,14 @@ const productColumns = [
 const products = ref([]);
 
 onMounted(async () => {
-  try {
-    const res = await getMaterialList();
-    console.log('✅ 응답 타입:', typeof res.data);
-    console.log('📦 실제 응답 내용:', res.data);
-    products.value = res.data;
-  } catch (err) {
-    console.error('❌ 자재 목록 조회 실패:', err);
-  }
+    try {
+        const res = await getMaterialList();
+        console.log('✅ 응답 타입:', typeof res.data);
+        console.log('📦 실제 응답 내용:', res.data);
+        products.value = res.data;
+    } catch (err) {
+        console.error('❌ 자재 목록 조회 실패:', err);
+    }
 });
 
 //
@@ -117,13 +116,9 @@ const props = defineProps({
             },
             { key: 'converQty', label: '환산수량', type: 'number' },
             { key: 'moqty', label: '최소발주단위', type: 'text' },
-            { key: 'supplier', label: '공급사', type: 'text' },
-            { key: 'unitPrice', label: '단가(원)', type: 'number' },
             { key: 'edate', label: '소비기한(일)', type: 'text' },
             { key: 'safeStock', label: '안전재고', type: 'number' },
-            { key: 'ltime', label: '리드타임(일)', type: 'number' },
             { key: 'corigin', label: '원산지', type: 'text' },
-            { key: 'regDt', label: '등록일자', type: 'disabled', defaultValue: new Date().toISOString().slice(0, 10) },
             {
                 key: 'isUsed',
                 label: '사용여부',
@@ -134,7 +129,8 @@ const props = defineProps({
                 ]
             },
             { key: 'chaRea', label: '변경사유', type: 'text' },
-            { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20, placeholder: '특이사항을 입력하세요' }
+            { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20, placeholder: '특이사항을 입력하세요' },
+            { key: 'regDt', label: '등록일자', type: 'disabled', defaultValue: new Date().toISOString().slice(0, 10) }
         ]
     }
 });
@@ -157,6 +153,10 @@ const handleReset = () => {
     console.log('검색 조건이 리셋되었습니다');
     // 여기에 리셋 로직 구현
 };
+
+const purchaseFormButtons = ref({
+  save: { show: true, label: '저장', severity: 'success' },
+});
 </script>
 
 <template>
@@ -166,10 +166,10 @@ const handleReset = () => {
 
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
-            <StandardTable :data="products" dataKey="mcode" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" />
+            <StandardTable :data="products" dataKey="mcode" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" :scrollable="true" scrollHeight="300px" height="330px"/>
         </div>
         <div class="w-full md:basis-[45%]">
-            <InputForm :columns="inputColumns" />
+            <InputForm :columns="inputColumns" :buttons="purchaseFormButtons" />
         </div>
     </div>
 </template>

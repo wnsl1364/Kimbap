@@ -4,9 +4,12 @@ import Button from 'primevue/button';
 
 const props = defineProps({
     data: { type: Array, default: () => [] },
+     height: { type: String, default: '500px' },
     columns: { type: Array, default: () => [] },
     title: { type: String, default: '' },
-    dataKey: { type: String, default: 'id' } // 👈 추가
+    dataKey: { type: String, default: 'id' },
+    scrollHeight: { type: String, default: '400px' }, // 예: '300px', 'flex', '100%'
+    tableMinWidth: { type: String, default: '50rem' } // 👈 추가
 });
 
 const emit = defineEmits(['view-history']);
@@ -18,17 +21,18 @@ const handleClick = (rowData) => {
 </script>
 
 <template>
-    <div class="card">
+    <div class="card" :style="{ height: props.height }">
         <h2 v-if="title" class="text-lg font-semibold mb-4">{{ title }}</h2>
         <DataTable
             :value="data"
             :tableStyle="{ minWidth: '50rem' }"
             showGridlines
-            :rows="10"
             responsiveLayout="scroll"
             v-model:selection="selected"
             :dataKey="dataKey"
             size="large"
+            scrollable
+            :scrollHeight="scrollHeight"
         >
             <Column selectionMode="multiple" headerStyle="width: 3rem" />
             <Column
