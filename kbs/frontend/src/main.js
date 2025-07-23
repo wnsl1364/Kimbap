@@ -21,7 +21,10 @@ import '@/assets/styles.scss';
 const app = createApp(App);
 
 const pinia = createPinia();
-pinia.use(createPersistedState()) // localStorage 기본 사용
+pinia.use(createPersistedState({
+  storage: sessionStorage, // 세션에 저장하기
+  }
+)); // localStorage 기본 사용
 app.use(pinia);
 
 app.use(router);

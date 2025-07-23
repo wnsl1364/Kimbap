@@ -50,14 +50,14 @@
 import { createApp } from 'vue'
 import { ref } from 'vue'
 import axios from 'axios';
-import { createPinia } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useMemberStore } from '@/stores/memberStore';
 
+// 라우터
 const router = useRouter();
 
-// pinia
-const pinia = createPinia();
-// const app = createApp(App)
+// store 로그인정보 저장용
+const memberStore = useMemberStore();
 
 // login
 const id = ref('');
@@ -87,13 +87,18 @@ async function handleLogin() {
     });
 
     if (response.data && response.data.id) {
-      const userData = response.data; // 지역변수
-      // store.dispatch('saveUser', response.data.user); // saveUser 액션에 로그인정보 넘겨서 전역 state.user 에 로그인정보 저장
-      sessionStorage.setItem('user', JSON.stringify({
+      const userData = response.data;
+      memberStore.saveUser({
         id: userData.id,
         empName: userData.empName,
         tel: userData.tel
-      })); // 로컬스토리지에 user라는 키 이름으로 저장 (새로고침 시 로그인정보 유지)
+      });
+      sessionStorage.setItem('member', JSON.stringify({
+        id: userData.id,
+        empName: userData.empName,
+        tel: userData.tel
+      }));
+      console.log('저장된 로그인정보', memberStore)
       router.push('/');
     } else {
       error.value = response.data.message;
