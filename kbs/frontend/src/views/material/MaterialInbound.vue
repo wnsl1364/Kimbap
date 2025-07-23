@@ -1,9 +1,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useMaterialStore } from '@/stores/materialStore'
-import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import BasicTable from '@/components/kimbap/table/BasicTable.vue'
-import Singleselect from '@/components/kimbap/modal/singleselect.vue'
+import LeftTableDropdown from '@/components/kimbap/table/LeftTableDropdown.vue'
 
 const materialStore = useMaterialStore()
 
@@ -19,14 +18,23 @@ onMounted(() => {
         wcode: ''
     };
 
-    // inboundFields 초기화
+    // inboundFields 초기화 (창고 선택을 드롭다운으로 변경)
     materialStore.inboundFields = [
         { label: '입고번호', field: 'purcCd', type: 'text', readonly: true },
         { label: '상태', field: 'status', type: 'text', readonly: true },
         { label: '주문일자', field: 'ordDt', type: 'date', readonly: true },
         { label: '입고일자', field: 'inboDt', type: 'date', readonly: false },
         { label: '등록자', field: 'mname', type: 'text', readonly: true },
-        { label: '입고창고', field: 'wcode', type: 'input', readonly: true, suffixIcon: 'pi pi-search', suffixEvent: 'openWarehouseModal' }
+        { 
+            label: '입고창고', 
+            field: 'wcode', 
+            type: 'dropdown', 
+            placeholder: '창고를 선택하세요',
+            options: [
+                { value: 'A', label: 'A공장' },
+                { value: 'B', label: 'B공장' }
+            ]
+        }
     ]
 
     // inMaterialColumns 초기화
@@ -35,18 +43,11 @@ onMounted(() => {
         { field: 'cpName', header: '거래처명' },
         { field: 'purcQty', header: '입고요청수량' },
         { field: 'unit', header: '단위' }, 
-        { field: 'total_qty', header: '입고수량' },
-        { field: 'ex_deli_dt', header: '납기예정일'},
-        { field: 'deli_dt', header: '납기일'},
+        { field: 'totalQty', header: '입고수량' },
+        { field: 'stoCon', header: '보관조건' },
+        { field: 'exDeliDt', header: '납기예정일' },
+        { field: 'deliDt', header: '납기일' },
         { field: 'note', header: '비고' }
-    ]
-
-    // warehouseColumns 초기화
-    materialStore.warehouseColumns = [
-        { field: 'name', header: '공장이름' },
-        { field: 'category', header: '창고명' },
-        { field: 'type', header: '창고유형' },
-        { field: 'quantity', header: '창고담당자' }
     ]
 })
 
@@ -65,9 +66,10 @@ const material = ref([
         cpName: '광동식자재',
         purcQty: 1000,
         unit: '장',
-        total_qty: 980,
-        ex_deli_dt: '2025-07-24',
-        deli_dt: '2025-07-22',
+        totalQty: 980,
+        stoCon: '실온',
+        exDeliDt: '2025-07-24',
+        deliDt: '2025-07-22',
         note: '부분 납품됨'
     },
     {   
@@ -76,9 +78,10 @@ const material = ref([
         cpName: '한성푸드',
         purcQty: 500,
         unit: '개',
-        total_qty: 500,
-        ex_deli_dt: '2025-07-24',
-        deli_dt: '2025-07-22',
+        totalQty: 500,
+        stoCon: '냉동', 
+        exDeliDt: '2025-07-24',
+        deliDt: '2025-07-22',
         note: ''
     },
     {   
@@ -87,9 +90,10 @@ const material = ref([
         cpName: '맛있는식자재',
         purcQty: 300,
         unit: 'kg',
-        total_qty: 300,
-        ex_deli_dt: '2025-07-24',
-        deli_dt: '2025-07-22',
+        totalQty: 300,
+        stoCon: '냉장', 
+        exDeliDt: '2025-07-24',
+        deliDt: '2025-07-22',
         note: '정상 입고'
     }
 ])
@@ -103,54 +107,20 @@ watch(selectedMaterials, (newSelection) => {
     materialStore.setSelectedInboundMaterials([...newSelection]);
 }, { deep: true })
 
-const warehouseList = ref([
-    { id: 1, name: 'A', category: 'A', type: '냉동', quantity: '김냉동' },
-    { id: 2, name: 'A', category: 'B', type: '냉장', quantity: '이냉장' },
-    { id: 3, name: 'A', category: 'C', type: '실온', quantity: '박실온' },
-    { id: 4, name: 'B', category: 'A', type: '냉동', quantity: '최냉동' },
-    { id: 5, name: 'B', category: 'B', type: '냉장', quantity: '곽냉장' },
-    { id: 6, name: 'B', category: 'C', type: '실온', quantity: '이실온' },
-])
-
-const isWarehouseModalOpen = ref(false)
-const selectedWarehouse = ref(null)
-
-const openWarehouseModal = () => {
-  isWarehouseModalOpen.value = true
-}
-
-const onConfirmWarehouse = (value) => {
-  if (value){
-    selectedWarehouse.value = value;
-    formData.value.wcode = `${value.name}-${value.category}-${value.type}`;
-    // Store 업데이트 (안전한 접근)
-    if (materialStore.inboundData) {
-      materialStore.inboundData.wcode = `${value.name}-${value.category}-${value.type}`;
-    }
-  } else {
-    selectedWarehouse.value = null;
-    formData.value.wcode = ''; 
-    if (materialStore.inboundData) {
-      materialStore.inboundData.wcode = '';
-    }
-  }
-  isWarehouseModalOpen.value = false;
-}
-
 // 입고 완료 처리 함수
 const handleInboundComplete = async () => {
   try {
     // 유효성 검증
     if (!formData.value.wcode) {
-      alert('입고창고를 선택해주세요.');
+      alert('입고창고를 입력해주세요.');
       return;
     }
 
-    // 선택된 자재가 있는지 확인 (주석 처리)
-    // if (!selectedMaterials.value || selectedMaterials.value.length === 0) {
-    //   alert('입고할 자재를 선택해주세요.');
-    //   return;
-    // }
+    // 선택된 자재가 있는지 확인
+    if (!selectedMaterials.value || selectedMaterials.value.length === 0) {
+      alert('입고할 자재를 선택해주세요.');
+      return;
+    }
 
     // 입고 데이터 구성 (선택된 자재만 포함)
     const inboundData = {
@@ -208,14 +178,14 @@ const handleInboundComplete = async () => {
         </button>
     </div>
     <div class="space-y-4 mb-2" >
-        <LeftAlignTable :data="formData" :fields="materialStore.inboundFields" @openWarehouseModal="openWarehouseModal"/>
+        <LeftTableDropdown 
+            :data="formData" 
+            :fields="materialStore.inboundFields" 
+            @update:data="(newData) => { formData = newData; materialStore.inboundData = { ...newData }; }"
+        />
     </div>
     <div>
         <h2>자재 목록</h2>
-        <!-- 선택된 자재 개수 표시 -->
-        <div class="mb-2 text-sm text-gray-600">
-            선택된 자재: {{ selectedMaterials.length }}개
-        </div>
         <BasicTable 
             :data="material" 
             :columns="materialStore.inMaterialColumns" 
@@ -224,13 +194,4 @@ const handleInboundComplete = async () => {
             :dataKey="'id'"
         />
     </div>
-
-    <Singleselect
-        v-model:visible="isWarehouseModalOpen"
-        v-model:modelValue="selectedWarehouse"
-        :items="warehouseList"
-        itemKey="id"
-        :columns="materialStore.warehouseColumns"
-        @update:modelValue="onConfirmWarehouse"
-    />
 </template>
