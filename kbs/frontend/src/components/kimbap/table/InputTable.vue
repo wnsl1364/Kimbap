@@ -137,17 +137,23 @@ const openModal = (rowData, field) => {
 
 // 모달에서 선택 완료했을 때
 const handleModalSelect = (selectedItem) => {
-    if (currentRowData.value && currentField.value && selectedItem) {
-        const modalConfig = props.modalDataSets[currentField.value]
-        const displayValue = selectedItem[modalConfig.displayField]
-        
-        // 선택된 값을 해당 필드에 업데이트
-        updateField(currentRowData.value, currentField.value, displayValue)
-        
-        console.log(`${currentField.value}에 ${displayValue} 선택됨! 🎉`)
+  if (currentRowData.value && currentField.value && selectedItem) {
+    const modalConfig = props.modalDataSets[currentField.value];
+
+    if (modalConfig?.mappingFields) {
+      for (const [targetField, sourceField] of Object.entries(modalConfig.mappingFields)) {
+        updateField(currentRowData.value, targetField, selectedItem[sourceField]);
+      }
+    } else {
+      // fallback 처리 (displayField만 있을 경우)
+      const displayValue = selectedItem[modalConfig.displayField];
+      updateField(currentRowData.value, currentField.value, displayValue);
     }
-    resetModalState()
-}
+
+    console.log(`${currentField.value} 모달에서 선택됨`, selectedItem);
+  }
+  resetModalState();
+};
 
 const handleModalClose = (visible) => {
     modalVisible.value = visible
