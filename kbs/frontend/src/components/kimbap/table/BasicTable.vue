@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     data: {
@@ -14,13 +14,36 @@ const props = defineProps({
         type: String,
         default: ''
     },
-     scrollHeight: {
+    scrollHeight: {
         type: String,
         default: '400px'
-    }, 
+    },
+    selection: {
+        type: Array,
+        default: () => []
+    },
+    selectionMode: {
+        type: String,
+        default: 'single'
+    },
+    dataKey: {
+        type: String,
+        default: 'id'
+    }
 });
 
-const selected = ref();
+const emit = defineEmits(['update:selection']);
+
+// 부모 컴포넌트의 selection과 연결
+const selected = computed({
+    get() {
+        return props.selection;
+    },
+    set(value) {
+        console.log('BasicTable - 선택 변경:', value);
+        emit('update:selection', value);
+    }
+});
 
 const getAlignClass = (align) => {
     if (align === 'center') return 'text-center';
@@ -28,10 +51,24 @@ const getAlignClass = (align) => {
     return 'text-left'; // 기본값
 };
 </script>
+
 <template>
     <div>
-        <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines  scrollable  :scrollHeight="scrollHeight" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
-            <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+        <DataTable 
+            :value="data" 
+            :tableStyle="{ minWidth: '50rem' }" 
+            showGridlines  
+            scrollable  
+            :scrollHeight="scrollHeight" 
+            responsiveLayout="scroll" 
+            v-model:selection="selected" 
+            :dataKey="dataKey" 
+            :selectionMode="selectionMode"
+            size="large">
+            
+            <Column v-if="selectionMode === 'multiple'" selectionMode="multiple" headerStyle="width: 3rem"></Column>
+            <Column v-else-if="selectionMode === 'single'" selectionMode="single" headerStyle="width: 3rem"></Column>
+            
             <Column v-for="col in columns" :key="col.field" :header="col.header" :headerClass="getAlignClass(col.align)" :bodyClass="getAlignClass(col.align)">
                 <template #body="slotProps">
                     <template v-if="col.type === 'input'">
@@ -56,6 +93,5 @@ const getAlignClass = (align) => {
                 </template>
             </Column>
         </DataTable>
-
     </div>
 </template>
