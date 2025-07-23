@@ -1,4 +1,6 @@
 <script setup>
+import { ref } from 'vue'
+
 const props = defineProps({
     data: {
         type: Array,
@@ -11,57 +13,179 @@ const props = defineProps({
     title: {
         type: String,
         default: ''
+    },
+    buttons: {
+        type: Object,
+        default: () => ({
+            save: { show: true, label: '저장', severity: 'success' },
+            reset: { show: true, label: '초기화', severity: 'secondary' },
+            delete: { show: false, label: '삭제', severity: 'danger' },
+            load: { show: false, label: '불러오기', severity: 'info' }
+        })
+    },
+    buttonPosition: {
+        type: String,
+        default: 'top',
+        validator: (value) => ['top', 'bottom', 'both'].includes(value)
+    },
+    // 행 추가/삭제 기능 on/off
+    enableRowActions: {
+        type: Boolean,
+        default: true
+    },
+    // 선택 기능 활성화
+    enableSelection: {
+        type: Boolean,
+        default: true
     }
 })
 
-const emit = defineEmits(['update:data'])
+const emit = defineEmits(['update:data', 'dataChange'])
 
-const updateField = (field, value) => {
-    emit('update:data', { ...props.data, [field]: value })
+// 내부 데이터 관리
+const internalData = ref([...props.data])
+const selectedRows = ref([]) // 선택된 행들
+
+// 빈 행 생성
+const createEmptyRow = () => {
+    const emptyRow = { id: Date.now() }
+    props.columns.forEach(column => {
+        if (column.type === 'input') {
+            emptyRow[column.field] = column.inputType === 'number' ? 0 : ''
+        } else if (column.type === 'calendar') {
+            emptyRow[column.field] = null
+        } else {
+            emptyRow[column.field] = ''
+        }
+    })
+    return emptyRow
+}
+
+// 행 추가
+const addRow = () => {
+    const newRow = createEmptyRow()
+    internalData.value.push(newRow)
+    emitDataChange()
+}
+
+// 행 삭제 (선택된 행들)
+const deleteSelectedRows = () => {
+    if (selectedRows.value.length === 0) {
+        alert('삭제할 행을 선택하세요.')
+        return
+    }
+    const selectedIds = selectedRows.value.map(row => row.id)
+    internalData.value = internalData.value.filter(row => !selectedIds.includes(row.id))
+    selectedRows.value = [] // 선택 초기화
+    emitDataChange()
+}
+
+// 데이터 변경 이벤트
+const emitDataChange = () => {
+    emit('update:data', internalData.value)
+    emit('dataChange', internalData.value)
+}
+
+// 필드 업데이트
+const updateField = (rowData, field, value) => {
+    rowData[field] = value
+    
+    // 총액 자동계산
+    if (field === 'number' || field === 'price') {
+        if (rowData.number && rowData.price) {
+            rowData.totalPrice = rowData.number * rowData.price
+        }
+    }
+    
+    emitDataChange()
 }
 
 const getAlignClass = (align) => {
-    if (align === 'center') return 'text-center';
-    if (align === 'right') return 'text-right';
-    return 'text-left'; // 기본값
-};
+    if (align === 'center') return 'text-center'
+    if (align === 'right') return 'text-right'
+    return 'text-left'
+}
 </script>
-<template>
-  <div>
-    <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines :rows="10" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
-        <Column v-for="column in columns" :key="column.field" :header="column.header" :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)">
-            <template #body="slotProps">
-                <template v-if="column.type === 'readonly'">
-                    <span>{{ slotProps.data[column.field] }}</span>
-                </template>
 
+<template>
+    <div>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
+            
+            <div v-if="buttonPosition === 'top' || buttonPosition === 'both'" class="flex justify-end gap-2">
+                <!-- 슬롯 버튼들 -->
+                <slot name="top-buttons"></slot>
                 
-                <template v-else-if="column.type === 'input'">
-                    <div class="flex items-center border rounded w-full h-10">
-                        <input
-                            v-model="slotProps.data[column.field]"
-                            :type="column.inputType || 'text'"
-                            :readonly="column.readonly"
-                            :disabled="column.disabled"
-                            :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]"
-                        />
-                        <i
-                            v-if="column.suffixIcon"
-                            :class="[column.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2']"
-                            @click="$emit(column.suffixEvent, slotProps.data)"
-                        />
-                    </div>
+                <!-- 행 관리 버튼들 -->
+                <template v-if="enableRowActions">
+                    <Button label="행 추가" 
+                        icon="pi pi-plus" 
+                        severity="help" 
+                        @click="addRow" />
+                        
+                    <Button v-if="enableSelection && selectedRows.length > 0"
+                        :label="`${selectedRows.length}개 삭제`" 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        @click="deleteSelectedRows" />
                 </template>
-                <template v-else-if="column.type === 'calendar'">
-                    <Calendar
-                        v-model="slotProps.data[column.field]"
-                        dateFormat="yy-mm-dd"
-                        showIcon
-                        class="w-full"
-                    />
+                
+                <!-- 기본 버튼들 -->
+                <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" />
+                <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" />
+                <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" />
+                <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" />
+            </div>
+        </div>
+        
+        <DataTable 
+            :value="internalData" 
+            :tableStyle="{ minWidth: '50rem' }" 
+            showGridlines 
+            :rows="10" 
+            responsiveLayout="scroll"
+            v-model:selection="selectedRows"
+            dataKey="id" 
+            size="large"
+            :selectionMode="enableSelection ? 'multiple' : null">
+            
+            <!-- 선택 체크박스 컬럼 -->
+            <Column v-if="enableSelection" 
+                selectionMode="multiple" 
+                headerStyle="width: 3rem">
+            </Column>
+            
+            <!-- 데이터 컬럼들 -->
+            <Column v-for="column in columns" :key="column.field" :header="column.header"
+                :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)">
+                <template #body="slotProps">
+                    <template v-if="column.type === 'readonly'">
+                        <span>{{ slotProps.data[column.field] }}</span>
+                    </template>
+                    
+                    <template v-else-if="column.type === 'input'">
+                        <div class="flex items-center border rounded w-full h-10">
+                            <input 
+                                :value="slotProps.data[column.field]"
+                                @input="updateField(slotProps.data, column.field, $event.target.value)"
+                                :type="column.inputType || 'text'"
+                                :readonly="column.readonly" 
+                                :disabled="column.disabled"
+                                :placeholder="column.placeholder"
+                                :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
+                        </div>
+                    </template>
+                    
+                    <template v-else-if="column.type === 'calendar'">
+                        <Calendar 
+                            :modelValue="slotProps.data[column.field]"
+                            @update:modelValue="updateField(slotProps.data, column.field, $event)"
+                            dateFormat="yy-mm-dd" 
+                            showIcon 
+                            class="w-full" />
+                    </template>
                 </template>
-            </template>
-        </Column>
-    </DataTable>
-  </div>
+            </Column>
+        </DataTable>
+    </div>
 </template>
