@@ -95,8 +95,24 @@ const model = ref([
         label: '생산',
         items: [
             {
-                label: '자재 재고 조회',
-                to: '/material/materialStockView'
+                label: '생산 계획 등록',
+                to: '/production/productionPlan'
+            },
+            {
+                label: '생산 계획 조회',
+                to: '/production/productionPlanList'
+            },
+            {
+                label: '생산요청서 등록',
+                to: '/production/productionRequest'
+            },
+            {
+                label: '생산 요청 조회',
+                to: '/production/productionRequestList'
+            },
+            {
+                label: '제품 적재 대기',
+                to: '/production/productInbound'
             },
         ]
     },
