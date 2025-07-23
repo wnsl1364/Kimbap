@@ -103,18 +103,17 @@ function onConfirm() {
 
 
     <!-- 사용예시 
-     <ProductMultiSelectDialog
+     <MultiSelectDialog
       v-model:visible="dialogVisible"
       v-model:modelValue="selectedProducts"
       :items="products"
+      :itemKey="'code'"
       :columns="[
         { field: 'code', header: 'Code' },
         { field: 'name', header: 'Name' },
         { field: 'category', header: 'Category' },
         { field: 'quantity', header: 'Quantity' }
       ]"
-      :itemKey="'code'"
-      :fetchItems="() => ProductService.getProductsMini()"
     />
      -->
 </template>

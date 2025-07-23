@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import BasicTable from '@/components/kimbap/table/BasicTable.vue'
+import MultipleSelect from '@/components/kimbap/modal/multipleselect.vue'
+import Singleselect from '@/components/kimbap/modal/singleselect.vue'
 
 const formData = ref({
     purcCd: '자동생성',
@@ -18,11 +20,11 @@ const formFields = ref([
     { label: '주문일자', field: 'ordDt', type: 'date', readonly: true },
     { label: '입고일자', field: 'inboDt', type: 'calendar', readonly: false },
     { label: '등록자', field: 'mname', type: 'text', readonly: true },
-    { label: '입고창고', field: 'wcode', type: 'text' }
+    { label: '입고창고', field: 'wcode', type: 'input', readonly: true, suffixIcon: 'pi pi-search', suffixEvent: 'openWarehouseModal'}
 ])
 
 const material = ref([
-    {
+    {   id: 1,
         mateName: '김밥용 김',
         cpName: '광동식자재',
         purcQty: 1000,
@@ -32,7 +34,8 @@ const material = ref([
         deli_dt: '2025-07-22',
         note: '부분 납품됨'
     },
-    {
+    {   
+        id: 2,
         mateName: '햄',
         cpName: '한성푸드',
         purcQty: 500,
@@ -42,7 +45,8 @@ const material = ref([
         deli_dt: '2025-07-22',
         note: ''
     },
-    {
+    {   
+        id: 3,
         mateName: '단무지',
         cpName: '맛있는식자재',
         purcQty: 300,
@@ -65,6 +69,32 @@ const Columns = ref([
     { field: 'note', header: '비고' }
 ])
 
+const warehouseList = ref([
+    { name: 'A', category: 'A', quantity: 1000 },
+    { name: 'A', category: 'A', quantity: 1000 },
+    { name: 'A', category: 'A', quantity: 1000 }, 
+    { name: 'A', category: 'B', quantity: 500 },
+    
+])
+
+const isWarehouseModalOpen = ref(false)
+const selectedWarehouse = ref(null)
+
+const openWarehouseModal = () => {
+  isWarehouseModalOpen.value = true
+}
+
+const onConfirmWarehouse = (value) => {
+  if (value){
+    selectedWarehouse.value = value;
+    formData.value.wcode = value.name;
+  } else {
+    selectedWarehouse.value = null;
+    formData.value.wcode = ''; 
+  }
+  isWarehouseModalOpen.value = false;
+}
+
 </script>
 
 <template>
@@ -72,9 +102,22 @@ const Columns = ref([
         <button class="p-button p-component" type="button" aria-label="Primary" data-pc-name="button" data-p-disabled="false" pc68="" data-pc-section="root"><!----><span class="p-button-label" data-pc-section="label">입고처리</span><!----></button>
     </div>
     <div class="space-y-4 mb-2" >
-        <LeftAlignTable :data="formData" :fields="formFields" />
+        <LeftAlignTable :data="formData" :fields="formFields" @openWarehouseModal="openWarehouseModal"/>
     </div>
     <div>
         <BasicTable :data="material" :columns="Columns" />
     </div>
+
+    <Singleselect
+        v-model:visible="isWarehouseModalOpen"
+        v-model:modelValue="selectedWarehouse"
+        :items="warehouseList"
+        itemKey="code"
+        :columns="[
+            { field: 'category', header: '공장이름' },
+            { field: 'name', header: '창고명' },
+            { field: 'quantity', header: '창고담당자' }
+        ]"
+        @update:modelValue="onConfirmWarehouse"
+    />
 </template>
