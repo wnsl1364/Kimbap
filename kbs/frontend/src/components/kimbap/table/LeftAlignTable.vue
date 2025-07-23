@@ -35,7 +35,7 @@ const updateField = (field, value) => {
                       :type="field.inputType || 'text'"
                       :readonly="field.readonly"
                       :disabled="field.disabled"
-                      class="border-none outline-none flex-1 bg-transparent px-3 py-2"
+                      class="border-none outline-none flex-1 px-3 py-2"
                   />
                   <i
                       v-if="field.suffixIcon"
@@ -53,7 +53,7 @@ const updateField = (field, value) => {
                       :readonly="field.readonly"
                       :disabled="field.disabled"
                       :type="field.type === 'date' ? 'date' : 'text'"
-                      class="border rounded-l p-1 w-full h-10"
+                      class="border rounded p-1 w-full h-10"
                   />
                   <button v-if="field.suffixButton"
                       type="button"

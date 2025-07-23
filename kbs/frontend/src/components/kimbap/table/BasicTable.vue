@@ -13,7 +13,11 @@ const props = defineProps({
     title: {
         type: String,
         default: ''
-    }
+    },
+     scrollHeight: {
+        type: String,
+        default: '400px'
+    }, 
 });
 
 const selected = ref();
@@ -26,7 +30,7 @@ const getAlignClass = (align) => {
 </script>
 <template>
     <div>
-        <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines :rows="10" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
+        <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines  scrollable  :scrollHeight="scrollHeight" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
             <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
             <Column v-for="col in columns" :key="col.field" :header="col.header" :headerClass="getAlignClass(col.align)" :bodyClass="getAlignClass(col.align)">
                 <template #body="slotProps">

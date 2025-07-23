@@ -34,6 +34,6 @@ onMounted(async () => {
 </script>
 <template>
   <div class="space-y-4">
-    <BasicTable :data="products" :columns="productColumns"/>
+    <BasicTable :data="products" :columns="productColumns" scrollHeight="200px"/>
   </div>
 </template>
