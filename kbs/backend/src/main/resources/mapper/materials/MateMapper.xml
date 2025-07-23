@@ -1,6 +1,129 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.kimbap.kbs.mapper.materials.MateMapper">
+<mapper namespace="com.kimbap.kbs.materials.mapper.MateMapper">
+    
+    <!-- 자재입고 관련 쿼리 -->
+    
+    <!-- 자재입고 목록 조회 -->
+    <select id="getMateInboList" resultType="com.kimbap.kbs.materials.service.MateInboVO">
+        SELECT 
+            mate_inbo_cd as mateInboCd,
+            mcode,
+            mate_ver_cd as mateVerCd,
+            wcode,
+            ware_ver_cd as wareVerCd,
+            purc_d_cd as purcDCd,
+            lot_no as lotNo,
+            supplier_lot_no as supplierLotNo,
+            inbo_dt as inboDt,
+            inbo_status as inboStatus,
+            total_qty as totalQty,
+            mname,
+            note,
+            cp_cd as cpCd,
+            deli_dt as deliDt
+        FROM mate_inbo
+        ORDER BY inbo_dt DESC
+    </select>
+    
+    <!-- 자재입고 단건 조회 -->
+    <select id="getMateInboById" parameterType="String" resultType="com.kimbap.kbs.materials.service.MateInboVO">
+        SELECT 
+            mate_inbo_cd as mateInboCd,
+            mcode,
+            mate_ver_cd as mateVerCd,
+            wcode,
+            ware_ver_cd as wareVerCd,
+            purc_d_cd as purcDCd,
+            lot_no as lotNo,
+            supplier_lot_no as supplierLotNo,
+            inbo_dt as inboDt,
+            inbo_status as inboStatus,
+            total_qty as totalQty,
+            mname,
+            note,
+            cp_cd as cpCd,
+            deli_dt as deliDt
+        FROM mate_inbo
+        WHERE mate_inbo_cd = #{mateInboCd}
+    </select>
+    
+    <!-- 자재입고 등록 -->
+    <insert id="insertMateInbo" parameterType="com.kimbap.kbs.materials.service.MateInboVO">
+        INSERT INTO mate_inbo (
+            mate_inbo_cd,
+            mcode,
+            mate_ver_cd,
+            wcode,
+            ware_ver_cd,
+            purc_d_cd,
+            lot_no,
+            supplier_lot_no,
+            inbo_dt,
+            inbo_status,
+            total_qty,
+            mname,
+            note,
+            cp_cd,
+            deli_dt
+        ) VALUES (
+            #{mateInboCd},
+            #{mcode},
+            #{mateVerCd},
+            #{wcode},
+            #{wareVerCd},
+            #{purcDCd},
+            #{lotNo},
+            #{supplierLotNo},
+            #{inboDt},
+            #{inboStatus},
+            #{totalQty},
+            #{mname},
+            #{note},
+            #{cpCd},
+            #{deliDt}
+        )
+    </insert>
+    
+    <!-- 자재입고 수정 -->
+    <update id="updateMateInbo" parameterType="com.kimbap.kbs.materials.service.MateInboVO">
+        UPDATE mate_inbo SET
+            mcode = #{mcode},
+            mate_ver_cd = #{mateVerCd},
+            wcode = #{wcode},
+            ware_ver_cd = #{wareVerCd},
+            purc_d_cd = #{purcDCd},
+            lot_no = #{lotNo},
+            supplier_lot_no = #{supplierLotNo},
+            inbo_dt = #{inboDt},
+            inbo_status = #{inboStatus},
+            total_qty = #{totalQty},
+            mname = #{mname},
+            note = #{note},
+            cp_cd = #{cpCd},
+            deli_dt = #{deliDt}
+        WHERE mate_inbo_cd = #{mateInboCd}
+    </update>
+    
+    <!-- 발주 목록 조회 (자재입고 시 참조용) -->
+    <select id="getPurcOrdList" resultType="com.kimbap.kbs.materials.service.PurcOrdVO">
+        <!-- PurcOrdVO 필드에 맞게 수정 필요 -->
+        SELECT * FROM purc_ord
+        ORDER BY purc_ord_dt DESC
+    </select>
+    
+    <!-- 자재출고 목록 조회 -->
+    <select id="getMateRelList" resultType="com.kimbap.kbs.materials.service.MateRelVO">
+        <!-- MateRelVO 필드에 맞게 수정 필요 -->
+        SELECT * FROM mate_rel
+        ORDER BY rel_dt DESC
+    </select>
+    
+    <!-- 자재출고 등록 -->
+    <insert id="insertMateRel" parameterType="com.kimbap.kbs.materials.service.MateRelVO">
+        <!-- MateRelVO 필드에 맞게 수정 필요 -->
+        INSERT INTO mate_rel VALUES (...)
+    </insert>
     
 </mapper>
