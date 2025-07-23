@@ -26,7 +26,7 @@ const getAlignClass = (align) => {
 </script>
 <template>
     <div>
-        <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines :rows="10" responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
+        <DataTable :value="data" :tableStyle="{ minWidth: '50rem' }" showGridlines :scrollHeight="scrollHeight"  responsiveLayout="scroll" v-model:selection="selected" dataKey="id" size="large">
             <Column selectionMode="single" headerStyle="width: 3rem"></Column>
             <Column v-for="col in columns" :key="col.field" :header="col.header" :headerClass="getAlignClass(col.align)" :bodyClass="getAlignClass(col.align)">
                 <template #body="slotProps">
