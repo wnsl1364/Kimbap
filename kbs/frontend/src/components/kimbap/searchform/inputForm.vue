@@ -193,7 +193,7 @@ const handleLoad = () => {
             </div>
         </div>
 
-        <!-- 🎯 하단 버튼들 -->
+        <!-- 하단 버튼들 -->
         <div v-if="buttonPosition === 'bottom' || buttonPosition === 'both'" 
              class="flex justify-end gap-2 mt-4">
             <!-- 슬롯으로 커스텀 버튼 추가 가능 -->

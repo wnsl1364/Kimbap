@@ -19,19 +19,23 @@ import { CustomerService } from '@/service/CustomerService';
 import { onBeforeMount, ref } from 'vue';
 import inputForm from '@/components/kimbap/searchform/inputForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
+import { useMaterialStore } from '@/stores/materialStore';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ToggleButton from 'primevue/togglebutton';
+import { storeToRefs } from 'pinia';
 
 const customers2 = ref(null);
 const balanceFrozen = ref(false);
-
 function formatCurrency(value) {
   return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+const materialStore = useMaterialStore();
+const { searchColumns, purchaseColumns, purchaseData } = storeToRefs (materialStore);
+
 // SearchForm props 정의
-const searchColumns = ref([
+searchColumns.value = [
   {
     key: 'purc_cd',
     label: '발주서코드',
@@ -50,7 +54,7 @@ const searchColumns = ref([
     type: 'calendar',
     placeholder: '날짜를 선택하세요'
   }
-]);
+];
 
 const purchaseFormButtons = ref({
   save: { show: true, label: '저장', severity: 'success' },
@@ -59,7 +63,7 @@ const purchaseFormButtons = ref({
   load: { show: true, label: '발주서 불러오기', severity: 'info' }
 });
 
-const purchaseColumns = ref([
+purchaseColumns.value = [
   {
     field: 'materialName',
     header: '자재명',
@@ -108,10 +112,10 @@ const purchaseColumns = ref([
     type: 'input',
     placeholder: '비고를 입력하세요'
   }
-]);
+];
 
 // 예시 데이터
-const purchaseData = ref([
+purchaseData.value = [
   {
     id: 1,
     materialName: '자재1',
@@ -134,7 +138,7 @@ const purchaseData = ref([
     date: '2025-07-23',
     memo: '비고 내용'
   }
-]);
+];
 
 onBeforeMount(() => {
   CustomerService.getCustomersLarge().then((data) => (customers2.value = data));
@@ -179,7 +183,7 @@ const handleLoad = () => {
 
 // 커스텀 버튼 핸들러 (슬롯용)
 // const handleExport = () => {
-//   console.log('📤 엑셀로 내보내기');
+//   console.log('엑셀로 내보내기');
 //   alert('엑셀 파일로 내보냅니다!');
 // };
 </script>
