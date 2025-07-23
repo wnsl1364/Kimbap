@@ -78,7 +78,7 @@ const model = ref([
                 to: '/material/materialPurchase'
             },
             {
-                label: '자재 발주',
+                label: '자재 발주 조회',
                 to: '/material/materialPurchaseView'
             },
             {
