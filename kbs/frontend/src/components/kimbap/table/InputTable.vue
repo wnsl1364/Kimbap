@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue' // 경로는 너의 프로젝트에 맞게 수정해줘!
 
 const props = defineProps({
     data: {
@@ -46,14 +47,26 @@ const props = defineProps({
     scrollHeight: {
         type: String,
         default: '400px'
+    },
+    // 모달 데이터 설정
+    modalDataSets: {
+        type: Object,
+        default: () => ({})
     }
 })
 
-const emit = defineEmits(['update:data', 'dataChange'])
+const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal'])
 
 // 내부 데이터 관리
 const internalData = ref([...props.data])
 const selectedRows = ref([]) // 선택된 행들
+
+// 모달 관련 상태들
+const modalVisible = ref(false)
+const currentRowData = ref(null) // 현재 수정중인 행 데이터
+const currentField = ref('') // 현재 수정중인 필드명
+
+// 모달 데이터는 이제 props로 받아옴!
 
 // 빈 행 생성
 const createEmptyRow = () => {
@@ -80,7 +93,7 @@ const addRow = () => {
 // 행 삭제 (선택된 행들)
 const deleteSelectedRows = () => {
     if (selectedRows.value.length === 0) {
-        alert('삭제할 행을 선택하세요.')
+        alert('삭제할 행을 선택하세요! ㅠㅠ')
         return
     }
     const selectedIds = selectedRows.value.map(row => row.id)
@@ -99,7 +112,7 @@ const emitDataChange = () => {
 const updateField = (rowData, field, value) => {
     rowData[field] = value
 
-    // 총액 자동계산
+    // 총액 자동계산 - 완전 중요해! 🧮
     if (field === 'number' || field === 'price') {
         if (rowData.number && rowData.price) {
             rowData.totalPrice = rowData.number * rowData.price
@@ -107,6 +120,47 @@ const updateField = (rowData, field, value) => {
     }
 
     emitDataChange()
+}
+
+// 모달 열기 함수 - props에서 데이터 확인!
+const openModal = (rowData, field) => {
+    console.log('모달 열기!', field) // 디버깅용
+    
+    if (props.modalDataSets[field]) {
+        currentRowData.value = rowData
+        currentField.value = field
+        modalVisible.value = true
+    } else {
+        alert(`${field} 필드의 모달 데이터가 없어 ㅠㅠ`)
+    }
+}
+
+// 모달에서 선택 완료했을 때
+const handleModalSelect = (selectedItem) => {
+    if (currentRowData.value && currentField.value && selectedItem) {
+        const modalConfig = props.modalDataSets[currentField.value]
+        const displayValue = selectedItem[modalConfig.displayField]
+        
+        // 선택된 값을 해당 필드에 업데이트
+        updateField(currentRowData.value, currentField.value, displayValue)
+        
+        console.log(`${currentField.value}에 ${displayValue} 선택됨! 🎉`)
+    }
+    resetModalState()
+}
+
+const handleModalClose = (visible) => {
+    modalVisible.value = visible
+    if (!visible) {
+        resetModalState()
+    }
+}
+
+const resetModalState = () => {
+    modalVisible.value = false
+    currentRowData.value = null
+    currentField.value = ''
+    console.log('모달 상태 초기화 완료! 🧹')
 }
 
 const getAlignClass = (align) => {
@@ -139,8 +193,6 @@ const getAlignClass = (align) => {
                             icon="pi pi-trash" severity="danger" @click="deleteSelectedRows" />
                         <Button label="행 추가" icon="pi pi-plus" severity="help" @click="addRow" />
                     </template>
-
-
                 </div>
             </div>
 
@@ -171,16 +223,22 @@ const getAlignClass = (align) => {
                                     :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
                             </div>
                         </template>
+                        
+                        <!-- 여기가 핵심! inputsearch 타입에서 모달 연결 -->
                         <template v-else-if="column.type === 'inputsearch'">
                             <div class="flex items-center border rounded w-full h-10">
-                                <input v-model="slotProps.data[column.field]" :type="column.inputType || 'text'"
+                                <input :value="slotProps.data[column.field]"
+                                    @input="updateField(slotProps.data, column.field, $event.target.value)"
+                                    :type="column.inputType || 'text'"
                                     :readonly="column.readonly" :disabled="column.disabled"
+                                    :placeholder="column.placeholder"
                                     :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
                                 <i v-if="column.suffixIcon"
-                                    :class="[column.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2']"
-                                    @click="$emit(column.suffixEvent, slotProps.data)" />
+                                    :class="[column.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2 hover:text-blue-500']"
+                                    @click.stop="openModal(slotProps.data, column.field)" />
                             </div>
                         </template>
+                        
                         <template v-else-if="column.type === 'calendar'">
                             <Calendar :modelValue="slotProps.data[column.field]"
                                 @update:modelValue="updateField(slotProps.data, column.field, $event)"
@@ -190,5 +248,17 @@ const getAlignClass = (align) => {
                 </Column>
             </DataTable>
         </div>
+
+        <!-- 모달 컴포넌트 - props에서 데이터 가져오기 -->
+        <SingleSelectModal
+            v-model:visible="modalVisible"
+            :key="`${currentField}-${Date.now()}`"
+            :modelValue="null"
+            @update:modelValue="handleModalSelect"
+            @update:visible="handleModalClose"
+            :items="props.modalDataSets[currentField]?.items || []"
+            :columns="props.modalDataSets[currentField]?.columns || []"
+            :itemKey="'id'"
+        />
     </div>
 </template>
