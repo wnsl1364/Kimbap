@@ -8,7 +8,21 @@ const props = defineProps({
     title: {
         type: String,
         default: ''
-    }
+    },
+    buttons: {
+        type: Object,
+        default: () => ({
+            save: { show: true, label: '저장', severity: 'success' },
+            reset: { show: true, label: '초기화', severity: 'secondary' },
+            delete: { show: false, label: '삭제', severity: 'danger' },
+            load: { show: false, label: '불러오기', severity: 'info' }
+        })
+    },
+    buttonPosition: {
+        type: String,
+        default: 'top',
+        validator: (value) => ['top', 'bottom', 'both'].includes(value)
+    },
 })
 
 const emit = defineEmits(['update:data'])
@@ -20,6 +34,33 @@ const updateField = (field, value) => {
 
 <template>
   <div class="bg-white rounded shadow p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
+        
+        <div v-if="buttonPosition === 'top' || buttonPosition === 'both'" class="flex justify-end gap-2">
+            <!-- 슬롯 버튼들 -->
+            <slot name="top-buttons"></slot>
+            
+            <!-- 행 관리 버튼들 -->
+            <template v-if="enableRowActions">
+                <Button v-if="enableSelection && selectedRows.length > 0"
+                    :label="`${selectedRows.length}개 삭제`" 
+                    icon="pi pi-trash" 
+                    severity="danger" 
+                    @click="deleteSelectedRows" />
+                <Button label="행 추가" 
+                    icon="pi pi-plus" 
+                    severity="help" 
+                    @click="addRow" />
+            </template>
+            
+            <!-- 기본 버튼들 -->
+            <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" />
+            <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" />
+            <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" />
+            <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" />
+        </div>
+    </div>
     <div class="grid grid-cols-2 gap-x-8 gap-y-4">
       <div v-for="(field, index) in fields" :key="field.field" class="flex items-center space-x-2">
         <label class="w-28 text-left font-bold">{{ field.label }}</label>
