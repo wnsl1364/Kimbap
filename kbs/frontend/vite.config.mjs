@@ -18,9 +18,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+       }
   },
-  // ✅ 반드시 server 안에 proxy 넣어야 작동함
   server: {
     proxy: {
       '/api': {
@@ -29,4 +28,4 @@ export default defineConfig({
       }
     }
   }
-});
+})

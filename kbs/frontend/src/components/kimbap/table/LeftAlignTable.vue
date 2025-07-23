@@ -33,6 +33,8 @@ const updateField = (field, value) => {
                   <input
                       v-model="data[field.field]"
                       :type="field.inputType || 'text'"
+                      :readonly="field.readonly"
+                      :disabled="field.disabled"
                       class="border-none outline-none flex-1 bg-transparent px-3 py-2"
                   />
                   <i

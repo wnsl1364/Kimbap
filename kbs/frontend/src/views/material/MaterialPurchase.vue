@@ -19,19 +19,23 @@ import { CustomerService } from '@/service/CustomerService';
 import { onBeforeMount, ref } from 'vue';
 import inputForm from '@/components/kimbap/searchform/inputForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
+import { useMaterialStore } from '@/stores/materialStore';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ToggleButton from 'primevue/togglebutton';
+import { storeToRefs } from 'pinia';
 
 const customers2 = ref(null);
 const balanceFrozen = ref(false);
-
 function formatCurrency(value) {
   return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+const materialStore = useMaterialStore();
+const { searchColumns, purchaseColumns, purchaseData } = storeToRefs (materialStore);
+
 // SearchForm props 정의
-const searchColumns = ref([
+searchColumns.value = [
   {
     key: 'purc_cd',
     label: '발주서코드',
@@ -50,9 +54,16 @@ const searchColumns = ref([
     type: 'calendar',
     placeholder: '날짜를 선택하세요'
   }
-]);
+];
 
-const purchaseColumns = ref([
+const purchaseFormButtons = ref({
+  save: { show: true, label: '저장', severity: 'success' },
+  reset: { show: true, label: '초기화', severity: 'secondary' },
+  delete: { show: true, label: '삭제', severity: 'danger' },
+  load: { show: true, label: '발주서 불러오기', severity: 'info' }
+});
+
+purchaseColumns.value = [
   {
     field: 'materialName',
     header: '자재명',
@@ -101,10 +112,10 @@ const purchaseColumns = ref([
     type: 'input',
     placeholder: '비고를 입력하세요'
   }
-]);
+];
 
 // 예시 데이터
-const purchaseData = ref([
+purchaseData.value = [
   {
     id: 1,
     materialName: '자재1',
@@ -127,7 +138,7 @@ const purchaseData = ref([
     date: '2025-07-23',
     memo: '비고 내용'
   }
-]);
+];
 
 onBeforeMount(() => {
   CustomerService.getCustomersLarge().then((data) => (customers2.value = data));
@@ -150,20 +161,45 @@ const handleReset = () => {
     column.value = '';
   });
 };
+const handleSave = (formData) => {
+  console.log('저장 데이터:', formData);
+  // 여기에 저장 로직 구현
+  alert('발주서가 저장되었습니다!');
+};
+
+const handleDelete = (formData) => {
+  console.log('삭제 요청:', formData);
+  if (confirm('정말 삭제하시겠습니까?')) {
+    // 삭제 로직 구현
+    alert('발주서가 삭제되었습니다!');
+  }
+};
+
+const handleLoad = () => {
+  console.log('발주서 불러오기 요청');
+  // 발주서 목록을 보여주는 모달이나 페이지로 이동하는 로직
+  alert('발주서 목록을 불러옵니다!');
+};
+
+// 커스텀 버튼 핸들러 (슬롯용)
+// const handleExport = () => {
+//   console.log('엑셀로 내보내기');
+//   alert('엑셀 파일로 내보냅니다!');
+// };
 </script>
 <template>
   <div>
-    <inputForm 
-      :columns="searchColumns" 
-      @submit="handleSearch"
-    />    
+    <!-- 발주서 입력 폼 -->
+    <inputForm :columns="searchColumns" :buttons="purchaseFormButtons" button-position="top" @submit="handleSave"
+      @reset="handleReset" @delete="handleDelete" @load="handleLoad">
+      <!-- 슬롯으로 추가 버튼 넣기 -->
+      <!-- <template #top-buttons>
+        <Button label="엑셀 내보내기" severity="help" @click="handleExport" />
+      </template> -->
+    </inputForm>
   </div>
-  <div>
-    <InputTable 
-      :columns="purchaseColumns"
-      :data="purchaseData"
-      @search="handleSearch"
-      @reset="handleReset"
-    />
+
+  <div class="mt-10">
+    <InputTable :columns="purchaseColumns" :data="purchaseData" @search="handleSearch" @reset="handleReset" />
   </div>
 </template>

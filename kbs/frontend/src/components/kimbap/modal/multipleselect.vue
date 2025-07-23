@@ -103,7 +103,7 @@ function onConfirm() {
 
 
     <!-- 사용예시 
-     <ProductMultiSelectDialog
+     <MultiSelectDialog
       v-model:visible="dialogVisible"
       v-model:modelValue="selectedProducts"
       :items="products"

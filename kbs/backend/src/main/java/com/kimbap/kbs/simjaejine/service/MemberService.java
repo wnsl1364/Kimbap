@@ -1,8 +1,8 @@
-package com.kimbap.kbs.service;
+package com.kimbap.kbs.simjaejine.service;
 
 import org.springframework.stereotype.Service;
 
-import com.kimbap.kbs.mapper.MemberMapper;
+import com.kimbap.kbs.simjaejine.mapper.MemberMapper;
 
 import lombok.RequiredArgsConstructor;
 
