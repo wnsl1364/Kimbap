@@ -1,9 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
+// import axios from 'axios'
 import BasicTable from '@/components/kimbap/table/BasicTable.vue'
 import { ProductService } from '@/service/ProductService'
 
-const products = ref([])
+// Pinia store
+import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형이 유지됨
+import { useProductStore } from '@/stores/productStore' //피니아 스토어 가져오기
+
+const store = useProductStore()
+const { products } = storeToRefs(store)
+
 const productColumns = [
     { field: 'code', header: '코드'},
     { field: 'name', header: '이름', type: 'input', readonly: true},
@@ -13,25 +20,16 @@ const productColumns = [
 ]
 
 onMounted(() => {
-    ProductService.getProductsMini().then((data) => products.value = data)
+  ProductService.getProductsMini().then(data => {
+    store.setProducts(data)
+  })
 })
 
 /** db로 가져올때
- * 
- * const columns = [
-    { field: 'code', header: '제품코드' },
-    { field: 'name', header: '제품명' },
-    { field: 'category', header: '카테고리' },
-    { field: 'quantity', header: '수량' }
-]
-
-const products = ref([])
-
 onMounted(async () => {
-    const response = await axios.get('/api/products')
-    products.value = response.data
+  const response = await axios.get('/api/products')
+  store.setProducts(response.data)
 })
-
  */
 </script>
 <template>
