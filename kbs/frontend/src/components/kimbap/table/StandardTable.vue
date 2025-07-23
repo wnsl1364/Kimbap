@@ -4,7 +4,7 @@ import Button from 'primevue/button';
 
 const props = defineProps({
     data: { type: Array, default: () => [] },
-     height: { type: String, default: '500px' },
+    height: { type: String, default: '500px' },
     columns: { type: Array, default: () => [] },
     title: { type: String, default: '' },
     dataKey: { type: String, default: 'id' },
@@ -21,7 +21,7 @@ const handleClick = (rowData) => {
 </script>
 
 <template>
-    <div class="card" :style="{ height: props.height }">
+    <div class="border p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
         <h2 v-if="title" class="text-lg font-semibold mb-4">{{ title }}</h2>
         <DataTable
             :value="data"
