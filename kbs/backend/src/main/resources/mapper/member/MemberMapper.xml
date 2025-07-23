@@ -7,7 +7,7 @@ SELECT   a.id
         ,a.pw
         ,b.emp_name
         ,b.tel
-FROM    t_member a JOIN t_employee b
+FROM    member a JOIN employee b
 ON      a.emp_cd = b.emp_cd
 WHERE   a.id = #{id}
 	</select>
