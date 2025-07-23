@@ -161,8 +161,9 @@ onUnmounted(() => {
   <div class="mt-10">
     <!-- 자재 발주 테이블 - 체크박스로 선택 후 삭제! -->
     <InputTable 
-      :title="'자재 발주 목록'" 
-      :columns="purchaseColumns" 
+      :title="'자재 발주 목록'"
+      :scroll-height="'55vh'"
+      :columns="purchaseColumns"
       :data="purchaseData"
       :enableRowActions="true"
       :enableSelection="true"

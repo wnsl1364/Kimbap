@@ -37,7 +37,12 @@ const props = defineProps({
     enableSelection: {
         type: Boolean,
         default: true
-    }
+    },
+    // 스크롤 높이
+    scrollHeight: {
+        type: String,
+        default: '400px'
+    }   
 })
 
 const emit = defineEmits(['update:data', 'dataChange'])
@@ -109,6 +114,7 @@ const getAlignClass = (align) => {
 
 <template>
     <div>
+        <div class="border p-6 border-gray-200 rounded-lg min-h-[55vh] bg-white">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
             
@@ -141,23 +147,26 @@ const getAlignClass = (align) => {
         <DataTable 
             :value="internalData" 
             :tableStyle="{ minWidth: '50rem' }" 
-            showGridlines 
-            :rows="10" 
+            showGridlines
             responsiveLayout="scroll"
             v-model:selection="selectedRows"
             dataKey="id" 
             size="large"
-            :selectionMode="enableSelection ? 'multiple' : null">
+            :selectionMode="enableSelection ? 'multiple' : null"
+            scrollable
+            :scrollHeight="scrollHeight"
+            >
             
             <!-- 선택 체크박스 컬럼 -->
             <Column v-if="enableSelection" 
                 selectionMode="multiple" 
-                headerStyle="width: 3rem">
+                headerStyle="width: 1rem">
             </Column>
             
             <!-- 데이터 컬럼들 -->
             <Column v-for="column in columns" :key="column.field" :header="column.header"
-                :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)">
+                :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)"
+                :style="{ width: column.width || 'auto' }">
                 <template #body="slotProps">
                     <template v-if="column.type === 'readonly'">
                         <span>{{ slotProps.data[column.field] }}</span>
@@ -180,12 +189,13 @@ const getAlignClass = (align) => {
                         <Calendar 
                             :modelValue="slotProps.data[column.field]"
                             @update:modelValue="updateField(slotProps.data, column.field, $event)"
-                            dateFormat="yy-mm-dd" 
+                            dateFormat="yy-mm-dd"
                             showIcon 
                             class="w-full" />
                     </template>
                 </template>
             </Column>
         </DataTable>
+        </div>
     </div>
 </template>
