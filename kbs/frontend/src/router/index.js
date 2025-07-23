@@ -165,7 +165,7 @@ const router = createRouter({
             name: 'error',
             component: () => import('@/views/pages/auth/Error.vue')
         },
-        ...loginRoutes, // 로그인 페이지
+        ...loginRoutes, //  페이지
     ]
 });
 

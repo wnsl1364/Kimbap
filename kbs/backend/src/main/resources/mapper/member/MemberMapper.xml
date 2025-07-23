@@ -3,12 +3,12 @@
 <mapper namespace="com.kimbap.kbs.mapper.MemberMapper">
 
 <select id="getUserInfo" resultType="MemberVO"> <!-- 로그인 -->
-		SELECT   a.id
-            ,a.pw
-            ,b.emp_name
-            ,b.tel
-		FROM    a t_member JOIN b t_employee
-    ON      t_member.emp_code = t_employee.emp_code
-    WHERE   id = #{id}
+SELECT   a.id
+        ,a.pw
+        ,b.emp_name
+        ,b.tel
+FROM    t_member a JOIN t_employee b
+ON      a.emp_code = b.emp_code
+WHERE   a.id = #{id}
 	</select>
 </mapper>

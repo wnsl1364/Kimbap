@@ -47,38 +47,52 @@
 </template>
 
 <script setup>
+import { createApp } from 'vue'
 import { ref } from 'vue'
+import axios from 'axios';
+import { createPinia } from 'pinia'
 
+// pinia
+const pinia = createPinia()
+// const app = createApp(App)
+
+// login
 const id = ref('')
 const pw = ref('')
-const rememberId = ref(false)
+const error = ref('')
+const rememberId = ref(false) // 아이디 저장 여부
+
+console.log(id, pw);
 
 async function handleLogin() {
 
   // 프론트단 유효성 검사
-  if (!empnum.value) {
-    error.value = '사원번호를 입력하세요.';
+  if (!id.value) {
+    error.value = '아이디를 입력하세요.';
     return;
   }
 
-  if (!password.value) {
+  if (!pw.value) {
     error.value = '비밀번호를 입력하세요.';
     return;
   }
 
   // 서버에 요청
   // 로그인 정보 필요할시 아래 코드 user.value 로 접근가능
-  //import { useStore } from 'vuex';
   try {
     const response = await axios.post('/api/login', {
-      emp_num: empnum.value,
-      login_pw: password.value
+      id: id.value,
+      pw: pw.value,
     });
 
     if (response.data.success) {
-      const userData = response.data.user; // 지역변수
+      const userData = response.data; // 지역변수
       store.dispatch('saveUser', response.data.user); // saveUser 액션에 로그인정보 넘겨서 전역 state.user 에 로그인정보 저장
-      sessionStorage.setItem('user', JSON.stringify(userData)); // 로컬스토리지에 user라는 키 이름으로 저장 (새로고침 시 로그인정보 유지)
+      sessionStorage.setItem('user', JSON.stringify({
+        id: userData.id,
+        empName: userData.empName,
+        tel: userData.tel
+      })); // 로컬스토리지에 user라는 키 이름으로 저장 (새로고침 시 로그인정보 유지)
       router.push('/');
     } else {
       error.value = response.data.message;
