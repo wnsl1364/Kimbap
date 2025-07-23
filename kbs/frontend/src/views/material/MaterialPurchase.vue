@@ -44,12 +44,16 @@ purchaseColumns.value = [
     field: 'materialName',
     header: '자재명',
     type: 'input',
+    width: '100px',
     placeholder: '자재명을 입력하세요'
   },
   {
     field: 'buyer',
     header: '거래처',
-    type: 'input',
+    type: 'inputsearch',
+    width: '150px',
+    suffixIcon: 'pi pi-search', 
+    suffixEvent: 'openQtyModal',
     placeholder: '거래처를 입력하세요'
   },
   {
@@ -63,6 +67,9 @@ purchaseColumns.value = [
     field: 'unit',
     header: '단위',
     type: 'input',
+    width: '80px',
+    suffixIcon: 'pi pi-search', 
+    suffixEvent: 'openQtyModal',
     placeholder: '단위를 입력하세요'
   },
   {
@@ -162,7 +169,8 @@ onUnmounted(() => {
     <!-- 자재 발주 테이블 - 체크박스로 선택 후 삭제! -->
     <InputTable 
       :title="'자재 발주 목록'"
-      :scroll-height="'55vh'"
+      :scroll-height="'46vh'"
+      :height="'55vh'"
       :columns="purchaseColumns"
       :data="purchaseData"
       :enableRowActions="true"
