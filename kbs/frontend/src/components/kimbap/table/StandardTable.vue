@@ -5,7 +5,8 @@ import Button from 'primevue/button';
 const props = defineProps({
     data: { type: Array, default: () => [] },
     columns: { type: Array, default: () => [] },
-    title: { type: String, default: '' }
+    title: { type: String, default: '' },
+    dataKey: { type: String, default: 'id' } // 👈 추가
 });
 
 const emit = defineEmits(['view-history']);
@@ -26,7 +27,7 @@ const handleClick = (rowData) => {
             :rows="10"
             responsiveLayout="scroll"
             v-model:selection="selected"
-            dataKey="id"
+            :dataKey="dataKey"
             size="large"
         >
             <Column selectionMode="multiple" headerStyle="width: 3rem" />

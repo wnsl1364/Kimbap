@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { CustomerService } from '@/service/CustomerService';
 import { onBeforeMount } from 'vue';
 import { defineProps } from 'vue';
+import { getMaterialList } from '@/api/mat';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -12,8 +13,8 @@ const handleViewHistory = (rowData) => {
     // 모달 열기 + 이력 데이터 세팅 등 처리
 };
 
-const products = ref([]);
 
+// 자재기준정보 테이블용
 const productColumns = [
     { field: 'mcode', header: '자재코드' },
     { field: 'mateName', header: '자재명' },
@@ -21,7 +22,21 @@ const productColumns = [
     { field: 'stoCon', header: '보관조건' },
     { field: 'edate', header: '소비기한' }
 ];
+// 자재목록
+const products = ref([]);
 
+onMounted(async () => {
+  try {
+    const res = await getMaterialList();
+    console.log('✅ 응답 타입:', typeof res.data);
+    console.log('📦 실제 응답 내용:', res.data);
+    products.value = res.data;
+  } catch (err) {
+    console.error('❌ 자재 목록 조회 실패:', err);
+  }
+});
+
+//
 const customers2 = ref(null);
 // SearchForm props 정의
 
@@ -151,7 +166,7 @@ const handleReset = () => {
 
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
-            <StandardTable :data="products" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" />
+            <StandardTable :data="products" dataKey="mcode" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" />
         </div>
         <div class="w-full md:basis-[45%]">
             <InputForm :columns="inputColumns" />

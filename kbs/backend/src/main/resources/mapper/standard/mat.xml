@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.standard.mapper.MatMapper">
+    <!-- 자재 목록 조회 -->
+    <select id="getMatList" resultType="com.kimbap.kbs.standard.service.MatVO">
+        SELECT  mcode,
+                mate_name,
+                mate_type,
+                sto_con,
+                edate
+        FROM    MATERIAL
+    </select>
+
+    <!-- 자재 등록 -->
+    <insert id="insertMat" parameterType="com.kimbap.kbs.standard.service.MatVO">
+        INSERT INTO MATERIAL (mcode,
+                              mate_ver_cd,
+                              mate_name,
+                              mate_type,
+                              sto_con,
+                              unit,
+                              std,
+                              piece_unit,
+                              conver_qty,
+                              moqty,
+                              safe_stock,
+                              edate,
+                              corigin,
+                              is_used,
+                              regi,
+                              modi,
+                              cha_rea,
+                              reg_dt,
+                              note
+                              ) 
+        VALUES (#{mcode}
+                ,#{mateVerCd}
+                ,#{mateName}
+                ,#{mateType}
+                ,#{stoCon}
+                ,#{unit}
+                ,#{std}
+                ,#{pieceUnit}
+                ,#{converQty}
+                ,#{moqty}
+                ,#{safeStock}
+                ,#{edate}
+                ,#{corigin}
+                ,#{isUsed}
+                ,#{regi}
+                ,#{modi}
+                ,#{chaRea}
+                ,SYSDATE
+                ,#{note}
+                )
+        </insert>
+
+        <!-- 공급사 등록 -->
+        <insert id="insertMatSupplier" parameterType="com.kimbap.kbs.standard.service.MatSupplierVO">
+            INSERT INTO MATERIAL_SUPPLIER   (mate_cp_cd,
+                                             mcode, 
+                                             mate_ver_cd, 
+                                             cp_cd, 
+                                             unit_price,
+                                             ltime
+                                            ) 
+            VALUES (#{mateCpCd}
+                    ,#{mcode}
+                    ,#{mateVerCd}
+                    ,#{cpCd}
+                    ,#{unitPrice}
+                    ,#{ltime}
+                    )
+    </insert>
+    <!-- 원자재 최대 코드 조회 -->
+    <select id="getMaxRawMaterialCode" resultType="int">
+        SELECT NVL(MAX(TO_NUMBER(SUBSTR(mcode, 5))), 1000)
+        FROM material
+        WHERE mate_type = 'H1'
+    </select>
+
+    <!-- 부자재 최대 코드 조회 -->
+    <select id="getMaxSubMaterialCode" resultType="int">
+        SELECT NVL(MAX(TO_NUMBER(SUBSTR(mcode, 5))), 2000)
+        FROM material
+        WHERE mate_type = 'H2'
+    </select>
+</mapper>
