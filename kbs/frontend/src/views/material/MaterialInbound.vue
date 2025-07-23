@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import BasicTable from '@/components/kimbap/table/BasicTable.vue'
-import MultipleSelect from '@/components/kimbap/modal/multipleselect.vue'
 import Singleselect from '@/components/kimbap/modal/singleselect.vue'
 
 const formData = ref({
@@ -69,12 +68,20 @@ const Columns = ref([
     { field: 'note', header: '비고' }
 ])
 
+const wcolumns = ref([
+    { field: '', header: '' },
+    { field: '', header: '' },
+    { field: '', header: '' },
+    { field: '', header: '' }
+])
+
 const warehouseList = ref([
-    { name: 'A', category: 'A', quantity: 1000 },
-    { name: 'A', category: 'A', quantity: 1000 },
-    { name: 'A', category: 'A', quantity: 1000 }, 
-    { name: 'A', category: 'B', quantity: 500 },
-    
+    { name: 'A', category: 'A', type: '냉동', quantity: '김냉동' },
+    { name: 'A', category: 'B', type: '냉장', quantity: '이냉장' },
+    { name: 'A', category: 'C', type: '실온', quantity: '박실온' }, 
+    { name: 'B', category: 'A', type: '냉동', quantity: '최냉동' },
+    { name: 'B', category: 'B', type: '냉장', quantity: '곽냉장' },
+    { name: 'B', category: 'C', type: '실온', quantity: '이실온' },    
 ])
 
 const isWarehouseModalOpen = ref(false)
@@ -113,11 +120,7 @@ const onConfirmWarehouse = (value) => {
         v-model:modelValue="selectedWarehouse"
         :items="warehouseList"
         itemKey="code"
-        :columns="[
-            { field: 'category', header: '공장이름' },
-            { field: 'name', header: '창고명' },
-            { field: 'quantity', header: '창고담당자' }
-        ]"
+        :columns="wcolumns"
         @update:modelValue="onConfirmWarehouse"
     />
 </template>
