@@ -25,6 +25,13 @@ pinia.use(createPersistedState({
   storage: sessionStorage, // 세션에 저장하기
   }
 )); // localStorage 기본 사용
+pinia.use(createPersistedState()) // localStorage 기본 사용
+pinia.use(({ store }) => {
+  const initialState = JSON.parse(JSON.stringify(store.$state));
+  store.$reset = () => {
+    store.$patch(initialState);
+  };
+});
 app.use(pinia);
 
 app.use(router);
