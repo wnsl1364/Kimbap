@@ -12,20 +12,37 @@ import { useProductStore } from '@/stores/productStore' //피니아 스토어 �
 const store = useProductStore()
 const { products } = storeToRefs(store)
 
+const productList = ref([
+  {
+    id: 1,
+    prod_code: 'KMP0123456',
+    prod_name: '불고기 김밥',
+    prod_qty: '100.00',
+    unit: 'EA',
+    prod_date: '',
+    priority: '1'
+  },
+  {
+    id: 2,
+    prod_code: '',
+    prod_name: '',
+    prod_qty: '',
+    unit: '',
+    prod_date: '',
+    priority: ''
+  }
+])
+
+const selectedRows = ref([])
+
 const productColumns = [
-    { field: 'code', header: '코드'},
-    { field: 'name', header: '이름', type: 'input', readonly: true},
-    { field: 'proName', header: '제품명', type: 'input', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal',  },
-    { field: 'category', header: '카테고리' },
-    { field: 'quantity', header: '수량', type: 'input', inputType: 'number', align: 'right'}
+  { field: 'prod_code', header: '제품코드', type: 'input', align: 'left' },
+  { field: 'prod_name', header: '제품명', type: 'input', align: 'left' },
+  { field: 'prod_qty', header: '생산수량', type: 'input', align: 'right' },
+  { field: 'unit', header: '단위', type: 'input', align: 'center' },
+  { field: 'prod_date', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
+  { field: 'priority', header: '우선순위', type: 'input', align: 'center' }
 ]
-
-onMounted(() => {
-  ProductService.getProductsMini().then(data => {
-    store.setProducts(data)
-  })
-})
-
 /** db로 가져올때
 onMounted(async () => {
   const response = await axios.get('/api/products')
@@ -33,22 +50,22 @@ onMounted(async () => {
 })
  */
 const formData = ref({
-    orderNo: '자동생성',
-    orderDate: '2025-07-22',
-    customerName: '거래처명',
-    address: '',
-    dueDate: '',
-    paymentDate: '',
-    memo: ''
+  plan_no: '',
+  plan_date: '',
+  plan_period: '2025-07-15 ~ 2025-07-16',
+  factory: '',
+  manager: '',
+  note: ''
 })
 
-const formFields = [
-    { label: '생산계획번호', field: 'orderNo', type: 'text', disabled: true },
-    { label: '계획일자', field: 'orderDate', type: 'text', disabled: true  },
-    { label: '계획기간', field: 'customerName', type: 'input', readonly: true, suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal' },
-    { label: '담당자', field: 'address', type: 'text', readonly: true },
-    { label: '공장', field: 'dueDate', type: 'calendar', readonly: true },
-    { label: '비고', field: 'paymentDate', type: 'calendar', readonly: true },]
+const fields = [
+  { field: 'plan_no', label: '생산계획번호', type: 'input', readonly: true },
+  { field: 'plan_date', label: '계획일자', type: 'input', inputType: 'date' },
+  { field: 'plan_period', label: '계획기간', type: 'input' },
+  { field: 'manager', label: '담당자', type: 'input' },
+  { field: 'factory', label: '공장', type: 'input' },
+  { field: 'note', label: '비고', type: 'input' },
+]
 
 /** 
   * db로 가져올때
@@ -70,10 +87,40 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-4">
-      <LeftAlignTable :data="formData" :fields="formFields"/>
-  </div>
-  <div class="space-y-4">
-    <BasicTable :data="products" :columns="productColumns"/>
+  <div class="space-y-8">
+    <!-- 생산계획 기본 정보 -->
+    <LeftAlignTable
+      v-model:data="formData"
+      :fields="fields"
+      title="생산계획 기본 정보"
+      :buttons="{
+        save: { show: true, label: '저장', severity: 'success' },
+        reset: { show: true, label: '초기화', severity: 'secondary' },
+        delete: { show: true, label: '삭제', severity: 'danger' },
+        load: { show: true, label: '생산계획 불러오기', severity: 'info' }
+      }"
+      buttonPosition="top"
+    >
+
+    </LeftAlignTable>
+
+    <!-- 제품 목록 -->
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-md font-semibold">제품</h2>
+        <div class="space-x-2">
+          <Button label="제품삭제" severity="danger" />
+          <Button label="제품추가" severity="success" />
+        </div>
+      </div>
+      <BasicTable
+        v-model:selection="selectedRows"
+        :data="productList"
+        :columns="productColumns"
+        :selectionMode="'multiple'"
+        dataKey="id"
+        scrollHeight="300px"
+      />
+    </div>
   </div>
 </template>
