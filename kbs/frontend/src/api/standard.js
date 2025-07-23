@@ -13,5 +13,5 @@ export const getCompanyList = () => {
 };
 
 export const getSupplierList = () => {
-  return axios.get('/api/std/cp/sub/list');
+  return axios.get('/api/std/cp/sup/list');
 };
