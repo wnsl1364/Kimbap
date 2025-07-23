@@ -1,8 +1,8 @@
-package com.kimbap.kbs.mapper;
+package com.kimbap.kbs.simjaejine.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 
-import com.kimbap.kbs.service.MemberVO;
+import com.kimbap.kbs.simjaejine.service.MemberVO;
 
 @Mapper
 public interface MemberMapper {

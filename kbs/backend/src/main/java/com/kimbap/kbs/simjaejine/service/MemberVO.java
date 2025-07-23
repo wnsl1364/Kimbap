@@ -1,4 +1,4 @@
-package com.kimbap.kbs.service;
+package com.kimbap.kbs.simjaejine.service;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

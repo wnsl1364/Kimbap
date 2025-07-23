@@ -51,18 +51,19 @@ import { createApp } from 'vue'
 import { ref } from 'vue'
 import axios from 'axios';
 import { createPinia } from 'pinia'
+import { useRouter } from 'vue-router'
+
+const router = useRouter();
 
 // pinia
-const pinia = createPinia()
+const pinia = createPinia();
 // const app = createApp(App)
 
 // login
-const id = ref('')
-const pw = ref('')
-const error = ref('')
+const id = ref('');
+const pw = ref('');
+const error = ref('');
 const rememberId = ref(false) // 아이디 저장 여부
-
-console.log(id, pw);
 
 async function handleLogin() {
 
@@ -85,9 +86,9 @@ async function handleLogin() {
       pw: pw.value,
     });
 
-    if (response.data.success) {
+    if (response.data && response.data.id) {
       const userData = response.data; // 지역변수
-      store.dispatch('saveUser', response.data.user); // saveUser 액션에 로그인정보 넘겨서 전역 state.user 에 로그인정보 저장
+      // store.dispatch('saveUser', response.data.user); // saveUser 액션에 로그인정보 넘겨서 전역 state.user 에 로그인정보 저장
       sessionStorage.setItem('user', JSON.stringify({
         id: userData.id,
         empName: userData.empName,
