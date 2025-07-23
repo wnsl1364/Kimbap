@@ -12,6 +12,7 @@ const props = defineProps({
         type: Array,
         required: true
     },
+    title: { type: String, default: '' },
     // 새로 추가! 버튼 설정
     buttons: {
         type: Object,
@@ -77,37 +78,40 @@ const handleLoad = () => {
 
 <template>
     <div class="p-4 bg-orange-50">
-        <!-- 상단 버튼들 -->
-        <div v-if="buttonPosition === 'top' || buttonPosition === 'both'" 
-             class="flex justify-end gap-2 mb-4">
+        <div class="flex justify-between items-center">
+            <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
+            <!-- 상단 버튼들 -->
+            <div v-if="buttonPosition === 'top' || buttonPosition === 'both'" 
+            class="flex justify-end gap-2 mb-4">
             <!-- 슬롯으로 커스텀 버튼 추가 가능 -->
             <slot name="top-buttons"></slot>
-            
-            <!-- 기본 버튼들 -->
-            <Button 
-            v-if="buttons.delete?.show" 
-            :label="buttons.delete.label" 
-            :severity="buttons.delete.severity"
-            @click="handleDelete" 
-            />
-            <Button 
-            v-if="buttons.reset?.show" 
-            :label="buttons.reset.label" 
-            :severity="buttons.reset.severity"
-            @click="handleReset" 
-            />
-            <Button 
-            v-if="buttons.save?.show" 
-            :label="buttons.save.label" 
-            :severity="buttons.save.severity"
-            @click="handleSubmit" 
-            />
-            <Button 
-                v-if="buttons.load?.show" 
-                :label="buttons.load.label" 
-                :severity="buttons.load.severity"
-                @click="handleLoad" 
-            />
+                
+                <!-- 기본 버튼들 -->
+                <Button 
+                v-if="buttons.delete?.show" 
+                :label="buttons.delete.label" 
+                :severity="buttons.delete.severity"
+                @click="handleDelete" 
+                />
+                <Button 
+                v-if="buttons.reset?.show" 
+                :label="buttons.reset.label" 
+                :severity="buttons.reset.severity"
+                @click="handleReset" 
+                />
+                <Button 
+                v-if="buttons.save?.show" 
+                :label="buttons.save.label" 
+                :severity="buttons.save.severity"
+                @click="handleSubmit" 
+                />
+                <Button 
+                    v-if="buttons.load?.show" 
+                    :label="buttons.load.label" 
+                    :severity="buttons.load.severity"
+                    @click="handleLoad" 
+                />
+            </div>
         </div>
 
         <!-- 폼 필드들 -->

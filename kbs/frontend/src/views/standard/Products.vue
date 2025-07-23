@@ -7,12 +7,42 @@ import { getMaterialList } from '@/api/standard';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
+import InputTable from '@/components/kimbap/table/InputTable.vue';
 
 const handleViewHistory = (rowData) => {
     console.log('이력조회 클릭됨:', rowData);
     // 모달 열기 + 이력 데이터 세팅 등 처리
 };
 
+const purchaseColumns = ref([
+  {
+    field: 'cpCd',
+    header: '거래처',
+    type: 'input',
+    placeholder: '거래처를 입력하세요'
+  },
+  {
+    field: 'unitPrice',
+    header: '단가(원)',
+    type: 'input',
+    inputType: 'number',
+    placeholder: '단가를 입력하세요'
+  },
+  {
+    field: 'ltime',
+    header: '리드타임(일)',
+    type: 'input',
+    inputType: 'number',
+    placeholder: '리드타임을 입력하세요'
+  },
+  {
+    field: 'ltime',
+    header: '리드타임(일)',
+    type: 'input',
+    inputType: 'number',
+    placeholder: '리드타임을 입력하세요'
+  },
+]);
 // 자재기준정보 테이블용
 const productColumns = [
     { field: 'mcode', header: '자재코드' },
@@ -157,6 +187,10 @@ const handleReset = () => {
 const purchaseFormButtons = ref({
   save: { show: true, label: '저장', severity: 'success' },
 });
+
+// 
+const rowButtons = ref({})
+
 </script>
 
 <template>
@@ -166,10 +200,11 @@ const purchaseFormButtons = ref({
 
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
-            <StandardTable :data="products" dataKey="mcode" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" :scrollable="true" scrollHeight="300px" height="330px"/>
+            <StandardTable :title="'자재 기준정보 목록'" :data="products" dataKey="mcode" :columns="productColumns" title="자재기준정보 목록" @view-history="handleViewHistory" :scrollable="true" scrollHeight="300px" height="330px" class="mb-2"/>
+            <InputTable :title="'자재 발주 목록'" :columns="purchaseColumns" :buttons="rowButtons" button-position="top" scrollHeight="205px" height="290px" />
         </div>
         <div class="w-full md:basis-[45%]">
-            <InputForm :columns="inputColumns" :buttons="purchaseFormButtons" />
+            <InputForm :title="'자재정보'" :columns="inputColumns" :buttons="purchaseFormButtons" />
         </div>
     </div>
 </template>

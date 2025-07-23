@@ -6,6 +6,10 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    height: { 
+        type: String, 
+        default: '55vh' 
+    },
     columns: {
         type: Array,
         default: () => []
@@ -114,33 +118,33 @@ const getAlignClass = (align) => {
 
 <template>
     <div>
-        <div class="border p-6 border-gray-200 rounded-lg min-h-[55vh] bg-white">
+        <div class="border p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
             
             <div v-if="buttonPosition === 'top' || buttonPosition === 'both'" class="flex justify-end gap-2">
                 <!-- 슬롯 버튼들 -->
                 <slot name="top-buttons"></slot>
-                
-                <!-- 행 관리 버튼들 -->
-                <template v-if="enableRowActions">
-                    <Button label="행 추가" 
-                        icon="pi pi-plus" 
-                        severity="help" 
-                        @click="addRow" />
-                        
-                    <Button v-if="enableSelection && selectedRows.length > 0"
-                        :label="`${selectedRows.length}개 삭제`" 
-                        icon="pi pi-trash" 
-                        severity="danger" 
-                        @click="deleteSelectedRows" />
-                </template>
-                
                 <!-- 기본 버튼들 -->
                 <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" />
                 <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" />
                 <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" />
                 <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" />
+                
+                <!-- 행 관리 버튼들 -->
+                <template v-if="enableRowActions">
+                    <Button v-if="enableSelection && selectedRows.length > 0"
+                        :label="`${selectedRows.length}개 삭제`" 
+                        icon="pi pi-trash" 
+                        severity="danger" 
+                        @click="deleteSelectedRows" />
+                    <Button label="행 추가" 
+                        icon="pi pi-plus" 
+                        severity="help" 
+                        @click="addRow" />
+                </template>
+                
+                
             </div>
         </div>
         
