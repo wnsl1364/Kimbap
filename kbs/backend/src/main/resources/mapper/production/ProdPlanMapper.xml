@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.production.mapper.ProdPlanMapper">
+    <!-- Master -->
+    
+    <select id="selectProdPlans" resultType="ProdPlanVO">
+        SELECT * FROM prod_plan
+    </select>
+
+    <select id="selectProdPlanById" resultType="ProdPlanVO">
+        SELECT * FROM prod_plan WHERE produ_plan_cd = #{produPlanCd}
+    </select>
+
+    <insert id="insertProdPlan">
+        INSERT INTO prod_plan (produ_plan_cd, fcode, fac_ver_cd, plan_start_dt, plan_end_dt, mname)
+        VALUES (#{produPlanCd}, #{fcode}, #{facVerCd}, #{planStartDt}, #{planEndDt}, #{mname})
+    </insert>
+
+    <update id="updateProdPlan">
+        UPDATE prod_plan SET
+            fcode = #{fcode},
+            fac_ver_cd = #{facVerCd},
+            plan_start_dt = #{planStartDt},
+            plan_end_dt = #{planEndDt},
+            mname = #{mname}
+        WHERE produ_plan_cd = #{produPlanCd}
+    </update>
+
+    <delete id="deleteProdPlan">
+        DELETE FROM prod_plan WHERE produ_plan_cd = #{produPlanCd}
+    </delete>
+
+    <!-- Detail -->
+    <select id="selectDetailsByPlanCd" resultType="ProdPlanDetailVO">
+        SELECT * FROM prod_plan_d WHERE produ_plan_cd = #{produPlanCd}
+    </select>
+
+    <insert id="insertProdPlanDetail">
+        INSERT INTO prod_plan_d (ppdcode, produ_plan_cd, pcode, prod_ver_cd, plan_qty)
+        VALUES (#{ppdcode}, #{produPlanCd}, #{pcode}, #{prodVerCd}, #{planQty})
+    </insert>
+
+    <update id="updateProdPlanDetail">
+        UPDATE prod_plan_d SET
+            pcode = #{pcode},
+            prod_ver_cd = #{prodVerCd},
+            plan_qty = #{planQty}
+        WHERE ppdcode = #{ppdcode}
+    </update>
+
+    <delete id="deleteDetailsByPlanCd">
+        DELETE FROM prod_plan_d WHERE produ_plan_cd = #{produPlanCd}
+    </delete>
+
+
+</mapper>

@@ -9,7 +9,8 @@ const props = defineProps({
     title: { type: String, default: '' },
     dataKey: { type: String, default: 'id' },
     scrollHeight: { type: String, default: '400px' }, // 예: '300px', 'flex', '100%'
-    tableMinWidth: { type: String, default: '50rem' } // 👈 추가
+    tableMinWidth: { type: String, default: '50rem' }, // 👈 추가
+    showHistoryButton: { type: Boolean, default: true } // 이력조회 숨기기 추가
 });
 
 const emit = defineEmits(['view-history']);
@@ -43,7 +44,7 @@ const handleClick = (rowData) => {
                 :header="col.header"
             />
             <!-- ✅ slot 방식으로 이력조회 버튼 컬럼 렌더링 -->
-            <Column header="이력조회">
+            <Column header="이력조회" v-if="props.showHistoryButton">
                 <template #body="slotProps">
                     <Button
                         label="이력조회"

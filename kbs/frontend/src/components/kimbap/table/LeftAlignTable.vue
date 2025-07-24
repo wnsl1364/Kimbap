@@ -8,21 +8,7 @@ const props = defineProps({
     title: {
         type: String,
         default: ''
-    },
-    buttons: {
-        type: Object,
-        default: () => ({
-            save: { show: true, label: '저장', severity: 'success' },
-            reset: { show: true, label: '초기화', severity: 'secondary' },
-            delete: { show: false, label: '삭제', severity: 'danger' },
-            load: { show: false, label: '불러오기', severity: 'info' }
-        })
-    },
-    buttonPosition: {
-        type: String,
-        default: 'top',
-        validator: (value) => ['top', 'bottom', 'both'].includes(value)
-    },
+    }
 })
 
 const emit = defineEmits([
@@ -50,9 +36,9 @@ const updateField = (field, value) => {
             <slot name="top-buttons"></slot>
             
             <!-- 기본 버튼들 -->
-            <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('save')"/>
+            <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('delete')"/>
             <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
-            <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('delete')"/>
+            <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('save')"/>
             <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="$emit('load')"/>
         </div>
     </div>
@@ -73,7 +59,7 @@ const updateField = (field, value) => {
                       :type="field.inputType || 'text'"
                       :readonly="field.readonly"
                       :disabled="field.disabled"
-                      class="border-none outline-none flex-1 px-3 py-2"
+                      class="border-none outline-none flex-1 bg-transparent px-3 py-2"
                   />
                   <i
                       v-if="field.suffixIcon"
@@ -91,7 +77,7 @@ const updateField = (field, value) => {
                       :readonly="field.readonly"
                       :disabled="field.disabled"
                       :type="field.type === 'date' ? 'date' : 'text'"
-                      class="border rounded p-1 w-full h-10"
+                      class="border rounded-l p-1 w-full h-10"
                   />
                   <button v-if="field.suffixButton"
                       type="button"

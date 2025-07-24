@@ -1,17 +1,51 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
-// import axios from 'axios'
-import BasicTable from '@/components/kimbap/table/BasicTable.vue'
-import { ProductService } from '@/service/ProductService'
-
-// Pinia store
-import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형이 유지됨
-import { useProductStore } from '@/stores/productStore' //피니아 스토어 가져오기
+import { ref, onMounted, computed } from 'vue'
+import InputForm from '@/components/kimbap/searchform/inputForm.vue'
+import InputTable from '@/components/kimbap/table/InputTable.vue';
+import { storeToRefs } from 'pinia'
+import { useProductStore } from '@/stores/productStore'
 
 const store = useProductStore()
-const { products } = storeToRefs(store)
+const { factoryList } = storeToRefs(store)
+const { fetchFactoryList } = store
 
+// 공장 목록 조회
+onMounted(async () => {
+  await fetchFactoryList()
+})
+
+// 공장 드롭다운 옵션
+const factoryOptions = computed(() =>
+  factoryList.value.map(f => ({
+    label: f.facName,
+    value: f.fcode
+  }))
+)
+
+// 폼 필드 정의 (InputForm.vue 기준 key 속성 사용)
+const fields = [
+  { key: 'plan_no', label: '생산계획번호', type: 'readonly' },
+  { key: 'plan_date', label: '계획일자', type: 'text', placeholder: 'YYYY-MM-DD' },
+  { key: 'plan_period', label: '계획기간', type: 'text', placeholder: '2025-07-15 ~ 2025-07-16' },
+  { key: 'manager', label: '담당자', type: 'text' },
+  {
+    key: 'factory',
+    label: '공장',
+    type: 'dropdown2',
+    options: factoryOptions,
+    placeholder: '공장을 선택하세요'
+  },
+  { key: 'note', label: '비고', type: 'textarea' }
+]
+
+const prodPlanFormButtons = ref({
+  save: { show: true, label: '저장', severity: 'success' },
+  reset: { show: true, label: '초기화', severity: 'secondary' },
+  delete: { show: true, label: '삭제', severity: 'danger' },
+  load: { show: true, label: '생산계획 불러오기', severity: 'info' }
+})
+
+// 제품 목록 데이터
 const productList = ref([
   {
     id: 1,
@@ -33,8 +67,10 @@ const productList = ref([
   }
 ])
 
+// 선택된 행
 const selectedRows = ref([])
 
+// 제품 테이블 컬럼 정의
 const productColumns = [
   { field: 'prod_code', header: '제품코드', type: 'input', align: 'left' },
   { field: 'prod_name', header: '제품명', type: 'input', align: 'left' },
@@ -43,82 +79,48 @@ const productColumns = [
   { field: 'prod_date', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
   { field: 'priority', header: '우선순위', type: 'input', align: 'center' }
 ]
-/** db로 가져올때
-onMounted(async () => {
-  const response = await axios.get('/api/products')
-  store.setProducts(response.data)
-})
- */
-const formData = ref({
-  plan_no: '',
-  plan_date: '',
-  plan_period: '2025-07-15 ~ 2025-07-16',
-  factory: '',
-  manager: '',
-  note: ''
-})
 
-const fields = [
-  { field: 'plan_no', label: '생산계획번호', type: 'input', readonly: true },
-  { field: 'plan_date', label: '계획일자', type: 'input', inputType: 'date' },
-  { field: 'plan_period', label: '계획기간', type: 'input' },
-  { field: 'manager', label: '담당자', type: 'input' },
-  { field: 'factory', label: '공장', type: 'input' },
-  { field: 'note', label: '비고', type: 'input' },
-]
+// 버튼 이벤트 핸들러
+const handleSave = (data) => {
+  console.log('✅ 저장 데이터:', data)
+}
 
-/** 
-  * db로 가져올때
-  * const formData = ref({
-      orderNo: '',
-      orderDate: '',
-      customerName: '',
-      address: '',
-      dueDate: '',
-      paymentDate: '',
-      memo: '',
-      unpaid: ''
-    })
-onMounted(async () => {
-    const res = await axios.get('/api/orders/1')   // 예시 URL
-    formData.value = res.data // 받아온 데이터를 formData에 바로 넣음
-})
-*/
+const handleReset = () => {
+  console.log('🧼 폼 초기화됨')
+}
+
+const handleDelete = (data) => {
+  console.log('🗑 삭제 요청됨:', data)
+}
+
+const handleLoad = () => {
+  console.log('📦 불러오기 요청')
+}
 </script>
 
 <template>
   <div class="space-y-8">
-    <!-- 생산계획 기본 정보 -->
-    <LeftAlignTable
-      v-model:data="formData"
-      :fields="fields"
+    <!-- 생산계획 입력 폼 -->
+    <InputForm
+      :columns="fields"
       title="생산계획 기본 정보"
-      :buttons="{
-        save: { show: true, label: '저장', severity: 'success' },
-        reset: { show: true, label: '초기화', severity: 'secondary' },
-        delete: { show: true, label: '삭제', severity: 'danger' },
-        load: { show: true, label: '생산계획 불러오기', severity: 'info' }
-      }"
+      :buttons="prodPlanFormButtons"
       buttonPosition="top"
-    >
-
-    </LeftAlignTable>
-
-    <!-- 제품 목록 -->
+      @submit="handleSave"
+      @reset="handleReset"
+      @delete="handleDelete"
+      @load="handleLoad"
+    />
+    <!-- 제품 목록 테이블 -->
     <div>
-      <div class="flex justify-between items-center mb-2">
-        <h2 class="text-md font-semibold">제품</h2>
-        <div class="space-x-2">
-          <Button label="제품삭제" severity="danger" />
-          <Button label="제품추가" severity="success" />
-        </div>
-      </div>
-      <BasicTable
-        v-model:selection="selectedRows"
-        :data="productList"
+      <InputTable
+        v-model:data="productList"
         :columns="productColumns"
-        :selectionMode="'multiple'"
-        dataKey="id"
+        :title="'제품 목록'"
+        :dataKey="'id'"
+        buttonPosition="top"
+        enableRowActions
+        enableSelection
         scrollHeight="300px"
       />
     </div>
