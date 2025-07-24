@@ -32,19 +32,22 @@ public class MatController {
     }
 
     @PostMapping("/insert")
-    public ResponseEntity<String> registerMat(@RequestBody MatVO mat) {
+    public ResponseEntity<Map<String, Object>> registerMat(@RequestBody MatVO mat) {
         try {
-            matService.insertMatWithSuppliers(mat); // 서비스 로직 실행
-             return ResponseEntity
-            .ok()
-            .header("Content-Type", "application/json; charset=UTF-8")
-            .body("등록 성공");
+            matService.insertMatWithSuppliers(mat);
+
+            Map<String, Object> response = Map.of(
+                "success", true,
+                "message", "등록 성공"
+            );
+            return ResponseEntity.ok(response); // ✅ 헤더 생략
         } catch (Exception e) {
-            e.printStackTrace(); // 서버 로그 확인용
-            return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .header("Content-Type", "application/json; charset=UTF-8")
-            .body("등록 실패");
+            e.printStackTrace();
+            Map<String, Object> response = Map.of(
+                "success", false,
+                "message", "등록 실패"
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response); // ✅ 헤더 생략
         }
     }
     @GetMapping("/detail/{mcode}")
