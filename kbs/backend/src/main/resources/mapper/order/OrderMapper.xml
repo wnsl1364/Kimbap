@@ -31,7 +31,7 @@
 
     <!-- 주문 상세 등록 -->
     <insert id="insertOrderDetail" parameterType="com.kimbap.kbs.order.service.OrderDetailVO">
-        INSERT INTO order_detail (
+        INSERT INTO order_d (
             ord_cd,
             pcode,
             prod_ver_cd,
