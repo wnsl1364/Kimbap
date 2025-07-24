@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue' // 경로는 너의 프로젝트에 맞게 수정해줘!
 
 const props = defineProps({
@@ -58,9 +58,27 @@ const props = defineProps({
          type: String,
          required: true
     },
+    autoCalculation: {
+        type: Object,
+        default: () => ({
+            enabled: false,  // 자동계산 켜기/끄기
+            quantityField: 'number',  // 수량 필드명
+            priceField: 'price',      // 단가 필드명
+            totalField: 'totalPrice'  // 총액 필드명
+        })
+    }
 })
 
-const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal'])
+const emit = defineEmits([
+  'update:data',
+  'dataChange',
+  'openQtyModal',
+  'delete',
+  'reset',
+  'save',
+  'load'
+])
+
 
 // 내부 데이터 관리
 const internalData = ref([...props.data])
@@ -70,6 +88,16 @@ const selectedRows = ref([]) // 선택된 행들
 const modalVisible = ref(false)
 const currentRowData = ref(null) // 현재 수정중인 행 데이터
 const currentField = ref('') // 현재 수정중인 필드명
+
+
+// 초기화 관련 추가(민준)
+watch(
+  () => props.data,
+  (newVal) => {
+    internalData.value = newVal
+  },
+  { immediate: true, deep: true }
+)
 
 // 모달 데이터는 이제 props로 받아옴!
 
@@ -117,13 +145,20 @@ const emitDataChange = () => {
 const updateField = (rowData, field, value) => {
     rowData[field] = value
 
-    // 총액 자동계산 - 완전 중요해! 🧮
-    if (field === 'number' || field === 'price') {
-        if (rowData.number && rowData.price) {
-            rowData.totalPrice = rowData.number * rowData.price
+    // 총액 자동계산 - 이제 설정 가능해! 🎉
+    if (props.autoCalculation.enabled) {
+        const { quantityField, priceField, totalField } = props.autoCalculation
+        
+        if (field === quantityField || field === priceField) {
+            const quantity = rowData[quantityField] || 0
+            const price = rowData[priceField] || 0
+            
+            if (quantity && price) {
+                rowData[totalField] = quantity * price
+            }
         }
     }
-
+    
     emitDataChange()
 }
 
@@ -191,18 +226,16 @@ const getAlignClass = (align) => {
                     <!-- 슬롯 버튼들 -->
                     <slot name="top-buttons"></slot>
                     <!-- 기본 버튼들 -->
-                    <Button v-if="buttons.delete?.show" :label="buttons.delete.label"
-                        :severity="buttons.delete.severity" />
-                    <Button v-if="buttons.reset?.show" :label="buttons.reset.label"
-                        :severity="buttons.reset.severity" />
-                    <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" />
-                    <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" />
+                    <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('save')"/>
+                    <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
+                    <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('delete')"/>
+                    <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="$emit('load')"/>
 
                     <!-- 행 관리 버튼들 -->
                     <template v-if="enableRowActions">
                         <Button v-if="enableSelection && selectedRows.length > 0" :label="`${selectedRows.length}개 삭제`"
                             icon="pi pi-trash" severity="danger" @click="deleteSelectedRows" />
-                        <Button label="행 추가" icon="pi pi-plus" severity="help" @click="addRow" />
+                        <Button label="행 추가" icon="pi pi-plus" outlined severity="info" @click="addRow" />
                     </template>
                 </div>
             </div>

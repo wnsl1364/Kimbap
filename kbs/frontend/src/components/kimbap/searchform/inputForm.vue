@@ -28,12 +28,36 @@ const props = defineProps({
         type: String,
         default: 'top', // 'top', 'bottom', 'both'
         validator: (value) => ['top', 'bottom', 'both'].includes(value)
-    }
+    },
+    data: { 
+        type: Object, 
+        required: true 
+    },
 });
 
-const emit = defineEmits(['submit', 'reset', 'delete', 'load']);
+const emit = defineEmits(['submit', 'reset', 'delete', 'load', 'update:data']);
 
-const formData = ref({});
+const formData = ref({ ...props.data });
+
+watch(
+  () => props.data,
+  (newVal) => {
+    formData.value = { ...newVal };
+  },
+  { immediate: true, deep: true }
+);
+
+watch(
+  () => formData.value,
+  (newVal) => {
+    const jsonNew = JSON.stringify(newVal);
+    const jsonOld = JSON.stringify(props.data);
+    if (jsonNew !== jsonOld) {
+      emit('update:data', newVal);
+    }
+  },
+  { deep: true }
+);
 
 // props.columns를 안전하게 초기화
 const initializeForm = () => {
@@ -54,9 +78,10 @@ watch(
 );
 
 // 이벤트 핸들러들
-const handleSubmit = () => {
+const handleSubmit = () => { 
     console.log('제출 데이터:', formData.value);
     emit('submit', formData.value);
+    initializeForm();
 };
 
 const handleReset = () => {
@@ -135,6 +160,7 @@ const getOptions = (options) => {
                     v-model="formData[field.key]" 
                     :placeholder="field.placeholder" 
                     :class="{ 'p-invalid': field.required && !formData[field.key] }"
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
 
@@ -146,6 +172,7 @@ const getOptions = (options) => {
                     optionLabel="label" 
                     optionValue="value" 
                     :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
                 <!-- 드롭다운 배열 반환 -->
@@ -179,6 +206,7 @@ const getOptions = (options) => {
                     v-else-if="field.type === 'number'" 
                     v-model="formData[field.key]" 
                     :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     type="number" 
                     class="w-full" 
                 />
@@ -186,7 +214,8 @@ const getOptions = (options) => {
                 <!-- 읽기 전용 -->
                 <InputText 
                     v-else-if="field.type === 'readonly'" 
-                    v-model="formData[field.key]" 
+                    v-model="formData[field.key]"
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled" 
                     class="w-full bg-gray-100" 
                     readonly 
                 />
@@ -195,6 +224,7 @@ const getOptions = (options) => {
                 <InputText 
                     v-else-if="field.type === 'disabled'" 
                     v-model="formData[field.key]" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                     disabled 
                 />
@@ -204,6 +234,7 @@ const getOptions = (options) => {
                     v-else-if="field.type === 'textarea'" 
                     v-model="formData[field.key]" 
                     :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     :rows="field.rows || 3" 
                     :cols="field.cols || 40" 
                     class="w-full" 

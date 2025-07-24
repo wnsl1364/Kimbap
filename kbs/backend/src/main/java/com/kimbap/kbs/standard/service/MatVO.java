@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MatVO {
-    private String mcode;        // 자재마스터코드
-    private String mateVerCd;    // 자재버전코드
-    private String mateName;     // 자재명
+    private String mcode;         // 자재마스터코드
+    private String mateVerCd;     // 자재버전코드
+    private String mateName;      // 자재명
     private String mateType;
     private String stoCon;
     private String unit;
@@ -24,7 +24,7 @@ public class MatVO {
     private Double converQty;
     private Double moqty;
     private Double safeStock;
-    private int edate;
+    private Integer edate;        // ✅ null 허용 위해 int → Integer
     private String corigin;
     private String isUsed;
     private String regi;

@@ -53,6 +53,8 @@ const getAlignClass = (align) => {
 </script>
 
 <template>
+    <div class="border mt-10 p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
+        <h2 class="text-xl font-semibold mb-4">{{ props.title }}</h2>
     <div>
         <DataTable 
             :value="data" 
@@ -93,5 +95,6 @@ const getAlignClass = (align) => {
                 </template>
             </Column>
         </DataTable>
+    </div>
     </div>
 </template>

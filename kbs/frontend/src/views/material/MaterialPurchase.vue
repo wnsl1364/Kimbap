@@ -99,7 +99,7 @@ purchaseColumns.value = [
   }
 ];
 
-// 🎯 모달 데이터 설정 - 여기서 정의해서 전달!
+// 모달 데이터 설정 - 여기서 정의해서 전달!
 const modalDataConfig = ref({
   buyer: {
     items: [
@@ -203,9 +203,9 @@ onUnmounted(() => {
   </div>
 
   <div class="mt-10">
-    <!-- 자재 발주 테이블 - 모달 데이터 전달! 🎯 -->
+    <!-- 자재 발주 테이블 - 모달 데이터 전달! -->
     <InputTable 
-      :title="'자재 발주 목록'"
+      :title="'제품'"
       :scroll-height="'46vh'"
       :height="'55vh'"
       :columns="purchaseColumns"
