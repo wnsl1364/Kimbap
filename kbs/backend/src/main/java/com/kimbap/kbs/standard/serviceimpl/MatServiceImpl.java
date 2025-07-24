@@ -24,46 +24,52 @@ public class MatServiceImpl implements MatService {
     }
 
     @Transactional
-    @Override
-    public void insertMatWithSuppliers(MatVO mat) {
-        String mcode;
+@Override
+public void insertMatWithSuppliers(MatVO mat) {
+    String mcode;
 
-        // ✅ 자재코드 자동 생성: 자재유형에 따라 분기
-        if ("H1".equalsIgnoreCase(mat.getMateType())) {
-            int next = matMapper.getMaxRawMaterialCode() + 1;
-            if (next > 1999) throw new RuntimeException("원자재 코드 범위 초과");
-            mcode = "MAT-" + next;
+    if ("H1".equalsIgnoreCase(mat.getMateType())) {
+        int next = matMapper.getNextRawMaterialCodeBySeq();
+        if (next > 1999)
+            throw new RuntimeException("원자재 코드 범위 초과");
+        mcode = "MAT-" + next;
 
-        } else if ("H2".equalsIgnoreCase(mat.getMateType())) {
-            int next = matMapper.getMaxSubMaterialCode() + 1;
-            if (next > 2999) throw new RuntimeException("부자재 코드 범위 초과");
-            mcode = "MAT-" + next;
+    } else if ("H2".equalsIgnoreCase(mat.getMateType())) {
+        int next = matMapper.getNextSubMaterialCodeBySeq();
+        if (next > 2999)
+            throw new RuntimeException("부자재 코드 범위 초과");
+        mcode = "MAT-" + next;
 
-        } else {
-            throw new RuntimeException("지원하지 않는 자재유형: " + mat.getMateType());
-        }
+    } else {
+        throw new RuntimeException("지원하지 않는 자재유형: " + mat.getMateType());
+    }
 
-        mat.setMcode(mcode);
+    System.out.println("생성된 mcode: " + mcode); // ✅ 디버깅용 로그
 
-        // ✅ 자재버전 기본값
-        if (mat.getMateVerCd() == null || mat.getMateVerCd().isEmpty()) {
-            mat.setMateVerCd("V001");
-        }
+    // ✅ 중복 확인
+    if (matMapper.existsMcode(mcode)) {
+        throw new RuntimeException("이미 존재하는 자재코드: " + mcode);
+    }
 
-        // ✅ 자재 등록
-        matMapper.insertMat(mat);
+    mat.setMcode(mcode);
 
-        // ✅ 공급사 등록
-        if (mat.getSuppliers() != null) {
-            for (MatSupplierVO supplier : mat.getSuppliers()) {
-                supplier.setMcode(mcode);
-                supplier.setMateVerCd(mat.getMateVerCd());
+    // ✅ 버전 기본값
+    if (mat.getMateVerCd() == null || mat.getMateVerCd().isEmpty()) {
+        mat.setMateVerCd("V001");
+    }
 
-                // 공급사 연결코드 UUID 생성
-                supplier.setMateCpCd(UUID.randomUUID().toString());
+    // ✅ 자재 등록
+    matMapper.insertMat(mat);
+    System.out.println("등록되는 VO: " + mat);
 
-                matMapper.insertMatSupplier(supplier);
-            }
+    // ✅ 공급사 등록
+    if (mat.getSuppliers() != null) {
+        for (MatSupplierVO supplier : mat.getSuppliers()) {
+            supplier.setMcode(mcode);
+            supplier.setMateVerCd(mat.getMateVerCd());
+            supplier.setMateCpCd(UUID.randomUUID().toString());
+            matMapper.insertMatSupplier(supplier);
         }
     }
+}
 }
