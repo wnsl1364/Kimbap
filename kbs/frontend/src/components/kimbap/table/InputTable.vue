@@ -219,7 +219,7 @@ const getAlignClass = (align) => {
                     <template v-if="enableRowActions">
                         <Button v-if="enableSelection && selectedRows.length > 0" :label="`${selectedRows.length}개 삭제`"
                             icon="pi pi-trash" severity="danger" @click="deleteSelectedRows" />
-                        <Button label="행 추가" icon="pi pi-plus" severity="help" @click="addRow" />
+                        <Button label="행 추가" icon="pi pi-plus" outlined severity="info" @click="addRow" />
                     </template>
                 </div>
             </div>
