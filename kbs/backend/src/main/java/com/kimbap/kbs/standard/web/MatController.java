@@ -3,6 +3,8 @@ package com.kimbap.kbs.standard.web;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,9 +29,20 @@ public class MatController {
         return matService.getMatList();
     }
 
-    // 자재 등록 (공급사 포함)
-    @PostMapping("/register")
-    public void registerMat(@RequestBody MatVO mat) {
-        matService.insertMatWithSuppliers(mat);
+    @PostMapping("/insert")
+    public ResponseEntity<String> registerMat(@RequestBody MatVO mat) {
+        try {
+            matService.insertMatWithSuppliers(mat); // 서비스 로직 실행
+             return ResponseEntity
+            .ok()
+            .header("Content-Type", "application/json; charset=UTF-8")
+            .body("등록 성공");
+        } catch (Exception e) {
+            e.printStackTrace(); // 서버 로그 확인용
+            return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .header("Content-Type", "application/json; charset=UTF-8")
+            .body("등록 실패");
+        }
     }
 }

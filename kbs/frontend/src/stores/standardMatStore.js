@@ -49,8 +49,8 @@ export const useStandardMatStore = defineStore('standardMat', () => {
   const selectMaterial = (row) => {
     selectedMaterial.value = row;
   };
+  
 
-  // 반환: UI 상태는 여기서 빼고, 데이터+액션만
   return {
     materialList,
     selectedMaterial,

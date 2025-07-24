@@ -128,6 +128,7 @@ const handleLoad = () => {
                     v-model="formData[field.key]" 
                     :placeholder="field.placeholder" 
                     :class="{ 'p-invalid': field.required && !formData[field.key] }"
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
 
@@ -139,6 +140,7 @@ const handleLoad = () => {
                     optionLabel="label" 
                     optionValue="value" 
                     :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
 
@@ -162,6 +164,7 @@ const handleLoad = () => {
                     v-else-if="field.type === 'number'" 
                     v-model="formData[field.key]" 
                     :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     type="number" 
                     class="w-full" 
                 />
@@ -169,7 +172,8 @@ const handleLoad = () => {
                 <!-- 읽기 전용 -->
                 <InputText 
                     v-else-if="field.type === 'readonly'" 
-                    v-model="formData[field.key]" 
+                    v-model="formData[field.key]"
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled" 
                     class="w-full bg-gray-100" 
                     readonly 
                 />
@@ -178,6 +182,7 @@ const handleLoad = () => {
                 <InputText 
                     v-else-if="field.type === 'disabled'" 
                     v-model="formData[field.key]" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                     disabled 
                 />
@@ -187,6 +192,7 @@ const handleLoad = () => {
                     v-else-if="field.type === 'textarea'" 
                     v-model="formData[field.key]" 
                     :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     :rows="field.rows || 3" 
                     :cols="field.cols || 40" 
                     class="w-full" 
