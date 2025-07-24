@@ -7,7 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan({"com.kimbap.kbs.standard.mapper",
 			 "com.kimbap.kbs.simjaejine.mapper",
 			 "com.kimbap.kbs.order.mapper",
-			 "com.kimbap.kbs.materials.mapper",})
+			 "com.kimbap.kbs.materials.mapper",
+			 "com.kimbap.kbs.production.mapper"})
 @SpringBootApplication
 public class KbsApplication {
 

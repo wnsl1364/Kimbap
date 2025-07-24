@@ -1,7 +1,5 @@
 package com.kimbap.kbs.production.service;
 
-import java.sql.Timestamp;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +15,7 @@ public class FactoryVO {
     private String facName; // 공장 이름
     private String address; // 공장 주소
     private String tel; // 공장 번호
-    private Stirng mname; // 담당자명
+    private String mname; // 담당자명
     private String opStatus; // 가동상태
     private String chaRea; // 변경사유
     private String regDt; // 등록일자
