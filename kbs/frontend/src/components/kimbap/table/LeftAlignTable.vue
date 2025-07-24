@@ -25,7 +25,15 @@ const props = defineProps({
     },
 })
 
-const emit = defineEmits(['update:data'])
+const emit = defineEmits([
+  'update:data',
+  'dataChange',
+  'openQtyModal',
+  'delete',
+  'reset',
+  'save',
+  'load'
+])
 
 const updateField = (field, value) => {
     emit('update:data', { ...props.data, [field]: value })
@@ -41,19 +49,6 @@ const updateField = (field, value) => {
             <!-- 슬롯 버튼들 -->
             <slot name="top-buttons"></slot>
             
-            <!-- 행 관리 버튼들 -->
-            <template v-if="enableRowActions">
-                <Button v-if="enableSelection && selectedRows.length > 0"
-                    :label="`${selectedRows.length}개 삭제`" 
-                    icon="pi pi-trash" 
-                    severity="danger" 
-                    @click="deleteSelectedRows" />
-                <Button label="행 추가" 
-                    icon="pi pi-plus" 
-                    severity="help" 
-                    @click="addRow" />
-            </template>
-            
             <!-- 기본 버튼들 -->
             <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('save')"/>
             <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
@@ -68,7 +63,7 @@ const updateField = (field, value) => {
           <template v-if="field.type === 'calendar'">
               <!-- <Calendar v-model="data[field.field]" dateFormat="yy-mm-dd" showIcon class="w-full" /> -->
               <Calendar :modelValue="data[field.field]"
-                @update:modelValue="updateField(field.field, $event)" dateFormat="yy-mm-dd" showIcon class="w-full"/>
+                @update:modelValue="updateField(field.field, $event)" dateFormat="yy-mm-dd" :minDate="field.minDate" :maxDate="field.maxDate" showIcon class="w-full"/>
           </template>
 
           <template v-else-if="field.type === 'input'">

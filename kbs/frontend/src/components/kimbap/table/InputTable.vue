@@ -60,7 +60,16 @@ const props = defineProps({
     },
 })
 
-const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal'])
+const emit = defineEmits([
+  'update:data',
+  'dataChange',
+  'openQtyModal',
+  'delete',
+  'reset',
+  'save',
+  'load'
+])
+
 
 // 내부 데이터 관리
 const internalData = ref([...props.data])

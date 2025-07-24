@@ -26,7 +26,7 @@ onMounted(async () => {
     const res = await getOrderList();
     console.log('응답 타입:', typeof res.data);
     console.log('실제 응답 내용:', res.data);
-    orders.value = res.data;
+    orders.value = res.data.data;
   } catch (err) {
     console.error('목록 조회 실패:', err);
   }
