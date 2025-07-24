@@ -1,7 +1,6 @@
 package com.kimbap.kbs.simjaejine.service;
 
 import java.security.Timestamp;
-import java.util.Date;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

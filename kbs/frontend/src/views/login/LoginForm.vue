@@ -114,8 +114,54 @@ async function handleLogin() {
   }
 }
 
+// XXXXXXXXXXXXXXXXXX
+// async function handleLogin() {
+//   // 프론트단 유효성 검사
+//   if (!id.value) {
+//     error.value = '아이디를 입력하세요.';
+//     return;
+//   }
+
+//   if (!pw.value) {
+//     error.value = '비밀번호를 입력하세요.';
+//     return;
+//   }
+
+//   // 서버에 요청
+//   try {
+//     const response = await axios.post('/api/login', {
+//       id: id.value,
+//       pw: pw.value,
+//     });
+
+//     if (response.data && response.data.id) {
+//       // 모든 필드를 한 번에 객체로 만듦
+//       const userObj = {
+//         id: response.data.id,
+//         memType: response.data.memType,
+//         isUsed: response.data.isUsed,
+//         empName: response.data.empName,
+//         tel: response.data.tel,
+//         teamName: response.data.teamName,
+//         deptName: response.data.deptName
+//       };
+//       // Pinia Store에 저장
+//       memberStore.saveUser(userObj);
+//       // sessionStorage에도 저장
+//       sessionStorage.setItem('member', JSON.stringify(userObj));
+//       console.log('저장된 로그인정보', userObj);
+//       router.push('/');
+//     } else {
+//       error.value = response.data.message;
+//     }
+//   } catch (err) {
+//     console.error('로그인 오류:', err);
+//     error.value = '사원번호와 비밀번호를 확인해주세요.';
+//   }
+// }
 </script>
 
 <style scoped>
 /* 추후 필요시 커스텀 스타일 추가 가능 */
 </style>
+

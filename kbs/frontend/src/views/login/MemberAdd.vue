@@ -6,8 +6,19 @@ import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 
 // 1) Pinia 스토어: 전역 데이터와 액션만
 const store = useStandardMatStore();
-const { fetchMaterials, fetchSuppliers, addMaterial } = store;
+const { addMaterial } = store;
 
+// 유형별 readonly 처리
+const readonlyKeys = ['deptType', 'teamType', 'regDt', 'email', 'birth'];
+const formData = ref({ memberType: '' });
+
+const isCompanyType = computed(() =>
+    formData.value.memberType === 'p2' || formData.value.memberType === 'p3'
+);
+
+function isReadonly(key) {
+    return isCompanyType.value && readonlyKeys.includes(key);
+}
 // 2) 컴포넌트 레벨 UI 설정
 const inputColumns = ref([]);
 const inputFormButtons = ref({});
@@ -36,7 +47,8 @@ onBeforeMount(() => {
                 { label: '생산부', value: 'DEPT-2' },
                 { label: '회계부', value: 'DEPT-3' },
                 { label: '물류부', value: 'DEPT-4' },
-            ]
+            ],
+            disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3'
         },
         {
             key: 'teamType',
@@ -51,16 +63,17 @@ onBeforeMount(() => {
                 { label: '물류팀', value: 'DEPT-4-2' },
                 { label: '창고1팀', value: 'DEPT-4-3' },
                 { label: '창고2팀', value: 'DEPT-4-4' },
-            ]
+            ],
+            disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3'
         },
-        { key: 'regDt', label: '입사날짜', type: 'calendar', defaultValue: new Date().toISOString().slice(0, 10), },
+        { key: 'regDt', label: '입사날짜', type: 'date', defaultValue: new Date().toISOString().slice(0, 10), disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3' },
         { key: 'id', label: '아이디', type: 'text' },
         { key: 'pw', label: '비밀번호', type: 'text' },
-        { key: 'id', label: '사원이름', type: 'text' },
-        { key: 'id', label: '연락처', type: 'tel' },
-        { key: 'id', label: '이메일', type: 'email' },
-        { key: 'id', label: '생년월일', type: 'text' },
-        { key: 'id', label: '주소', type: 'text' },
+        { key: 'empName', label: '이름', type: 'text' },
+        { key: 'tel', label: '연락처', type: 'tel' },
+        { key: 'email', label: '이메일', type: 'email', disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3' },
+        { key: 'birt', label: '생년월일', type: 'text', disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3' },
+        { key: 'address', label: '주소', type: 'text' },
     ];
     // ─ 입력폼 버튼
     inputFormButtons.value = {
@@ -82,7 +95,14 @@ const handleSaveMaterial = async (formData) => {
 
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[45%]">
-            <InputForm title="자재정보" :columns="inputColumns" :buttons="inputFormButtons" @submit="handleSaveMaterial" />
+            <InputForm
+    title="자재정보"
+    :columns="inputColumns"
+    :buttons="inputFormButtons"
+    :formData="formData"
+    :isReadonly="isReadonly"
+    @submit="handleSaveMaterial"
+/>
         </div>
     </div>
 </template>

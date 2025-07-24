@@ -30,7 +30,7 @@ public class LoginController {
         if (!user.getPw().equals(member.getPw())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("비밀번호가 틀렸습니다.");
         }
-
+        System.out.println("유저에게 전달할 정보: " + user);
         return ResponseEntity.ok(user);
     }
 
