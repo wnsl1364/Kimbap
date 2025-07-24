@@ -1,17 +1,12 @@
 package com.kimbap.kbs.simjaejine.service;
 
-import org.springframework.stereotype.Service;
+public interface MemberService {
+    // 로그인
+    MemberVO getUserInfo(String id);
 
-import com.kimbap.kbs.simjaejine.mapper.MemberMapper;
+    // 회원정보등록
+    MemberAddVO addMember(MemberAddVO memberAddVO);
 
-import lombok.RequiredArgsConstructor;
-
-@Service
-@RequiredArgsConstructor
-public class MemberService {
-      private final MemberMapper memberMapper;
-
-    public MemberVO getUserInfo(String id) {
-        return memberMapper.getUserInfo(id); // memberMapper.getUserInfo(id) 메서드 호출하여 DB에서 사용자 정보 조회
-    }
+    // 사원기준정보등록
+    EmployeeAddVO addEmployee(EmployeeAddVO employeeAddVO);
 }

@@ -89,9 +89,14 @@ async function handleLogin() {
     if (response.data && response.data.id) {
       const userData = response.data;
       memberStore.saveUser({
+        // 저장될 로그인 정보들
         id: userData.id,
+        memType : userData.memType,
+        isUsed : userData.isUsed,
         empName: userData.empName,
-        tel: userData.tel
+        tel: userData.tel,
+        teamName : userData.teamName,
+        deptName : userData.deptName
       });
       sessionStorage.setItem('member', JSON.stringify({
         id: userData.id,

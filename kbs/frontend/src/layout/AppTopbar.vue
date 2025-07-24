@@ -8,7 +8,11 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
 
 const goToLogin = () => {
   router.push('/login/loginForm')
-}
+};
+
+const goToMemberAdd = () => {
+  router.push('/login/memberAdd')
+};
 </script>
 
 <template>
@@ -66,7 +70,7 @@ const goToLogin = () => {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button type="button" class="layout-topbar-action">
+                    <button type="button" class="layout-topbar-action" @click="goToMemberAdd">
                         <i class="pi pi-inbox"></i>
                         <span>Messages</span>
                     </button>
