@@ -58,6 +58,15 @@ const props = defineProps({
          type: String,
          required: true
     },
+    autoCalculation: {
+        type: Object,
+        default: () => ({
+            enabled: false,  // 자동계산 켜기/끄기
+            quantityField: 'number',  // 수량 필드명
+            priceField: 'price',      // 단가 필드명
+            totalField: 'totalPrice'  // 총액 필드명
+        })
+    }
 })
 
 const emit = defineEmits([
@@ -136,13 +145,20 @@ const emitDataChange = () => {
 const updateField = (rowData, field, value) => {
     rowData[field] = value
 
-    // 총액 자동계산 - 완전 중요해! 🧮
-    if (field === 'number' || field === 'price') {
-        if (rowData.number && rowData.price) {
-            rowData.totalPrice = rowData.number * rowData.price
+    // 총액 자동계산 - 이제 설정 가능해! 🎉
+    if (props.autoCalculation.enabled) {
+        const { quantityField, priceField, totalField } = props.autoCalculation
+        
+        if (field === quantityField || field === priceField) {
+            const quantity = rowData[quantityField] || 0
+            const price = rowData[priceField] || 0
+            
+            if (quantity && price) {
+                rowData[totalField] = quantity * price
+            }
         }
     }
-
+    
     emitDataChange()
 }
 
