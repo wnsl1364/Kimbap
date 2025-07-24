@@ -7,10 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.materials.mapper.MateMapper;
-import com.kimbap.kbs.materials.service.MateInboVO;
-import com.kimbap.kbs.materials.service.MateRelVO;
 import com.kimbap.kbs.materials.service.MateService;
-import com.kimbap.kbs.materials.service.PurcOrdVO;
+import com.kimbap.kbs.materials.service.MaterialsVO;
+
 
 @Service
 @Transactional
@@ -20,37 +19,37 @@ public class MateServiceImpl implements MateService {
     private MateMapper mateMapper;
 
     @Override
-    public void insertMateInbo(MateInboVO mateInbo) {
+    public void insertMateInbo(MaterialsVO mateInbo) {
         mateMapper.insertMateInbo(mateInbo);
     }
 
     @Override
-    public List<MateInboVO> getMateInboList() {
+    public List<MaterialsVO> getMateInboList() {
         return mateMapper.getMateInboList();
     }
 
     @Override
-    public void updateMateInbo(MateInboVO mateInbo) {
+    public void updateMateInbo(MaterialsVO mateInbo) {
         mateMapper.updateMateInbo(mateInbo);
     }
 
     @Override
-    public MateInboVO getMateInboById(String mateInboCd) {
+    public MaterialsVO getMateInboById(String mateInboCd) {
         return mateMapper.getMateInboById(mateInboCd);
     }
 
     @Override
-    public List<PurcOrdVO> getPurcOrdList() {
+    public List<MaterialsVO> getPurcOrdList() {
         return mateMapper.getPurcOrdList();
     }
 
     @Override
-    public List<MateRelVO> getMateRelList() {
+    public List<MaterialsVO> getMateRelList() {
         return mateMapper.getMateRelList();
     }
 
     @Override
-    public void insertMateRel(MateRelVO mateRel) {
+    public void insertMateRel(MaterialsVO mateRel) {
         mateMapper.insertMateRel(mateRel);
     }
 }
