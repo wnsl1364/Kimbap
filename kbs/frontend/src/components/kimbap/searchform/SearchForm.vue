@@ -130,6 +130,10 @@ const handleReset = () => {
                             <Calendar v-else-if="column.type === 'calendar'" :id="`search_${column.key}`"
                                 v-model="column.value" :placeholder="column.placeholder" dateFormat="yy-mm-dd"
                                 class="w-full" showIcon />
+                            
+                            <!-- 읽기 전용 -->
+                            <InputText v-else-if="column.type === 'readonly'" :id="`search_${column.key}`"
+                                v-model="column.value" :placeholder="column.placeholder" class="w-full" readonly />
 
                             <!-- 날짜 범위 -->
                             <div v-else-if="column.type === 'dateRange'" class="flex gap-2 items-center w-full">

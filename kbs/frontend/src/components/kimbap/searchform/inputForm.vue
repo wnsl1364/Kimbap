@@ -28,12 +28,36 @@ const props = defineProps({
         type: String,
         default: 'top', // 'top', 'bottom', 'both'
         validator: (value) => ['top', 'bottom', 'both'].includes(value)
-    }
+    },
+    data: { 
+        type: Object, 
+        required: true 
+    },
 });
 
-const emit = defineEmits(['submit', 'reset', 'delete', 'load']);
+const emit = defineEmits(['submit', 'reset', 'delete', 'load', 'update:data']);
 
-const formData = ref({});
+const formData = ref({ ...props.data });
+
+watch(
+  () => props.data,
+  (newVal) => {
+    formData.value = { ...newVal };
+  },
+  { immediate: true, deep: true }
+);
+
+watch(
+  () => formData.value,
+  (newVal) => {
+    const jsonNew = JSON.stringify(newVal);
+    const jsonOld = JSON.stringify(props.data);
+    if (jsonNew !== jsonOld) {
+      emit('update:data', newVal);
+    }
+  },
+  { deep: true }
+);
 
 // props.columns를 안전하게 초기화
 const initializeForm = () => {
@@ -54,9 +78,10 @@ watch(
 );
 
 // 이벤트 핸들러들
-const handleSubmit = () => {
+const handleSubmit = () => { 
     console.log('제출 데이터:', formData.value);
     emit('submit', formData.value);
+    initializeForm();
 };
 
 const handleReset = () => {

@@ -12,4 +12,7 @@ public interface MatMapper  {
 	int getNextRawMaterialCodeBySeq();
 	int getNextSubMaterialCodeBySeq();
 	boolean existsMcode(String mcode);
+	MatVO getMatDetail(String mcode); // 자재 단건 조회
+	List<MatSupplierVO> getMatSuppliers(String mcode); // 해당자재의 공급사 조회
+
 }
