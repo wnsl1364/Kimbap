@@ -2,12 +2,14 @@ package com.kimbap.kbs.order.service;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+// 주문 목록 조회 및 주문 등록을 위한 VO 클래스
 @Data
 @Builder
 @AllArgsConstructor
@@ -27,4 +29,7 @@ public class OrderVO {
     private BigDecimal curPayAmount;
     private Date exPayDt;
     private Date actPayDt;
+    
+    // 주문 상세 목록
+    private List<OrderDetailVO> orderDetails;
 }
