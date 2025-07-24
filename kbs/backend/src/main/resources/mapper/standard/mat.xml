@@ -13,6 +13,7 @@
                 sto_con,
                 edate
         FROM    MATERIAL
+        ORDER BY mcode
     </select>
 
     <!-- 자재 등록 -->
