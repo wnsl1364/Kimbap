@@ -8,7 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 			 "com.kimbap.kbs.simjaejine.mapper",
 			 "com.kimbap.kbs.order.mapper",
 			 "com.kimbap.kbs.materials.mapper",
-			 "com.kimbap.kbs.production.mapper"})
+			 "com.kimbap.kbs.production.mapper",
+			"com.kimbap.kbs.product.mapper"})
 @SpringBootApplication
 public class KbsApplication {
 

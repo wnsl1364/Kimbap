@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, watchEffect  } from 'vue'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue';
@@ -7,7 +7,8 @@ import InputTable from '@/components/kimbap/table/InputTable.vue';
 // Pinia store
 import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형이 유지됨
 import { useOrderFormStore } from '@/stores/orderFormStore'
-import { useOrderProductStore } from '@/stores/orderProductStore' //피니아 스토어 가져오기
+import { useOrderProductStore } from '@/stores/orderProductStore'
+import { useMemberStore } from '@/stores/memberStore'
 
 // 날짜 포맷팅을 위한 date-fns
 import { format } from 'date-fns'
@@ -49,7 +50,7 @@ const columns = [
   { field: 'pName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
   { field: 'totalQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right' },
   { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
-  { field: 'dueDate', header: '총 금액(원)', type: 'input', align: 'right', readonly: true }
+  { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true }
 ]
 
 // 버튼 설정
@@ -68,13 +69,16 @@ const purchaseFormButtons = ref({
 
 // 총 금액 계산
 // products 배열의 각 항목에서 totalQty와 unitPrice를 곱하여 총 금액을 계산
-const totalAmount = computed(() => {
+const allTotalAmount = computed(() => {
   return products.value.reduce((sum, item) => {
     const qty = Number(item.totalQty) || 0
     const price = Number(item.unitPrice) || 0
     return sum + qty * price
   }, 0)
 });
+
+// 제품 모달 설정
+const productModalConfig = ref({})
 
 // 초기화
 const handleReset = () => {
@@ -86,6 +90,35 @@ const handleReset = () => {
 // 저장
 const handleSave = async () => {
   try {
+    if (!formData.value.cpCd) {
+      alert('거래처 정보가 없습니다.')
+      return
+    }
+    if (!formData.value.deliReqDt) {
+      alert('납기 요청일자를 선택해주세요.')
+      return
+    }
+    if (!formData.value.exPayDt) {
+      alert('입금일자를 선택해주세요.')
+      return
+    }
+    if (products.value.length === 0) {
+      alert('제품을 1개 이상 등록해주세요.')
+      return
+    }
+
+     for (let i = 0; i < products.value.length; i++) {
+      const item = products.value[i]
+      if (!item.pcode || !item.pName) {
+        alert(`${i + 1}번 제품의 정보를 선택해주세요.`)
+        return
+      }
+      if (!item.totalQty || Number(item.totalQty) <= 0) {
+        alert(`${i + 1}번 제품의 수량을 1 이상 입력해주세요.`)
+        return
+      }
+    }
+
     const raw = formData.value
 
     const requestBody = {
@@ -114,34 +147,76 @@ const handleSave = async () => {
   }
 }
 
+watchEffect(() => {
+  products.value.forEach(item => {
+    const qty = Number(item.totalQty) || 0
+    const price = Number(item.unitPrice) || 0
+    item.totalAmount = qty * price
+  })
+})
 
 onMounted(async () => {
-  // 오늘 날짜를 yyyy-MM-dd 형식으로 설정
   const today = format(new Date(), 'yyyy-MM-dd')
-    // 임시 데이터 예시
-  formStore.setFormData({
+
+  // 하드코딩 테스트 데이터 (예: 드림마트 로그인 사용자)
+  const hardcodedCompany = {
+    cpCd: 'CP-010',
+    cpName: '드림마트',
+    deliAdd: '부산시 해운대구 10번지',
+    loanTerm: 14,
+    regi: 'MEM-001'
+  }
+
+  setFormData({
     ordCd: '',
     ordDt: today,
-    cpName: '',
-    deliAdd: '',
+    cpCd: hardcodedCompany.cpCd,
+    cpName: hardcodedCompany.cpName,
+    deliAdd: hardcodedCompany.deliAdd,
     deliReqDt: '',
     exPayDt: '',
-    note: ''
+    note: '',
+    regi: hardcodedCompany.regi
   })
+
+  // 입금일자 최대값 세팅
+  maxExPayDate.value = addDays(new Date(), hardcodedCompany.loanTerm)
+
+  // 제품 목록(DB)
+  try {
+    const res = await axios.get('/api/product/list')
+    if (res.data.result_code === 'SUCCESS') {
+      const productList = res.data.data
+
+      productModalConfig.value = {
+        pName: {
+          displayField: 'prod_name',
+          items: productList,
+          columns: [
+            { field: 'pcode', header: '제품코드' },
+            { field: 'prodName', header: '제품명' },
+            { field: 'prodUnitPrice', header: '단가' }
+          ],
+          mappingFields: {
+            pcode: 'pcode',
+            pName: 'prodName',
+            unitPrice: 'prodUnitPrice',
+            totalQty: () => 1 // 선택 시 기본값으로 1 넣기 (선택사항)
+          }
+        }
+      }
+    } else {
+      console.error('제품 목록 불러오기 실패:', res.data.message)
+    }
+  } catch (err) {
+    console.error('제품 목록 요청 실패:', err)
+  }
 })
 
 onUnmounted(() => {
   formStore.$reset();
   productStore.$reset();
 });
-
-/** 
-  * db로 가져올때
-onMounted(async () => {
-    const res = await axios.get('/api/orders/1')   // 예시 URL
-    formData.value = res.data // 받아온 데이터를 formData에 바로 넣음
-})
-*/
 </script>
 
 <template>
@@ -151,12 +226,13 @@ onMounted(async () => {
     </div>
     <div class="space-y-4 mt-8">
         <!-- 제품추가 영역 -->
-        <InputTable :data="products" :columns="columns" :title="'제품'" :buttons="purchaseFormButtons" button-position="top" scrollHeight="360px" height="460px" :dataKey="'pcode'"/>
+        <InputTable :data="products" :columns="columns" :title="'제품'" :buttons="purchaseFormButtons" button-position="top" scrollHeight="360px" height="460px" :dataKey="'pcode'"
+        :modalDataSets="productModalConfig"/>
         <!-- 하단 합계 영역 -->
         <div class="flex justify-end items-center mt-4 px-4">
           <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>
           <p class="text-xl font-bold text-orange-500">
-            {{ totalAmount.toLocaleString() }} <em class="text-sm font-normal not-italic text-black ml-1">원</em>
+            {{ allTotalAmount.toLocaleString() }} <em class="text-sm font-normal not-italic text-black ml-1">원</em>
           </p>
         </div>
     </div>
