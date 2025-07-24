@@ -12,6 +12,10 @@ import lombok.NoArgsConstructor;
 public class MemberVO {
   private String id;
   private String pw;
+  private String memType;
+  private String isUsed;
   private String empName;
   private String tel;
+  private String teamName;
+  private String deptName;
 }

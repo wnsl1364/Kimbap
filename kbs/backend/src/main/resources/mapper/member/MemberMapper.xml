@@ -5,10 +5,66 @@
 <select id="getUserInfo" resultType="MemberVO"> <!-- 로그인 -->
 SELECT   a.id
         ,a.pw
+        ,a.mem_type
+        ,a.is_used
         ,b.emp_name
         ,b.tel
-FROM    member a JOIN employee b
+        ,c.team_name
+        ,d.dept_name
+FROM    member a JOIN employee b 
 ON      a.emp_cd = b.emp_cd
+JOIN    team c
+ON      b.team_code = c.team_code
+JOIN    department d
+ON      c.dcode = d.dcode
+
 WHERE   a.id = #{id}
-	</select>
+</select>
+
+<insert id="addMember" parameterType="MemberAddVO"> <!-- 회원등록 -->
+INSERT INTO member 
+            (mem_cd, 
+            id, 
+            pw, 
+            ldate, 
+            reg_dt, 
+            mem_type, 
+            emp_cd, 
+            cp_cd, 
+            is_used)
+VALUES (#{mem_cd}, 
+        #{id}, 
+        #{pw}, 
+        #{ldate}, 
+        #{reg_dt}, 
+        #{mem_type}, 
+        #{emp_cd}, 
+        #{cp_cd}, 
+        #{is_used})
+
+</insert>
+
+<insert id="addEmployee" parameterType="EmployeeAddVO"> <!-- 회원등록 -->
+INSERT INTO employee
+           ( emp_cd, 
+           emp_name, 
+           birt, 
+           tel, 
+           email, 
+           address, 
+           hdate, 
+           ledate, 
+           team_code, 
+           is_used)
+VALUES (#{emp_cd}, 
+        #{emp_name}, 
+        #{birt}, 
+        #{tel}, 
+        #{email}, 
+        #{address}, 
+        #{hdate}, 
+        #{ledate}, 
+        #{team_code},
+        #{is_used})
+</insert>
 </mapper>

@@ -5,4 +5,9 @@ export default [
         name: 'loginForm',
         component: () => import('@/views/login/LoginForm.vue'),
     },
+    {
+        path: '/login/memberAdd',
+        name: 'memberAdd',
+        component: () => import('@/views/login/MemberAdd.vue'),
+    },
 ];

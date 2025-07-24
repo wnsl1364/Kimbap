@@ -143,7 +143,13 @@ const router = createRouter({
                 ...productionRoutes,
                 ...logisticsRoutes,
                 ...paymentRoutes,
+                ...loginRoutes,
             ]
+        },
+        {
+            path: '/login/loginForm',
+            name: 'loginForm',
+            component: () => import('@/views/login/LoginForm.vue')
         },
         {
             path: '/landing',
@@ -165,7 +171,6 @@ const router = createRouter({
             name: 'error',
             component: () => import('@/views/pages/auth/Error.vue')
         },
-        ...loginRoutes, //  페이지
     ]
 });
 
