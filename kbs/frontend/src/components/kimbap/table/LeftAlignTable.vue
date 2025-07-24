@@ -55,10 +55,10 @@ const updateField = (field, value) => {
             </template>
             
             <!-- 기본 버튼들 -->
-            <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" />
-            <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" />
-            <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" />
-            <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" />
+            <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('save')"/>
+            <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
+            <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('delete')"/>
+            <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="$emit('load')"/>
         </div>
     </div>
     <div class="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -66,7 +66,9 @@ const updateField = (field, value) => {
         <label class="w-28 text-left font-bold">{{ field.label }}</label>
         <div class="flex-1 relative">
           <template v-if="field.type === 'calendar'">
-              <Calendar v-model="data[field.field]" dateFormat="yy-mm-dd" showIcon class="w-full" />
+              <!-- <Calendar v-model="data[field.field]" dateFormat="yy-mm-dd" showIcon class="w-full" /> -->
+              <Calendar :modelValue="data[field.field]"
+                @update:modelValue="updateField(field.field, $event)" dateFormat="yy-mm-dd" showIcon class="w-full"/>
           </template>
 
           <template v-else-if="field.type === 'input'">
