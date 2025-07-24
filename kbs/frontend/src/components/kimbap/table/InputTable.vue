@@ -52,7 +52,12 @@ const props = defineProps({
     modalDataSets: {
         type: Object,
         default: () => ({})
-    }
+    },
+    // 데이터 키 설정
+    dataKey: {
+         type: String,
+         required: true
+    },
 })
 
 const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal'])
@@ -264,7 +269,7 @@ const getAlignClass = (align) => {
             @update:visible="handleModalClose"
             :items="props.modalDataSets[currentField]?.items || []"
             :columns="props.modalDataSets[currentField]?.columns || []"
-            :itemKey="'id'"
+            :itemKey="props.dataKey"
         />
     </div>
 </template>

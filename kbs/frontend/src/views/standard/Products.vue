@@ -166,8 +166,8 @@ const handleSaveMaterial = async (formData) => {
 
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
-            <StandardTable title="자재기준정보 목록" :data="materialList" dataKey="mcode" :columns="productColumns" @view-history="handleViewHistory" :scrollable="true" scrollHeight="300px" height="300px" class="mb-2" />
-            <InputTable title="자재별 공급처" :columns="cpColumns" :buttons="rowButtons" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
+            <StandardTable title="자재기준정보 목록" :data="materialList" dataKey="mcode" :columns="productColumns" @view-history="handleViewHistory" :scrollable="true" scrollHeight="230px" height="320px" class="mb-2" />
+            <InputTable title="자재별 공급처" :columns="cpColumns" :buttons="rowButtons" dataKey="cpCd" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
         </div>
 
         <div class="w-full md:basis-[45%]">
