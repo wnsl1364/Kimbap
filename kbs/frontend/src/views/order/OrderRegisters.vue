@@ -62,19 +62,24 @@ const totalAmount = computed(() => {
   }, 0)
 });
 
-// 오늘 날짜를 yyyy-MM-dd 형식으로 설정
-const today = format(new Date(), 'yyyy-MM-dd')
+const handleReset = () => {
+  resetForm()
+  formData.value.ordDt = format(new Date(), 'yyyy-MM-dd')
+  console.log('초기화 후 주문일자:', formData.value.ordDt)
+}
 
 onMounted(async () => {
+  // 오늘 날짜를 yyyy-MM-dd 형식으로 설정
+  const today = format(new Date(), 'yyyy-MM-dd')
     // 임시 데이터 예시
   formStore.setFormData({
-    orderNo: '',
-    orderDate: '',
-    customerName: '',
-    address: '',
-    dueDate: '',
-    paymentDate: '',
-    memo: ''
+    ordCd: '',
+    ordDt: today,
+    cpName: '',
+    deliAdd: '',
+    deliReqDt: '',
+    exPayDt: '',
+    note: ''
   })
 })
 
@@ -93,10 +98,9 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div>오늘 날짜: {{ today }}</div>
     <div class="space-y-4">
         <!-- 기본정보 영역 -->
-        <LeftAlignTable :data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top"/>
+        <LeftAlignTable :data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset"/>
     </div>
     <div class="space-y-4 mt-8">
         <!-- 제품추가 영역 -->

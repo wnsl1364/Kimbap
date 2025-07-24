@@ -4,14 +4,13 @@ import { ref } from 'vue'
 
 export const useOrderFormStore = defineStore('orderForm', () => {
   const formData = ref({
-    orderNo: '',
-    orderDate: '',
-    customerName: '',
-    address: '',
-    dueDate: '',
-    paymentDate: '',
-    memo: '',
-    unpaid: ''
+    ordCd: '',
+    ordDt: '',
+    cpName: '',
+    deliAdd: '',
+    deliReqDt: '',
+    exPayDt: '',
+    note: ''
   })
 
   const setFormData = (data) => {
@@ -20,14 +19,13 @@ export const useOrderFormStore = defineStore('orderForm', () => {
 
   const resetForm = () => {
     formData.value = {
-      orderNo: '',
-      orderDate: '',
-      customerName: '',
-      address: '',
-      dueDate: '',
-      paymentDate: '',
-      memo: '',
-      unpaid: ''
+      ordCd: '',
+      ordDt: '',
+      cpName: '',
+      deliAdd: '',
+      deliReqDt: '',
+      exPayDt: '',
+      note: ''
     }
   }
 
