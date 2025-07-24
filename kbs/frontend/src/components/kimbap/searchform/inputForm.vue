@@ -74,6 +74,13 @@ const handleLoad = () => {
     console.log('불러오기 요청');
     emit('load');
 };
+
+const getOptions = (options) => {
+  if (!options) return [];
+  if (typeof options === 'function') return options();
+  if ('value' in options) return options.value;
+  return options;
+};
 </script>
 
 <template>
@@ -139,6 +146,16 @@ const handleLoad = () => {
                     optionLabel="label" 
                     optionValue="value" 
                     :placeholder="field.placeholder" 
+                    class="w-full" 
+                />
+                <!-- 드롭다운 배열 반환 -->
+                <Dropdown 
+                    v-else-if="field.type === 'dropdown2'" 
+                    v-model="formData[field.key]" 
+                    :options="getOptions(field.options)" 
+                    optionLabel="label" 
+                    optionValue="value" 
+                    :placeholder="field.placeholder || '선택하세요'" 
                     class="w-full" 
                 />
 

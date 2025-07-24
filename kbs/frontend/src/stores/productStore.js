@@ -1,16 +1,35 @@
 // /stores/productStore.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { getFactoryList, getProdPlanList } from '@/api/production';
 
 export const useProductStore = defineStore('product', () => {
-  const products = ref([])
+  const factoryList = ref([]); // 공장 목록
+  const prodPlanList = ref([]); // 생산계획 목록
 
-  const setProducts = (newProducts) => {
-    products.value = newProducts
+  // 공장 목록 조회
+  const fetchFactoryList = async () => {
+        try {
+          const res = await getFactoryList();
+          factoryList.value = res.data;
+        } catch (err) {
+          console.error('공장 목록 조회 실패:', err);
+        }
   }
 
+  // 공장 목록 조회
+  const fetchProdPlanList = async () => {
+        try {
+          const res = await getProdPlanList();
+          prodPlanList.value = res.data;
+        } catch (err) {
+          console.error('생산계획 목록 조회 실패:', err);
+        }
+  }
   return {
-    products,
-    setProducts,
+    factoryList,
+    prodPlanList,
+    fetchFactoryList,
+    fetchProdPlanList
   }
 })
