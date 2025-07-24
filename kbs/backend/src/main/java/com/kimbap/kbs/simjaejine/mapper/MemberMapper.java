@@ -8,7 +8,7 @@ import com.kimbap.kbs.simjaejine.service.MemberVO;
 
 @Mapper
 public interface MemberMapper {
-	// 로그인
+	// 로그인 및 로그인정보
 	public MemberVO getUserInfo(String id);
 
 	// 회원정보등록
