@@ -33,8 +33,9 @@ const handleClick = (rowData) => {
             size="large"
             scrollable
             :scrollHeight="scrollHeight"
+            @rowSelect="$emit('row-select', $event.data)"
         >
-            <Column selectionMode="multiple" headerStyle="width: 3rem" />
+            <Column selectionMode="single" headerStyle="width: 3rem" />
             <Column
                 v-for="col in columns"
                 :key="col.field"
