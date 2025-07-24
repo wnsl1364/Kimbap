@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.production.mapper.FactoryMapper">
+    <!-- 공장 목록 조회 -->
+    <select id="getFactoryList" resultType="com.kimbap.kbs.production.service.FactoryVO">
+        SELECT fcode,
+               fac_ver_cd,
+               fac_name,
+               address,
+               tel,
+               mname,
+               op_status,
+               cha_rea,
+               reg_dt,
+               note
+        FROM   factory
+        WHERE  op_status = 'r1'
+    </select>
+
+
+</mapper>
