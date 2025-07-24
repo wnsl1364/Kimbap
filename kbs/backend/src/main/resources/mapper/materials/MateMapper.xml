@@ -5,48 +5,58 @@
     
     <!-- 자재입고 관련 쿼리 -->
     
-    <!-- 자재입고 목록 조회 -->
+    <!-- 자재입고 목록 조회 (납기예정일 포함) -->
     <select id="getMateInboList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
-            mate_inbo_cd as mateInboCd,
-            mcode,
-            mate_ver_cd as mateVerCd,
-            wcode,
-            ware_ver_cd as wareVerCd,
-            purc_d_cd as purcDCd,
-            lot_no as lotNo,
-            supplier_lot_no as supplierLotNo,
-            inbo_dt as inboDt,
-            inbo_status as inboStatus,
-            total_qty as totalQty,
-            mname,
-            note,
-            cp_cd as cpCd,
-            deli_dt as deliDt
-        FROM mate_inbo
-        ORDER BY inbo_dt DESC
+            mi.mate_inbo_cd,
+            mi.mcode,
+            mi.mate_ver_cd,
+            mi.wcode,
+            mi.ware_ver_cd,
+            mi.purc_d_cd,
+            mi.lot_no,
+            mi.supplier_lot_no,
+            mi.inbo_dt,
+            mi.inbo_status,
+            mi.total_qty,
+            mi.mname,
+            mi.note,
+            mi.cp_cd,
+            mi.deli_dt,
+            pod.ex_deli_dt,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price
+        FROM mate_inbo mi
+        LEFT JOIN purc_ord_d pod ON mi.purc_d_cd = pod.purc_d_cd
+        ORDER BY mi.inbo_dt DESC
     </select>
     
     <!-- 자재입고 단건 조회 -->
     <select id="getMateInboById" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
-            mate_inbo_cd as mateInboCd,
-            mcode,
-            mate_ver_cd as mateVerCd,
-            wcode,
-            ware_ver_cd as wareVerCd,
-            purc_d_cd as purcDCd,
-            lot_no as lotNo,
-            supplier_lot_no as supplierLotNo,
-            inbo_dt as inboDt,
-            inbo_status as inboStatus,
-            total_qty as totalQty,
-            mname,
-            note,
-            cp_cd as cpCd,
-            deli_dt as deliDt
-        FROM mate_inbo
-        WHERE mate_inbo_cd = #{mateInboCd}
+            mi.mate_inbo_cd,
+            mi.mcode,
+            mi.mate_ver_cd,
+            mi.wcode,
+            mi.ware_ver_cd,
+            mi.purc_d_cd,
+            mi.lot_no,
+            mi.supplier_lot_no,
+            mi.inbo_dt,
+            mi.inbo_status,
+            mi.total_qty,
+            mi.mname,
+            mi.note,
+            mi.cp_cd,
+            mi.deli_dt,
+            pod.ex_deli_dt,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price
+        FROM mate_inbo mi
+        LEFT JOIN purc_ord_d pod ON mi.purc_d_cd = pod.purc_d_cd
+        WHERE mi.mate_inbo_cd = #{mateInboCd, jdbcType=VARCHAR}
     </select>
     
     <!-- 자재입고 등록 -->
@@ -68,62 +78,121 @@
             cp_cd,
             deli_dt
         ) VALUES (
-            #{mateInboCd},
-            #{mcode},
-            #{mateVerCd},
-            #{wcode},
-            #{wareVerCd},
-            #{purcDCd},
-            #{lotNo},
-            #{supplierLotNo},
-            #{inboDt},
-            #{inboStatus},
-            #{totalQty},
-            #{mname},
-            #{note},
-            #{cpCd},
-            #{deliDt}
+            #{mateInboCd, jdbcType=VARCHAR},
+            #{mcode, jdbcType=VARCHAR},
+            #{mateVerCd, jdbcType=VARCHAR},
+            #{wcode, jdbcType=VARCHAR},
+            #{wareVerCd, jdbcType=VARCHAR},
+            #{purcDCd, jdbcType=VARCHAR},
+            #{lotNo, jdbcType=VARCHAR},
+            #{supplierLotNo, jdbcType=VARCHAR},
+            #{inboDt, jdbcType=TIMESTAMP},
+            #{inboStatus, jdbcType=VARCHAR},
+            #{totalQty, jdbcType=NUMERIC},
+            #{mname, jdbcType=VARCHAR},
+            #{note, jdbcType=VARCHAR},
+            #{cpCd, jdbcType=VARCHAR},
+            #{deliDt, jdbcType=TIMESTAMP}
         )
     </insert>
     
     <!-- 자재입고 수정 -->
     <update id="updateMateInbo" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         UPDATE mate_inbo SET
-            mcode = #{mcode},
-            mate_ver_cd = #{mateVerCd},
-            wcode = #{wcode},
-            ware_ver_cd = #{wareVerCd},
-            purc_d_cd = #{purcDCd},
-            lot_no = #{lotNo},
-            supplier_lot_no = #{supplierLotNo},
-            inbo_dt = #{inboDt},
-            inbo_status = #{inboStatus},
-            total_qty = #{totalQty},
-            mname = #{mname},
-            note = #{note},
-            cp_cd = #{cpCd},
-            deli_dt = #{deliDt}
-        WHERE mate_inbo_cd = #{mateInboCd}
+            mcode = #{mcode, jdbcType=VARCHAR},
+            mate_ver_cd = #{mateVerCd, jdbcType=VARCHAR},
+            wcode = #{wcode, jdbcType=VARCHAR},
+            ware_ver_cd = #{wareVerCd, jdbcType=VARCHAR},
+            purc_d_cd = #{purcDCd, jdbcType=VARCHAR},
+            lot_no = #{lotNo, jdbcType=VARCHAR},
+            supplier_lot_no = #{supplierLotNo, jdbcType=VARCHAR},
+            inbo_dt = #{inboDt, jdbcType=TIMESTAMP},
+            inbo_status = #{inboStatus, jdbcType=VARCHAR},
+            total_qty = #{totalQty, jdbcType=NUMERIC},
+            mname = #{mname, jdbcType=VARCHAR},
+            note = #{note, jdbcType=VARCHAR},
+            cp_cd = #{cpCd, jdbcType=VARCHAR},
+            deli_dt = #{deliDt, jdbcType=TIMESTAMP}
+        WHERE mate_inbo_cd = #{mateInboCd, jdbcType=VARCHAR}
     </update>
     
-    <!-- 발주 목록 조회 (자재입고 시 참조용) -->
+    <!-- 발주 목록 조회 -->
     <select id="getPurcOrdList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
-        <!-- PurcOrdVO 필드에 맞게 수정 필요 -->
-        SELECT * FROM purc_ord
-        ORDER BY purc_ord_dt DESC
+        SELECT 
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            po.ord_total_amount,
+            pod.purc_d_cd,
+            pod.cp_cd,
+            pod.mcode,
+            pod.mate_ver_cd,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price,
+            pod.ex_deli_dt,
+            pod.note,
+            pod.purc_d_status
+        FROM purc_ord po
+        LEFT JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        ORDER BY po.ord_dt DESC
     </select>
     
     <!-- 자재출고 목록 조회 -->
     <select id="getMateRelList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
-        <!-- MateRelVO 필드에 맞게 수정 필요 -->
-        SELECT * FROM mate_rel
+        SELECT 
+            mate_rel_cd,
+            produ_prod_cd,
+            mcode,
+            mate_ver_cd,
+            wslcode,
+            lot_no,
+            rel_qty,
+            unit,
+            rel_dt,
+            rel_type,
+            mname,
+            note,
+            cre_dt,
+            mod_dt
+        FROM mate_rel
         ORDER BY rel_dt DESC
     </select>
     
     <!-- 자재출고 등록 -->
     <insert id="insertMateRel" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
-        <!-- MateRelVO 필드에 맞게 수정 필요 -->
-        INSERT INTO mate_rel VALUES (...)
+        INSERT INTO mate_rel (
+            mate_rel_cd,
+            produ_prod_cd,
+            mcode,
+            mate_ver_cd,
+            wslcode,
+            lot_no,
+            rel_qty,
+            unit,
+            rel_dt,
+            rel_type,
+            mname,
+            note,
+            cre_dt,
+            mod_dt
+        ) VALUES (
+            #{mateRelCd, jdbcType=VARCHAR},
+            #{produProdCd, jdbcType=VARCHAR},
+            #{mcode, jdbcType=VARCHAR},
+            #{mateVerCd, jdbcType=VARCHAR},
+            #{wslcode, jdbcType=VARCHAR},
+            #{lotNo, jdbcType=VARCHAR},
+            #{relQty, jdbcType=NUMERIC},
+            #{unit, jdbcType=VARCHAR},
+            #{relDt, jdbcType=TIMESTAMP},
+            #{relType, jdbcType=VARCHAR},
+            #{mname, jdbcType=VARCHAR},
+            #{note, jdbcType=VARCHAR},
+            #{creDt, jdbcType=TIMESTAMP},
+            #{modDt, jdbcType=TIMESTAMP}
+        )
     </insert>
     
 </mapper>
