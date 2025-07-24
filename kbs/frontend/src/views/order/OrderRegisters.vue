@@ -9,6 +9,9 @@ import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore' //피니아 스토어 가져오기
 
+// 날짜 포맷팅을 위한 date-fns
+import { format } from 'date-fns'
+
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
 const productStore = useOrderProductStore()
@@ -59,6 +62,9 @@ const totalAmount = computed(() => {
   }, 0)
 });
 
+// 오늘 날짜를 yyyy-MM-dd 형식으로 설정
+const today = format(new Date(), 'yyyy-MM-dd')
+
 onMounted(async () => {
     // 임시 데이터 예시
   formStore.setFormData({
@@ -87,6 +93,7 @@ onMounted(async () => {
 </script>
 
 <template>
+    <div>오늘 날짜: {{ today }}</div>
     <div class="space-y-4">
         <!-- 기본정보 영역 -->
         <LeftAlignTable :data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top"/>
