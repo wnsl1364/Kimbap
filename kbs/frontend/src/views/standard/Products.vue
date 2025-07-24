@@ -14,8 +14,8 @@ const today = format(new Date(), 'yyyy-MM-dd');
 
 // Pinia store
 const store = useStandardMatStore();
-const { materialList, supplierList } = storeToRefs(store);
-const { fetchMaterials, fetchSuppliers, addMaterial } = store;
+const { materialList, supplierList, formData, supplierData } = storeToRefs(store);
+const { fetchMaterials, fetchSuppliers, fetchMaterialDetail, saveMaterial  } = store;
 
 // UI 설정용 ref
 const searchColumns = ref([]);
@@ -24,18 +24,6 @@ const cpColumns = ref([]);
 const productColumns = ref([]);
 const inputFormButtons = ref({});
 const rowButtons = ref({});
-const supplierData = ref([]); // 자재별 공급처 바인딩
-// 빈문자열 처리함수
-function sanitizeFormData(obj) {
-  const result = { ...obj };
-  for (const key in result) {
-    if (result[key] === '') {
-      result[key] = null;
-    }
-  }
-  return result;
-}
-
 // 공급처 모달 데이터셋
 const modalDataSets = computed(() => ({
   cpCd: {
@@ -109,7 +97,7 @@ onBeforeMount(() => {
     },
     { key: 'std', label: '규격', type: 'text' },
     {
-      key: 'deliveryUnit',
+      key: 'pieceUnit',
       label: '낱개단위',
       type: 'dropdown',
       options: [
@@ -176,50 +164,36 @@ onMounted(() => {
   fetchMaterials();
 });
 
-const handleSaveMaterial = async (formData) => {
-    // 버전 
-    formData.mateVerCd = 'V001';
-    // 등록자
-    formData.regi = 'admin'; 
-  // 🔧 빈 문자열 -> null
-  const sanitized = sanitizeFormData(formData);
+// 자재기준정보 등록
+const handleSaveMaterial = async () => {
+  const result = await store.saveMaterial();
 
-  // 🔢 숫자형 처리
-  sanitized.moqty = sanitized.moqty !== null ? Number(sanitized.moqty) : null;
-  sanitized.safeStock = sanitized.safeStock !== null ? Number(sanitized.safeStock) : null;
-  sanitized.edate = sanitized.edate !== null ? Number(sanitized.edate) : null;
-  sanitized.converQty = sanitized.converQty !== null ? Number(sanitized.converQty) : null;
-
-  // ✅ 공급사 정보 추가 (이쪽도 정리)
-  sanitized.suppliers = supplierData.value.map((s) => ({
-    cpCd: s.cpCd,
-    unitPrice: s.unitPrice !== '' ? Number(s.unitPrice) : null,
-    ltime: s.ltime !== '' ? Number(s.ltime) : null
-  }));
-
-  console.log('제출 데이터:', sanitized);
-  console.log('공급사 목록:', sanitized.suppliers);
-
-  const res = await addMaterial(sanitized);
-
-  // ✅ 여기에 추가
-  console.log('res:', res);
-
-  alert(res === '등록 성공' ? '등록 성공' : '등록 실패: ' + res);
+  if (result === '등록 성공') {
+    alert('등록 성공');
+  } else {
+    alert(result);
+  }
 };
-</script>
 
+// 자재 단건조회
+const handleSelectMaterial = async (selectedRow) => {
+  await fetchMaterialDetail(selectedRow.mcode);  // 🔥 핵심
+  console.log('formData.value:', formData.value);          // ✅ 자재 정보 확인
+  console.log('supplierData.value:', supplierData.value);  // ✅ 공급사 목록 확인
+};
+
+</script>
 <template>
     <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
 
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
-            <StandardTable title="자재기준정보 목록" :data="materialList" dataKey="mcode" :columns="productColumns" @view-history="handleViewHistory" :scrollable="true" scrollHeight="230px" height="320px" class="mb-2" />
-            <InputTable title="자재별 공급처" v-model:data="supplierData" :columns="cpColumns" :buttons="rowButtons" dataKey="cpCd" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
+            <StandardTable title="자재기준정보 목록" :data="materialList" dataKey="mcode" :columns="productColumns" @view-history="handleViewHistory" @row-select="handleSelectMaterial" :scrollable="true" scrollHeight="230px" height="320px" class="mb-2" />
+            <InputTable title="자재별 공급처" v-model:data="supplierData"  :columns="cpColumns"  :buttons="rowButtons" dataKey="cpCd" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
         </div>
 
         <div class="w-full md:basis-[45%]">
-            <InputForm title="자재정보" :columns="inputColumns" :buttons="inputFormButtons" @submit="handleSaveMaterial" />
+            <InputForm title="자재정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveMaterial" />
         </div>
     </div>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue' // 경로는 너의 프로젝트에 맞게 수정해줘!
 
 const props = defineProps({
@@ -79,6 +79,16 @@ const selectedRows = ref([]) // 선택된 행들
 const modalVisible = ref(false)
 const currentRowData = ref(null) // 현재 수정중인 행 데이터
 const currentField = ref('') // 현재 수정중인 필드명
+
+
+// 초기화 관련 추가(민준)
+watch(
+  () => props.data,
+  (newVal) => {
+    internalData.value = newVal
+  },
+  { immediate: true, deep: true }
+)
 
 // 모달 데이터는 이제 props로 받아옴!
 

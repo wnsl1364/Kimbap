@@ -95,4 +95,39 @@
         WHERE mcode = #{mcode}
     </select>
 
+    <select id="getMatDetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatVO">
+        SELECT  mcode,
+                mate_ver_cd,
+                mate_name,
+                mate_type,
+                sto_con,
+                unit,
+                std,
+                piece_unit,
+                conver_qty,
+                moqty,
+                safe_stock,
+                edate,
+                corigin,
+                is_used,
+                regi,
+                modi,
+                cha_rea,
+                reg_dt,
+                note
+        FROM    material
+        WHERE   mcode = #{mcode}
+    </select>
+        
+    <select id="getMatSuppliers" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatSupplierVO">
+        SELECT  mate_cp_cd,
+                mcode,
+                mate_ver_cd,
+                cp_cd,
+                unit_price,
+                ltime
+        FROM    MATE_SUPPLIER
+        WHERE   mcode = #{mcode}
+    </select>
+
 </mapper>
