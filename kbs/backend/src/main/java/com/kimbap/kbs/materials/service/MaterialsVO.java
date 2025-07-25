@@ -48,6 +48,8 @@ public class MaterialsVO {
     private Integer totalQty;       // 총수량
     private String mname;           // 자재명
     private Date deliDt;            // 납기일자
+    private String cpName;          // 회사명  
+
     
     // ========== 자재출고 (MateRelVO) ==========
     private String mateRelCd;       // 자재출고코드
