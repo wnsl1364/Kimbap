@@ -17,4 +17,5 @@ public interface MatMapper  {
 	int disableOldVersion(String mcode); // 기존 버전 비활성화
 	int getNextRawMaterialCodeBySeq();
 	int getNextSubMaterialCodeBySeq();
+	int getSupplierCountByMcode(String mcode); // 자재별공급사 코드
 }

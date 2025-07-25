@@ -70,12 +70,19 @@ public class MatServiceImpl implements MatService {
         System.out.println("등록되는 VO: " + mat);
 
         // ✅ 공급사 등록
+       // ✅ 공급사 등록
         if (mat.getSuppliers() != null) {
+            int index = matMapper.getSupplierCountByMcode(mcode); // 기존 등록 수
             for (MatSupplierVO supplier : mat.getSuppliers()) {
                 supplier.setMcode(mcode);
                 supplier.setMateVerCd(mat.getMateVerCd());
-                supplier.setMateCpCd(UUID.randomUUID().toString());
+
+                // 공급사 코드 생성: MAT-2001-SUP-01
+                String mateCpCd = String.format("%s-SUP-%02d", mcode, index + 1);
+                supplier.setMateCpCd(mateCpCd);
+
                 matMapper.insertMatSupplier(supplier);
+                index++; // 다음 공급사 번호 증가
             }
         }
     }
@@ -117,12 +124,6 @@ public class MatServiceImpl implements MatService {
 
         // 5. 새 자재 insert
         matMapper.insertMat(newMat);
-    }
-
-    // 버전 코드 생성 함수 (V001 -> V002)
-    private String getNextVersion(String currentVer) {
-        int verNum = Integer.parseInt(currentVer.replace("V", ""));
-        return String.format("V%03d", verNum + 1);
     }
 
     @Override
@@ -185,4 +186,12 @@ public class MatServiceImpl implements MatService {
 
         return changeItems;
     }
+
+    // 버전 코드 생성 함수 (V001 -> V002)
+    private String getNextVersion(String currentVer) {
+        int verNum = Integer.parseInt(currentVer.replace("V", ""));
+        return String.format("V%03d", verNum + 1);
+    }
+
 }
+    

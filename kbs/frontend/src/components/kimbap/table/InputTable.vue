@@ -125,14 +125,17 @@ const addRow = () => {
 
 // 행 삭제 (선택된 행들)
 const deleteSelectedRows = () => {
-    if (selectedRows.value.length === 0) {
-        alert('삭제할 행을 선택하세요! ㅠㅠ')
-        return
-    }
-    const selectedIds = selectedRows.value.map(row => row.id)
-    internalData.value = internalData.value.filter(row => !selectedIds.includes(row.id))
-    selectedRows.value = [] // 선택 초기화
-    emitDataChange()
+  if (selectedRows.value.length === 0) {
+    alert('삭제할 행을 선택하세요!')
+    return
+  }
+
+  internalData.value = internalData.value.filter(
+    row => !selectedRows.value.includes(row)
+  )
+
+  selectedRows.value = []
+  emitDataChange()
 }
 
 // 데이터 변경 이벤트
@@ -241,7 +244,7 @@ const getAlignClass = (align) => {
             </div>
 
             <DataTable :value="internalData" :tableStyle="{ minWidth: '50rem' }" showGridlines responsiveLayout="scroll"
-                v-model:selection="selectedRows" dataKey="id" size="large"
+                v-model:selection="selectedRows" :dataKey="props.dataKey" size="large"
                 :selectionMode="enableSelection ? 'multiple' : null" scrollable :scrollHeight="scrollHeight"
                 :style="{ border: '1px solid #e5e7eb' }">
 

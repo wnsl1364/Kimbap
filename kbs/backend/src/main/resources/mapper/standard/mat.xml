@@ -231,4 +231,9 @@
           AND is_used = 'f1'
     </update>
 
+    <!-- 자재별 공급사 코드  -->
+    <select id="getSupplierCountByMcode" parameterType="String" resultType="int">
+        SELECT COUNT(*) FROM MATE_SUPPLIER WHERE mcode = #{mcode}
+    </select>
+
 </mapper>
