@@ -95,7 +95,7 @@ const inputColumns = computed(() => {
         },
         { key: 'regDt', label: '등록일자', type: 'calendar' },
         { key: 'id', label: '아이디', type: 'text' },
-        { key: 'pw', label: '비밀번호', type: 'text' },
+        { key: 'pw', label: '비밀번호s', type: 'text' },
     ];
   }
 });
