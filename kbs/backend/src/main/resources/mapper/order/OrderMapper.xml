@@ -36,16 +36,14 @@
             pcode,
             prod_ver_cd,
             total_qty,
-            unit_price,
-            total_price
+            unit_price
         )
         VALUES (
              #{ordCd},
              #{pcode},
              #{prodVerCd},
              #{totalQty},
-             #{unitPrice},
-             #{totalPrice}
+             #{unitPrice}
         )
     </insert>
 
