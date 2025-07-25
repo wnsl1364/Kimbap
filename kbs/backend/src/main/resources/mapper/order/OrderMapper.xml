@@ -13,7 +13,8 @@
             ex_pay_dt,
             ord_total_amount,
             regi,
-            reg_dt
+            reg_dt,
+            ord_status 
         )
         VALUES (
             #{ordCd},
@@ -25,27 +26,28 @@
             #{exPayDt},
             #{ordTotalAmount},
             #{regi},
-            SYSDATE
+            SYSDATE,
+            #{ordStatus}
         )
     </insert>
 
     <!-- 주문 상세 등록 -->
     <insert id="insertOrderDetail" parameterType="com.kimbap.kbs.order.service.OrderDetailVO">
         INSERT INTO order_d (
+            ord_d_cd,
             ord_cd,
             pcode,
             prod_ver_cd,
             total_qty,
-            unit_price,
-            total_price
+            unit_price
         )
         VALUES (
+             #{ordDCd},
              #{ordCd},
              #{pcode},
              #{prodVerCd},
              #{totalQty},
-             #{unitPrice},
-             #{totalPrice}
+             #{unitPrice}
         )
     </insert>
 
@@ -56,6 +58,10 @@
         WHERE SUBSTR(ord_cd, 5, 4) = TO_CHAR(SYSDATE, 'YYYY')
     </select>
 
+    <!-- 주문 상세 코드 자동 생성 -->
+    <select id="getGeneratedOrderDetailCode" resultType="string">
+        SELECT fn_create_pk_code('order_d') FROM dual
+    </select>
 
     <!-- 주문 목록 조회 -->
     <select id="getOrderList" resultType="com.kimbap.kbs.order.service.OrderVO">

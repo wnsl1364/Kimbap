@@ -54,4 +54,10 @@ public class ProdPlanServiceImpl implements ProdPlanService {
         mapper.deleteDetailsByPlanCd(produPlanCd);
         mapper.deleteProdPlan(produPlanCd);
     }
+
+    // 생산계획 조건 검색
+    @Override
+        public List<ProdPlanVO> getPlansByCondition(ProdPlanVO condition) {
+        return mapper.selectProdPlansByCondition(condition);
+    }
 }
