@@ -12,8 +12,8 @@
     </select>
 
     <insert id="insertProdPlan">
-        INSERT INTO prod_plan (produ_plan_cd, fcode, fac_ver_cd, plan_start_dt, plan_end_dt, mname)
-        VALUES (#{produPlanCd}, #{fcode}, #{facVerCd}, #{planStartDt}, #{planEndDt}, #{mname})
+        INSERT INTO prod_plan (produ_plan_cd, fcode, fac_ver_cd, plan_start_dt, plan_end_dt, mname, note)
+        VALUES (#{produPlanCd}, #{fcode}, #{facVerCd}, #{planStartDt}, #{planEndDt}, #{mname}, #{note})
     </insert>
 
     <update id="updateProdPlan">
@@ -22,7 +22,8 @@
             fac_ver_cd = #{facVerCd},
             plan_start_dt = #{planStartDt},
             plan_end_dt = #{planEndDt},
-            mname = #{mname}
+            mname = #{mname},
+            note = #{note}
         WHERE produ_plan_cd = #{produPlanCd}
     </update>
 
@@ -52,5 +53,55 @@
         DELETE FROM prod_plan_d WHERE produ_plan_cd = #{produPlanCd}
     </delete>
 
+    <!-- 생산계획 조건 검색 -->
+    <select id="selectProdPlansByCondition" parameterType="ProdPlanVO" resultType="ProdPlanVO">
+        SELECT
+            pp.produ_plan_cd,
+            pp.fcode,
+            pp.fac_ver_cd,
+            pp.plan_dt,
+            pp.plan_start_dt,
+            pp.plan_end_dt,
+            f.fac_name,
+            pp.note,
+            SUM(ppd.plan_qty) AS sum_plan_qty,
+            MIN(ppd.unit) KEEP (DENSE_RANK FIRST ORDER BY ppd.ppdcode) AS first_unit
+        FROM prod_plan pp
+        JOIN factory f
+            ON pp.fcode = f.fcode
+        AND pp.fac_ver_cd = f.fac_ver_cd
+        LEFT JOIN prod_plan_d ppd
+            ON pp.produ_plan_cd = ppd.produ_plan_cd
+        <where>
+            <if test="produPlanCd != null and produPlanCd != ''">
+            AND LOWER(pp.produ_plan_cd) LIKE '%' || LOWER(#{produPlanCd}) || '%'
+            </if>
+            <if test="planDtStart != null">
+            AND pp.plan_dt &gt;= #{planDtStart}
+            </if>
+            <if test="planDtEnd != null">
+            AND pp.plan_dt &lt;= #{planDtEnd}
+            </if>
+            <if test="periodStartDt != null">
+            AND pp.plan_start_dt &gt;= #{periodStartDt}
+            </if>
+            <if test="periodEndDt != null">
+            AND pp.plan_end_dt &lt;= #{periodEndDt}
+            </if>
+            <if test="fcode != null and facVerCd != null">
+            AND pp.fcode = #{fcode}
+            AND pp.fac_ver_cd = #{facVerCd}
+            </if>
+        </where>
+        GROUP BY
+            pp.produ_plan_cd,
+            pp.fcode,
+            pp.fac_ver_cd,
+            pp.plan_dt,
+            pp.plan_start_dt,
+            pp.plan_end_dt,
+            f.fac_name,
+            pp.note
+    </select>
 
 </mapper>
