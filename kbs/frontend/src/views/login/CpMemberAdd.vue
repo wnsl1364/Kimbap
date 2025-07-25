@@ -2,7 +2,51 @@
 import { ref, computed, onMounted } from 'vue';
 import RadioButton from 'primevue/radiobutton';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
+import { empListCheck, cpListCheck, saveMemberAdd } from '@/api/member';
 
+// 추가할 부분
+const isReadonly = ref(false);
+
+// 드롭다운 옵션
+const empOptions = ref([]); // 사원
+const cpOptions = ref([]);  // 거래처
+
+// 폼 데이터
+const formData = ref({
+  employee: '',
+  company: '',
+  memberType: '',
+  regDt: '',
+  id: '',
+  pw: ''
+});
+
+// 버튼 정의
+const inputFormButtons = [
+  {
+    label: '등록',
+    action: () => handleSaveMember(),
+  },
+];
+
+const handleSaveMember = async () => {
+  try {
+    console.log('등록 요청 데이터:', formData.value);
+    await saveMemberAdd(formData.value);
+    alert('등록 성공!');
+    formData.value = {
+      employee: '',
+      company: '',
+      memberType: '',
+      regDt: '',
+      id: '',
+      pw: ''
+    };
+  } catch (err) {
+    console.error('등록 실패:', err);
+    alert('등록 중 오류 발생');
+  }
+};
 
 // 반응형 데이터
 const userType = ref('internal'); // 'internal' 또는 'supplier'
@@ -10,16 +54,16 @@ const userType = ref('internal'); // 'internal' 또는 'supplier'
 // 검색 컬럼 설정 (권한별로 다름!)
 const inputColumns = computed(() => {
   if (userType.value === 'internal') {
-    // 내부직원용 검색 조건
+    // 내부직원 등록
     return [
         {
             key: 'employee',
             label: '사원이름',
             type: 'dropdown',
-            options: [
-                { label: '데이터1', value: 'p1' },
-                { label: '데이터2', value: 'p4' },
-            ]
+        options: empOptions.value.map(emp => ({
+          label: emp.emp_name,
+          value: emp.emp_cd
+        }))
         },
         {
             key: 'memberType',
@@ -28,24 +72,23 @@ const inputColumns = computed(() => {
             options: [
                 { label: '사원', value: 'p1' },
                 { label: '담당자', value: 'p4' },
-            ],
-            disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3'
+            ]
         },
         { key: 'regDt', label: '등록일자', type: 'calendar' },
         { key: 'id', label: '아이디', type: 'text' },
         { key: 'pw', label: '비밀번호', type: 'text' },
     ];
   } else {
-    // 공급업체직원용 검색 조건
+    // 업체계정 등록
     return [
         {
             key: 'company',
             label: '거래처명',
             type: 'dropdown',
-            options: [
-                { label: '매출업체', value: 'p2' },
-                { label: '공급업체', value: 'p3' },
-            ]
+            options: cpOptions.value.map(cp => ({
+              label: cp.cp_name,
+              value: cp.cp_cd
+        }))
         },
         {
             key: 'memberType',
@@ -54,8 +97,7 @@ const inputColumns = computed(() => {
             options: [
                 { label: '매출업체', value: 'p2' },
                 { label: '공급업체', value: 'p3' },
-            ],
-            disabled: (form) => form.memberType === 'p2' || form.memberType === 'p3'
+            ]
         },
         { key: 'regDt', label: '등록일자', type: 'calendar' },
         { key: 'id', label: '아이디', type: 'text' },
@@ -64,6 +106,23 @@ const inputColumns = computed(() => {
   }
 });
 
+// mount 시점에 데이터 불러오기
+onMounted(async () => {
+  try {
+    const empRes = await empListCheck();
+    empOptions.value = empRes.data.map(emp => ({
+          label: emp.empName,
+          value: emp.empCd
+        })) ;
+    console.log('사원 목록:', empOptions.value);
+
+    const cpRes = await cpListCheck();
+    cpOptions.value = cpRes.data;
+    console.log('거래처 목록:', cpOptions.value);
+  } catch (err) {
+    console.error('데이터 불러오기 실패:', err);
+  }
+});
 </script>
 
 <template>
@@ -91,9 +150,9 @@ const inputColumns = computed(() => {
                 :buttons="inputFormButtons"
                 :formData="formData"
                 :isReadonly="isReadonly"
-                @submit="handleSaveMaterial"
             />
         </div>
+        
     </div>
       </div>
     </div>

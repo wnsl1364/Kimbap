@@ -10,4 +10,9 @@ export default [
         name: 'memberAdd',
         component: () => import('@/views/login/MemberAdd.vue'),
     },
+        {
+        path: '/login/cpMemberAdd',
+        name: 'cpMemberAdd',
+        component: () => import('@/views/login/CpMemberAdd.vue'),
+    },
 ];

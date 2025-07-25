@@ -1,9 +1,12 @@
 package com.kimbap.kbs.simjaejine.serviceimpl;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.simjaejine.mapper.MemberMapper;
-import com.kimbap.kbs.simjaejine.service.EmployeeAddVO;
+import com.kimbap.kbs.simjaejine.service.EmpCpCheckVO;
 import com.kimbap.kbs.simjaejine.service.MemberAddVO;
 import com.kimbap.kbs.simjaejine.service.MemberService;
 import com.kimbap.kbs.simjaejine.service.MemberVO;
@@ -20,13 +23,21 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.getUserInfo(id);
     }
 
+    @Transactional
     @Override
-    public MemberAddVO addMember(MemberAddVO memberAddVO) {
-      throw new UnsupportedOperationException("Unimplemented method 'addMember'");
+    public int addMember(MemberAddVO memberAddVO) {
+        int result = 0;
+        result = memberMapper.addMember(memberAddVO);
+        return result;
     }
 
     @Override
-    public EmployeeAddVO addEmployee(EmployeeAddVO employeeAddVO) {
-      throw new UnsupportedOperationException("Unimplemented method 'addEmployee'");
+    public List<EmpCpCheckVO> getEmpList() {
+        return memberMapper.getEmpList();
+    }
+
+    @Override
+    public List<EmpCpCheckVO> getCpList() {
+        return memberMapper.getCpList();
     }
 }
