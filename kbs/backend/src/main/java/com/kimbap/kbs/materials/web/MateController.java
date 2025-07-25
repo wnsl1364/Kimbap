@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kimbap.kbs.materials.service.MateService;
 import com.kimbap.kbs.materials.service.MaterialsVO;
+import com.kimbap.kbs.materials.service.SearchCriteria;
 
 @RestController
 @RequestMapping("/api/materials")
@@ -83,21 +85,52 @@ public class MateController {
                     .body("자재입고 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
-    
+
     // ========== 발주 관련 API (자재입고와 연관) ==========
     
     /**
-     * 발주 목록 조회 (자재입고 시 참조용)
+     * 발주 목록 검색 및 조회 (자재입고 시 참조용)
      */
-    @GetMapping("/purchase-orders")
-    public ResponseEntity<List<MaterialsVO>> getPurcOrdList() {
-        try {
-            List<MaterialsVO> list = mateService.getPurcOrdList();
-            return ResponseEntity.ok(list);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    @GetMapping("/purchaseOrders")
+    public ResponseEntity<List<MaterialsVO>> getPurchaseOrders(
+        @RequestParam(required = false) String purcCd,
+        @RequestParam(required = false) String mateName,
+        @RequestParam(required = false) String mcode,
+        @RequestParam(required = false) String purcDStatus,    // 발주상세상태
+        @RequestParam(required = false) String purcStatus,     // 발주상태 (추가!)
+        @RequestParam(required = false) String cpCd,           // 회사코드 (추가!)
+        @RequestParam(required = false) String startDate,
+        @RequestParam(required = false) String endDate,
+        @RequestParam(required = false) String exDeliStartDate,
+        @RequestParam(required = false) String exDeliEndDate,
+        @RequestParam(required = false) String deliStartDate,
+        @RequestParam(required = false) String deliEndDate,
+        @RequestParam(required = false) String memtype) {
+
+        System.out.println("=== 파라미터 체크 ===");
+    System.out.println("purcCd: [" + purcCd + "]");
+    System.out.println("mateName: [" + mateName + "]");
+    System.out.println("memtype: [" + memtype + "]");
+        SearchCriteria criteria = SearchCriteria.builder()
+                .purcCd(purcCd)
+                .mateName(mateName)
+                .mcode(mcode)
+                .purcDStatus(purcDStatus)
+                .purcStatus(purcStatus)
+                .cpCd(cpCd)
+                .startDate(startDate)
+                .endDate(endDate)
+                .exDeliStartDate(exDeliStartDate)
+                .exDeliEndDate(exDeliEndDate)
+                .deliStartDate(deliStartDate)
+                .deliEndDate(deliEndDate)
+                .memtype(memtype) // 권한에 따라 필터링
+                .build();
+        
+        List<MaterialsVO> list = mateService.getPurchaseOrders(criteria); 
+        return ResponseEntity.ok(list);
     }
+    
     
 
 }
