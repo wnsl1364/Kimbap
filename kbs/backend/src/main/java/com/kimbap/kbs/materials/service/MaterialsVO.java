@@ -1,5 +1,6 @@
 package com.kimbap.kbs.materials.service;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Date;
 
@@ -10,7 +11,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 자재 관리 통합 VO - 모든 자재 관련 테이블을 하나로!
- * 구매주문, 구매상세, 입고, 출고, 반품 전부 다 여기에!
+ * 발주주문, 발주상세, 입고, 출고, 반품 전부 다 여기에!
  */
 @Data
 @Builder
@@ -18,24 +19,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class MaterialsVO {
     
-    // ========== 구매주문 (PurcOrdVO) ==========
-    private String purcCd;          // 구매코드
+    // ========== 공통 필드 (모든 권한) ==========
+    private String purcCd;          // 발주코드
+    private String mateName;        // 자재명
+    private Integer purcQty;        // 발주수량
     private Date ordDt;             // 주문일자
-    private String regi;            // 등록자
-    private String purcStatus;      // 구매상태
-    private Double ordTotalAmount;  // 주문총금액
     
-    // ========== 구매주문상세 (PurcOrdDVO) ==========
-    private String purcDCd;         // 구매상세코드
-    private String cpCd;            // 회사코드
-    private String mcode;           // 자재코드
-    private String mateVerCd;       // 자재버전코드
-    private Integer purcQty;        // 구매수량
+    // ========== p1 권한 추가 필드 ==========
+    private String purcDCd;         // 발주상세코드
+    private String mateType;        // 자재타입
     private String unit;            // 단위
-    private Double unitPrice;       // 단가
     private Date exDeliDt;          // 예상납기일자
+    private String purcDStatus;     // 발주상세상태
     private String note;            // 비고
-    private String purcDStatus;     // 구매상세상태
+    
+    // ========== p3 권한 추가 필드 ==========
+    private String mcode;           // 자재코드
+    private BigDecimal totalAmount; // 총금액 (계산 필드)
     
     // ========== 자재입고 (MateInboVO) ==========
     private String mateInboCd;      // 자재입고코드
@@ -92,8 +92,8 @@ public class MaterialsVO {
     public void generateStatusSummary() {
         StringBuilder status = new StringBuilder();
         
-        if (purcStatus != null && !purcStatus.isEmpty()) {
-            status.append("구매:").append(purcStatus);
+        if (purcDStatus != null && !purcDStatus.isEmpty()) {
+            status.append("발주:").append(purcDStatus);
         }
         if (inboStatus != null && !inboStatus.isEmpty()) {
             if (status.length() > 0) status.append(" | ");
@@ -115,7 +115,7 @@ public class MaterialsVO {
      * 총 처리 금액 계산해주는 메서드
      */
     public void calculateTotalAmount() {
-        double orderAmount = ordTotalAmount != null ? ordTotalAmount : 0.0;
+        double orderAmount = totalAmount != null ? totalAmount.doubleValue() : 0.0;
         double returnAmount = this.returnAmount != null ? this.returnAmount : 0.0;
         
         this.totalProcessedAmount = orderAmount - returnAmount;

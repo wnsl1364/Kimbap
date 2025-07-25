@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kimbap.kbs.materials.mapper.MateMapper;
 import com.kimbap.kbs.materials.service.MateService;
 import com.kimbap.kbs.materials.service.MaterialsVO;
-
+import com.kimbap.kbs.materials.service.SearchCriteria;
 
 @Service
 @Transactional
@@ -51,5 +51,10 @@ public class MateServiceImpl implements MateService {
     @Override
     public void insertMateRel(MaterialsVO mateRel) {
         mateMapper.insertMateRel(mateRel);
+    }
+
+    @Override
+    public List<MaterialsVO> getPurchaseOrders(SearchCriteria criteria) {
+        return mateMapper.getPurcOrdList(criteria);
     }
 }
