@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.common.mapper.CommonDetailCodeMapper">
+    <!-- 공통코드 조회 -->
+    <select id="selectDetailCodesByGroup" parameterType="String" resultType="com.kimbap.kbs.common.service.CommonDetailCodeVO">
+        SELECT
+            d_cd,
+            cd_info,
+            seq,
+            is_used,
+            group_cd
+        FROM detail_cd
+        WHERE group_cd = #{groupCd}
+        ORDER BY seq
+    </select>
+
+
+</mapper>
