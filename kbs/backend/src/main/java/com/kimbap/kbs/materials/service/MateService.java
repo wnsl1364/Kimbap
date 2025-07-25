@@ -11,8 +11,10 @@ public interface MateService {
 
     // 발주 관련 메서드
     List<MaterialsVO> getPurcOrdList();
+    List<MaterialsVO> getPurchaseOrders(SearchCriteria criteria);
 
     // 자재출고 관련 메서드
     List<MaterialsVO> getMateRelList();
     void insertMateRel(MaterialsVO mateRel);
+    
 }

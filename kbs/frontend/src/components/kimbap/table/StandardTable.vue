@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref , watch } from 'vue';
 import Button from 'primevue/button';
 
 const props = defineProps({
@@ -15,12 +15,19 @@ const props = defineProps({
     hoverable: { type: Boolean, default: false } // 행 hover 기능 추가
 });
 
-const emit = defineEmits(['view-history']);
-const selected = ref();
+const emit = defineEmits(['view-history', 'row-select', 'clear-selection']);
+const selected = ref([]);
 
 const handleClick = (rowData) => {
     emit('view-history', rowData);
 };
+
+// 선택 해제 감지해서 이벤트 emit
+watch(selected, (val) => {
+  if (val.length === 0) {
+    emit('clear-selection'); // 부모에게 선택 해제 알림
+  }
+});
 </script>
 
 <template>
@@ -39,7 +46,7 @@ const handleClick = (rowData) => {
             @rowSelect="$emit('row-select', $event.data)"
             :class="{ 'hoverable-rows': props.hoverable }"
         >
-            <Column v-if="props.selectable" selectionMode="single" headerStyle="width: 3rem" />
+            <Column v-if="props.selectable" selectionMode="multiple" headerStyle="width: 3rem" />
             <Column
                 v-for="col in columns"
                 :key="col.field"
