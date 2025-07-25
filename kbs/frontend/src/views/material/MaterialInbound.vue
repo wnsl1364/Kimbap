@@ -8,7 +8,7 @@ import { saveMaterialInbound, getMaterialInboundList, updateMaterialInbound } fr
 
 const materialStore = useMaterialStore()
 
-// Store 초 기 화
+// Store 초기화
 onMounted(async () => {
     // inboundData 초기화 - VO 기반으로 수정
     materialStore.inboundData = {
@@ -107,12 +107,12 @@ const fetchMaterialInboundData = async () => {
             lotNo: item.lotNo,
             supplierLotNo: item.supplierLotNo,
             wareVerCd: item.wareVerCd,
-            mname: getMaterialName(item.mcode) || '임시자재1',  // 자재명
-            cpName: getCompanyName(item.cpCd),          // 거래처명
+            mname: item.mateName || item.mname,             // DB에서 가져온 실제 자재명
+            cpName: item.cpName,                        // DB에서 가져온 실제 회사명
             purcQty: item.purcQty || item.totalQty || 0, // 입고요청수량
-            unit: item.unit || getUnitByMcode(item.mcode), // 단위
+            unit: getUnitText(item.unit),                            // DB에서 가져온 실제 단위
             totalQty: item.totalQty || 0,               // 입고수량
-            stoCon: getStorageCondition(item.mcode),    // 보관조건
+            stoCon: getStorageConditionText(item.stoCon), // DB 보관조건 코드를 한글로 변환
             exDeliDt: item.exDeliDt ? formatDateForTable(item.exDeliDt) : '', // 납기예정일
             deliDt: item.deliDt ? formatDateForTable(item.deliDt) : '',       // 납기일
             note: item.note || '',                      // 비고
@@ -166,8 +166,6 @@ const fetchMaterialInboundData = async () => {
         alert('서버에서 데이터를 가져올 수 없어 샘플 데이터를 표시합니다.');
     }
 }
-
-// ✅ 날짜 포맷팅 함수 (기본정보용 - YYYY-MM-DD 형식)
 const formatDate = (dateInput) => {
     if (!dateInput) return '';
     
@@ -218,6 +216,16 @@ const formatDateForTable = (dateInput) => {
     
     return `${year}-${month}-${day}`;
 }
+
+// 보관조건 코드를 한글로 변환하는 함수
+const getStorageConditionText = (stoCon) => {
+    switch(stoCon) {
+        case 'o1': return '상온';
+        case 'o2': return '냉장';
+        case 'o3': return '냉동';
+        default: return '상온';
+    }
+}
 const getInboStatusText = (status) => {
     switch(status) {
         case 'c1': return '발주요청';
@@ -230,69 +238,19 @@ const getInboStatusText = (status) => {
         default: return '입고대기';
     }
 }
-
-// ✅ 입고상태 코드를 한글로 변환하는 함수
-const getMaterialName = (mcode) => {
-    const materialMap = {
-        'MAT-1001': '프리미엄쌀',
-        'MAT-1002': '신선야채믹스',
-        'MAT-1003': '참치마요소스',
-        'MAT-1004': '프리미엄소세지',
-        'MAT-1005': '김밥김',
-        'MAT-2001': '냉동김밥포장지',
-        'MAT-2002': '김밥박스'
-    };
-    return materialMap[mcode] || '임시자재1';
+const getUnitText = (unit) => {
+    switch(unit) {
+        case 'g1': return 'g';
+        case 'g2': return 'kg';
+        case 'g3': return 'ml';
+        case 'g4': return 'L';
+        case 'g5': return 'ea';
+        case 'g6': return 'box';
+        case 'g7': return 'mm';
+        default: return unit;
+    }
 }
 
-// ✅ 자재코드로 단위를 가져오는 함수
-const getUnitByMcode = (mcode) => {
-    const unitMap = {
-        'MAT-1001': 'kg',
-        'MAT-1002': 'kg',
-        'MAT-1003': 'kg',
-        'MAT-1004': 'ea',
-        'MAT-1005': 'ea',
-        'MAT-2001': 'ea',
-        'MAT-2002': 'ea'
-    };
-    return unitMap[mcode] || 'ea';
-}
-// ✅ 회사명으로 회사코드 가져오는 함수 (역매핑)
-const getCompanyCodeByName = (cpName) => {
-    const companyCodeMap = {
-        '신선야채농장': 'CP-001',
-        '맛있는참치회사': 'CP-002',
-        '프리미엄소세지': 'CP-003',
-        '황금쌀농협': 'CP-004',
-        '포장의달인': 'CP-005'
-    };
-    return companyCodeMap[cpName] || 'CP-001';
-}
-// ✅ 회사코드로 회사명 가져오는 함수 (실제로는 DB 조회)
-const getCompanyName = (cpCd) => {
-    const companyMap = {
-        'CP-001': '신선야채농장',
-        'CP-002': '맛있는참치회사',
-        'CP-003': '프리미엄소세지',
-        'CP-004': '황금쌀농협',
-        'CP-005': '포장의달인'
-    };
-    return companyMap[cpCd] || '공급업체';
-}
-
-// ✅ 자재코드로 보관조건 유추하는 함수 (실제로는 material 테이블에서 조회)
-const getStorageCondition = (mcode) => {
-    if (mcode && mcode.includes('1001')) return '상온';  // 쌀
-    if (mcode && mcode.includes('1002')) return '냉장';  // 야채
-    if (mcode && mcode.includes('1003')) return '냉장';  // 참치마요
-    if (mcode && mcode.includes('1004')) return '냉장';  // 소세지
-    if (mcode && mcode.includes('1005')) return '상온';  // 김
-    if (mcode && mcode.includes('2001')) return '상온';  // 포장지
-    return '상온';
-}
-
-// ✅ 폼 초기화 핸들러 - 입고창고와 선택된 자재만 초기화
 const handleFormReset = () => {
     // 입고창고만 초기화 (다른 필드는 유지)
     formData.value = {
@@ -345,7 +303,7 @@ const handleInboundComplete = async () => {
       inboDt: material.inboDt,  // 기존 입고일자 유지
       inboStatus: 'c5',  // 입고완료로 상태 변경
       totalQty: material.totalQty,
-      mname: material.mname,
+      mname: material.mname,  // 기존 mname 그대로 유지 (EMP-10005)
       note: material.note || `${material.mname} 입고처리 완료`,
       cpCd: material.cpCd,
       deliDt: new Date()  // 현재 시간으로 납기일 추가
