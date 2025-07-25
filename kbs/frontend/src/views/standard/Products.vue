@@ -76,6 +76,7 @@ const modalDataSets = computed(() => ({
 // 🚀 7. UI 구성 정의
 onBeforeMount(() => {
     searchColumns.value = [
+        { key: 'mcode', label: '자재코드', type: 'text', placeholder: '자재코드를 입력하세요' },
         { key: 'mateName', label: '자재명', type: 'text', placeholder: '자재명을 입력하세요' },
         {
             key: 'mateType',
