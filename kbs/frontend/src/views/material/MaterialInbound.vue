@@ -8,7 +8,7 @@ import { saveMaterialInbound, getMaterialInboundList, updateMaterialInbound } fr
 
 const materialStore = useMaterialStore()
 
-// Store 초기화
+// Store 초 기 화
 onMounted(async () => {
     // inboundData 초기화 - VO 기반으로 수정
     materialStore.inboundData = {
