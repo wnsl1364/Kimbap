@@ -21,7 +21,7 @@ ON      c.dcode = d.dcode
 WHERE   a.id = #{id}
 </select>
 
-<insert id="addMember" parameterType="MemberAddVO"> <!-- 회원등록 -->
+<insert id="addMember" parameterType="MemberAddVO"> <!-- 회원정보 등록 -->
 INSERT INTO member 
             (mem_cd, 
             id, 
@@ -30,41 +30,30 @@ INSERT INTO member
             reg_dt, 
             mem_type, 
             emp_cd, 
-            cp_cd, 
+            cp_cd,
             is_used)
-VALUES (#{mem_cd}, 
+VALUES (#{memCd}, 
         #{id}, 
         #{pw}, 
-        #{ldate}, 
-        #{reg_dt}, 
-        #{mem_type}, 
-        #{emp_cd}, 
-        #{cp_cd}, 
-        #{is_used})
-
+        #{lDate}, 
+        #{regDt},
+        #{memType}, 
+        #{empCd}, 
+        #{cpCd}, 
+        #{isUsed},
+        )
 </insert>
 
-<insert id="addEmployee" parameterType="EmployeeAddVO"> <!-- 회원등록 -->
-INSERT INTO employee
-           ( emp_cd, 
-           emp_name, 
-           birt, 
-           tel, 
-           email, 
-           address, 
-           hdate, 
-           ledate, 
-           team_code, 
-           is_used)
-VALUES (#{emp_cd}, 
-        #{emp_name}, 
-        #{birt}, 
-        #{tel}, 
-        #{email}, 
-        #{address}, 
-        #{hdate}, 
-        #{ledate}, 
-        #{team_code},
-        #{is_used})
-</insert>
+<select id="getEmpList" resultType="EmpCpCheckVO"> <!-- 업체테이블 출력 -->
+SELECT emp_cd,
+       emp_name        
+FROM   employee
+</select>
+
+<select id="getCpList" resultType="EmpCpCheckVO"> <!-- 거래처테이블 출력 -->
+SELECT cp_cd,
+       cp_name
+FROM   company
+</select>
+
 </mapper>

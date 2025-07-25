@@ -6,8 +6,13 @@ import AppMenuItem from './AppMenuItem.vue';
 const model = ref([
     {
         label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
+        items: [
+            { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
+            // { label: '사원계정 등록(관리자만 보이게할예정)', to: '/login/MemberAdd' },
+            { label: '거래처계정 등록(관리자만 보이게할예정)', to: '/login/cpMemberAdd' }
+        ]
     },
+    
     {
         label: '기준정보',
         items: [

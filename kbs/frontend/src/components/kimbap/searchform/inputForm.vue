@@ -6,6 +6,7 @@ import Dropdown from 'primevue/dropdown';
 import RadioButton from 'primevue/radiobutton';
 import Button from 'primevue/button';
 import Textarea from 'primevue/textarea';
+import Calendar from 'primevue/calendar';
 
 const props = defineProps({
     columns: {
@@ -163,20 +164,29 @@ const getOptions = (options) => {
                     :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
-
-                <!-- 드롭다운 -->
-                <Dropdown 
-                    v-else-if="field.type === 'dropdown'" 
+                
+                <Calendar 
+                    v-else-if="field.type === 'calendar'" 
                     v-model="formData[field.key]" 
-                    :options="field.options" 
-                    optionLabel="label" 
-                    optionValue="value" 
                     :placeholder="field.placeholder" 
+                    :class="{ 'p-invalid': field.required && !formData[field.key] }"
                     :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
-                <!-- 드롭다운 배열 반환 -->
+
+                <!-- 드롭다운 -->
                 <Dropdown 
+                v-else-if="field.type === 'dropdown'" 
+                v-model="formData[field.key]" 
+                :options="field.options" 
+                optionLabel="label" 
+                    optionValue="value" 
+                    :placeholder="field.placeholder" 
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
+                    class="w-full"
+                    />
+                    <!-- 드롭다운 배열 반환 -->
+                    <Dropdown 
                     v-else-if="field.type === 'dropdown2'" 
                     v-model="formData[field.key]" 
                     :options="getOptions(field.options)" 
@@ -184,77 +194,78 @@ const getOptions = (options) => {
                     optionValue="value" 
                     :placeholder="field.placeholder || '선택하세요'" 
                     class="w-full" 
-                />
-
-                <!-- 라디오 버튼 -->
-                <div v-else-if="field.type === 'radio'" class="flex gap-4 items-center">
-                    <div v-for="option in field.options" :key="option.value" class="flex items-center">
+                    />
+                    
+                    <!-- 라디오 버튼 -->
+                    <div v-else-if="field.type === 'radio'" class="flex gap-4 items-center">
+                        <div v-for="option in field.options" :key="option.value" class="flex items-center">
                         <RadioButton 
-                            :id="`${field.key}_${option.value}`" 
-                            v-model="formData[field.key]" 
-                            :value="option.value" 
-                            :name="field.key" 
+                        :id="`${field.key}_${option.value}`" 
+                        v-model="formData[field.key]" 
+                        :value="option.value" 
+                        :name="field.key" 
                         />
                         <label :for="`${field.key}_${option.value}`" class="ml-2">
                             {{ option.label }}
                         </label>
                     </div>
                 </div>
-
+                
                 <!-- 숫자 입력 -->
                 <InputText 
-                    v-else-if="field.type === 'number'" 
-                    v-model="formData[field.key]" 
-                    :placeholder="field.placeholder" 
-                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
-                    type="number" 
-                    class="w-full" 
+                v-else-if="field.type === 'number'" 
+                v-model="formData[field.key]" 
+                :placeholder="field.placeholder" 
+                :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
+                type="number" 
+                class="w-full" 
                 />
-
+                
                 <!-- 읽기 전용 -->
                 <InputText 
-                    v-else-if="field.type === 'readonly'" 
-                    v-model="formData[field.key]"
-                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled" 
-                    class="w-full bg-gray-100" 
-                    readonly 
+                v-else-if="field.type === 'readonly'" 
+                v-model="formData[field.key]"
+                :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled" 
+                class="w-full bg-gray-100" 
+                readonly 
                 />
-
+                
                 <!-- 비활성화 -->
                 <InputText 
-                    v-else-if="field.type === 'disabled'" 
-                    v-model="formData[field.key]" 
-                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
-                    class="w-full" 
-                    disabled 
+                v-else-if="field.type === 'disabled'" 
+                v-model="formData[field.key]" 
+                :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
+                class="w-full" 
+                disabled 
                 />
-
+                
                 <!-- textarea -->
                 <Textarea 
-                    v-else-if="field.type === 'textarea'" 
-                    v-model="formData[field.key]" 
-                    :placeholder="field.placeholder" 
-                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
-                    :rows="field.rows || 3" 
-                    :cols="field.cols || 40" 
-                    class="w-full" 
+                v-else-if="field.type === 'textarea'" 
+                v-model="formData[field.key]" 
+                :placeholder="field.placeholder" 
+                :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
+                :rows="field.rows || 3" 
+                :cols="field.cols || 40" 
+                class="w-full" 
                 />
 
+                
                 <!-- 기본값 -->
                 <InputText v-else v-model="formData[field.key]" class="w-full" />
             </div>
         </div>
-
+        
         <!-- 하단 버튼들 -->
         <div v-if="buttonPosition === 'bottom' || buttonPosition === 'both'" 
-             class="flex justify-end gap-2 mt-4">
-            <!-- 슬롯으로 커스텀 버튼 추가 가능 -->
-            <slot name="bottom-buttons"></slot>
-            
-            <!-- 기본 버튼들 -->
-            <Button 
-                v-if="buttons.load?.show" 
-                :label="buttons.load.label" 
+        class="flex justify-end gap-2 mt-4">
+        <!-- 슬롯으로 커스텀 버튼 추가 가능 -->
+        <slot name="bottom-buttons"></slot>
+        
+        <!-- 기본 버튼들 -->
+        <Button 
+        v-if="buttons.load?.show" 
+        :label="buttons.load.label" 
                 :severity="buttons.load.severity"
                 @click="handleLoad" 
             />

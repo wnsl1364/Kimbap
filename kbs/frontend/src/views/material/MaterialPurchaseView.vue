@@ -99,42 +99,6 @@ const searchColumns = computed(() => {
   }
 });
 
-// 현재 사용할 테이블 컬럼 (권한별로 다름)
-const currentTableColumns = computed(() => {
-  if (userType.value === 'internal') {
-    // 내부직원용 컬럼
-    return [
-      { field: 'purcCd', header: '발주번호', sortable: true },
-      { field: 'purcDCd', header: '발주상세번호', sortable: true },
-      { field: 'materialName', header: '자재명', sortable: true },
-      { field: 'materialType', header: '자재유형', sortable: true },
-      { field: 'purcQty', header: '수량', sortable: true },
-      { field: 'unit', header: '단위', sortable: true },
-      { field: 'exDeliDt', header: '납기예정일', sortable: true },
-      { field: 'actualDeliDt', header: '납기일', sortable: true },
-      { field: 'purcDStatus', header: '발주상태', sortable: true },
-      { field: 'ordDt', header: '주문일자', sortable: true },
-      { field: 'note', header: '비고', sortable: false }
-    ];
-  } else {
-    // 공급업체직원용 컬럼
-    return [
-      { field: 'purcCd', header: '발주번호', sortable: true },
-      { field: 'purcDCd', header: '발주상세번호', sortable: true },
-      { field: 'materialName', header: '자재명', sortable: true },
-      { field: 'purcQty', header: '수량', sortable: true },
-      { field: 'unit', header: '단위', sortable: true },
-      { field: 'exDeliDt', header: '납기일', sortable: true },
-      { field: 'purcDStatus', header: '발주상태', sortable: true },
-      { field: 'ordTotalAmount', header: '총금액(원)', sortable: true },
-      { field: 'note', header: '비고', sortable: false }
-    ];
-  }
-});
-
-// 입력 테이블 데이터
-const inputTableData = ref([]);
-
 // 메서드들
 const onSearch = (searchData) => {
   console.log('검색 데이터:', searchData);
