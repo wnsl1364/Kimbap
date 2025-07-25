@@ -11,9 +11,7 @@ import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useMemberStore } from '@/stores/memberStore'
 
 // 날짜 포맷팅을 위한 date-fns
-import { format } from 'date-fns'
-import { addDays } from 'date-fns'
-import { parse } from 'date-fns'
+import { format, addDays, isValid, parse } from 'date-fns'
 
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
@@ -35,13 +33,13 @@ const maxExPayDate = addDays(new Date(), 14)
 
 // 주문 정보 필드 정의
 const formFields = [
-    { label: '주문코드', field: 'ordCd', type: 'text', disabled: true },
-    { label: '주문일자', field: 'ordDt', type: 'text'  },
-    { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
-    { label: '배송지주소', field: 'deliAdd', type: 'text' },
-    { label: '납기요청일자', field: 'deliReqDt', type: 'calendar', readonly: true, minDate: minDeliReqDate },
-    { label: '입금일자', field: 'exPayDt', type: 'calendar', maxDate: maxExPayDate },
-    { label: '비고', field: 'note', type: 'text' }
+  { label: '주문코드', field: 'ordCd', type: 'text', disabled: true },
+  { label: '주문일자', field: 'ordDt', type: 'text'  },
+  { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
+  { label: '배송지주소', field: 'deliAdd', type: 'text' },
+  { label: '납기요청일자', field: 'deliReqDt', type: 'calendar', readonly: true, minDate: minDeliReqDate },
+  { label: '입금일자', field: 'exPayDt', type: 'calendar', maxDate: maxExPayDate },
+  { label: '비고', field: 'note', type: 'text' }
 ]
 
 // 제품 정보 테이블 컬럼 정의
@@ -77,9 +75,6 @@ const allTotalAmount = computed(() => {
   }, 0)
 });
 
-// 제품 모달 설정
-const productModalConfig = ref({})
-
 // 초기화
 const handleReset = () => {
   resetForm()
@@ -87,25 +82,27 @@ const handleReset = () => {
   console.log('초기화 후 주문일자:', formData.value.ordDt)
 }
 
+// 날짜 변환 함수
+const toDate = (value) => {
+  if (value instanceof Date) return value
+  if (typeof value === 'string') {
+    const parsed = parse(value, 'yyyy-MM-dd', new Date())
+    return isValid(parsed) ? parsed : null
+  }
+  return null
+}
+
 // 저장
 const handleSave = async () => {
   try {
-    if (!formData.value.cpCd) {
-      alert('거래처 정보가 없습니다.')
-      return
-    }
-    if (!formData.value.deliReqDt) {
-      alert('납기 요청일자를 선택해주세요.')
-      return
-    }
-    if (!formData.value.exPayDt) {
-      alert('입금일자를 선택해주세요.')
-      return
-    }
-    if (products.value.length === 0) {
-      alert('제품을 1개 이상 등록해주세요.')
-      return
-    }
+    const ordDt = toDate(formData.value.ordDt)
+    const deliReqDt = toDate(formData.value.deliReqDt)
+    const exPayDt = toDate(formData.value.exPayDt)
+
+    if (!formData.value.cpCd) return alert('거래처 정보가 없습니다.')
+    if (!isValid(deliReqDt)) return alert('납기 요청일자를 선택해주세요.')
+    if (!isValid(exPayDt)) return alert('입금일자를 선택해주세요.')
+    if (products.value.length === 0) return alert('제품을 1개 이상 등록해주세요.')
 
      for (let i = 0; i < products.value.length; i++) {
       const item = products.value[i]
@@ -120,12 +117,13 @@ const handleSave = async () => {
     }
 
     const raw = formData.value
+    formData.value.ordTotalAmount = allTotalAmount.value
 
     const requestBody = {
       ...raw,
-      ordDt: typeof raw.ordDt === 'string' ? parse(raw.ordDt, 'yyyy-MM-dd', new Date()) : raw.ordDt,
-      deliReqDt: typeof raw.deliReqDt === 'string' ? parse(raw.deliReqDt, 'yyyy-MM-dd', new Date()) : raw.deliReqDt,
-      exPayDt: typeof raw.exPayDt === 'string' ? parse(raw.exPayDt, 'yyyy-MM-dd', new Date()) : raw.exPayDt,
+      ordDt,
+      deliReqDt,
+      exPayDt,
       orderDetails: products.value
     }
 
@@ -147,13 +145,8 @@ const handleSave = async () => {
   }
 }
 
-watchEffect(() => {
-  products.value.forEach(item => {
-    const qty = Number(item.totalQty) || 0
-    const price = Number(item.unitPrice) || 0
-    item.totalAmount = qty * price
-  })
-})
+// 제품 모달 설정
+const productModalConfig = ref({})
 
 onMounted(async () => {
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -176,7 +169,8 @@ onMounted(async () => {
     deliReqDt: '',
     exPayDt: '',
     note: '',
-    regi: hardcodedCompany.regi
+    regi: hardcodedCompany.regi,
+    ordTotalAmount: 0
   })
 
   // 입금일자 최대값 세팅
@@ -227,7 +221,7 @@ onUnmounted(() => {
     <div class="space-y-4 mt-8">
         <!-- 제품추가 영역 -->
         <InputTable :data="products" :columns="columns" :title="'제품'" :buttons="purchaseFormButtons" button-position="top" scrollHeight="360px" height="460px" :dataKey="'pcode'"
-        :modalDataSets="productModalConfig"/>
+        :modalDataSets="productModalConfig" :autoCalculation="{enabled: true, quantityField: 'totalQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
         <!-- 하단 합계 영역 -->
         <div class="flex justify-end items-center mt-4 px-4">
           <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>
