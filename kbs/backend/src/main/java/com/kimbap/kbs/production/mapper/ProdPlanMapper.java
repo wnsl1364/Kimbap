@@ -18,4 +18,7 @@ public interface ProdPlanMapper {
     int insertProdPlanDetail(ProdPlanDetailVO detail);
     int updateProdPlanDetail(ProdPlanDetailVO detail);
     int deleteDetailsByPlanCd(String produPlanCd);
+    
+    // 생산계획 조건 검색
+    List<ProdPlanVO> selectProdPlansByCondition(ProdPlanVO condition);
 }

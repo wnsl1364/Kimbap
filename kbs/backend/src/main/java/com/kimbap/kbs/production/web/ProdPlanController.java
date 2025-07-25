@@ -44,4 +44,9 @@ public class ProdPlanController {
         service.deletePlan(produPlanCd);
         return ResponseEntity.ok("삭제 완료");
     }
+    // 생산계획 조건 검색
+    @PostMapping("/search")
+    public List<ProdPlanVO> searchPlans(@RequestBody ProdPlanVO condition) {
+        return service.getPlansByCondition(condition);
+    }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref , watch } from 'vue';
 import Button from 'primevue/button';
 
 const props = defineProps({
@@ -10,15 +10,24 @@ const props = defineProps({
     dataKey: { type: String, default: 'id' },
     scrollHeight: { type: String, default: '400px' }, // 예: '300px', 'flex', '100%'
     tableMinWidth: { type: String, default: '50rem' }, // 👈 추가
-    showHistoryButton: { type: Boolean, default: true } // 이력조회 숨기기 추가
+    showHistoryButton: { type: Boolean, default: true }, // 이력조회 숨기기 추가
+    selectable: { type: Boolean, default: true }, // select 숨기기 추가
+    hoverable: { type: Boolean, default: false } // 행 hover 기능 추가
 });
 
-const emit = defineEmits(['view-history']);
-const selected = ref();
+const emit = defineEmits(['view-history', 'row-select', 'clear-selection']);
+const selected = ref([]);
 
 const handleClick = (rowData) => {
     emit('view-history', rowData);
 };
+
+// 선택 해제 감지해서 이벤트 emit
+watch(selected, (val) => {
+  if (val.length === 0) {
+    emit('clear-selection'); // 부모에게 선택 해제 알림
+  }
+});
 </script>
 
 <template>
@@ -35,8 +44,9 @@ const handleClick = (rowData) => {
             scrollable
             :scrollHeight="scrollHeight"
             @rowSelect="$emit('row-select', $event.data)"
+            :class="{ 'hoverable-rows': props.hoverable }"
         >
-            <Column selectionMode="single" headerStyle="width: 3rem" />
+            <Column v-if="props.selectable" selectionMode="multiple" headerStyle="width: 3rem" />
             <Column
                 v-for="col in columns"
                 :key="col.field"
@@ -58,3 +68,11 @@ const handleClick = (rowData) => {
         </DataTable>
     </div>
 </template>
+<style scoped>
+/* PrimeVue DataTable row hover 효과 */
+:deep(.hoverable-rows .p-datatable-tbody > tr:hover) {
+  background-color: #f0f9ff !important; /* 연한 하늘색 */
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+</style>

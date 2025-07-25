@@ -27,13 +27,15 @@ public class OrderServiceImpl  implements OrderService {
         String newOrderCode = generateOrderCode();
         orderVO.setOrdCd(newOrderCode);
 
-        // 2. 주문 마스터 insert
+        // 2. 주문 마스터 등록
         orderMapper.insertOrderMaster(orderVO);
 
-        // 3. 주문 상세 insert (반복)
+        // 3. 주문 상세 등록 (반복)
         if (orderVO.getOrderDetails() != null) {
             for (OrderDetailVO detail : orderVO.getOrderDetails()) {
                 detail.setOrdCd(newOrderCode); // 외래키 세팅
+                String ordDCd = orderMapper.getGeneratedOrderDetailCode(); // PK 코드 생성
+                detail.setOrdDCd(ordDCd); // DB 함수로 생성
                 orderMapper.insertOrderDetail(detail);
             }
         }

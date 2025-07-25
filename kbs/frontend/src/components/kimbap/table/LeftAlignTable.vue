@@ -8,6 +8,20 @@ const props = defineProps({
     title: {
         type: String,
         default: ''
+    },
+    buttons: {
+        type: Object,
+        default: () => ({
+        save: { show: true, label: '저장', severity: 'success' },
+        reset: { show: true, label: '초기화', severity: 'secondary' },
+        delete: { show: false, label: '삭제', severity: 'danger' },
+        load: { show: false, label: '불러오기', severity: 'info' }
+        })
+    },
+    buttonPosition: {
+        type: String,
+        default: 'top',
+        validator: (value) => ['top', 'bottom', 'both'].includes(value)
     }
 })
 
@@ -48,8 +62,14 @@ const updateField = (field, value) => {
         <div class="flex-1 relative">
           <template v-if="field.type === 'calendar'">
               <!-- <Calendar v-model="data[field.field]" dateFormat="yy-mm-dd" showIcon class="w-full" /> -->
-              <Calendar :modelValue="data[field.field]"
-                @update:modelValue="updateField(field.field, $event)" dateFormat="yy-mm-dd" :minDate="field.minDate" :maxDate="field.maxDate" showIcon class="w-full"/>
+              <!-- <Calendar :modelValue="data[field.field]"
+                @update:modelValue="updateField(field.field, $event)" dateFormat="yy-mm-dd" :minDate="field.minDate" :maxDate="field.maxDate" showIcon class="w-full"/> -->
+                <Calendar v-model="data[field.field]"
+                    dateFormat="yy-mm-dd"
+                    :minDate="field.minDate"
+                    :maxDate="field.maxDate"
+                    showIcon class="w-full"
+                    />
           </template>
 
           <template v-else-if="field.type === 'input'">

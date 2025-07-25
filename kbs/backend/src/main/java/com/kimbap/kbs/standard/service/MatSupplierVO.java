@@ -14,6 +14,7 @@ public class MatSupplierVO {
     private String mcode;      // 자재코드
     private String mateVerCd;  // 자재버전코드
     private String cpCd;       // 거래처코드
+    private String cpName;     // 거래처이름 
     private Integer unitPrice; // ✅ null 허용 가능성 고려해서 int → Integer
     private Integer ltime;     // ✅ same
 }
