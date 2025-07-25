@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { format } from 'date-fns';
-import { getMaterialList, insertMaterial, getSupplierList, getMaterialDetail  } from '@/api/standard';
+import { getMaterialList, insertMaterial, getSupplierList, getMaterialDetail, updateMaterial, getChangeHistory   } from '@/api/standard';
 
 export const useStandardMatStore = defineStore('standardMat', () => {
   // 전역 데이터 상태만
@@ -12,6 +12,7 @@ export const useStandardMatStore = defineStore('standardMat', () => {
   const searchFilter     = ref({});    // 검색 필터
   const formData = ref({});          // 단건 자재 정보
   const supplierData = ref([]);      // 자재별 공급처 정보
+  const changeHistory = ref([]);    // 변경 이력 조회
 
   // 빈문자열 처리함수
   function sanitizeFormData(obj) {
@@ -89,8 +90,6 @@ export const useStandardMatStore = defineStore('standardMat', () => {
     try {
       const sanitized = sanitizeFormData(formData.value);
 
-      sanitized.mateVerCd = 'V001';
-      sanitized.regi = 'admin';
       sanitized.moqty = sanitized.moqty !== null ? Number(sanitized.moqty) : null;
       sanitized.safeStock = sanitized.safeStock !== null ? Number(sanitized.safeStock) : null;
       sanitized.edate = sanitized.edate !== null ? Number(sanitized.edate) : null;
@@ -102,20 +101,47 @@ export const useStandardMatStore = defineStore('standardMat', () => {
         ltime: s.ltime != null && s.ltime !== '' ? Number(s.ltime) : null
       }));
 
-      console.log('최종 등록 데이터:', JSON.stringify(sanitized, null, 2));
-
-      const res = await addMaterial(sanitized); // ✅ 이제 res 전체
-
-      if (res?.status === 200 && res.data?.success) {
-        supplierData.value = []; // 공급사 목록 초기화
-        return '등록 성공';
+      // 수정 시 mateVerCd 제거 (백엔드에서 처리)
+      if (sanitized.mcode) {
+        delete sanitized.mateVerCd;
       } else {
-        return '등록 실패';
+        sanitized.mateVerCd = 'V001';
+        sanitized.regi = 'admin'; // TODO: 실제 사용자 ID로 대체
       }
 
+      let res;
+      if (!sanitized.mcode) {
+        res = await insertMaterial(sanitized);
+      } else {
+        res = await updateMaterial(sanitized);
+      }
+
+      if (res?.status === 200 && res.data?.success) {
+        supplierData.value = [];
+
+        // ✅ 목록 자동 갱신
+        await fetchMaterials();
+
+        return sanitized.mcode ? '수정 성공' : '등록 성공';
+      } else {
+        return sanitized.mcode ? '수정 실패' : '등록 실패';
+      }
     } catch (err) {
-      console.error('❌ 등록 실패:', err);
+      console.error('❌ 저장 실패:', err);
       return '예외 발생';
+    }
+  };
+
+  // 변경이력조회 
+  const fetchChangeHistory = async (mcode) => {
+    try {
+      const res = await getChangeHistory(mcode);
+      changeHistory.value = res.data.map(item => ({
+        ...item,
+        regDt: format(new Date(item.regDt), 'yyyy-MM-dd'),
+      }));
+    } catch (error) {
+      console.error('변경이력 조회 실패:', error);
     }
   };
   
@@ -127,12 +153,14 @@ export const useStandardMatStore = defineStore('standardMat', () => {
     searchFilter,
     formData,
     supplierData,
+    changeHistory,
     fetchMaterials,
     fetchSuppliers,
     addMaterial,
     setSearchFilter,
     selectMaterial,
     fetchMaterialDetail,
-    saveMaterial
+    saveMaterial,
+    fetchChangeHistory
   };
 });

@@ -2,18 +2,58 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
 <mapper namespace="com.kimbap.kbs.standard.mapper.MatMapper">
 
     <!-- 자재 목록 조회 -->
     <select id="getMatList" resultType="com.kimbap.kbs.standard.service.MatVO">
         SELECT  mcode,
+                mate_ver_cd,
                 mate_name,
                 mate_type,
                 sto_con,
-                edate
+                unit,
+                std,
+                piece_unit,
+                conver_qty,
+                moqty,
+                safe_stock,
+                edate,
+                corigin,
+                is_used,
+                regi,
+                modi,
+                cha_rea,
+                reg_dt,
+                note
         FROM    MATERIAL
+        WHERE   is_used = 'f1'
         ORDER BY mcode
+    </select>
+
+    <!-- 자재 이력 조회 -->
+    <select id="selectMatHistory" resultType="com.kimbap.kbs.standard.service.MatVO"> 
+        SELECT  mcode,
+                mate_ver_cd,
+                mate_name,
+                mate_type,
+                sto_con,
+                unit,
+                std,
+                piece_unit,
+                conver_qty,
+                moqty,
+                safe_stock,
+                edate,
+                corigin,
+                is_used,
+                regi,
+                modi,
+                cha_rea,
+                reg_dt,
+                note
+        FROM    material
+        WHERE mcode = #{mcode}
+        ORDER BY mate_ver_cd DESC
     </select>
 
     <!-- 자재 등록 -->
@@ -39,25 +79,25 @@
             reg_dt,
             note
         ) VALUES (
-            #{mcode, jdbcType=VARCHAR},
-            #{mateVerCd, jdbcType=VARCHAR},
-            #{mateName, jdbcType=VARCHAR},
-            #{mateType, jdbcType=VARCHAR},
-            #{stoCon, jdbcType=VARCHAR},
-            #{unit, jdbcType=VARCHAR},
-            #{std, jdbcType=VARCHAR},
-            #{pieceUnit, jdbcType=VARCHAR},
-            #{converQty, jdbcType=NUMERIC},
-            #{moqty, jdbcType=NUMERIC},
-            #{safeStock, jdbcType=NUMERIC},
-            #{edate, jdbcType=NUMERIC},
-            #{corigin, jdbcType=VARCHAR},
-            #{isUsed, jdbcType=VARCHAR},
-            #{regi, jdbcType=VARCHAR},
-            #{modi, jdbcType=VARCHAR},
-            #{chaRea, jdbcType=VARCHAR},
+            #{mcode},
+            #{mateVerCd},
+            #{mateName},
+            #{mateType},
+            #{stoCon},
+            #{unit},
+            #{std},
+            #{pieceUnit},
+            #{converQty},
+            #{moqty},
+            #{safeStock},
+            #{edate},
+            #{corigin},
+            #{isUsed},
+            #{regi},
+            #{modi},
+            #{chaRea},
             SYSDATE,
-            #{note, jdbcType=VARCHAR}
+            #{note}
         )
     </insert>
 
@@ -71,12 +111,12 @@
             unit_price,
             ltime
         ) VALUES (
-            #{mateCpCd, jdbcType=VARCHAR},
-            #{mcode, jdbcType=VARCHAR},
-            #{mateVerCd, jdbcType=VARCHAR},
-            #{cpCd, jdbcType=VARCHAR},
-            #{unitPrice, jdbcType=NUMERIC},
-            #{ltime, jdbcType=NUMERIC}
+            #{mateCpCd},
+            #{mcode},
+            #{mateVerCd},
+            #{cpCd},
+            #{unitPrice},
+            #{ltime}
         )
     </insert>
 
@@ -96,7 +136,69 @@
         WHERE mcode = #{mcode}
     </select>
 
+    <!-- 자재기준정보 단건조회 -->
     <select id="getMatDetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatVO">
+        SELECT  mcode,
+                mate_ver_cd,
+                mate_name,
+                mate_type,
+                sto_con,
+                unit,
+                std,
+                piece_unit,
+                conver_qty,
+                moqty,
+                safe_stock,
+                edate,
+                corigin,
+                is_used,
+                regi,
+                modi,
+                cha_rea,
+                reg_dt,
+                note
+        FROM (
+            SELECT  mcode,
+                    mate_ver_cd,
+                    mate_name,
+                    mate_type,
+                    sto_con,
+                    unit,
+                    std,
+                    piece_unit,
+                    conver_qty,
+                    moqty,
+                    safe_stock,
+                    edate,
+                    corigin,
+                    is_used,
+                    regi,
+                    modi,
+                    cha_rea,
+                    reg_dt,
+                    note
+            FROM    material
+            WHERE   mcode = #{mcode}
+            ORDER BY mate_ver_cd DESC
+            )
+        WHERE ROWNUM = 1
+    </select>
+        
+    <select id="getMatSuppliers" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatSupplierVO">
+        SELECT  ms.mate_cp_cd,
+                ms.mcode,
+                ms.mate_ver_cd,
+                ms.cp_cd,
+                c.cp_name,
+                ms.unit_price,
+                ms.ltime
+        FROM MATE_SUPPLIER ms
+        LEFT JOIN COMPANY c ON ms.cp_cd = c.cp_cd
+        WHERE ms.mcode = #{mcode}
+    </select>
+
+     <!-- 🔍 자재 최신 버전 1건 조회 (is_used = 'f1' 조건으로 최신 사용중인 자재 조회) -->
+    <select id="selectLatestVersion" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatVO">
         SELECT  mcode,
                 mate_ver_cd,
                 mate_name,
@@ -118,17 +220,15 @@
                 note
         FROM    material
         WHERE   mcode = #{mcode}
+          AND   is_used = 'f1'
     </select>
-        
-    <select id="getMatSuppliers" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatSupplierVO">
-        SELECT  mate_cp_cd,
-                mcode,
-                mate_ver_cd,
-                cp_cd,
-                unit_price,
-                ltime
-        FROM    MATE_SUPPLIER
-        WHERE   mcode = #{mcode}
-    </select>
+
+    <!-- 🧯 기존 자재 버전 비활성화 (is_used = 'f2'로 변경) -->
+    <update id="disableOldVersion" parameterType="string">
+        UPDATE material
+        SET is_used = 'f2'
+        WHERE mcode = #{mcode}
+          AND is_used = 'f1'
+    </update>
 
 </mapper>
