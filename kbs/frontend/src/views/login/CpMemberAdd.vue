@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeMount } from 'vue';
 import RadioButton from 'primevue/radiobutton';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import { empListCheck, cpListCheck, saveMemberAdd } from '@/api/member';
@@ -60,11 +60,8 @@ const inputColumns = computed(() => {
             key: 'employee',
             label: '사원이름',
             type: 'dropdown',
-        options: empOptions.value.map(emp => ({
-          label: emp.emp_name,
-          value: emp.emp_cd
-        }))
-        },
+            options: empOptions.value // ❗ 이미 label/value 형태임
+      },
         {
             key: 'memberType',
             label: '회원 유형',
@@ -85,10 +82,7 @@ const inputColumns = computed(() => {
             key: 'company',
             label: '거래처명',
             type: 'dropdown',
-            options: cpOptions.value.map(cp => ({
-              label: cp.cp_name,
-              value: cp.cp_cd
-        }))
+            options: cpOptions.value
         },
         {
             key: 'memberType',
@@ -107,7 +101,7 @@ const inputColumns = computed(() => {
 });
 
 // mount 시점에 데이터 불러오기
-onMounted(async () => {
+onBeforeMount(async () => {
   try {
     const empRes = await empListCheck();
     empOptions.value = empRes.data.map(emp => ({
@@ -117,7 +111,10 @@ onMounted(async () => {
     console.log('사원 목록:', empOptions.value);
 
     const cpRes = await cpListCheck();
-    cpOptions.value = cpRes.data;
+        cpOptions.value = cpRes.data.map(cp => ({
+          label: cp.cpName,
+          value: cp.cpCd
+        })) ;
     console.log('거래처 목록:', cpOptions.value);
   } catch (err) {
     console.error('데이터 불러오기 실패:', err);
