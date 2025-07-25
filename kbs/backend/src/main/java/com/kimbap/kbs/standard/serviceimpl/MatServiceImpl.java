@@ -1,8 +1,12 @@
 package com.kimbap.kbs.standard.serviceimpl;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.standard.mapper.MatMapper;
+import com.kimbap.kbs.standard.service.ChangeItemVO;
 import com.kimbap.kbs.standard.service.MatService;
 import com.kimbap.kbs.standard.service.MatSupplierVO;
 import com.kimbap.kbs.standard.service.MatVO;
@@ -86,5 +91,98 @@ public class MatServiceImpl implements MatService {
         result.put("suppliers", suppliers);
 
         return result;
+    }
+
+    @Override
+    public List<MatVO> selectMatHistory(String mcode) {
+        return matMapper.selectMatHistory(mcode);
+    }
+
+    @Override
+    public void updateMaterial(MatVO newMat) {
+        // 1. 기존 최신 버전 조회
+        MatVO oldMat = matMapper.selectLatestVersion(newMat.getMcode());
+
+        // 2. 기존 버전 비활성화 처리
+        matMapper.disableOldVersion(newMat.getMcode());
+
+        // 3. 버전 증가
+        String nextVer = getNextVersion(oldMat.getMateVerCd());
+        newMat.setMateVerCd(nextVer);
+
+        // 4. 필수 필드 세팅
+        newMat.setIsUsed("f1");
+        newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+        newMat.setModi("admin"); // 실제 로그인 사용자로 변경 필요
+
+        // 5. 새 자재 insert
+        matMapper.insertMat(newMat);
+    }
+
+    // 버전 코드 생성 함수 (V001 -> V002)
+    private String getNextVersion(String currentVer) {
+        int verNum = Integer.parseInt(currentVer.replace("V", ""));
+        return String.format("V%03d", verNum + 1);
+    }
+
+    @Override
+    public List<ChangeItemVO> getChangeHistory(String mcode) {
+        List<MatVO> histories = matMapper.selectMatHistory(mcode); // 정렬: 최신 → 과거
+        List<ChangeItemVO> changeItems = new ArrayList<>();
+
+        for (int i = 0; i < histories.size() - 1; i++) {
+            MatVO current = histories.get(i);
+            MatVO prev = histories.get(i + 1);
+
+            if (!Objects.equals(current.getMateName(), prev.getMateName())) {
+                changeItems.add(new ChangeItemVO("자재명", prev.getMateName(), current.getMateName(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+            if (!Objects.equals(current.getStd(), prev.getStd())) {
+                changeItems.add(new ChangeItemVO("규격", prev.getStd(), current.getStd(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+            if (!Objects.equals(current.getPieceUnit(), prev.getPieceUnit())) {
+                changeItems.add(new ChangeItemVO("낱개단위", prev.getPieceUnit(), current.getPieceUnit(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+            if (!Objects.equals(current.getConverQty(), prev.getConverQty())) {
+                changeItems.add(new ChangeItemVO("환산수량",
+                        prev.getConverQty() == null ? null : prev.getConverQty().toString(),
+                        current.getConverQty() == null ? null : current.getConverQty().toString(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+            if (!Objects.equals(current.getMoqty(), prev.getMoqty())) {
+                changeItems.add(new ChangeItemVO("최소발주단위",
+                        prev.getMoqty() == null ? null : prev.getMoqty().toString(),
+                        current.getMoqty() == null ? null : current.getMoqty().toString(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+            if (!Objects.equals(current.getSafeStock(), prev.getSafeStock())) {
+                changeItems.add(new ChangeItemVO("안전재고",
+                        prev.getSafeStock() == null ? null : prev.getSafeStock().toString(),
+                        current.getSafeStock() == null ? null : current.getSafeStock().toString(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+            if (!Objects.equals(current.getEdate(), prev.getEdate())) {
+                changeItems.add(new ChangeItemVO("소비기한",
+                        prev.getEdate() == null ? null : prev.getEdate().toString(),
+                        current.getEdate() == null ? null : current.getEdate().toString(),
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
+            }
+        }
+
+        // 마지막 하나는 최초 등록 버전 → 항상 넣어줌
+        if (!histories.isEmpty()) {
+            MatVO first = histories.get(histories.size() - 1); // 마지막이 V001
+            changeItems.add(new ChangeItemVO(
+                "-", "-", "-", "-", // 변경항목 없음
+                first.getMateVerCd(),
+                first.getRegDt(),
+                first.getModi()
+            ));
+        }
+
+        return changeItems;
     }
 }
