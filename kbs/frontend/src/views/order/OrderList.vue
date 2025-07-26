@@ -1,8 +1,28 @@
+나의 말:
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getOrderList } from '@/api/order';
 import BasicTable from '@/components/kimbap/table/BasicTable.vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
+import { useCommonStore } from '@/stores/commonStore'
+import { storeToRefs } from 'pinia';
+
+// 공통코드 가져오기
+const common = useCommonStore()
+const { commonCodes } = storeToRefs(common)
+
+// 공통코드 형변환
+const ordStatusCodes = (list) => {
+  const unitCodes = common.getCodes('0S');
+
+  return list.map(item => {
+    const matched = unitCodes.find(code => code.dcd === item.ordStatus);
+    return {
+      ...item,
+      ordStatus: matched ? matched.cdInfo : item.ordStatus
+    };
+  });
+};
 
 // 주문 목록 컬럼 정의
 const orderColumns = [
@@ -24,9 +44,10 @@ const orders = ref([]);
 onMounted(async () => {
   try {
     const res = await getOrderList();
+    await common.fetchCommonCodes('0S');
+    orders.value = ordStatusCodes(res.data.data);
     console.log('응답 타입:', typeof res.data);
     console.log('실제 응답 내용:', res.data);
-    orders.value = res.data.data;
   } catch (err) {
     console.error('목록 조회 실패:', err);
   }
