@@ -3,6 +3,7 @@ import { ref, onBeforeMount, onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { format } from 'date-fns';
 import { useStandardMatStore } from '@/stores/standardMatStore';
+import { useCommonStore } from '@/stores/commonStore'
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -12,10 +13,33 @@ import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
 
+// 공통코드 가져오기
+const common = useCommonStore()
+const { commonCodes } = storeToRefs(common)
+const convertedMaterialList = computed(() => convertUnitCodes(materialList.value));
+
+
+// 공통코드 형변환
+const convertUnitCodes = (list) => {
+  const mateTypeCodes = common.getCodes('0H'); // 자재유형
+  const stoConCodes = common.getCodes('0O');   // 보관조건
+
+  return list.map(item => {
+    const matchedMateType = mateTypeCodes.find(code => code.dcd === item.mateType);
+    const matchedStoCon = stoConCodes.find(code => code.dcd === item.stoCon);
+
+    return {
+      ...item,
+      mateType: matchedMateType ? matchedMateType.cdInfo : item.mateType,
+      stoCon: matchedStoCon ? matchedStoCon.cdInfo : item.stoCon,
+    };
+  });
+};
+
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardMatStore();
 const { materialList, supplierList, formData, supplierData, changeHistory } = storeToRefs(store);
-const { fetchMaterials, fetchSuppliers, fetchMaterialDetail, saveMaterial, fetchChangeHistory } = store;
+const { fetchMaterials, fetchSuppliers, fetchMaterialDetail, saveMaterial } = store;
 
 // UI 상태 정의
 const searchColumns = ref([]); // 검색 컬럼
@@ -24,7 +48,6 @@ const cpColumns = ref([]); // 공급처 테이블 컬럼
 const productColumns = ref([]); // 자재목록 테이블 컬럼
 const inputFormButtons = ref({}); // 자재 등록 버튼
 const rowButtons = ref({}); // 공급처 테이블용 버튼
-
 
 // 이력조회 모달 관련 상태 및 핸들러
 const selectedHistoryItems = ref([]);
@@ -42,12 +65,12 @@ const changeColumns = [
 
 // 함수 내용만 교체
 const fetchHistoryItems = async () => {
-  if (!selectedMcode.value) {
-    console.warn('mcode가 비어있습니다');
-    return [];
-  }
-  selectedHistoryItems.value = result.data;
-  return result.data;
+    if (!selectedMcode.value) {
+        console.warn('mcode가 비어있습니다');
+        return [];
+    }
+    selectedHistoryItems.value = result.data;
+    return result.data;
 };
 
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
@@ -192,9 +215,11 @@ onBeforeMount(() => {
 });
 
 // ⚙️ 8. 데이터 fetch (초기 자재/공급처 목록)
-onMounted(() => {
-    fetchSuppliers();
-    fetchMaterials();
+onMounted(async() => {
+    await common.fetchCommonCodes('0H')  // 자재유형
+    await common.fetchCommonCodes('0O')  // 보관조건
+    await fetchSuppliers();
+    await fetchMaterials();
 });
 
 // 💾 9. 자재 등록 처리
@@ -205,11 +230,29 @@ const handleSaveMaterial = async () => {
 
 // 📄 10. 자재 단건 조회 처리
 const handleSelectMaterial = async (selectedRow) => {
-  await fetchMaterialDetail(selectedRow.mcode);
+    await fetchMaterialDetail(selectedRow.mcode);
 };
 const clearForm = () => {
-  formData.value = {}; // 또는 필요한 초기화 방식으로
-  supplierData.value = [];
+    formData.value = {}; // 또는 필요한 초기화 방식으로
+    supplierData.value = [];
+};
+// 검색
+const handleSearch = async (searchData) => {
+  await fetchMaterials(); // 최신 데이터 가져오기
+
+  // 조건 키: mcode, mateName, mateType, stoCon
+  materialList.value = materialList.value.filter((item) => {
+    const matchMcode     = !searchData.mcode     || item.mcode?.toLowerCase().includes(searchData.mcode);
+    const matchMateName  = !searchData.mateName  || item.mateName?.includes(searchData.mateName);
+    const matchMateType  = !searchData.mateType  || item.mateType === searchData.mateType;
+    const matchStoCon    = !searchData.stoCon    || item.stoCon === searchData.stoCon;
+
+    return matchMcode && matchMateName && matchMateType && matchStoCon;
+  });
+};
+
+const handleReset = async () => {
+  await fetchMaterials(); // 전체 목록 다시 조회
 };
 </script>
 <template>
@@ -219,7 +262,7 @@ const clearForm = () => {
         <div class="w-full md:basis-[55%]">
             <StandardTable
                 title="자재기준정보 목록"
-                :data="materialList"
+                :data="convertedMaterialList"
                 dataKey="mcode"
                 :columns="productColumns"
                 @view-history="handleViewHistory"

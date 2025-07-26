@@ -10,5 +10,4 @@ public interface MatService {
     List<MatVO> selectMatHistory(String mcode); // 자재기준정보 이력조회
     void updateMaterial(MatVO mat);// 여기 추가!
     List<ChangeItemVO> getChangeHistory(String mcode);  // 변경 항목 리스트 조회
-
 }

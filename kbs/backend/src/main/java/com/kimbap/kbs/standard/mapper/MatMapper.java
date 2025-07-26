@@ -18,4 +18,5 @@ public interface MatMapper  {
 	int getNextRawMaterialCodeBySeq();
 	int getNextSubMaterialCodeBySeq();
 	int getSupplierCountByMcode(String mcode); // 자재별공급사 코드
+	List<MatSupplierVO> selectAllSuppliersByMcode(String mcode); // 
 }
