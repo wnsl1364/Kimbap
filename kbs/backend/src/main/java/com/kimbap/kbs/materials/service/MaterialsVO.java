@@ -24,7 +24,10 @@ public class MaterialsVO {
     private String mateName;        // 자재명
     private Integer purcQty;        // 발주수량
     private Date ordDt;             // 주문일자
-    
+    private String mateVerCd;      // 자재버전코드
+    private String cpCd;            // 회사코드
+    private String stoCon;          // 보관조건
+
     // ========== p1 권한 추가 필드 ==========
     private String purcDCd;         // 발주상세코드
     private String mateType;        // 자재타입
