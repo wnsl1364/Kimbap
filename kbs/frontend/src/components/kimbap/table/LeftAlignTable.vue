@@ -75,12 +75,13 @@ const updateField = (field, value) => {
           <template v-else-if="field.type === 'input'">
               <div class="flex items-center border rounded w-full h-10">
                   <input
-                      v-model="data[field.field]"
-                      :type="field.inputType || 'text'"
-                      :readonly="field.readonly"
-                      :disabled="field.disabled"
-                      class="border-none outline-none flex-1 bg-transparent px-3 py-2"
-                  />
+                    :value="data[field.field]"
+                    @input="updateField(field.field, $event.target.value)"
+                    :type="field.inputType || 'text'"
+                    :readonly="field.readonly"
+                    :disabled="field.disabled"
+                    class="border-none outline-none flex-1 bg-transparent px-3 py-2"
+                    />
                   <i
                       v-if="field.suffixIcon"
                       :class="[field.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2']"

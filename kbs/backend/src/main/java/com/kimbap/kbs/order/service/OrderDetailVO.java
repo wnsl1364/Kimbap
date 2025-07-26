@@ -20,4 +20,5 @@ public class OrderDetailVO {
     private Integer totalQty;       // 주문수량
     private BigDecimal unitPrice; // 단가
     private BigDecimal totalPrice; // 총액
+    private String isUsed;
 }

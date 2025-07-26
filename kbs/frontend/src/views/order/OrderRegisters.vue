@@ -60,19 +60,24 @@ const STATUS_CANCELED = 's4'     // 주문 취소
 const STATUS_RETURN_CANCELED = 's5' // 반품 취소
 const STATUS_RETURN_COMPLETED = 's6' // 반품 완료
 
+// 박스당 김밥 줄 수 (예: 40개)
+const KBP_PER_BOX = 40
+
 // 할인 계산 함수 (주문 수량에 따라 할인 적용)
 const calculateDiscountedPrice = (basePrice, qty) => {
-  if (qty >= 400) return basePrice - 100
-  if (qty >= 200) return basePrice - 50
-  if (qty >= 100) return basePrice - 20
-  return basePrice
+  const pricePerBox = basePrice * KBP_PER_BOX
+
+  if (qty >= 400) return pricePerBox - 1000
+  if (qty >= 200) return pricePerBox - 500
+  if (qty >= 100) return pricePerBox - 200
+  return pricePerBox
 }
 
 // 버튼 설정
 const infoFormButtons = ref({
   reset: { show: true, label: '초기화', severity: 'secondary' },
   save: { show: true, label: '저장', severity: 'success' },
-  delete: { show: true, label: '삭제', severity: 'danger' }
+  delete: { show: false, label: '삭제', severity: 'danger' }
 });
 
 // 제품 추가 영역 버튼 설정
@@ -179,19 +184,47 @@ const handleSave = async () => {
   }
 }
 
-// 상태 감지해서 버튼 조건 변경하는 watch
-// 주문 상태가 '접수 대기'인 경우에만 버튼 활성화
-watch(() => formData.value.ordStatus, (newStatus) => {
-  if (!newStatus || newStatus === STATUS_WAITING) {
-    infoFormButtons.value.save.show = true
-    infoFormButtons.value.reset.show = true
-    infoFormButtons.value.delete.show = true
-  } else {
-    infoFormButtons.value.save.show = false
-    infoFormButtons.value.reset.show = false
-    infoFormButtons.value.delete.show = false
+const handleDelete = async () => {
+  const confirmed = confirm('정말 삭제하시겠습니까?')
+  if (!confirmed) return
+
+  try {
+    const res = await axios.put(`/api/order/${formData.value.ordCd}/deactivate`)  // 예: PUT 요청
+
+    if (res.data.result_code === 'SUCCESS') {
+      alert('주문이 정상적으로 삭제(비활성)되었습니다.')
+      handleReset()
+    } else {
+      alert(`삭제 실패: ${res.data.message}`)
+    }
+  } catch (err) {
+    console.error('삭제 오류:', err)
+    alert('주문 삭제 중 오류가 발생했습니다.')
   }
+}
+
+const handleProductDeleteList = async (ordDCdList) => {
+  for (const ordDCd of ordDCdList) {
+    await axios.put(`/api/order-detail/${ordDCd}/deactivate`)
+    // 로컬에서 products 배열에서 제거
+    const idx = products.value.findIndex(p => p.ordDCd === ordDCd)
+    if (idx !== -1) products.value.splice(idx, 1)
+  }
+}
+
+
+// 상태 감지해서 버튼 조건 변경하는 watch
+// 주문 상태가 신규(ordCd 없음) 또는 접수 대기(s1) 상태일 때 저장 및 초기화 버튼을 표시하고, 삭제 버튼은 접수 대기 상태일 때만 표시
+// 주문 상태가 접수 완료(s2) 이상이면 저장 및 초기화 버튼을 숨기고, 삭제 버튼은 숨김
+watch(() => formData.value.ordStatus, (newStatus) => {
+  const isNewOrder = !formData.value.ordCd           // 주문코드가 없으면 신규
+  const isWaiting = newStatus === STATUS_WAITING     // 접수 대기 상태인지 확인
+
+  infoFormButtons.value.save.show = isNewOrder || isWaiting
+  infoFormButtons.value.reset.show = isNewOrder || isWaiting
+  infoFormButtons.value.delete.show = !isNewOrder && isWaiting
 })
+
 
 // 수량변경 시 단가 및 총 금액 자동 계산
 // products 배열의 각 항목에서 totalQty와 unitPrice를 곱하여 총 금액을 계산
@@ -203,7 +236,7 @@ watch(
       const qty = Number(item.totalQty)
       const base = Number(item.basePrice || item.unitPrice || 0)
       const newPrice = calculateDiscountedPrice(base, qty)
-      const newAmount = qty * newPrice
+      const newAmount = qty > 0 ? qty * newPrice : 0  
 
       // 값이 실제로 바뀌는 경우에만 갱신
       if (item.unitPrice !== newPrice || item.totalAmount !== newAmount) {
@@ -292,12 +325,15 @@ onUnmounted(() => {
 <template>
     <div class="space-y-4">
         <!-- 기본정보 영역 -->
-        <LeftAlignTable :data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset" @save="handleSave"/>
+        <LeftAlignTable v-model:data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset" @save="handleSave"  @delete="handleDelete"/>
     </div>
     <div class="space-y-4 mt-8">
         <!-- 제품추가 영역 -->
-        <InputTable :data="products" :columns="columns" :title="'제품'" :buttons="purchaseFormButtons" button-position="top" scrollHeight="360px" height="460px" :dataKey="'pcode'"
-        :modalDataSets="productModalConfig" :autoCalculation="{enabled: true, quantityField: 'totalQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
+        <InputTable :data="products" :columns="columns" :title="'제품'" :buttons="purchaseFormButtons" button-position="top"
+        scrollHeight="360px" height="460px" :dataKey="'pcode'" :deleteKey="'ordDCd'" :deleteEventName="'handleProductDeleteList'"
+        @handleProductDeleteList="handleProductDeleteList"
+        :modalDataSets="productModalConfig"
+        :autoCalculation="{enabled: true, quantityField: 'totalQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
         <!-- 하단 합계 영역 -->
         <div class="flex justify-end items-center mt-4 px-4">
           <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>

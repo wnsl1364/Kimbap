@@ -20,4 +20,7 @@ public interface OrderMapper {
 
   // 주문 목록 조회
   List<OrderVO> getOrderList(); 
+
+  // 주문 비활성화
+  void deactivateOrder(String ordCd);
 }

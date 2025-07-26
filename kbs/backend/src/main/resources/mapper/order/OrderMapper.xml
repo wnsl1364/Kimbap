@@ -14,7 +14,8 @@
             ord_total_amount,
             regi,
             reg_dt,
-            ord_status 
+            ord_status,
+            is_used
         )
         VALUES (
             #{ordCd},
@@ -27,7 +28,8 @@
             #{ordTotalAmount},
             #{regi},
             SYSDATE,
-            #{ordStatus}
+            #{ordStatus},
+            #{isUsed}
         )
     </insert>
 
@@ -39,7 +41,8 @@
             pcode,
             prod_ver_cd,
             total_qty,
-            unit_price
+            unit_price,
+            is_used
         )
         VALUES (
              #{ordDCd},
@@ -47,7 +50,8 @@
              #{pcode},
              #{prodVerCd},
              #{totalQty},
-             #{unitPrice}
+             #{unitPrice},
+             #{isUsed}
         )
     </insert>
 
@@ -80,4 +84,12 @@
         JOIN company c ON ol.cp_cd = c.cp_cd
         ORDER BY ol.ord_dt DESC
     </select>
+
+    <!-- 주문 비활성화 -->
+    <update id="deactivateOrder" parameterType="String">
+        UPDATE order_list
+        SET is_used = 'f2'
+        WHERE ord_cd = #{ordCd}
+    </update>
+
 </mapper>

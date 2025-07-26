@@ -29,6 +29,7 @@ public class OrderVO {
     private BigDecimal curPayAmount;
     private Date exPayDt;
     private Date actPayDt;
+    private String isUsed;
     
     // 주문 상세 목록
     private List<OrderDetailVO> orderDetails;
