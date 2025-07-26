@@ -58,6 +58,10 @@ const props = defineProps({
          type: String,
          required: true
     },
+    deleteKey: {
+        type: String,
+        default: 'ordDCd'
+    },
     autoCalculation: {
         type: Object,
         default: () => ({
@@ -76,7 +80,8 @@ const emit = defineEmits([
   'delete',
   'reset',
   'save',
-  'load'
+  'load',
+  'handleProductDeleteList'
 ])
 
 
@@ -130,6 +135,15 @@ const deleteSelectedRows = () => {
     return
   }
 
+  const deleteKey = props.deleteKey
+  const toDeleteServer = selectedRows.value.filter(row => row[deleteKey])
+
+  // 서버에 알려야 할 제품 목록 → emit
+  if (toDeleteServer.length > 0) {
+    emit('handleProductDeleteList', toDeleteServer.map(row => row[deleteKey]))
+  }
+
+  // 로컬에서 제거
   internalData.value = internalData.value.filter(
     row => !selectedRows.value.includes(row)
   )
@@ -137,6 +151,7 @@ const deleteSelectedRows = () => {
   selectedRows.value = []
   emitDataChange()
 }
+
 
 // 데이터 변경 이벤트
 const emitDataChange = () => {

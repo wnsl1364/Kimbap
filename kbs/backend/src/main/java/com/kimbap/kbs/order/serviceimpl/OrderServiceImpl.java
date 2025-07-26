@@ -27,6 +27,9 @@ public class OrderServiceImpl  implements OrderService {
         String newOrderCode = generateOrderCode();
         orderVO.setOrdCd(newOrderCode);
 
+        // 주문 활성화
+        orderVO.setIsUsed("f1");
+
         // 2. 주문 마스터 등록
         orderMapper.insertOrderMaster(orderVO);
 
@@ -34,6 +37,7 @@ public class OrderServiceImpl  implements OrderService {
         if (orderVO.getOrderDetails() != null) {
             for (OrderDetailVO detail : orderVO.getOrderDetails()) {
                 detail.setOrdCd(newOrderCode); // 외래키 세팅
+                detail.setIsUsed("f1");
                 String ordDCd = orderMapper.getGeneratedOrderDetailCode(); // PK 코드 생성
                 detail.setOrdDCd(ordDCd); // DB 함수로 생성
                 orderMapper.insertOrderDetail(detail);
@@ -44,6 +48,11 @@ public class OrderServiceImpl  implements OrderService {
     @Override
     public List<OrderVO> getOrderList() {
         return orderMapper.getOrderList();
+    }
+
+    @Override
+    public void deactivateOrder(String ordCd) {
+        orderMapper.deactivateOrder(ordCd);
     }
 
     // 주문코드 생성 메서드 (요구사항 형식 맞춤: ORD-20250001)
