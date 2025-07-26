@@ -195,6 +195,15 @@
         FROM MATE_SUPPLIER ms
         LEFT JOIN COMPANY c ON ms.cp_cd = c.cp_cd
         WHERE ms.mcode = #{mcode}
+        AND ms.mate_ver_cd = (
+            SELECT mate_ver_cd
+            FROM    (SELECT mate_ver_cd
+                    FROM MATERIAL
+                    WHERE mcode = #{mcode}
+                    ORDER BY mate_ver_cd DESC
+                    )
+            WHERE ROWNUM = 1
+        )
     </select>
 
      <!-- 🔍 자재 최신 버전 1건 조회 (is_used = 'f1' 조건으로 최신 사용중인 자재 조회) -->
@@ -221,6 +230,20 @@
         FROM    material
         WHERE   mcode = #{mcode}
           AND   is_used = 'f1'
+    </select>
+
+    <select id="selectAllSuppliersByMcode" parameterType="string" resultType="com.kimbap.kbs.standard.service.MatSupplierVO">
+        SELECT  ms.mate_cp_cd,
+                ms.mcode,
+                ms.mate_ver_cd,
+                ms.cp_cd,
+                c.cp_name,
+                ms.unit_price,
+                ms.ltime
+        FROM MATE_SUPPLIER ms
+        LEFT JOIN COMPANY c ON ms.cp_cd = c.cp_cd
+        WHERE ms.mcode = #{mcode}
+        ORDER BY TO_NUMBER(SUBSTR(ms.mate_ver_cd, 2)) DESC
     </select>
 
     <!-- 🧯 기존 자재 버전 비활성화 (is_used = 'f2'로 변경) -->

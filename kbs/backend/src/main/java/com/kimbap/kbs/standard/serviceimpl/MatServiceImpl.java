@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -124,6 +123,22 @@ public class MatServiceImpl implements MatService {
 
         // 5. 새 자재 insert
         matMapper.insertMat(newMat);
+
+        // 6. 공급처 정보 insert (버전은 유지됨)
+        if (newMat.getSuppliers() != null) {
+            int index = 1;
+            for (MatSupplierVO supplier : newMat.getSuppliers()) {
+                supplier.setMcode(newMat.getMcode());
+                supplier.setMateVerCd(newMat.getMateVerCd());
+
+                // 버전 포함한 고유 코드
+                String mateCpCd = String.format("%s-%s-SUP-%02d", newMat.getMcode(), newMat.getMateVerCd(), index);
+                supplier.setMateCpCd(mateCpCd);
+
+                matMapper.insertMatSupplier(supplier);
+                index++;
+            }
+        }
     }
 
     @Override
@@ -131,9 +146,71 @@ public class MatServiceImpl implements MatService {
         List<MatVO> histories = matMapper.selectMatHistory(mcode); // 정렬: 최신 → 과거
         List<ChangeItemVO> changeItems = new ArrayList<>();
 
+        List<MatSupplierVO> allSuppliers = matMapper.selectAllSuppliersByMcode(mcode);
+        Map<String, List<MatSupplierVO>> supplierMap = new HashMap<>();
+        for (MatSupplierVO s : allSuppliers) {
+            supplierMap.computeIfAbsent(s.getMateVerCd(), k -> new ArrayList<>()).add(s);
+        }
+
         for (int i = 0; i < histories.size() - 1; i++) {
             MatVO current = histories.get(i);
             MatVO prev = histories.get(i + 1);
+
+            // 공급처 비교용 리스트 꺼내기
+            List<MatSupplierVO> currSuppliers = supplierMap.getOrDefault(current.getMateVerCd(), new ArrayList<>());
+            List<MatSupplierVO> prevSuppliers = supplierMap.getOrDefault(prev.getMateVerCd(), new ArrayList<>());
+            // 🔻 공급처 변경 비교
+            for (MatSupplierVO curr : currSuppliers) {
+                MatSupplierVO matchedPrev = prevSuppliers.stream()
+                    .filter(p -> p.getCpCd().equals(curr.getCpCd()))
+                    .findFirst()
+                    .orElse(null);
+
+                if (matchedPrev == null) {
+                    // 👉 신규 공급처 추가됨
+                    changeItems.add(new ChangeItemVO(
+                        "공급처 추가",
+                        "-",
+                        curr.getCpName() + " (단가: " + curr.getUnitPrice() + ", 리드타임: " + curr.getLtime() + ")",
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
+                    ));
+                } else {
+                    // 👉 기존 공급처지만 단가 변경됨
+                    if (!Objects.equals(curr.getUnitPrice(), matchedPrev.getUnitPrice())) {
+                        changeItems.add(new ChangeItemVO(
+                            "공급처 단가 변경",
+                            matchedPrev.getCpName() + ": " + matchedPrev.getUnitPrice(),
+                            curr.getCpName() + ": " + curr.getUnitPrice(),
+                            current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
+                        ));
+                    }
+
+                    // 👉 리드타임 변경됨
+                    if (!Objects.equals(curr.getLtime(), matchedPrev.getLtime())) {
+                        changeItems.add(new ChangeItemVO(
+                            "공급처 리드타임 변경",
+                            matchedPrev.getCpName() + ": " + matchedPrev.getLtime(),
+                            curr.getCpName() + ": " + curr.getLtime(),
+                            current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
+                        ));
+                    }
+                }
+            }
+
+            // 🔻 이전에는 있었는데 지금은 사라진 공급처
+            for (MatSupplierVO oldSup : prevSuppliers) {
+                boolean removed = currSuppliers.stream()
+                    .noneMatch(c -> c.getCpCd().equals(oldSup.getCpCd()));
+
+                if (removed) {
+                    changeItems.add(new ChangeItemVO(
+                        "공급처 삭제",
+                        oldSup.getCpName(),
+                        "-",
+                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
+                    ));
+                }
+            }
 
             if (!Objects.equals(current.getMateName(), prev.getMateName())) {
                 changeItems.add(new ChangeItemVO("자재명", prev.getMateName(), current.getMateName(),
