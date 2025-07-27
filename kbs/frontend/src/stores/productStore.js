@@ -1,12 +1,17 @@
 // /stores/productStore.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getFactoryList, getProdPlanList, postProdPlanListByCondition } from '@/api/production';
+import { getFactoryList, // 공장 목록 조회
+         getProdPlanList, // 생산계획 목로고 조회
+         postProdPlanListByCondition, // 생산계획 목록 조건 검색
+         getProdPlanDetailList // 생산계획별 상세내역 조회
+        } from '@/api/production';
 
 export const useProductStore = defineStore('product', () => {
   const factoryList = ref([]); // 공장 목록
   const prodPlanList = ref([]); // 생산계획 목록
   const condProdPlanList = ref([]); // 조건 생산계획 목록
+  const prodPlanDetailList = ref([]); // 생산계획 상세 목록
 
   // 공장 목록 조회
   const fetchFactoryList = async () => {
@@ -36,13 +41,23 @@ export const useProductStore = defineStore('product', () => {
       console.error('조건 검색 실패:', err);
     }
   };
-    
+  // 생산계획의 상세 목록 조회
+  const fetchProdPlanDetailList = async (produPlanCd) => {
+    try {
+      const res = await getProdPlanDetailList(produPlanCd);
+      prodPlanDetailList.value = res.data;
+    } catch (err) {
+      console.error('생산계획상세 조회 실패:', err);
+    }
+  }
   return {
-    factoryList,
-    prodPlanList,
-    condProdPlanList,
-    fetchFactoryList,
-    fetchProdPlanList,
-    fetchProdPlanListByCondition
+    factoryList, // 공장 목록
+    prodPlanList, // 생산계획 목록
+    condProdPlanList, // 조건별 생산계획 목록
+    prodPlanDetailList, // 생산계획별 상세 목록
+    fetchFactoryList, // 공장 목록 조회 함수
+    fetchProdPlanList, // 생산계획 목록 조회 함수
+    fetchProdPlanListByCondition, // 생산계획 목록 조건 조회 함수
+    fetchProdPlanDetailList // 생산계획의 상세 목록 조회
   }
 })

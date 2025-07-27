@@ -27,14 +27,6 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     }
 
     @Override
-    public ProdPlanFullVO getPlanWithDetails(String produPlanCd) {
-        ProdPlanFullVO fullVO = new ProdPlanFullVO();
-        fullVO.setPlan(mapper.selectProdPlanById(produPlanCd));
-        fullVO.setPlanDetails(mapper.selectDetailsByPlanCd(produPlanCd));
-        return fullVO;
-    }
-
-    @Override
     @Transactional
     public void savePlanWithDetails(ProdPlanFullVO fullVO) {
         if (mapper.selectProdPlanById(fullVO.getPlan().getProduPlanCd()) == null) {
@@ -59,5 +51,10 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     @Override
         public List<ProdPlanVO> getPlansByCondition(ProdPlanVO condition) {
         return mapper.selectProdPlansByCondition(condition);
+    }
+    // 생산계획코드별 생산계획상세 조회
+    @Override
+    public List<ProdPlanDetailVO> getDetailsByPlanCd(String produPlanCd) {
+        return mapper.selectDetailsByPlanCd(produPlanCd);
     }
 }

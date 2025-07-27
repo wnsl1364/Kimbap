@@ -14,8 +14,8 @@ const common = useCommonStore()
 const { commonCodes } = storeToRefs(common)
 // 생산관리 목록 정보 가져오기
 const store = useProductStore()
-const { factoryList, prodPlanList, condProdPlanList } = storeToRefs(store)
-const { fetchFactoryList } = store
+const { factoryList, prodPlanList, condProdPlanList, prodPlanDetailList } = storeToRefs(store)
+const { fetchFactoryList, fetchProdPlanDetailList } = store
 // 생산계획 상세 정보 모달 띄우기
 const detailModalVisible = ref(false)
 const detailList = ref([])
@@ -52,7 +52,7 @@ const searchColumns = [
     placeholder: '공장을 선택하세요'
   },
 ];
-const tableColumns = [
+const prodPlanColumns = [
   { field: 'produPlanCd', header: '생산계획번호' },
   { field: 'planDt', header: '계획일자' },
   { field: 'planStartDt', header: '계획기간(시작)' },
@@ -94,13 +94,34 @@ const convertUnitCodes = (list) => {
     };
   });
 };
-// 모달 열기 함수
+
+// ====== 생산계획상세 모달 영역 ============================
+// 생산계획상세 모달 열기
 const openDetailModal = async (produPlanCd) => {
-  selectedPlanCd.value = produPlanCd
-  const res = await getProdPlanDetailList(produPlanCd)
-  detailList.value = res.data
-  detailModalVisible.value = true
+  selectedPlanCd.value = produPlanCd;
+  await store.fetchProdPlanDetailList(produPlanCd); // Pinia Store에서 상세정보 조회
+  detailList.value = convertDetailUnitCodes(store.prodPlanDetailList); // Store에 있는 결과를 로컬로 바인딩
+  detailModalVisible.value = true;             // 모달 열기
 }
+const detailColumns = [
+  { field: 'ppdcode', header: '상세코드' },
+  { field: 'produPlanCd', header: '계획번호' },
+  { field: 'prodName', header: '제품명' },
+  { field: 'planQty', header: '계획수량' },
+  { field: 'unit', header: '단위' },
+]
+// 공통코드 변환
+const convertDetailUnitCodes = (list) => {
+  const unitCodes = common.getCodes('0G');
+
+  return list.map(item => {
+    const matched = unitCodes.find(code => code.dcd === item.unit);
+    return {
+      ...item,
+      unit: matched ? matched.cdInfo : item.unit
+    };
+  });
+};
 </script>
 <template>
   <div>
@@ -115,20 +136,21 @@ const openDetailModal = async (produPlanCd) => {
     <StandartTable
       :title="'생산계획 목록'"
       :data="condProdPlanList"
-      :columns="tableColumns"
+      :columns="prodPlanColumns"
       dataKey="produPlanCd"
       scrollHeight="55vh"
       :selectable="false"
       :showHistoryButton="false"
       :hoverable="true"
-      @row-select="row => openDetailModal(row.produPlanCd)"
+      @row-click="row => openDetailModal(row.produPlanCd)"
     />
     <!-- 상세정보 모달 -->
     <ProdPlanDetailModal
       :visible="detailModalVisible"
-      :title="`생산계획 상세 - ${selectedPlanCd}`"
+      :title="`생산계획 상세 : ${selectedPlanCd}`"
       :detailList="detailList"
-      @update:visible="val => detailModalVisible.value = val"
+      :columns="detailColumns"
+      @update:visible="detailModalVisible = $event"
     />
   </div>
 </template>
