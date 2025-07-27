@@ -44,6 +44,7 @@ watch(selected, (val) => {
             scrollable
             :scrollHeight="scrollHeight"
             @rowSelect="$emit('row-select', $event.data)"
+            @rowClick="$emit('row-click', $event.data)"
             :class="{ 'hoverable-rows': props.hoverable }"
         >
             <Column v-if="props.selectable" selectionMode="multiple" headerStyle="width: 3rem" />

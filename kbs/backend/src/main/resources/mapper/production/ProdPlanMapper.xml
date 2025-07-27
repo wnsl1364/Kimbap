@@ -7,10 +7,6 @@
         SELECT * FROM prod_plan
     </select>
 
-    <select id="selectProdPlanById" resultType="ProdPlanVO">
-        SELECT * FROM prod_plan WHERE produ_plan_cd = #{produPlanCd}
-    </select>
-
     <insert id="insertProdPlan">
         INSERT INTO prod_plan (produ_plan_cd, fcode, fac_ver_cd, plan_start_dt, plan_end_dt, mname, note)
         VALUES (#{produPlanCd}, #{fcode}, #{facVerCd}, #{planStartDt}, #{planEndDt}, #{mname}, #{note})
@@ -32,10 +28,6 @@
     </delete>
 
     <!-- Detail -->
-    <select id="selectDetailsByPlanCd" resultType="ProdPlanDetailVO">
-        SELECT * FROM prod_plan_d WHERE produ_plan_cd = #{produPlanCd}
-    </select>
-
     <insert id="insertProdPlanDetail">
         INSERT INTO prod_plan_d (ppdcode, produ_plan_cd, pcode, prod_ver_cd, plan_qty)
         VALUES (#{ppdcode}, #{produPlanCd}, #{pcode}, #{prodVerCd}, #{planQty})
@@ -69,7 +61,7 @@
         FROM prod_plan pp
         JOIN factory f
             ON pp.fcode = f.fcode
-        AND pp.fac_ver_cd = f.fac_ver_cd
+            AND pp.fac_ver_cd = f.fac_ver_cd
         LEFT JOIN prod_plan_d ppd
             ON pp.produ_plan_cd = ppd.produ_plan_cd
         <where>
@@ -102,6 +94,23 @@
             pp.plan_end_dt,
             f.fac_name,
             pp.note
+    </select>
+    <!-- 생산계획상세 조건 검색 -->
+    <select id="selectDetailsByPlanCd"  parameterType="String" resultType="ProdPlanDetailVO">
+        SELECT
+            pp.ppdcode,
+            pp.produ_plan_cd,
+            pp.pcode,
+            pp.prod_ver_cd,
+            pp.plan_qty,
+            pp.unit,
+            p.prod_name
+        FROM prod_plan_d pp
+        JOIN product p
+            ON pp.pcode = p.pcode
+            AND pp.prod_ver_cd = p.prod_ver_cd
+        WHERE produ_plan_cd = #{produPlanCd}
+        ORDER BY ppdcode
     </select>
 
 </mapper>

@@ -8,17 +8,18 @@ import com.kimbap.kbs.production.service.ProdPlanVO;
 public interface ProdPlanMapper {
     // Master
     List<ProdPlanVO> selectProdPlans();
-    ProdPlanVO selectProdPlanById(String produPlanCd);
     int insertProdPlan(ProdPlanVO plan);
     int updateProdPlan(ProdPlanVO plan);
     int deleteProdPlan(String produPlanCd);
 
     // Detail
-    List<ProdPlanDetailVO> selectDetailsByPlanCd(String produPlanCd);
     int insertProdPlanDetail(ProdPlanDetailVO detail);
     int updateProdPlanDetail(ProdPlanDetailVO detail);
     int deleteDetailsByPlanCd(String produPlanCd);
     
     // 생산계획 조건 검색
     List<ProdPlanVO> selectProdPlansByCondition(ProdPlanVO condition);
+
+    // 생산계획상세 검색
+    List<ProdPlanDetailVO> selectDetailsByPlanCd(String produPlanCd);
 }

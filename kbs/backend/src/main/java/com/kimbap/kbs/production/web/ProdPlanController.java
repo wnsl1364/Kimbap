@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdPlanFullVO;
 import com.kimbap.kbs.production.service.ProdPlanService;
 import com.kimbap.kbs.production.service.ProdPlanVO;
@@ -28,11 +29,6 @@ public class ProdPlanController {
         return service.getAllPlans();
     }
 
-    @GetMapping("/{produPlanCd}")
-    public ProdPlanFullVO get(@PathVariable String produPlanCd) {
-        return service.getPlanWithDetails(produPlanCd);
-    }
-
     @PostMapping
     public ResponseEntity<?> save(@RequestBody ProdPlanFullVO fullVO) {
         service.savePlanWithDetails(fullVO);
@@ -48,5 +44,10 @@ public class ProdPlanController {
     @PostMapping("/search")
     public List<ProdPlanVO> searchPlans(@RequestBody ProdPlanVO condition) {
         return service.getPlansByCondition(condition);
+    }
+    // 생산계획코드별 생산계획상세 조회
+    @GetMapping("/{produPlanCd}")
+    public List<ProdPlanDetailVO> getDetailsByPlanCd(@PathVariable String produPlanCd) {
+        return service.getDetailsByPlanCd(produPlanCd);
     }
 }

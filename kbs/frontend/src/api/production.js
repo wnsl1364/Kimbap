@@ -16,3 +16,8 @@ export const getProdPlanList = () => {
 export const postProdPlanListByCondition = (searchParams) => {
   return axios.post('/api/prod/prodPlan/search', searchParams);
 };
+
+// 생산계획상세 목록 조회
+export const getProdPlanDetailList = (produPlanCd) => {
+  return axios.get(`/api/prod/prodPlan/${produPlanCd}`);
+};
