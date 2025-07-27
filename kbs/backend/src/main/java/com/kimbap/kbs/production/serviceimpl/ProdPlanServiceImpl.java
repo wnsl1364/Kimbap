@@ -26,19 +26,6 @@ public class ProdPlanServiceImpl implements ProdPlanService {
         return mapper.selectProdPlans();
     }
 
-    @Override
-    @Transactional
-    public void savePlanWithDetails(ProdPlanFullVO fullVO) {
-        if (mapper.selectProdPlanById(fullVO.getPlan().getProduPlanCd()) == null) {
-            mapper.insertProdPlan(fullVO.getPlan());
-        } else {
-            mapper.updateProdPlan(fullVO.getPlan());
-            mapper.deleteDetailsByPlanCd(fullVO.getPlan().getProduPlanCd());  // 덮어쓰기
-        }
-        for (ProdPlanDetailVO detail : fullVO.getPlanDetails()) {
-            mapper.insertProdPlanDetail(detail);
-        }
-    }
 
     @Override
     @Transactional
@@ -56,5 +43,12 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     @Override
     public List<ProdPlanDetailVO> getDetailsByPlanCd(String produPlanCd) {
         return mapper.selectDetailsByPlanCd(produPlanCd);
+    }
+
+
+    @Override
+    public void savePlanWithDetails(ProdPlanFullVO fullVO) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'savePlanWithDetails'");
     }
 }
