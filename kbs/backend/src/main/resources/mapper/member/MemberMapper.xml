@@ -3,21 +3,28 @@
 <mapper namespace="com.kimbap.kbs.simjaejine.mapper.MemberMapper">
 
 <select id="getUserInfo" resultType="MemberVO" parameterType="String"> <!-- 로그인 -->
-SELECT   a.id
-        ,a.pw
-        ,a.mem_type
-        ,a.is_used
-        ,b.emp_name
-        ,b.tel
-        ,c.team_name
-        ,d.dept_name
-FROM    member a JOIN employee b 
-ON      a.emp_cd = b.emp_cd
-JOIN    team c
-ON      b.team_code = c.team_code
-JOIN    department d
-ON      c.dcode = d.dcode
-WHERE   a.id = #{id}
+SELECT   
+    a.id,
+    a.pw,
+    a.mem_type,
+    a.is_used,
+    b.emp_name,
+    b.tel,
+    c.team_name,
+    d.dept_name,
+    e.cp_name
+FROM    
+    member a
+LEFT JOIN 
+    employee b ON a.emp_cd = b.emp_cd
+LEFT JOIN 
+    team c ON b.team_code = c.team_code
+LEFT JOIN 
+    department d ON c.dcode = d.dcode
+LEFT JOIN 
+    company e ON a.cp_cd = e.cp_cd
+WHERE   
+    a.id = #{id}
 
 </select>
 
