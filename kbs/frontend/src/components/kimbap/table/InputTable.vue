@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue' // 경로는 너의 프로젝트에 맞게 수정해줘!
 
 const props = defineProps({
@@ -25,7 +25,9 @@ const props = defineProps({
             save: { show: true, label: '저장', severity: 'success' },
             reset: { show: true, label: '초기화', severity: 'secondary' },
             delete: { show: false, label: '삭제', severity: 'danger' },
-            load: { show: false, label: '불러오기', severity: 'info' }
+            load: { show: false, label: '불러오기', severity: 'info' },
+            refund: { show: false, label: '반품요청', severity: 'help' },
+            refundReq: { show: false, label: '반품처리', severity: 'info' },
         })
     },
     buttonPosition: {
@@ -70,6 +72,15 @@ const props = defineProps({
             priceField: 'price',      // 단가 필드명
             totalField: 'totalPrice'  // 총액 필드명
         })
+    },
+    selectionMode: {
+        type: String,
+        default: 'multiple', // 기본은 multiple
+        validator: (value) => ['single', 'multiple', null].includes(value)
+    },
+    showRowCount: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -232,22 +243,31 @@ const getAlignClass = (align) => {
     if (align === 'right') return 'text-right'
     return 'text-left'
 }
+
+const rowCount = computed(() => internalData.value.length)
 </script>
 
 <template>
     <div>
         <div class="border p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
+                <div>
+                    <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
+                    <h3 v-if="showRowCount" class="text-base text-gray-600 mb-0 mt-0">
+                        검색결과 {{ rowCount }}건
+                    </h3>
+                </div>
 
                 <div v-if="buttonPosition === 'top' || buttonPosition === 'both'" class="flex justify-end gap-2">
                     <!-- 슬롯 버튼들 -->
                     <slot name="top-buttons"></slot>
                     <!-- 기본 버튼들 -->
-                    <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('save')"/>
+                    <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('delete')"/>
                     <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
-                    <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('delete')"/>
+                    <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('save')"/>
                     <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="$emit('load')"/>
+                    <Button v-if="buttons.refund?.show" :label="buttons.refund.label" :severity="buttons.refund.severity" @click="$emit('refund')"/>
+                    <Button v-if="buttons.refundReq?.show" :label="buttons.refundReq.label" :severity="buttons.refundReq.severity" @click="$emit('refundReq')"/>
 
                     <!-- 행 관리 버튼들 -->
                     <template v-if="enableRowActions">
@@ -260,11 +280,11 @@ const getAlignClass = (align) => {
 
             <DataTable :value="internalData" :tableStyle="{ minWidth: '50rem' }" showGridlines responsiveLayout="scroll"
                 v-model:selection="selectedRows" :dataKey="props.dataKey" size="large"
-                :selectionMode="enableSelection ? 'multiple' : null" scrollable :scrollHeight="scrollHeight"
+                :selectionMode="enableSelection ? selectionMode : null" scrollable :scrollHeight="scrollHeight"
                 :style="{ border: '1px solid #e5e7eb' }">
 
                 <!-- 선택 체크박스 컬럼 -->
-                <Column v-if="enableSelection" selectionMode="multiple" headerStyle="width: 3rem">
+                <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 3rem">
                 </Column>
 
                 <!-- 데이터 컬럼들 -->

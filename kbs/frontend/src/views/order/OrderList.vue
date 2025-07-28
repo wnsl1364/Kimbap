@@ -1,8 +1,7 @@
-나의 말:
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getOrderList } from '@/api/order';
-import BasicTable from '@/components/kimbap/table/BasicTable.vue';
+import InputTable from '@/components/kimbap/table/InputTable.vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
@@ -24,18 +23,27 @@ const ordStatusCodes = (list) => {
   });
 };
 
+// 버튼 설정
+const infoFormButtons = ref({
+  reset: { show: false, label: '초기화', severity: 'secondary' },
+  save: { show: false, label: '저장', severity: 'success' },
+  refund: { show: true, label: '반품요청', severity: 'help' },
+  refundReq: { show: false, label: '반품처리', severity: 'info' },
+});
+
 // 주문 목록 컬럼 정의
 const orderColumns = [
-    { field: 'ordCd', header: '주문코드' },
-    { field: 'pName', header: '제품명' },
-    { field: 'totalQty', header: '주문수량(BOX)' },
-    { field: 'returnQty', header: '반품수량(BOX)' },
-    { field: 'totalAmount', header: '총금액(원)' },
-    { field: 'ordDt', header: '주문일자' },
-    { field: 'dueDate', header: '납기일자' },
-    { field: 'note', header: '비고' },    
-    { field: 'ordStatus', header: '상태' }
+  { field: 'ordCd', header: '주문코드', type: 'readonly' },
+  { field: 'prodName', header: '제품명', type: 'readonly' },
+  { field: 'totalQty', header: '주문수량(BOX)', type: 'readonly' },
+  { field: 'returnQty', header: '반품수량(BOX)', type: 'readonly' },
+  { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
+  { field: 'ordDt', header: '주문일자', type: 'readonly' },
+  { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
+  { field: 'note', header: '비고', type: 'readonly' },
+  { field: 'ordStatus', header: '상태', type: 'readonly' }
 ];
+
 
 // 주문 목록 데이터
 const orders = ref([]);
@@ -46,7 +54,6 @@ onMounted(async () => {
     const res = await getOrderList();
     await common.fetchCommonCodes('0S');
     orders.value = ordStatusCodes(res.data.data);
-    console.log('응답 타입:', typeof res.data);
     console.log('실제 응답 내용:', res.data);
   } catch (err) {
     console.error('목록 조회 실패:', err);
@@ -62,14 +69,14 @@ const searchColumns = ref([
         placeholder: '주문코드를 입력하세요'
     },
     {
-        key: 'materialName',
-        label: '주문일자',
-        type: 'dateRange'
-    },    
+      key: 'ordDt',
+      label: '주문일자',
+      type: 'dateRange'
+    },
     {
-        key: 'materialName',
-        label: '납기일자',
-        type: 'dateRange'
+      key: 'deliReqDt',
+      label: '납기일자',
+      type: 'dateRange'
     },
     {
         key: 'status',
@@ -108,6 +115,16 @@ const handleReset = () => {
   </div>
   <!-- 주문 목록 테이블 -->
   <div class="space-y-4 mt-8">
-    <BasicTable :data="orders" dataKey="ordCd" :columns="orderColumns" />
+    <InputTable
+      v-model:data="orders"
+      :dataKey="'ordCd'"
+      :columns="orderColumns"
+      :enableRowActions="false"
+      :enableSelection="true"
+      scrollHeight="400px"
+      :selectionMode="'single'"
+      :showRowCount="true"
+      :buttons="infoFormButtons"
+    />
   </div>
 </template>

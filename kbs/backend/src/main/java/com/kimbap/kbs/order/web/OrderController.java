@@ -19,7 +19,9 @@ import com.kimbap.kbs.order.service.OrderService;
 import com.kimbap.kbs.order.service.OrderVO;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/order")
@@ -40,6 +42,7 @@ public class OrderController {
           return ResponseEntity.ok(response);
 
       } catch (Exception e) {
+          log.error("주문 등록 중 오류 발생", e);
           response.put("result_code", "FAIL");
           response.put("message", "주문 등록 실패");
           response.put("data", e.getMessage());

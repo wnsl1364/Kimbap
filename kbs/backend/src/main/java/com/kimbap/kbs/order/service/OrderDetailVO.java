@@ -1,6 +1,7 @@
 package com.kimbap.kbs.order.service;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,8 +18,9 @@ public class OrderDetailVO {
     private String ordDCd; // 주문상세코드 (ORDD-2025-000001)
     private String pcode;       // 제품코드
     private String prodVerCd;   // 제품버전코드 (옵션)
-    private Integer totalQty;       // 주문수량
+    private Integer ordQty;       // 주문수량
     private BigDecimal unitPrice; // 단가
-    private BigDecimal totalPrice; // 총액
+    private Date deliAvailDt;    // 납기 가능일자
+    private String ordDStatus;   // 주문상세 상태 (예: t1)
     private String isUsed;
 }
