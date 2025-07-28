@@ -335,16 +335,16 @@ onMounted(async () => {
 onMounted(async () => {
   const ordCdFromQuery = route.query.ordCd
 
+  console.log('ordCdFromQuery:', ordCdFromQuery)
+
   if (ordCdFromQuery) {
     try {
-      const res = await axios.get('/api/order/getOne', {
-        params: { ordCd: ordCdFromQuery }
-      })
-      
+      const res = await axios.get(`/api/order/${ordCdFromQuery}`)
+
       if (res.data.result_code === 'SUCCESS') {
         const order = res.data.data
         setFormData(order)           // 주문 기본 정보
-        setProducts(order.products) // 주문 상세 목록
+        setProducts(order.orderDetails) // 주문 상세 목록
       } else {
         alert(`주문 정보를 불러오는 데 실패했습니다: ${res.data.message}`)
       }

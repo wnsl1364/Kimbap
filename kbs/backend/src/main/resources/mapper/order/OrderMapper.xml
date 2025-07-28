@@ -119,13 +119,10 @@
         ord_d_cd AS ordDCd,
         ord_cd AS ordCd,
         pcode,
-        prod_name,
         ord_qty,
-        prod_unit_price,
-        ord_amount,
+        unit_price,
         is_used
-    FROM order_d_tbl
+    FROM order_d
     WHERE ord_cd = #{ordCd}
     </select>
-
 </mapper>
