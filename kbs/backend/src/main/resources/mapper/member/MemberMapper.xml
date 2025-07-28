@@ -51,7 +51,7 @@ VALUES (
         #{memType}, 
         #{empCd}, 
         #{cpCd}, 
-        #{isUsed})
+        'f1')
 </insert>
 
 <!-- 유효성 검사 -->

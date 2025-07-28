@@ -42,6 +42,7 @@ public ResponseEntity<?> login(@RequestBody MemberVO member) {
     }
 
     System.out.println("유저에게 전달할 정보: " + user);
+    user.setPw(null);
     return ResponseEntity.ok(user);
 }
 
