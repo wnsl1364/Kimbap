@@ -29,5 +29,5 @@ public interface OrderMapper {
   OrderVO selectOrder(String ordCd);
 
   // 주문 상세 목록 조회
-  List<OrderDetailVO> selectOrderDetails(String ordCd);
+  List<OrderDetailVO> selectOrderDetail(String ordCd);
 }

@@ -99,7 +99,7 @@ public class OrderController {
         Map<String, Object> response = new HashMap<>();
         try {
             // 주문 기본 정보 + 상세 목록 포함해서 받아오기
-            OrderVO order = orderService.getOrderWithDetails(ordCd); // 이 서비스 메서드 추가 필요
+            OrderVO order = orderService.getOrderWithDetails(ordCd);
 
             response.put("result_code", "SUCCESS");
             response.put("message", "주문 단건 조회 성공");

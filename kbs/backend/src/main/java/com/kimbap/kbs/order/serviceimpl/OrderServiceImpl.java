@@ -59,7 +59,7 @@ public class OrderServiceImpl  implements OrderService {
     @Override
     public OrderVO getOrderWithDetails(String ordCd) {
         OrderVO order = orderMapper.selectOrder(ordCd);
-        List<OrderDetailVO> details = orderMapper.selectOrderDetails(ordCd);
+        List<OrderDetailVO> details = orderMapper.selectOrderDetail(ordCd);
         order.setOrderDetails(details);
         return order;
     }
