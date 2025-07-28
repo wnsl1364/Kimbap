@@ -44,7 +44,6 @@ const orderColumns = [
   { field: 'ordStatus', header: '상태', type: 'readonly' }
 ];
 
-
 // 주문 목록 데이터
 const orders = ref([]);
 
@@ -125,6 +124,7 @@ const handleReset = () => {
       :selectionMode="'single'"
       :showRowCount="true"
       :buttons="infoFormButtons"
+      :dateFields="['ordDt', 'deliReqDt']"
     />
   </div>
 </template>
