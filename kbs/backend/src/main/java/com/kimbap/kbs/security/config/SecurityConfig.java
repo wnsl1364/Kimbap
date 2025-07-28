@@ -25,17 +25,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(Customizer.withDefaults()) // CORS 허용
-            .csrf(csrf -> csrf.disable())    // CSRF 비활성화 (REST API라면 보통 disable)
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/login", 
-                    "/api/memberAdd", 
-                    "/api/public/**",
-                    "/api/**/*.js",
-                    "/api/**/*.java"
-                ).permitAll()               // 로그인/회원가입 허용
-                .anyRequest().authenticated() // 그 외는 인증 필요
+                .anyRequest().permitAll() // :fire: 모든 요청 인증 없이 허용
             );
         return http.build();
     }
