@@ -47,7 +47,7 @@ const formFields = [
 const columns = [
   { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
   { field: 'pName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
-  { field: 'totalQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right' },
+  { field: 'orderQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right' },
   { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
   { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true }
 ]
@@ -89,10 +89,10 @@ const purchaseFormButtons = ref({
 });
 
 // 총 금액 계산
-// products 배열의 각 항목에서 totalQty와 unitPrice를 곱하여 총 금액을 계산
+// products 배열의 각 항목에서 orderQty와 unitPrice를 곱하여 총 금액을 계산
 const allTotalAmount = computed(() => {
   return products.value.reduce((sum, item) => {
-    const qty = Number(item.totalQty) || 0
+    const qty = Number(item.orderQty) || 0
     const price = Number(item.unitPrice) || 0
     return sum + qty * price
   }, 0)
@@ -148,7 +148,7 @@ const handleSave = async () => {
         alert(`${i + 1}번 제품의 정보를 선택해주세요.`)
         return
       }
-      if (!item.totalQty || Number(item.totalQty) <= 0) {
+      if (!item.orderQty || Number(item.orderQty) <= 0) {
         alert(`${i + 1}번 제품의 수량을 1 이상 입력해주세요.`)
         return
       }
@@ -159,14 +159,25 @@ const handleSave = async () => {
 
     const requestBody = {
       ...raw,
-      ordDt,
-      deliReqDt,
-      exPayDt,
+      ordDt: format(ordDt, 'yyyy-MM-dd'),
+      deliReqDt: format(deliReqDt, 'yyyy-MM-dd'),
+      exPayDt: format(exPayDt, 'yyyy-MM-dd'),
       ordStatus: 's1',
-      orderDetails: products.value
+      orderDetails: products.value.map(p => ({
+        ordDCd: '', // 서버에서 생성하거나 프론트에서 getGeneratedOrderDetailCode로 요청
+        ordCd: '',  // 마스터 등록 후 백에서 채움
+        pcode: p.pcode,
+        prodVerCd: p.prodVerCd || 'ver-250724-01', // 프론트에서 기본값 보완
+        ordQty: p.orderQty,
+        unitPrice: p.unitPrice,
+        deliAvailDt: format(deliReqDt, 'yyyy-MM-dd'),
+        ordDStatus: 't1',
+        isUsed: 'f1'
+      }))
     }
 
     console.log('서버에 보낼 데이터:', requestBody)
+    console.log("orderDetails", requestBody.orderDetails)
 
     const res = await axios.post('/api/order/register', requestBody)
 
@@ -227,13 +238,13 @@ watch(() => formData.value.ordStatus, (newStatus) => {
 
 
 // 수량변경 시 단가 및 총 금액 자동 계산
-// products 배열의 각 항목에서 totalQty와 unitPrice를 곱하여 총 금액을 계산
+// products 배열의 각 항목에서 orderQty와 unitPrice를 곱하여 총 금액을 계산
 // 단가 계산은 주문 수량에 따라 할인 적용
 watch(
-  () => products.value.map(p => p.totalQty),
+  () => products.value.map(p => p.orderQty),
   () => {
     products.value.forEach((item) => {
-      const qty = Number(item.totalQty)
+      const qty = Number(item.orderQty)
       const base = Number(item.basePrice || item.unitPrice || 0)
       const newPrice = calculateDiscountedPrice(base, qty)
       const newAmount = qty > 0 ? qty * newPrice : 0  
@@ -258,10 +269,10 @@ onMounted(async () => {
 
   // 하드코딩 테스트 데이터 (예: 드림마트 로그인 사용자)
   const hardcodedCompany = {
-    cpCd: 'CP-010',
-    cpName: '드림마트',
-    deliAdd: '부산시 해운대구 10번지',
-    loanTerm: 14,
+    cpCd: 'CP-001',
+    cpName: '신선야채농장',
+    deliAdd: '경기도 여주시 농장로 123',
+    loanTerm: 30,
     regi: 'MEM-001'
   }
 
@@ -301,9 +312,10 @@ onMounted(async () => {
           mappingFields: {
             pcode: 'pcode',
             pName: 'prodName',
+            prodVerCd: 'prodVerCd',
             basePrice: 'prodUnitPrice',
             unitPrice: (item) => calculateDiscountedPrice(item.prodUnitPrice, 1),
-            totalQty: () => 1,
+            orderQty: () => 1,
             totalAmount: (item) => calculateDiscountedPrice(item.prodUnitPrice, 1) * 1
           }
         }
@@ -333,7 +345,7 @@ onUnmounted(() => {
         scrollHeight="360px" height="460px" :dataKey="'pcode'" :deleteKey="'ordDCd'" :deleteEventName="'handleProductDeleteList'"
         @handleProductDeleteList="handleProductDeleteList"
         :modalDataSets="productModalConfig"
-        :autoCalculation="{enabled: true, quantityField: 'totalQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
+        :autoCalculation="{enabled: true, quantityField: 'orderQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
         <!-- 하단 합계 영역 -->
         <div class="flex justify-end items-center mt-4 px-4">
           <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>
