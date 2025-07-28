@@ -104,6 +104,8 @@
             pp.prod_ver_cd,
             pp.plan_qty,
             pp.unit,
+            pp.ex_produ_dt,
+            pp.seq,
             p.prod_name
         FROM prod_plan_d pp
         JOIN product p
@@ -113,4 +115,31 @@
         ORDER BY ppdcode
     </select>
 
+    <select id="selectAllProducts" resultType="ProdVO">
+        SELECT
+            pcode,
+            prod_ver_cd,
+            prod_name,
+            prod_unit_price,
+            wei,
+            unit,
+            edate,
+            sto_temp,
+            safe_stock,
+            pac_unit,
+            cha_rea,
+            is_used,
+            note,
+            prime_cost,
+            regi,
+            modi
+        FROM (
+            SELECT 
+                p.*,
+                ROW_NUMBER() OVER (PARTITION BY p.pcode ORDER BY p.prod_ver_cd DESC) AS rn
+            FROM product p
+            WHERE p.is_used = 'f1'
+        )
+        WHERE rn = 1
+    </select>
 </mapper>
