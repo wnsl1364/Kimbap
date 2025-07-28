@@ -45,7 +45,7 @@ const { fetchMaterials, fetchSuppliers, fetchMaterialDetail, saveMaterial } = st
 const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const cpColumns = ref([]); // 공급처 테이블 컬럼
-const productColumns = ref([]); // 자재목록 테이블 컬럼
+const mataerialColumns = ref([]); // 자재목록 테이블 컬럼
 const inputFormButtons = ref({}); // 자재 등록 버튼
 const rowButtons = ref({}); // 공급처 테이블용 버튼
 
@@ -69,8 +69,14 @@ const fetchHistoryItems = async () => {
         console.warn('mcode가 비어있습니다');
         return [];
     }
-    selectedHistoryItems.value = result.data;
-    return result.data;
+
+    // API 호출로 이력 데이터 새로 조회
+    await store.fetchChangeHistory(selectedMcode.value);
+
+    // store에서 가져온 changeHistory를 selectedHistoryItems에 복사
+    selectedHistoryItems.value = changeHistory.value;
+
+    return changeHistory.value;
 };
 
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
@@ -96,7 +102,7 @@ const modalDataSets = computed(() => ({
     }
 }));
 
-// 🚀 7. UI 구성 정의
+// UI 구성 정의
 onBeforeMount(() => {
     searchColumns.value = [
         { key: 'mcode', label: '자재코드', type: 'text', placeholder: '자재코드를 입력하세요' },
@@ -201,7 +207,7 @@ onBeforeMount(() => {
         { field: 'ltime', header: '리드타임(일)', width: '100px', type: 'input', inputType: 'number', placeholder: '리드타임을 입력하세요' }
     ];
 
-    productColumns.value = [
+    mataerialColumns.value = [
         { field: 'mcode', header: '자재코드' },
         { field: 'mateName', header: '자재명' },
         { field: 'mateType', header: '유형' },
@@ -261,10 +267,10 @@ const handleReset = async () => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="자재기준정보 목록"
+                title="자재 기준정보 목록"
                 :data="convertedMaterialList"
                 dataKey="mcode"
-                :columns="productColumns"
+                :columns="mataerialColumns"
                 @view-history="handleViewHistory"
                 @row-select="handleSelectMaterial"
                 @clear-selection="clearForm"

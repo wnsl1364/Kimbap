@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.standard.mapper.ProdMapper">
+    <!-- 제품 목록 조회 -->
+    <select id="getProdList" resultType="com.kimbap.kbs.standard.service.ProdVO">
+        SELECT  pcode,
+                prod_ver_cd,
+                prod_name,
+                prod_unit_price,
+                wei,
+                unit,
+                edate,
+                sto_temp,
+                safe_stock,
+                pac_unit,
+                cha_rea,
+                is_used,
+                regi,
+                modi,
+                reg_dt,
+                prime_cost,
+                note
+        FROM    product
+        WHERE   is_used = 'f1'
+        ORDER BY pcode
+    </select>
+
+    <!-- 제품 이력 조회 -->
+    <select id="selectProdHistory" resultType="com.kimbap.kbs.standard.service.ProdVO"> 
+        SELECT  pcode,
+                prod_ver_cd,
+                prod_name,
+                prod_unit_price,
+                wei,
+                unit,
+                edate,
+                sto_temp,
+                safe_stock,
+                pac_unit,
+                cha_rea,
+                is_used,
+                regi,
+                modi,
+                reg_dt,
+                prime_cost,
+                note
+        FROM    product
+        WHERE pcode = #{pcode}
+        ORDER BY prod_ver_cd DESC
+    </select>
+
+    <!-- 제품 등록 -->
+    <insert id="insertProd" parameterType="com.kimbap.kbs.standard.service.ProdVO">
+        INSERT INTO product 
+                (pcode,
+                prod_ver_cd,
+                prod_name,
+                prod_unit_price,
+                wei,
+                unit,
+                edate,
+                sto_temp,
+                safe_stock,
+                pac_unit,
+                cha_rea,
+                is_used,
+                regi,
+                modi,
+                reg_dt,
+                prime_cost,
+                note
+                )
+        VALUES (#{pcode},
+                #{prodVerCd},
+                #{prodName},
+                #{prodUnitPrice},
+                #{wei},
+                #{unit},
+                #{edate},
+                #{stoTemp},
+                #{safeStock},
+                #{pacUnit},
+                #{chaRea},
+                #{isUsed},
+                #{regi},
+                #{modi},
+                SYSDATE,
+                #{primeCost},
+                #{note}
+                )
+    </insert>
+
+    <!-- 제품코드 시퀀스 -->
+    <select id="getNextRawProductCodeBySeq" resultType="int">
+        SELECT seq_raw_product_code.NEXTVAL FROM dual
+    </select>
+
+    <!-- 제품 기준정보 단건 조회-->
+    <select id="getProdDetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.ProdVO">
+        SELECT pcode,
+                prod_ver_cd,
+                prod_name,
+                prod_unit_price,
+                wei,
+                unit,
+                edate,
+                sto_temp,
+                safe_stock,
+                pac_unit,
+                cha_rea,
+                is_used,
+                regi,
+                modi,
+                reg_dt,
+                prime_cost,
+                note
+        FROM (
+            SELECT  pcode,
+                    prod_ver_cd,
+                    prod_name,
+                    prod_unit_price,
+                    wei,
+                    unit,
+                    edate,
+                    sto_temp,
+                    safe_stock,
+                    pac_unit,
+                    cha_rea,
+                    is_used,
+                    regi,
+                    modi,
+                    reg_dt,
+                    prime_cost,
+                    note
+            FROM    product
+            WHERE   pcode = #{pcode}
+            ORDER BY prod_ver_cd DESC
+            )
+        WHERE ROWNUM = 1
+    </select>
+    <!-- 자재 최신버전 1건 조회 -->
+    <select id="selectLatestVersion" parameterType="string" resultType="com.kimbap.kbs.standard.service.ProdVO">
+        SELECT  pcode,
+                prod_ver_cd,
+                prod_name,
+                prod_unit_price,
+                wei,
+                unit,
+                edate,
+                sto_temp,
+                safe_stock,
+                pac_unit,
+                cha_rea,
+                is_used,
+                regi,
+                modi,
+                reg_dt,
+                prime_cost,
+                note
+        FROM    product
+        WHERE   pcode = #{pcode}
+        AND     is_used = 'f1'
+    </select>
+
+    <!-- 🧯 기존 자재 버전 비활성화 (is_used = 'f2'로 변경) -->
+    <update id="disableOldVersion" parameterType="string">
+        UPDATE product
+        SET is_used = 'f2'
+        WHERE pcode = #{pcode}
+        AND is_used = 'f1'
+    </update>
+
+    <select id="existsPcode" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM product WHERE pcode = #{pcode}
+    </select>
+</mapper>
