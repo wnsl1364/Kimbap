@@ -115,7 +115,7 @@
         ORDER BY ppdcode
     </select>
 
-    <select id="selectAllProducts" resultType="ProdVO">
+    <select id="selectAllProducts" resultType="ProdsVO">
         SELECT
             pcode,
             prod_ver_cd,

@@ -15,7 +15,7 @@ import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdPlanFullVO;
 import com.kimbap.kbs.production.service.ProdPlanService;
 import com.kimbap.kbs.production.service.ProdPlanVO;
-import com.kimbap.kbs.production.service.ProdVO;
+import com.kimbap.kbs.production.service.ProdsVO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,7 +53,7 @@ public class ProdPlanController {
     }
     // 제품기준정보 ALL 검색
     @GetMapping("/productAll")
-    public List<ProdVO> getAllProducts() {
+    public List<ProdsVO> getAllProducts() {
         return service.getAllProducts();
     }
 }

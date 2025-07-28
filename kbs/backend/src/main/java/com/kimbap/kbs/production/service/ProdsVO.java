@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ProdVO {
+public class ProdsVO {
   private String pcode;         // 제품코드
   private String prodVerCd;     // 제품버전코드
   private String prodName;      // 제품명
