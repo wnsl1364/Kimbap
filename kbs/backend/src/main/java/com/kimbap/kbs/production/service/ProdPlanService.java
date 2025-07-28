@@ -8,8 +8,8 @@ public interface ProdPlanService {
   void savePlanWithDetails(ProdPlanFullVO fullVO);  // insert or update
   void deletePlan(String produPlanCd);
 
-  // 생산계획 조건 검색
-  List<ProdPlanVO> getPlansByCondition(ProdPlanVO condition);
-  // 생산계획상세 조회
-  List<ProdPlanDetailVO> getDetailsByPlanCd(String produPlanCd);
+  
+  List<ProdPlanVO> getPlansByCondition(ProdPlanVO condition);     // 생산계획 조건 검색
+  List<ProdPlanDetailVO> getDetailsByPlanCd(String produPlanCd);  // 생산계획상세 조회
+  List<ProdVO> getAllProducts();                               // 제품기준정보 ALL 검색
 }
