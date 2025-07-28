@@ -10,4 +10,9 @@ export default [
         name: 'stdPro',
         component: () => import('@/views/standard/product.vue'),
     },
+    {
+        path: '/standard/company',
+        name: 'stdCp',
+        component: () => import('@/views/standard/company.vue'),
+    },
 ];
