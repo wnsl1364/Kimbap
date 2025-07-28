@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface MatService {
-    List<MatVO> getMatList();
-    void insertMatWithSuppliers(MatVO mat);
-    Map<String, Object> getMaterialDetail(String mcode);
-    List<MatVO> selectMatHistory(String mcode); // 자재기준정보 이력조회
-    void updateMaterial(MatVO mat);// 여기 추가!
-    List<ChangeItemVO> getChangeHistory(String mcode);  // 변경 항목 리스트 조회
+     List<MatVO> getMatList();                          // ✅ 자재 목록
+    void insertMatWithSuppliers(MatVO mat);           // ✅ 등록 시 공급처 포함
+    Map<String, Object> getMaterialDetail(String mcode); // ✅ 단건 + 공급처 같이 조회
+    List<MatVO> selectMatHistory(String mcode);        // ✅ 전체 이력
+    void updateMaterial(MatVO mat);                   // ✅ 수정
+    List<ChangeItemVO> getChangeHistory(String mcode); // ✅ 변경 항목 이력
 }

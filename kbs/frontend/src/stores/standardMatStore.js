@@ -23,7 +23,7 @@ export const useStandardMatStore = defineStore('standardMat', () => {
       }
     }
     return result;
-  }
+  };
 
   // 비동기 액션
   const fetchMaterials = async () => {

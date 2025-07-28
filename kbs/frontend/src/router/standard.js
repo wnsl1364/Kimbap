@@ -1,8 +1,13 @@
 export default [
     /** @/views/standard/products/ProductTable.vue 이런구조로*/
     {
-        path: '/standard/products',
-        name: 'stdProd',
-        component: () => import('@/views/standard/Products.vue'),
+        path: '/standard/material',
+        name: 'stdMat',
+        component: () => import('@/views/standard/material.vue'),
+    },
+    {
+        path: '/standard/product',
+        name: 'stdPro',
+        component: () => import('@/views/standard/product.vue'),
     },
 ];

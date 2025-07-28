@@ -3,6 +3,6 @@ export default [
     {
         path: '/standard/products',
         name: 'stdProd',
-        component: () => import('@/views/standard/Products.vue'),
+        component: () => import('@/views/standard/material.vue'),
     },
 ];

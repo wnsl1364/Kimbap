@@ -17,8 +17,12 @@ const model = ref([
         label: '기준정보',
         items: [
             {
+                label: '자재 기준정보',
+                to: '/standard/material'
+            },
+            {
                 label: '제품 기준정보',
-                to: '/standard/products'
+                to: '/standard/product'
             },
         ]
     },
