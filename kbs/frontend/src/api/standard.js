@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+// 자재기준정보 
+
 // 자재 기준정보 목록 조회 API
 export const getMaterialList = () => {
   return axios.get('/api/std/mat/list');
@@ -7,10 +9,6 @@ export const getMaterialList = () => {
 // 자재 기준정보 등록 API
 export const insertMaterial = (data) => {
   return axios.post('/api/std/mat/insert', data);
-};
-// 거래처 목록 조회 API
-export const getCompanyList = () => {
-  return axios.get('/api/std/cp/list');
 };
 // 공급사 목록 조회 API
 export const getSupplierList = () => {
@@ -28,6 +26,8 @@ export const updateMaterial = (data) => {
 export function getChangeHistory(mcode) {
   return axios.get(`/api/std/mat/change-history/${mcode}`);
 }
+
+// 제품 기준정보 
 // 제품 기준정보 목록 조회 API
 export const getProductList = () => {
   return axios.get('/api/std/prod/list');
@@ -49,3 +49,24 @@ export function ProdChangeHistory(pcode) {
   return axios.get(`/api/std/prod/change-history/${pcode}`);
 }
 
+// 거래처 기준정보
+// 거래처 기준정보 목록 조회 API
+export const getCompanyList = () => {
+  return axios.get('/api/std/cp/list');
+}
+// 거래처 기준정보 등록 API
+export const insertCompany = (data) => {
+  return axios.post('/api/std/cp/insert', data);
+}
+// 제품 기준정보 단건 조회 API
+export function getCompanyDetail(cpCd) {
+  return axios.get(`/api/std/cp/detail/${cpCd}`);
+}
+// 거래처 기준정보 수정 API
+export const updateCompany = (data) => {
+  return axios.put('/api/std/cp/update', data);
+}
+// 제품 변경이력 조회 API
+export function CpChangeHistory(cpCd) {
+  return axios.get(`/api/std/cp/change-history/${cpCd}`);
+}
