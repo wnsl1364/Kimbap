@@ -3,8 +3,14 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { getOrderList } from '@/api/order';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
+import { useMemberStore } from '@/stores/memberStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
+
+// 로그인 정보 가져오기
+const memberStore = useMemberStore()
+const { role } = storeToRefs(memberStore)
+console.log('현재 사용자 권한:', role.value)
 
 // 공통코드 가져오기
 const common = useCommonStore()

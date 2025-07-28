@@ -1,3 +1,4 @@
+// stores/memberStore.js
 import { defineStore } from 'pinia'
 
 export const useMemberStore = defineStore('member', {
@@ -5,8 +6,12 @@ export const useMemberStore = defineStore('member', {
     user: null
   }),
   actions: {
-    saveUser(member) {
-      this.member = member;
+    saveUser(userData) {
+      this.user = userData;
     }
+  },
+  getters: {
+    isLogin: (state) => !!state.user,
+    role: (state) => state.user?.memType || ''  // 권한용 getter
   }
 });
