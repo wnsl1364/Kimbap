@@ -23,10 +23,13 @@ public class MaterialsVO {
     private String purcCd;          // 발주코드
     private String mateName;        // 자재명
     private Integer purcQty;        // 발주수량
-    private Date ordDt;             // 주문일자
-    private String mateVerCd;      // 자재버전코드
+    private Date ordDt;             // 주문일자 ✅ 추가
+    private String mateVerCd;       // 자재버전코드
     private String cpCd;            // 회사코드
     private String stoCon;          // 보관조건
+    private String regi;            // 담당자 ✅ 추가
+    private String regiName;        // 담당자명
+    private String purcStatus;      // 발주상태 ✅ 추가
 
     // ========== p1 권한 추가 필드 ==========
     private String purcDCd;         // 발주상세코드
@@ -44,6 +47,10 @@ public class MaterialsVO {
     private String mateInboCd;      // 자재입고코드
     private String wcode;           // 창고코드
     private String wareVerCd;       // 창고버전코드
+    private String fcode;           // 공장코드
+    private String facVerCd;        // 공장버전코드
+    private String facName;         // 공장명
+    private String isUsed;          // 공장 사용여부
     private String lotNo;           // 로트번호
     private String supplierLotNo;   // 공급업체로트번호
     private Date inboDt;            // 입고일자

@@ -130,7 +130,7 @@ const materialTableButtons = {
   save: { show: false, label: '저장', severity: 'success' }
 };
 const outBndscs = () => {
-  console.log('출고완료 버튼 클릭됨! 🎉');
+  console.log('출고완료 버튼 클릭됨!');
   // 여기에 출고완료 로직 구현
   alert('출고완료 처리되었습니다!');
 };
