@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { format } from 'date-fns'
 import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue' // 경로는 너의 프로젝트에 맞게 수정해줘!
 
 const props = defineProps({
@@ -81,6 +82,10 @@ const props = defineProps({
     showRowCount: {
         type: Boolean,
         default: false
+    },
+    dateFields: {
+        type: Array,
+        default: () => []
     }
 })
 
@@ -95,6 +100,12 @@ const emit = defineEmits([
   'handleProductDeleteList'
 ])
 
+// 날짜 포맷 함수
+const formatDate = (date) => {
+  if (!date) return ''
+  const parsed = new Date(date)
+  return isNaN(parsed) ? '' : format(parsed, 'yyyy-MM-dd')
+}
 
 // 내부 데이터 관리
 const internalData = ref([...props.data])
@@ -292,7 +303,13 @@ const rowCount = computed(() => internalData.value.length)
                     :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)">
                     <template #body="slotProps">
                         <template v-if="column.type === 'readonly'">
-                            <span>{{ slotProps.data[column.field] }}</span>
+                            <span>
+                                {{
+                                props.dateFields.includes(column.field)
+                                    ? formatDate(slotProps.data[column.field])
+                                    : slotProps.data[column.field]
+                                }}
+                            </span>
                         </template>
 
                         <template v-else-if="column.type === 'input'">
