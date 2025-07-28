@@ -22,5 +22,7 @@ public interface MemberMapper {
 	// 거래처 출력
 	List<EmpCpCheckVO> getCpList();
 
+	// 아이디 중복 검사
+	int idCheck(String id);
 
 }
