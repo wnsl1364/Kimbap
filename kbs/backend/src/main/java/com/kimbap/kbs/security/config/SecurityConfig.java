@@ -27,8 +27,9 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .cors(Customizer.withDefaults())
         .csrf(csrf -> csrf.disable())
+        .formLogin(login -> login.disable())
         .authorizeHttpRequests(auth -> auth
-            .anyRequest().permitAll() // 🔥 모든 요청 인증 없이 허용
+            .anyRequest().permitAll() 
         );
     return http.build();
 }
@@ -37,10 +38,10 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173")); // 프론트 주소
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // 인증정보 포함 (세션/Cookie 등)
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

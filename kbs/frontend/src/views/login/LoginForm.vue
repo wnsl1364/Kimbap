@@ -100,10 +100,15 @@ async function handleLogin() {
       });
       sessionStorage.setItem('member', JSON.stringify({
         id: userData.id,
+        memType : userData.memType,
+        isUsed : userData.isUsed,
         empName: userData.empName,
-        tel: userData.tel
+        tel: userData.tel,
+        teamName : userData.teamName,
+        deptName : userData.deptName
       }));
-      console.log('저장된 로그인정보', memberStore)
+      console.log('저장된 로그인정보');
+      console.log(sessionStorage.getItem('member'))
       router.push('/');
     } else {
       error.value = response.data.message;
