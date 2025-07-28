@@ -93,4 +93,39 @@
         WHERE ord_cd = #{ordCd}
     </update>
 
+    <!-- 주문 마스터 단건 조회 -->
+    <select id="selectOrder" parameterType="string" resultType="com.kimbap.kbs.order.service.OrderVO">
+        SELECT
+            ord_cd AS ordCd,
+            cp_cd AS cpCd,
+            ord_dt AS ordDt,
+            note,
+            deli_req_dt AS deliReqDt,
+            ord_status AS ordStatus,
+            deli_add AS deliAdd,
+            regi,
+            reg_dt AS regDt,
+            ord_total_amount AS ordTotalAmount,
+            cur_pay_amount AS curPayAmount,
+            ex_pay_dt AS exPayDt,
+            act_pay_dt AS actPayDt,
+            is_used AS isUsed
+        FROM order_list
+        WHERE ord_cd = #{ordCd}
+    </select>
+
+    <select id="selectOrderDetail" parameterType="string" resultType="com.kimbap.kbs.order.service.OrderDetailVO">
+    SELECT
+        ord_d_cd AS ordDCd,
+        ord_cd AS ordCd,
+        pcode,
+        prod_name,
+        ord_qty,
+        prod_unit_price,
+        ord_amount,
+        is_used
+    FROM order_d_tbl
+    WHERE ord_cd = #{ordCd}
+    </select>
+
 </mapper>

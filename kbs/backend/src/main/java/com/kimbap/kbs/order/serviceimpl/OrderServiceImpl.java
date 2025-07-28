@@ -3,6 +3,7 @@ package com.kimbap.kbs.order.serviceimpl;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,14 +47,23 @@ public class OrderServiceImpl  implements OrderService {
     }
 
     @Override
-    public List<OrderVO> getOrderList() {
-        return orderMapper.getOrderList();
+    public List<OrderVO> getOrderList(Map<String, Object> params) {
+        return orderMapper.getOrderList(params);
     }
 
     @Override
     public void deactivateOrder(String ordCd) {
         orderMapper.deactivateOrder(ordCd);
     }
+
+    @Override
+    public OrderVO getOrderWithDetails(String ordCd) {
+        OrderVO order = orderMapper.selectOrder(ordCd);
+        List<OrderDetailVO> details = orderMapper.selectOrderDetails(ordCd);
+        order.setOrderDetails(details);
+        return order;
+    }
+
 
     // 주문코드 생성 메서드 (요구사항 형식 맞춤: ORD-20250001)
     private String generateOrderCode() {

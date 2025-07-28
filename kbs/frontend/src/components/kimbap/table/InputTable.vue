@@ -86,6 +86,10 @@ const props = defineProps({
     dateFields: {
         type: Array,
         default: () => []
+    },
+    enableRowClick: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -97,8 +101,19 @@ const emit = defineEmits([
   'reset',
   'save',
   'load',
-  'handleProductDeleteList'
+  'handleProductDeleteList',
+  'rowClick'
 ])
+
+// console.log('[InputTable.vue] 실제 columns:', props.columns)
+
+// 행 클릭
+// 클릭된 행의 데이터를 부모 컴포넌트로 전달
+const handleRowClick = (event) => {
+  if (!props.enableRowClick) return
+  console.log('[InputTable.vue] 클릭된 행:', event.data)
+  emit('rowClick', event.data)
+}
 
 // 날짜 포맷 함수
 const formatDate = (date) => {
@@ -292,7 +307,7 @@ const rowCount = computed(() => internalData.value.length)
             <DataTable :value="internalData" :tableStyle="{ minWidth: '50rem' }" showGridlines responsiveLayout="scroll"
                 v-model:selection="selectedRows" :dataKey="props.dataKey" size="large"
                 :selectionMode="enableSelection ? selectionMode : null" scrollable :scrollHeight="scrollHeight"
-                :style="{ border: '1px solid #e5e7eb' }">
+                :style="{ border: '1px solid #e5e7eb' }" @rowClick="props.enableRowClick ? handleRowClick : undefined">
 
                 <!-- 선택 체크박스 컬럼 -->
                 <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 3rem">
@@ -343,6 +358,20 @@ const rowCount = computed(() => internalData.value.length)
                                 @update:modelValue="updateField(slotProps.data, column.field, $event)"
                                 dateFormat="yy-mm-dd" showIcon class="w-full" />
                         </template>
+
+                        <template v-else-if="column.type === 'clickable'">
+                            <span
+                                class="text-blue-600 underline cursor-pointer"
+                                @click.stop="emit('rowClick', slotProps.data)"
+                            >
+                                {{
+                                props.dateFields.includes(column.field)
+                                    ? formatDate(slotProps.data[column.field])
+                                    : slotProps.data[column.field]
+                                }}
+                            </span>
+                        </template>
+
                     </template>
                 </Column>
             </DataTable>

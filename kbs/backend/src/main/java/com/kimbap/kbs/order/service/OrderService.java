@@ -1,6 +1,7 @@
 package com.kimbap.kbs.order.service;
 
 import java.util.List;
+import java.util.Map;
 
 public interface  OrderService {
   // 주문 등록
@@ -10,5 +11,8 @@ public interface  OrderService {
   void deactivateOrder(String ordCd);
 
   // 주문 목록 조회
-  List<OrderVO> getOrderList();
+  List<OrderVO> getOrderList(Map<String, Object> params);
+
+  // 주문 상세 조회 (상세 정보 포함)
+  OrderVO getOrderWithDetails(String ordCd);
 }

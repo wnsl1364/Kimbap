@@ -31,7 +31,7 @@ public class OrderVO {
     private Date actPayDt;
     private String isUsed;
     
-    // ✅ 뷰 전용 필드 추가
+    // 뷰 전용 필드 추가
     private String prodName;           // 대표 제품명
     private BigDecimal totalQty;       // 총 주문 수량
     private BigDecimal returnQty;      // 총 반품 수량
