@@ -7,7 +7,7 @@ import { defineProps, defineEmits } from 'vue'
 const props = defineProps({
   visible: Boolean,
   title: String,
-  detailList: Array,
+  detailList: Array,  
   columns: {
     type: Array,
     default: () => []

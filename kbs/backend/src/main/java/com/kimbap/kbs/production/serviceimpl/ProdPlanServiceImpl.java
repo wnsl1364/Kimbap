@@ -11,6 +11,7 @@ import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdPlanFullVO;
 import com.kimbap.kbs.production.service.ProdPlanService;
 import com.kimbap.kbs.production.service.ProdPlanVO;
+import com.kimbap.kbs.production.service.ProdVO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,7 +45,11 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     public List<ProdPlanDetailVO> getDetailsByPlanCd(String produPlanCd) {
         return mapper.selectDetailsByPlanCd(produPlanCd);
     }
-
+    // 제품기준정보 ALL 검색
+    @Override
+    public List<ProdVO> getAllProducts() {
+        return mapper.selectAllProducts();
+    }
 
     @Override
     public void savePlanWithDetails(ProdPlanFullVO fullVO) {

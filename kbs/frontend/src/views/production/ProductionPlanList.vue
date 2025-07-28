@@ -23,11 +23,9 @@ const selectedPlanCd = ref('')
 
 // 공장 목록 조회
 onMounted(async () => {
-  await fetchFactoryList()
-
-  await common.fetchCommonCodes('0G')
-
-  condProdPlanList.value = convertUnitCodes(prodPlanList.value);
+  await fetchFactoryList() // 공장정보 가져오기
+  await common.fetchCommonCodes('0G') // 공통코드 가져오기
+  condProdPlanList.value = convertUnitCodes(prodPlanList.value); // 공통코드 변환
 })
 
 // 공장 드롭다운 옵션
@@ -64,7 +62,6 @@ const prodPlanColumns = [
 ]
 // 생산계획 목록 검색
 const handleSearch = async (searchData) => {
-  console.log('검색 조건 전달:', searchData);
 
   // 전처리: 날짜 객체를 yyyy-MM-dd로 변환
   const formatted = {
@@ -85,7 +82,6 @@ const handleSearch = async (searchData) => {
 // 공통코드 형변환
 const convertUnitCodes = (list) => {
   const unitCodes = common.getCodes('0G');
-
   return list.map(item => {
     const matched = unitCodes.find(code => code.dcd === item.firstUnit);
     return {
@@ -109,6 +105,8 @@ const detailColumns = [
   { field: 'prodName', header: '제품명' },
   { field: 'planQty', header: '계획수량' },
   { field: 'unit', header: '단위' },
+  { field: 'exProduDt', header: '생산예정일자' },
+  { field: 'seq', header: '우선순위' }
 ]
 // 공통코드 변환
 const convertDetailUnitCodes = (list) => {
@@ -121,6 +119,11 @@ const convertDetailUnitCodes = (list) => {
       unit: matched ? matched.cdInfo : item.unit
     };
   });
+};
+
+// 검색 결과도 초기화
+const handleReset = async () => {
+  condProdPlanList.value = [];
 };
 </script>
 <template>

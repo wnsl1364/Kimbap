@@ -1,5 +1,9 @@
 package com.kimbap.kbs.production.service;
 
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,4 +21,7 @@ public class ProdPlanDetailVO {
   private String prodName;    // 제품코드 + 제품버전 제품기준정보 JOIN
   private Integer planQty;    // 계획수량
   private String unit;        // 단위
+  @JsonFormat(pattern = "yyyy-MM-dd")
+  private Date exProduDt;   // 생산예정일자
+  private Integer seq;        // 우선순위
 }
