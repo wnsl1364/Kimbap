@@ -15,4 +15,6 @@ public interface MemberService {
     // 거래처 출력
     List<EmpCpCheckVO> getCpList();
 
+    // 아이디 중복 검사
+    boolean idCheck(String id);
 }

@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.kimbap.kbs.simjaejine.mapper.MemberMapper">
 
-<select id="getUserInfo" resultType="MemberVO"> <!-- 로그인 -->
+<select id="getUserInfo" resultType="MemberVO" parameterType="String"> <!-- 로그인 -->
 SELECT   a.id
         ,a.pw
         ,a.mem_type
@@ -17,8 +17,8 @@ JOIN    team c
 ON      b.team_code = c.team_code
 JOIN    department d
 ON      c.dcode = d.dcode
-
 WHERE   a.id = #{id}
+
 </select>
 
 <insert id="addMember" parameterType="MemberAddVO"> <!-- 회원정보 등록 -->
@@ -32,17 +32,34 @@ INSERT INTO member
             emp_cd, 
             cp_cd,
             is_used)
-VALUES (#{memCd}, 
+VALUES (     
+    <choose>
+      <when test="memType == 'p1' or memType == 'p4'">
+        'MEM-EMP-' || LPAD(member_seq.NEXTVAL, 4, '0')
+      </when>
+      <when test="memType == 'p2' or memType == 'p3'">
+        'MEM-CP-' || LPAD(member_seq.NEXTVAL, 4, '0')
+      </when>
+      <otherwise>
+        'MEM-UNK-' || LPAD(member_seq.NEXTVAL, 4, '0')
+      </otherwise>
+    </choose>,
         #{id}, 
         #{pw}, 
         #{lDate}, 
-        #{regDt},
+        SYSDATE,
         #{memType}, 
         #{empCd}, 
         #{cpCd}, 
-        #{isUsed},
-        )
+        #{isUsed})
 </insert>
+
+<!-- 유효성 검사 -->
+<select id="idCheck" parameterType="string" resultType="int"> <!-- 아이디 중복 검사 -->
+SELECT COUNT(*)
+FROM   member
+WHERE  id = #{id}
+</select>
 
 <select id="getEmpList" resultType="EmpCpCheckVO"> <!-- 업체테이블 출력 -->
 SELECT emp_cd,

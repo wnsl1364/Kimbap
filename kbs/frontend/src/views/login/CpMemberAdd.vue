@@ -22,30 +22,24 @@ const formData = ref({
 });
 
 // 버튼 정의
-const inputFormButtons = [
-  {
-    label: '등록',
-    action: () => handleSaveMember(),
-  },
-];
+const inputFormButtons = {
+  save: { show: true, label: '등록', severity: 'success' },
+  reset: { show: true, label: '초기화', severity: 'secondary' },
+  delete: { show: false },
+  load: { show: false }
+};
 
 const handleSaveMember = async () => {
-  try {
-    console.log('등록 요청 데이터:', formData.value);
-    await saveMemberAdd(formData.value);
-    alert('등록 성공!');
-    formData.value = {
-      employee: '',
-      company: '',
-      memberType: '',
-      regDt: '',
-      id: '',
-      pw: ''
-    };
-  } catch (err) {
-    console.error('등록 실패:', err);
-    alert('등록 중 오류 발생');
+try {
+  await saveMemberAdd(formData.value);
+  alert('✅ 등록 성공!');
+} catch (err) {
+  if (err.response && err.response.status === 409) {
+    alert('❗이미 존재하는 아이디입니다.');
+  } else {
+    alert('⚠️ 등록 중 오류 발생: ' + (err.response?.data || err.message));
   }
+}
 };
 
 // 반응형 데이터
@@ -57,13 +51,13 @@ const inputColumns = computed(() => {
     // 내부직원 등록
     return [
         {
-            key: 'employee',
+            key: 'empCd',
             label: '사원이름',
             type: 'dropdown',
             options: empOptions.value // ❗ 이미 label/value 형태임
       },
         {
-            key: 'memberType',
+            key: 'memType',
             label: '회원 유형',
             type: 'dropdown',
             options: [
@@ -71,7 +65,6 @@ const inputColumns = computed(() => {
                 { label: '담당자', value: 'p4' },
             ]
         },
-        { key: 'regDt', label: '등록일자', type: 'calendar' },
         { key: 'id', label: '아이디', type: 'text' },
         { key: 'pw', label: '비밀번호', type: 'text' },
     ];
@@ -79,13 +72,13 @@ const inputColumns = computed(() => {
     // 업체계정 등록
     return [
         {
-            key: 'company',
+            key: 'cpCd',
             label: '거래처명',
             type: 'dropdown',
             options: cpOptions.value
         },
         {
-            key: 'memberType',
+            key: 'memType',
             label: '회원 유형',
             type: 'dropdown',
             options: [
@@ -93,9 +86,8 @@ const inputColumns = computed(() => {
                 { label: '공급업체', value: 'p3' },
             ]
         },
-        { key: 'regDt', label: '등록일자', type: 'calendar' },
         { key: 'id', label: '아이디', type: 'text' },
-        { key: 'pw', label: '비밀번호s', type: 'text' },
+        { key: 'pw', label: '비밀번호', type: 'text' },
     ];
   }
 });
@@ -143,10 +135,12 @@ onBeforeMount(async () => {
         <div class="w-full md:basis-[45%]">
             <InputForm
                 title=""
+                v-model:data="formData"
                 :columns="inputColumns"
                 :buttons="inputFormButtons"
                 :formData="formData"
                 :isReadonly="isReadonly"
+                @submit="handleSaveMember"
             />
         </div>
         
