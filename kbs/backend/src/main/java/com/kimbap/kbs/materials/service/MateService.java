@@ -17,4 +17,6 @@ public interface MateService {
     List<MaterialsVO> getMateRelList();
     void insertMateRel(MaterialsVO mateRel);
     
+    // 공장목록 조회 메서드
+    List<MaterialsVO> getActiveFactoryList();
 }

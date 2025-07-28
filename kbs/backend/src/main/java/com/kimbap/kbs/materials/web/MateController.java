@@ -85,6 +85,19 @@ public class MateController {
                     .body("자재입고 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
+    /**
+     * 공장목록 조회
+     */
+    @GetMapping("/factories")
+    public ResponseEntity<List<MaterialsVO>> getActiveFactoryList() {
+        try {
+            List<MaterialsVO> factoryList = mateService.getActiveFactoryList();
+            return ResponseEntity.ok(factoryList);
+        } catch (Exception e) {
+            System.err.println("공장 목록 조회 API 오류: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
     // ========== 발주 관련 API (자재입고와 연관) ==========
     
