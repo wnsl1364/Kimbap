@@ -28,9 +28,8 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .cors(Customizer.withDefaults())
         .csrf(csrf -> csrf.disable())
-        .formLogin(login -> login.disable())
         .authorizeHttpRequests(auth -> auth
-            .anyRequest().permitAll() 
+            .anyRequest().permitAll() // :fire: 모든 요청 인증 없이 허용
         );
     return http.build();
 }
