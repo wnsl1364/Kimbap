@@ -282,6 +282,181 @@
         </where>
         ORDER BY po.ord_dt DESC
     </select>
+
+
+    <!-- 발주서 목록 조회 (모달용) -->
+    <select id="getPurcOrderList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            purc_cd,
+            ord_dt,
+            regi,
+            purc_status,
+            ord_total_amount
+        FROM purc_ord
+        ORDER BY ord_dt DESC, purc_cd DESC
+    </select>
+
+    <!-- 발주서 단건 조회 (헤더 + 상세) -->
+    <select id="getPurcOrderWithDetails" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            po.ord_total_amount,
+            pod.purc_d_cd,
+            pod.cp_cd,
+            pod.mcode,
+            pod.mate_ver_cd,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price,
+            pod.ex_deli_dt,
+            pod.note as detail_note,
+            pod.purc_d_status,
+            -- 자재 정보
+            m.mate_name,
+            m.mate_type,
+            m.std,
+            m.sto_con,
+            -- 거래처 정보
+            c.cp_name,
+            c.cp_type,
+            c.repname,
+            c.tel as cp_tel,
+            c.address as cp_address
+        FROM purc_ord po
+        LEFT JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        LEFT JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
+        LEFT JOIN company c ON pod.cp_cd = c.cp_cd
+        WHERE po.purc_cd = #{purcCd}
+        ORDER BY pod.purc_d_cd
+    </select>
+
+    <!-- 자재-거래처 연결 조회 (검색용) -->
+    <select id="getMaterialWithSuppliers" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            m.mcode,
+            m.mate_ver_cd,
+            m.mate_name,
+            m.mate_type,
+            m.unit,
+            m.std,
+            m.sto_con,
+            m.safe_stock,
+            ms.unit_price,
+            ms.ltime,
+            -- 거래처 정보
+            c.cp_cd,
+            c.cp_name,
+            c.cp_type,
+            c.repname,
+            c.tel as cp_tel,
+            c.address as cp_address
+        FROM material m
+        INNER JOIN mate_supplier ms ON m.mcode = ms.mcode AND m.mate_ver_cd = ms.mate_ver_cd
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        WHERE m.is_used = 'f1' 
+        AND c.is_used = 'f1'
+        <if test="mcode != null and mcode != ''">
+            AND m.mcode = #{mcode}
+        </if>
+        <if test="mateName != null and mateName != ''">
+            AND UPPER(m.mate_name) LIKE UPPER('%' || #{mateName} || '%')
+        </if>
+        <if test="cpCd != null and cpCd != ''">
+            AND c.cp_cd = #{cpCd}
+        </if>
+        <if test="cpName != null and cpName != ''">
+            AND UPPER(c.cp_name) LIKE UPPER('%' || #{cpName} || '%')
+        </if>
+        ORDER BY m.mate_name, c.cp_name
+    </select>
+
+    <!-- 발주서 헤더 등록 -->
+    <insert id="insertPurcOrder" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
+        INSERT INTO purc_ord (
+            purc_cd,
+            ord_dt,
+            regi,
+            purc_status,
+            ord_total_amount
+        ) VALUES (
+            #{purcCd},
+            #{ordDt},
+            #{regi},
+            #{purcStatus},
+            #{ordTotalAmount}
+        )
+    </insert>
+
+    <!-- 발주서 상세 등록 -->
+    <insert id="insertPurcOrderDetail" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
+        INSERT INTO purc_ord_d (
+            purc_d_cd,
+            purc_cd,
+            cp_cd,
+            mcode,
+            mate_ver_cd,
+            purc_qty,
+            unit,
+            unit_price,
+            ex_deli_dt,
+            note,
+            purc_d_status
+        ) VALUES (
+            #{purcDCd},
+            #{purcCd},
+            #{cpCd},
+            #{mcode},
+            #{mateVerCd},
+            #{purcQty},
+            #{unit},
+            #{unitPrice},
+            #{exDeliDt},
+            #{note},
+            #{purcDStatus}
+        )
+    </insert>
+
+    <select id="getLastPurcCode" resultType="String">
+        SELECT purc_cd 
+        FROM purc_ord 
+        WHERE purc_cd LIKE 'PURC-%'
+        ORDER BY purc_cd DESC 
+        FETCH FIRST 1 ROWS ONLY
+    </select>
+
+    <!-- 발주서 헤더 수정 -->
+    <update id="updatePurcOrder" parameterType="MaterialsVO">
+        UPDATE purc_ord SET
+            ord_dt = #{ordDt},
+            regi = #{regi},
+            purc_status = #{purcStatus},
+            ord_total_amount = #{ordTotalAmount}
+        WHERE purc_cd = #{purcCd}
+    </update>
+
+    <!-- 발주서 상세 삭제 -->
+    <delete id="deletePurcOrderDetails" parameterType="String">
+        DELETE FROM purc_ord_d 
+        WHERE purc_cd = #{purcCd}
+    </delete>
+
+    <!-- 발주서 상세 수정 -->
+    <update id="updatePurcOrderDetail" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
+        UPDATE purc_ord_d SET
+            cp_cd = #{cpCd},
+            mcode = #{mcode},
+            mate_ver_cd = #{mateVerCd},
+            purc_qty = #{purcQty},
+            unit = #{unit},
+            unit_price = #{unitPrice},
+            ex_deli_dt = #{exDeliDt},
+            note = #{note},
+            purc_d_status = #{purcDStatus}
+        WHERE purc_d_cd = #{purcDCd}
+    </update>
     
     <!-- 자재출고 목록 조회 -->
     <select id="getMateRelList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
