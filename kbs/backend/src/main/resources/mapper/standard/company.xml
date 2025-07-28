@@ -17,13 +17,18 @@
                 is_used,
                 cha_rea,
                 reg_dt,
+                regi,
+                modi,
                 note
         FROM    company
         WHERE cp_type = 'j1'
     </select>
 
+
+    <!-- 거래처 목록 조회 -->
     <select id="getCompanyList" resultType="com.kimbap.kbs.standard.service.CompanyVO">
         SELECT  cp_cd,
+                cp_ver_cd,
                 cp_name,
                 cp_type,
                 repname,
@@ -37,7 +42,169 @@
                 is_used,
                 cha_rea,
                 reg_dt,
+                regi,
+                modi,
                 note
         FROM    company
+        WHERE   is_used = 'f1'
+        ORDER BY cp_cd
+    </select>
+
+    <!-- 거래처 이력 조회 -->
+    <select id="selectCpHistory" resultType="com.kimbap.kbs.standard.service.CompanyVO">
+        SELECT  cp_cd,
+                cp_ver_cd,
+                cp_name,
+                cp_type,
+                repname,
+                crnumber,
+                tel,
+                cp_email,
+                fax_num,
+                loan_term,
+                mname,
+                address,
+                is_used,
+                cha_rea,
+                reg_dt,
+                regi,
+                modi,
+                note
+        FROM    company
+        WHERE   cp_cd = #{cpCd}
+        ORDER BY cp_ver_cd DESC
+    </select>
+
+    <!-- 거래처 등록 -->
+    <insert id="insertCp" parameterType="com.kimbap.kbs.standard.service.CompanyVO">
+        INSERT INTO company
+                    (cp_cd,
+                    cp_ver_cd,
+                    cp_name,
+                    cp_type,
+                    repname,
+                    crnumber,
+                    tel,
+                    cp_email,
+                    fax_num,
+                    loan_term,
+                    mname,
+                    address,
+                    is_used,
+                    cha_rea,
+                    reg_dt,
+                    regi,
+                    modi,
+                    note
+                    )
+        VALUES      (#{cpCd},
+                    #{cpVerCd},
+                    #{cpName},
+                    #{cpType},
+                    #{repname},
+                    #{crnumber},
+                    #{tel},
+                    #{cpEmail},
+                    #{faxNum},
+                    #{loanTerm},
+                    #{mname},
+                    #{address},
+                    #{isUsed},
+                    #{chaRea},
+                    SYSDATE,
+                    #{regi},
+                    #{modi},
+                    #{note}
+                    )
+    </insert>
+    <!-- 거래처 코드 시퀀스 -->
+    <select id="getNextRawCompanyCodeBySeq" resultType="int">
+        SELECT seq_raw_Company_code.NEXTVAL FROM dual
+    </select>
+
+    <!-- 거래처 기준정보 단건 조회 -->
+    <select id="getCpDetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.CompanyVO">
+        SELECT  cp_cd,
+                cp_ver_cd,
+                cp_name,
+                cp_type,
+                repname,
+                crnumber,
+                tel,
+                cp_email,
+                fax_num,
+                loan_term,
+                mname,
+                address,
+                is_used,
+                cha_rea,
+                reg_dt,
+                regi,
+                modi,
+                note
+        FROM (
+            SELECT  cp_cd,
+                    cp_ver_cd,
+                    cp_name,
+                    cp_type,
+                    repname,
+                    crnumber,
+                    tel,
+                    cp_email,
+                    fax_num,
+                    loan_term,
+                    mname,
+                    address,
+                    is_used,
+                    cha_rea,
+                    reg_dt,
+                    regi,
+                    modi,
+                    note
+            FROM    company
+            WHERE   cp_cd = #{cpCd}
+            ORDER BY cp_ver_cd DESC
+            )
+        WHERE ROWNUM = 1
+    </select>
+
+    <!-- 거래처 최신버전 1건 조회 -->
+    <select id="selectLatestVersion" parameterType="string" resultType="com.kimbap.kbs.standard.service.CompanyVO">
+        SELECT  cp_cd,
+                cp_ver_cd,
+                cp_name,
+                cp_type,
+                repname,
+                crnumber,
+                tel,
+                cp_email,
+                fax_num,
+                loan_term,
+                mname,
+                address,
+                is_used,
+                cha_rea,
+                reg_dt,
+                regi,
+                modi,
+                note
+        FROM    company
+        WHERE   cp_cd = #{cpCd}
+        AND     is_used = 'f1'
+    </select>
+
+    <!-- 기존 거래처 버전 비활성화 -->
+    <update id="disableOldVersion" parameterType="string">
+        UPDATE company
+        SET is_used = 'f2'
+        WHERE cp_cd = #{cpCd}
+        AND is_used = 'f1'
+    </update>
+
+    <!-- 거래처 코드 중복 체크 -->
+    <select id="existsCpcode" parameterType="string" resultType="int">
+        SELECT COUNT(*) 
+        FROM company 
+        WHERE cp_cd = #{cpCd}
     </select>
 </mapper>

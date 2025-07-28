@@ -21,3 +21,7 @@ export const postProdPlanListByCondition = (searchParams) => {
 export const getProdPlanDetailList = (produPlanCd) => {
   return axios.get(`/api/prod/prodPlan/${produPlanCd}`);
 };
+// 제품목록 전체 조회
+export const getAllProducts = () => {
+  return axios.get('/api/prod/prodPlan/productAll').then(res => res.data)
+}
