@@ -1,8 +1,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, watchEffect  } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue';
+
+// 라우터 설정
+const route = useRoute()
 
 // Pinia store
 import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형이 유지됨
@@ -267,13 +271,13 @@ const productModalConfig = ref({})
 onMounted(async () => {
   const today = format(new Date(), 'yyyy-MM-dd')
 
-  // 하드코딩 테스트 데이터 (예: 드림마트 로그인 사용자)
+  // 하드코딩 테스트 데이터
   const hardcodedCompany = {
-    cpCd: 'CP-001',
-    cpName: '신선야채농장',
-    deliAdd: '경기도 여주시 농장로 123',
-    loanTerm: 30,
-    regi: 'MEM-001'
+    cpCd: 'CP-101',
+    cpName: 'GS25강남점',
+    deliAdd: '서울시 강남구 테헤란로 303',
+    loanTerm: 15,
+    regi: 'EMP-10005' //'MEM-001'
   }
 
   // 초기 폼 데이터 설정
@@ -325,6 +329,29 @@ onMounted(async () => {
     }
   } catch (err) {
     console.error('제품 목록 요청 실패:', err)
+  }
+})
+
+onMounted(async () => {
+  const ordCdFromQuery = route.query.ordCd
+
+  if (ordCdFromQuery) {
+    try {
+      const res = await axios.get('/api/order/getOne', {
+        params: { ordCd: ordCdFromQuery }
+      })
+      
+      if (res.data.result_code === 'SUCCESS') {
+        const order = res.data.data
+        setFormData(order)           // 주문 기본 정보
+        setProducts(order.products) // 주문 상세 목록
+      } else {
+        alert(`주문 정보를 불러오는 데 실패했습니다: ${res.data.message}`)
+      }
+    } catch (err) {
+      console.error('주문 조회 오류:', err)
+      alert('주문 정보를 불러오는 중 오류가 발생했습니다.')
+    }
   }
 })
 
