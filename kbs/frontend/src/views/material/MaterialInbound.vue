@@ -55,7 +55,8 @@ const loadFactoryList = async () => {
                 { key: 'ordDt', label: '주문일자', type: 'readonly' },
                 { key: 'regi', label: '담당자', type: 'readonly' },
                 { key: 'purcStatus', label: '발주상태', type: 'readonly' },
-                { key: 'inboDt', label: '입고일자', type: 'text' },
+                // ✅ 납기일자로 변경 - 이미 존재하는 납기일 표시
+                { key: 'deliDt', label: '납기일자', type: 'readonly' },
                 { 
                     key: 'fcode', 
                     label: '입고공장', 
@@ -73,7 +74,7 @@ const loadFactoryList = async () => {
                 { key: 'ordDt', label: '주문일자', type: 'readonly' },
                 { key: 'regi', label: '담당자', type: 'readonly' },
                 { key: 'purcStatus', label: '발주상태', type: 'readonly' },
-                { key: 'inboDt', label: '입고일자', type: 'text' },
+                { key: 'deliDt', label: '납기일자', type: 'readonly' },
                 { 
                     key: 'fcode', 
                     label: '입고공장', 
@@ -94,7 +95,7 @@ const loadFactoryList = async () => {
             { key: 'ordDt', label: '주문일자', type: 'readonly' },
             { key: 'regi', label: '담당자', type: 'readonly' },
             { key: 'purcStatus', label: '발주상태', type: 'readonly' },
-            { key: 'inboDt', label: '입고일자', type: 'text' },
+                { key: 'deliDt', label: '납기일자', type: 'readonly' },
             { 
                 key: 'fcode', 
                 label: '입고공장', 
@@ -125,7 +126,7 @@ const formData = ref({
     ordDt: '',
     regi: '',
     purcStatus: '',
-    inboDt: '',
+    deliDt: '',  // ✅ 납기일자로 변경
     fcode: ''
 })
 
@@ -148,14 +149,14 @@ const fetchMaterialInboundData = async () => {
             ordDt: firstData.ordDt ? formatDateForTable(firstData.ordDt) : '',
             regi: firstData.regiName || firstData.regi || '담당자 정보 없음',  // ✅ 안전하게 처리
             purcStatus: getInboStatusText(firstData.inboStatus),
-            inboDt: firstData.inboDt ? formatDateForTable(firstData.inboDt) : '',
+            deliDt: firstData.deliDt ? formatDateForTable(firstData.deliDt) : '',  // ✅ 납기일자 표시
             fcode: ''  // ✅ 입고공장은 항상 빈 상태로 시작! (DB 값 무시)
         };
         
         // Store에도 업데이트
         materialStore.inboundData = { ...formData.value };
         
-        console.log('폼 데이터 설정 완료 (입고공장 초기화):', formData.value);
+        console.log('폼 데이터 설정 완료 (납기일자 표시, 입고공장 초기화):', formData.value);
     }
     
     // 입고상태가 'c3'인 데이터만 테이블에 표시
@@ -178,9 +179,10 @@ const fetchMaterialInboundData = async () => {
         totalQty: item.totalQty,
         stoCon: getStorageConditionText(item.stoCon),
         exDeliDt: item.exDeliDt ? formatDateForTable(item.exDeliDt) : '',
-        deliDt: item.deliDt ? formatDateForTable(item.deliDt) : '',
+        deliDt: item.deliDt ? formatDateForTable(item.deliDt) : '', // ✅ 납기일은 이미 존재하는 값 표시
         note: item.note,
-        inboDt: item.inboDt ? formatDateForTable(item.inboDt) : '',
+        // ✅ inboDt는 테이블에서 제외하거나 빈 값으로 표시 (아직 입고 안됨)
+        inboDt: '',  // 입고 전이므로 빈 값
         inboStatus: item.inboStatus,
         purcStatus: item.purcStatus,
         cpCd: item.cpCd,
@@ -213,6 +215,15 @@ const formatDateForTable = (dateInput) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     
+    return `${year}-${month}-${day}`;
+}
+
+// 현재 날짜를 YYYY-MM-DD 형식으로 반환하는 함수
+const getCurrentDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
@@ -285,7 +296,11 @@ const handleInboundComplete = async () => {
         }
     }
 
+    // ✅ 입고처리 시점에서 입고일자를 현재 날짜로 설정 (기본정보에는 표시되지 않음)
+    const currentDate = getCurrentDate();
+
     console.log('✅ 입고공장 선택 확인:', formData.value.fcode);
+    console.log('✅ 입고처리 날짜 설정:', currentDate);
     console.log('최종 formData:', formData.value);
 
     try {
@@ -301,20 +316,20 @@ const handleInboundComplete = async () => {
             purcDCd: material.purcDCd,
             lotNo: material.lotNo,
             supplierLotNo: material.supplierLotNo,
-            inboDt: material.inboDt,
+            inboDt: currentDate,  // ✅ 입고일자는 현재 날짜로 설정
             inboStatus: 'c5',  // 입고완료로 상태 변경
             totalQty: material.totalQty,
             mname: material.mname,
             note: material.note,
             cpCd: material.cpCd,
-            deliDt: new Date()
+            deliDt: material.deliDt  // ✅ 기존 납기일은 그대로 유지 (변경하지 않음)
         }));
 
-        console.log('UPDATE 전송 데이터 (입고공장 적용):', materialUpdateDataList[0]);
+        console.log('UPDATE 전송 데이터 (입고일자 현재날짜 적용):', materialUpdateDataList[0]);
         
         // 실제 API 호출 (UPDATE 방식)
         for (const updateData of materialUpdateDataList) {
-            console.log(`${updateData.mateInboCd} 업데이트: fcode=${updateData.fcode}, facVerCd=${updateData.facVerCd}`);
+            console.log(`${updateData.mateInboCd} 업데이트: fcode=${updateData.fcode}, inboDt=${updateData.inboDt}`);
             const response = await updateMaterialInbound(updateData);
             console.log('UPDATE API 응답:', response.data);
         }
@@ -332,12 +347,13 @@ const handleInboundComplete = async () => {
         // 상태 업데이트
         formData.value.purcStatus = '입고완료';
         
-        alert(`입고 처리가 완료되었습니다. (처리된 자재: ${selectedMaterials.value.length}개)`);
+        alert(`입고 처리가 완료되었습니다. (처리된 자재: ${selectedMaterials.value.length}개, 입고일자: ${currentDate})`);
         
         // 선택 초기화 및 입고공장도 다시 비우기
         selectedMaterials.value = [];
         formData.value.fcode = '';  // ✅ 입고공장 다시 비우기
         formData.value.facVerCd = '';
+        // ✅ 납기일자는 그대로 유지 (기본정보에서 계속 표시)
         
         // 데이터 새로고침
         await fetchMaterialInboundData();
@@ -362,7 +378,7 @@ const handleInboundComplete = async () => {
 
 <template>
     <div class="space-y-4 mb-2">
-        <!-- 발주번호, 주문일자, 담당자, 발주상태, 입고일자, 입고공장 -->
+        <!-- 발주번호, 주문일자, 담당자, 발주상태, 납기일자, 입고공장 -->
         <InputForm 
             :columns="materialStore.inboundFields"
             :data="formData" 
