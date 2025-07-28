@@ -1,6 +1,7 @@
 package com.kimbap.kbs.order.mapper;
 
 import java.util.List;
+import java.util.Map;
 
 import com.kimbap.kbs.order.service.OrderDetailVO;
 import com.kimbap.kbs.order.service.OrderVO;
@@ -19,8 +20,14 @@ public interface OrderMapper {
   String getLatestOrderCode();
 
   // 주문 목록 조회
-  List<OrderVO> getOrderList(); 
+  List<OrderVO> getOrderList(Map<String, Object> params);
 
   // 주문 비활성화
   void deactivateOrder(String ordCd);
+
+  // 주문 마스터 단건 조회
+  OrderVO selectOrder(String ordCd);
+
+  // 주문 상세 목록 조회
+  List<OrderDetailVO> selectOrderDetails(String ordCd);
 }

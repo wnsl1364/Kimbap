@@ -1,16 +1,32 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { getOrderList } from '@/api/order';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import { useMemberStore } from '@/stores/memberStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
+
+// 라우터 설정
+const router = useRouter();
+const handleRowClick = (rowData) => {
+  console.log('[OrderList.vue] 라우터 이동 대상:', rowData)
+  const ordCd = rowData.ordCd
+  if (ordCd) {
+    router.push({ path: '/order/orderRegister', query: { ordCd } })
+  }
+}
 
 // 로그인 정보 가져오기
 const memberStore = useMemberStore()
-const { role } = storeToRefs(memberStore)
-console.log('현재 사용자 권한:', role.value)
+const { user } = storeToRefs(memberStore)
+
+const isEmployee = computed(() => user.value?.memType === 'p1')
+const isCustomer = computed(() => user.value?.memType === 'p2')
+const isSupplier = computed(() => user.value?.memType === 'p3')
+
+console.log('현재 사용자 권한:', user.value)
 
 // 공통코드 가져오기
 const common = useCommonStore()
@@ -30,25 +46,43 @@ const ordStatusCodes = (list) => {
 };
 
 // 버튼 설정
-const infoFormButtons = ref({
-  reset: { show: false, label: '초기화', severity: 'secondary' },
-  save: { show: false, label: '저장', severity: 'success' },
-  refund: { show: true, label: '반품요청', severity: 'help' },
-  refundReq: { show: false, label: '반품처리', severity: 'info' },
-});
+const infoFormButtons = computed(() => {
+  if (user.value?.memType === 'p2') { // 매출업체
+    return {
+      refund: { show: true, label: '반품요청', severity: 'help' }
+    }
+  } else {
+    return {} // 버튼 없음
+  }
+})
+
 
 // 주문 목록 컬럼 정의
-const orderColumns = [
-  { field: 'ordCd', header: '주문코드', type: 'readonly' },
-  { field: 'prodName', header: '제품명', type: 'readonly' },
-  { field: 'totalQty', header: '주문수량(BOX)', type: 'readonly' },
-  { field: 'returnQty', header: '반품수량(BOX)', type: 'readonly' },
-  { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
-  { field: 'ordDt', header: '주문일자', type: 'readonly' },
-  { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
-  { field: 'note', header: '비고', type: 'readonly' },
-  { field: 'ordStatus', header: '상태', type: 'readonly' }
-];
+const orderColumns = computed(() => {
+  if (user.value?.memType === 'p2') { // 매출업체
+    return [
+      { field: 'ordCd', header: '주문코드', type: 'clickable' },
+      { field: 'prodName', header: '제품명', type: 'readonly' },
+      { field: 'totalQty', header: '주문수량(BOX)', type: 'readonly' },
+      { field: 'returnQty', header: '반품수량(BOX)', type: 'readonly' },
+      { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
+      { field: 'ordDt', header: '주문일자', type: 'readonly' },
+      { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
+      { field: 'note', header: '비고', type: 'readonly' },
+      { field: 'ordStatus', header: '상태', type: 'readonly' }
+    ]
+  } else {
+    // 사원 또는 관리자
+    return [
+      { field: 'ordCd', header: '주문코드', type: 'clickable' },
+      { field: 'prodName', header: '제품명', type: 'readonly' },
+      { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
+      { field: 'ordDt', header: '주문일자', type: 'readonly' },
+      { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
+      { field: 'note', header: '비고', type: 'readonly' }
+    ]
+  }
+})
 
 // 주문 목록 데이터
 const orders = ref([]);
@@ -56,7 +90,10 @@ const orders = ref([]);
 // 주문 목록 조회
 onMounted(async () => {
   try {
-    const res = await getOrderList();
+    const res = await getOrderList({
+      id: user.value.id,
+      memType: user.value.memType
+    });
     await common.fetchCommonCodes('0S');
     orders.value = ordStatusCodes(res.data.data);
     console.log('실제 응답 내용:', res.data);
@@ -131,6 +168,8 @@ const handleReset = () => {
       :showRowCount="true"
       :buttons="infoFormButtons"
       :dateFields="['ordDt', 'deliReqDt']"
+      :enableRowClick="true"
+       @rowClick="handleRowClick"
     />
   </div>
 </template>
