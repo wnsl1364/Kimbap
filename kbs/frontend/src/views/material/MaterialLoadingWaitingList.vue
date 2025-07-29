@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useMaterialStore } from '@/stores/materialStore'
-import BasicTable from '@/components/kimbap/table/BasicTable.vue'
+import InputTable from '@/components/kimbap/table/InputTable.vue'
 import SearchThreeCols from '@/components/kimbap/searchform/SearchThreeCols.vue'
 // API 함수들 import
 import { getMaterialInboundList } from '@/api/materials'
@@ -124,19 +124,26 @@ const setupSearchColumns = () => {
 }
 
 // 테이블 컬럼 설정
-materialStore.inMaterialColumns = [
-    { field: 'mateInboCd', header: '입고번호' },
-    { field: 'mateInboDCd', header: '입고상세번호' },
-    { field: 'inboDt', header: '입고일자' },
-    { field: 'mcode', header: '자재코드' },
-    { field: 'mname', header: '자재명' },
-    { field: 'facName', header: '공장' },
-    { field: 'stoCon', header: '보관조건' },
-    { field: 'lotNo', header: 'LOT번호' },
-    { field: 'totalQty', header: '적재대기수량' },
-    { field: 'unit', header: '단위' },
-    { field: 'note', header: '비고' }
-]
+const tableColumns = ref([
+    { field: 'mateInboCd', header: '입고번호', type: 'readonly' },
+    { field: 'inboDt', header: '입고일자', type: 'readonly' },
+    { field: 'mcode', header: '자재코드', type: 'readonly' },
+    { field: 'mname', header: '자재명', type: 'readonly' },
+    { field: 'facName', header: '공장', type: 'readonly' },
+    { field: 'stoCon', header: '보관조건', type: 'readonly' },
+    { field: 'lotNo', header: 'LOT번호', type: 'readonly' },
+    { field: 'totalQty', header: '적재대기수량', type: 'readonly' },
+    { field: 'unit', header: '단위', type: 'readonly' },
+    { field: 'note', header: '비고', type: 'readonly' }
+])
+
+// 테이블 버튼 설정
+const tableButtons = ref({
+    save: { show: false, label: '저장', severity: 'success' },
+    reset: { show: false, label: '초기화', severity: 'secondary' },
+    delete: { show: false, label: '삭제', severity: 'danger' },
+    load: { show: false, label: '불러오기', severity: 'info' }
+})
 
 // 폼 버튼들 숨기기
 materialStore.purchaseFormButtons = {
@@ -161,7 +168,6 @@ const fetchStorageWaitingData = async () => {
         storageWaitingList.value = completedInboundData.map((item, index) => ({
             id: index + 1,
             mateInboCd: item.mateInboCd,
-            mateInboDCd: item.mateInboDCd,
             inboDt: item.inboDt ? formatDateForTable(item.inboDt) : '',
             mcode: item.mcode,
             mname: item.mateName || item.mname,
@@ -357,11 +363,17 @@ const handleReset = () => {
     <div>
         <h2>자재 적재 대기 목록 ({{ filteredStorageList.length }}건)</h2>
         <!-- 적재 대기 자재 테이블 -->
-        <BasicTable 
+        <InputTable 
             :data="filteredStorageList" 
-            :columns="materialStore.inMaterialColumns" 
-            selectionMode="none"
+            :columns="tableColumns" 
+            :buttons="tableButtons"
+            :enableRowActions="false"
+            :enableSelection="true"
+            selectionMode="multiple"
             :dataKey="'id'"
+            title=""
+            :showRowCount="false"
+            :scrollHeight="'500px'"
         />
     </div>
 </template>

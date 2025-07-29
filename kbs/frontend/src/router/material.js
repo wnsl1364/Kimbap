@@ -18,6 +18,11 @@ export default [
         component: () => import('@/views/material/MaterialLoadingWaitingList.vue'),
     },
     {
+        path: '/material/materialPutaway',
+        name: 'materialPutaway',
+        component: () => import('@/views/material/MaterialPutaway.vue'),
+    },
+    {
         path: '/material/transferRequestForm',
         name: 'transferRequestForm',
         component: () => import('@/views/material/TransferRequestForm.vue'),

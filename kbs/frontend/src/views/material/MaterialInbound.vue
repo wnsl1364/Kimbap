@@ -37,7 +37,8 @@ const loadFactoryList = async () => {
             manager: factory.mname
         }));
         
-        if (factoryList.value && factoryList.value.length > 0) {
+        // 공장 목록이 있을 때만 필드 설정
+        if (factoryList.value.length > 0) {
             materialStore.inboundFields = [
                 { key: 'purcCd', label: '발주번호', type: 'readonly' },
                 { key: 'ordDt', label: '주문일자', type: 'readonly' },
@@ -48,45 +49,16 @@ const loadFactoryList = async () => {
                     key: 'fcode', 
                     label: '입고공장', 
                     type: 'dropdown', 
-                    placeholder: '⚠️ 입고공장을 선택해주세요',
+                    placeholder: '입고공장을 선택해주세요',
                     options: factoryList.value,
                     required: true
-                }
-            ];
-        } else {
-            materialStore.inboundFields = [
-                { key: 'purcCd', label: '발주번호', type: 'readonly' },
-                { key: 'ordDt', label: '주문일자', type: 'readonly' },
-                { key: 'regi', label: '담당자', type: 'readonly' },
-                { key: 'purcStatus', label: '발주상태', type: 'readonly' },
-                { key: 'deliDt', label: '납기일자', type: 'readonly' },
-                { 
-                    key: 'fcode', 
-                    label: '입고공장', 
-                    type: 'text', 
-                    placeholder: '공장 목록을 불러올 수 없습니다',
-                    disabled: true
                 }
             ];
         }
         
     } catch (error) {
+        console.error('공장 목록 로드 실패:', error);
         alert(`공장 목록을 불러오는데 실패했습니다: ${error.message}`);
-        
-        materialStore.inboundFields = [
-            { key: 'purcCd', label: '발주번호', type: 'readonly' },
-            { key: 'ordDt', label: '주문일자', type: 'readonly' },
-            { key: 'regi', label: '담당자', type: 'readonly' },
-            { key: 'purcStatus', label: '발주상태', type: 'readonly' },
-            { key: 'deliDt', label: '납기일자', type: 'readonly' },
-            { 
-                key: 'fcode', 
-                label: '입고공장', 
-                type: 'text', 
-                placeholder: '공장 목록 로드 실패',
-                disabled: true
-            }
-        ];
     }
 }
 
