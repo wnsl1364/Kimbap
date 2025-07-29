@@ -126,6 +126,7 @@ const setupSearchColumns = () => {
 // 테이블 컬럼 설정
 materialStore.inMaterialColumns = [
     { field: 'mateInboCd', header: '입고번호' },
+    { field: 'mateInboDCd', header: '입고상세번호' },
     { field: 'inboDt', header: '입고일자' },
     { field: 'mcode', header: '자재코드' },
     { field: 'mname', header: '자재명' },
@@ -160,6 +161,7 @@ const fetchStorageWaitingData = async () => {
         storageWaitingList.value = completedInboundData.map((item, index) => ({
             id: index + 1,
             mateInboCd: item.mateInboCd,
+            mateInboDCd: item.mateInboDCd,
             inboDt: item.inboDt ? formatDateForTable(item.inboDt) : '',
             mcode: item.mcode,
             mname: item.mateName || item.mname,
@@ -284,16 +286,28 @@ const applyFilters = () => {
     }
     
     // 입고일자 범위 필터
-    if (searchData.value.dateRange && Array.isArray(searchData.value.dateRange) && searchData.value.dateRange.length === 2) {
-        const [startDate, endDate] = searchData.value.dateRange;
-        if (startDate && endDate) {
+    if (searchData.value.dateRange && searchData.value.dateRange !== null) {
+        // dateRange가 { start, end } 객체인 경우
+        if (searchData.value.dateRange.start || searchData.value.dateRange.end) {
             filtered = filtered.filter(item => {
                 if (!item._original.inboDtRaw) return false;
                 const itemDate = new Date(item._original.inboDtRaw);
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999); // 종료일 마지막 시간까지 포함
-                return itemDate >= start && itemDate <= end;
+                
+                // 시작일 체크
+                if (searchData.value.dateRange.start) {
+                    const start = new Date(searchData.value.dateRange.start);
+                    start.setHours(0, 0, 0, 0);
+                    if (itemDate < start) return false;
+                }
+                
+                // 종료일 체크
+                if (searchData.value.dateRange.end) {
+                    const end = new Date(searchData.value.dateRange.end);
+                    end.setHours(23, 59, 59, 999);
+                    if (itemDate > end) return false;
+                }
+                
+                return true;
             });
         }
     }
@@ -307,15 +321,11 @@ const applyFilters = () => {
     });
 }
 
-// 검색 조건 변경 시 필터링 재적용
-watch(searchData, () => {
-    applyFilters();
-}, { deep: true });
 
 // 검색 폼에서 검색 실행 시
 const handleSearch = () => {
     console.log('검색 실행:', searchData.value);
-    applyFilters();
+    applyFilters(); // 검색 버튼 클릭 시에만 필터링 적용
 }
 
 // 검색 조건 초기화
