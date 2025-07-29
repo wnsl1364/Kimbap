@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.standard.mapper.FacMapper">
+    <!-- 공장 목록 조회 -->
+    <select id="getFacList" resultType="com.kimbap.kbs.standard.service.FacVO">
+        SELECT  fcode,
+                fac_ver_cd,
+                fac_name,
+                address,
+                tel,
+                mname,
+                op_status,
+                cha_rea,
+                reg_dt,
+                note,
+                regi,
+                modi
+        FROM    factory
+        WHERE   op_status = 'r1'
+        ORDER BY fcode
+    </select>
+
+    <!-- 공장 등록 -->
+    <insert id="insertFac" parameterType="com.kimbap.kbs.standard.service.FacVO">
+        INSERT INTO factory
+                    (fcode,
+                    fac_ver_cd,
+                    fac_name,
+                    address,
+                    tel,
+                    mname,
+                    op_status,
+                    cha_rea,
+                    reg_dt,
+                    note,
+                    regi,
+                    modi
+                    )
+        VALUES (
+                #{fcode},
+                #{facVerCd},
+                #{facName},
+                #{address},
+                #{tel},
+                #{mname},
+                #{opStatus},
+                #{chaRea},
+                SYSDATE,
+                #{note},
+                #{regi},
+                #{modi}
+        )
+    </insert>
+    <!-- 최대 생산량 등록 -->
+    <insert id="insertFacMax" parameterType="com.kimbap.kbs.standard.service.FacMaxVO">
+        INSERT INTO factory_max
+                    (max_produ_cd,
+                    fcode,
+                    fac_ver_cd,
+                    mpqty,
+                    pcode,
+                    prod_ver_cd
+                    )
+        VALUES (#{maxProduCd},
+                #{fcode},
+                #{facVerCd},
+                #{mpqty},
+                #{pcode},
+                #{prodVerCd}
+                )       
+    </insert>
+    <!-- 공장 기준정보 단건 조회 -->
+    <select id="getFacDetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.FacVO">
+        SELECT  fcode,
+                fac_ver_cd,
+                fac_name,
+                address,
+                tel,
+                mname,
+                op_status,
+                cha_rea,
+                reg_dt,
+                note,
+                regi,
+                modi
+        FROM (
+            SELECT  fcode,
+                    fac_ver_cd,
+                    fac_name,
+                    address,
+                    tel,
+                    mname,
+                    op_status,
+                    cha_rea,
+                    reg_dt,
+                    note,
+                    regi,
+                    modi
+            FROM    factory
+            WHERE   fcode = #{fcode}
+            ORDER BY fac_ver_cd DESC
+            )
+        WHERE ROWNUM = 1
+    </select>
+
+    <!-- 해당 공장 최대생산량 조회-->
+    <select id="getFacMaxs" parameterType="string" resultType="com.kimbap.kbs.standard.service.FacMaxVO">
+        SELECT
+            f.max_produ_cd,
+            f.fcode,
+            f.fac_ver_cd,
+            f.mpqty,
+            f.pcode,
+            p.prod_ver_cd
+        FROM factory_max f
+        JOIN (
+            SELECT p1.pcode, MAX(p1.prod_ver_cd) AS prod_ver_cd
+            FROM product p1
+            GROUP BY p1.pcode
+        ) p ON f.pcode = p.pcode
+        WHERE f.fcode = #{fcode}
+        AND f.fac_ver_cd = (
+            SELECT fac_ver_cd
+            FROM (
+                SELECT fac_ver_cd FROM factory WHERE fcode = #{fcode} ORDER BY fac_ver_cd DESC
+            ) WHERE ROWNUM = 1
+        )
+    </select>
+
+    <!-- 공장 최신 버전 조회 -->
+    <select id="selectLatestVersion" parameterType="string" resultType="com.kimbap.kbs.standard.service.FacVO">
+        SELECT  fcode,
+                fac_ver_cd,
+                fac_name,
+                address,
+                tel,
+                mname,
+                op_status,
+                cha_rea,
+                reg_dt,
+                note,
+                regi,
+                modi
+        FROM    factory
+        WHERE   fcode = #{fcode}
+        AND     op_status = 'r1'
+    </select>
+    
+    <!-- 공장 버전 비활성화  -->
+    <update id="disableOldVersion" parameterType="string">
+        UPDATE factory
+        SET op_status = 'r2'
+        WHERE fcode = #{fcode}
+          AND op_status = 'r1'
+    </update>
+
+    <!-- 공장 이력 조회 -->
+    <select id="selectFacHistory" resultType="com.kimbap.kbs.standard.service.FacVO"> 
+        SELECT  fcode,
+                fac_ver_cd,
+                fac_name,
+                address,
+                tel,
+                mname,
+                op_status,
+                cha_rea,
+                reg_dt,
+                note,
+                regi,
+                modi
+        FROM    factory
+        WHERE   fcode = #{fcode}
+        ORDER BY    fac_ver_cd DESC
+    </select>
+
+    <!-- 공장 코드 생성 시퀀스 -->
+    <select id="getNextRawFactoryCodeBySeq" resultType="int">
+        SELECT seq_raw_factory_code.NEXTVAL FROM dual
+    </select>
+
+    <!-- 최대 생산코드 생성 시퀀스 -->
+    <select id="getFacMaxCountByfcode" parameterType="string" resultType="int" >
+        SELECT COUNT(*)
+        FROM   factory_max
+        WHERE  fcode = #{fcode}
+    </select>
+
+    <!-- 공장코드(fcode) 존재 여부 확인 -->
+    <select id="existsFcode" parameterType="string" resultType="boolean">
+        SELECT CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END
+        FROM factory
+        WHERE fcode = #{fcode}
+    </select>
+
+    <select id="selectAllFacMaxByFcode" parameterType="string" resultType="FacMaxVO">
+        SELECT  max_produ_cd,
+                fcode,
+                fac_ver_cd,
+                mpqty,
+                pcode,
+                prod_ver_cd
+        FROM factory_max
+        WHERE fcode = #{fcode}
+        ORDER BY fac_ver_cd DESC
+    </select>
+</mapper>

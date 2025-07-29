@@ -28,7 +28,7 @@ const convertUnitCodes = (list) => {
         const matchedcpType = cpTypeCodes.find((code) => code.dcd === item.cpType);
         return {
             ...item,
-            cpType: matchedcpType ? matchedcpType.cdInfo : item.cpType,
+            cpType: matchedcpType ? matchedcpType.cdInfo : item.cpType
         };
     });
 };
@@ -37,13 +37,13 @@ const convertedcompanyList = computed(() => convertUnitCodes(companyList.value))
 // UI 상태 정의
 const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
-const productColumns = ref([]); // 제품목록 테이블 컬럼
-const inputFormButtons = ref({}); // 제품 등록 버튼
-
+const productColumns = ref([]); // 거래처목록 테이블 컬럼
+const inputFormButtons = ref({}); // 거래처 등록 버튼
+ 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
 const historyModalVisible = ref(false); // 모달 표시 여부
-const selectedCpcode = ref(''); // 선택된 제품코드
+const selectedCpcode = ref(''); // 선택된 거래처코드
 const changeColumns = [
     { field: 'version', header: '버전' },
     { field: 'fieldName', header: '변경항목' },
@@ -56,7 +56,7 @@ const changeColumns = [
 // 함수 내용만 교체
 const fetchHistoryItems = async () => {
     if (!selectedCpcode.value) {
-        console.warn('pcode가 비어있습니다');
+        console.warn('cpCode가 비어있습니다');
         return [];
     }
 
@@ -66,8 +66,8 @@ const fetchHistoryItems = async () => {
 };
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
-    selectedCpcode.value = rowData.pcode;
-    await store.fetchChangeHistory(rowData.pcode);
+    selectedCpcode.value = rowData.cpCd;
+    await store.fetchChangeHistory(rowData.cpCd);
 
     console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
@@ -78,22 +78,30 @@ onBeforeMount(() => {
     searchColumns.value = [
         { key: 'cpCd', label: '거래처코드', type: 'text', placeholder: '거래처코드를 입력하세요' },
         { key: 'cpName', label: '거래처명', type: 'text', placeholder: '거래처코드를 입력하세요' },
-        { key: 'cpType', label: '거래처유형', type: 'dropdown',  options: [
+        {
+            key: 'cpType',
+            label: '거래처유형',
+            type: 'dropdown',
+            placeholder: '거래처유형을 입력하세요',
+            options: [
                 { label: '공급업체', value: 'j1' },
                 { label: '매출업체', value: 'j2' }
-            ] 
+            ]
         },
-        { key: 'regDt', label: '등록일자', type: 'calendar' },
+        { key: 'loanTerm', label: '여신기간(일)', type: 'text', placeholder: '여신기간을 입력하세요' }
     ];
     inputColumns.value = [
         { key: 'cpCd', label: '거래처코드', type: 'readonly' },
         { key: 'cpName', label: '거래처명', type: 'text' },
-        { key: 'cpType', label: '거래처유형', type: 'dropdown',
+        {
+            key: 'cpType',
+            label: '거래처유형',
+            type: 'dropdown',
             options: [
                 { label: '공급업체', value: 'j1' },
                 { label: '매출업체', value: 'j2' }
-            ] 
-         },
+            ]
+        },
         { key: 'repname', label: '대표자명', type: 'text' },
         { key: 'crnumber', label: '사업자번호', type: 'text' },
         { key: 'tel', label: '연락처(-포함)', type: 'text' },
@@ -116,9 +124,9 @@ onBeforeMount(() => {
             key: 'chaRea',
             label: '변경사유',
             type: 'text',
-            disabled: (row) => !row.pcode
+            disabled: (row) => !row.cpCd
         },
-        { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 },
+        { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
     ];
     productColumns.value = [
         { field: 'cpCd', header: '거래처코드' },
@@ -131,7 +139,7 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: true, label: '저장', severity: 'success' }
     };
-})
+});
 
 onMounted(async () => {
     await common.fetchCommonCodes('0J'); // 거래처 유형
@@ -139,7 +147,7 @@ onMounted(async () => {
     await fetchCompanys();
 });
 
-// 제품기준정보 등록 처리
+// 거래처기준정보 등록 처리
 const handleSaveCompany = async () => {
     const result = await saveCompany();
     alert(result === '등록 성공' ? '등록 성공' : result);
@@ -147,7 +155,7 @@ const handleSaveCompany = async () => {
 
 // 거래처 단건 조회 처리
 const handleSelectCompany = async (selectedRow) => {
-    await fetchCompanyDetail(selectedRow.pcode);
+    await fetchCompanyDetail(selectedRow.cpCd);
 };
 
 const clearForm = () => {
@@ -158,6 +166,18 @@ const handleReset = async () => {
     await fetchCompanys(); // 전체 목록 다시 조회
 };
 
+const handleSearch = async (searchData) => {
+    await fetchCompanys(); // 최신 데이터 가져오기
+
+    companyList.value = companyList.value.filter((item) => {
+        const matchcpCd = !searchData.cpCd || item.cpCd?.toLowerCase().includes(searchData.cpCd.toLowerCase());
+        const matchcpName = !searchData.cpName || item.cpName?.includes(searchData.cpName);
+        const matchcpType = !searchData.cpType || item.cpType?.includes(searchData.cpType);
+        const matchloanTerm = !searchData.loanTerm || String(item.loanTerm) === String(searchData.loanTerm);
+
+        return matchcpCd && matchcpName && matchcpType && matchloanTerm;
+    });
+};
 </script>
 <template>
     <!-- 검색 영역 -->
@@ -167,7 +187,7 @@ const handleReset = async () => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="제품 기준정보 목록"
+                title="거래처 기준정보 목록"
                 :data="convertedcompanyList"
                 dataKey="cpCd"
                 :columns="productColumns"
