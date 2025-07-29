@@ -30,4 +30,19 @@ public interface OrderMapper {
 
   // 주문 상세 목록 조회
   List<OrderDetailVO> selectOrderDetail(String ordCd);
+
+  // 주문 마스터 수정
+  int updateOrderMaster(OrderVO orderVO);
+
+  // 주문 상세 전체 삭제
+  void deleteOrderDetails(String ordCd);
+
+  // 주문 상세 개별 삭제
+  void deleteOrderDetailByOrdDCd(String ordDCd);
+
+  // 주문 상세 시퀀스 번호 조회
+  int getNextOrderDetailSeq();
+
+  // 기존 상세 수정
+  int updateOrderDetail(OrderDetailVO detail);
 }

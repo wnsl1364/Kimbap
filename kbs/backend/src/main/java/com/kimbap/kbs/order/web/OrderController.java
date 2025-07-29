@@ -113,4 +113,24 @@ public class OrderController {
         }
     }
 
+    // 주문 수정 (주문상세 전체 삭제 후 재등록)
+    @PutMapping("/{ordCd}/update")
+    public ResponseEntity<?> updateOrder(@PathVariable String ordCd, @RequestBody OrderVO orderVO) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            orderVO.setOrdCd(ordCd); // path variable을 VO에 세팅
+
+            orderService.updateOrder(orderVO);
+
+            response.put("result_code", "SUCCESS");
+            response.put("message", "주문 수정 성공");
+            response.put("data", Map.of("ordCd", ordCd));
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("result_code", "FAIL");
+            response.put("message", "주문 수정 실패");
+            response.put("data", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 }
