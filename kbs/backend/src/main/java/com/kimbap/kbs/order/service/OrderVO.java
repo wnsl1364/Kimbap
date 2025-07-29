@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 public class OrderVO {
     private String ordCd;
     private String cpCd;
+    private String cpName;
     private Date ordDt;
     private String note;
     private Date deliReqDt;

@@ -84,6 +84,7 @@
             note,
             ord_status AS ordStatus
         FROM vw_order_list
+        ORDER BY ord_cd DESC
     </select>
 
     <!-- 주문 비활성화 -->
@@ -96,33 +97,40 @@
     <!-- 주문 마스터 단건 조회 -->
     <select id="selectOrder" parameterType="string" resultType="com.kimbap.kbs.order.service.OrderVO">
         SELECT
-            ord_cd AS ordCd,
-            cp_cd AS cpCd,
-            ord_dt AS ordDt,
-            note,
-            deli_req_dt AS deliReqDt,
-            ord_status AS ordStatus,
-            deli_add AS deliAdd,
-            regi,
-            reg_dt AS regDt,
-            ord_total_amount AS ordTotalAmount,
-            cur_pay_amount AS curPayAmount,
-            ex_pay_dt AS exPayDt,
-            act_pay_dt AS actPayDt,
-            is_used AS isUsed
-        FROM order_list
-        WHERE ord_cd = #{ordCd}
+            o.ord_cd AS ordCd,
+            o.cp_cd AS cpCd,
+            c.cp_name AS cpName,
+            o.ord_dt AS ordDt,
+            o.note,
+            o.deli_req_dt AS deliReqDt,
+            o.ord_status AS ordStatus,
+            o.deli_add AS deliAdd,
+            o.regi,
+            o.reg_dt AS regDt,
+            o.ord_total_amount AS ordTotalAmount,
+            o.cur_pay_amount AS curPayAmount,
+            o.ex_pay_dt AS exPayDt,
+            o.act_pay_dt AS actPayDt,
+            o.is_used AS isUsed
+        FROM order_list o
+        JOIN company c ON o.cp_cd = c.cp_cd
+        WHERE o.ord_cd = #{ordCd}
     </select>
 
+    <!-- 주문 상세 조회(단건조회) -->
     <select id="selectOrderDetail" parameterType="string" resultType="com.kimbap.kbs.order.service.OrderDetailVO">
-    SELECT
-        ord_d_cd AS ordDCd,
-        ord_cd AS ordCd,
-        pcode,
-        ord_qty,
-        unit_price,
-        is_used
-    FROM order_d
-    WHERE ord_cd = #{ordCd}
+        SELECT
+            od.ord_d_cd AS ordDCd,
+            od.ord_cd AS ordCd,
+            od.pcode,
+            p.prod_name AS pName,
+            od.prod_ver_cd AS prodVerCd,
+            od.ord_qty AS ordQty,
+            od.unit_price AS unitPrice,
+            (od.ord_qty * od.unit_price) AS totalAmount,
+            od.is_used AS isUsed
+        FROM order_d od
+        JOIN product p ON od.pcode = p.pcode
+        WHERE od.ord_cd = #{ordCd}
     </select>
 </mapper>
