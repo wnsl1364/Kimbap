@@ -18,6 +18,8 @@ public interface MateService {
     List<MaterialsVO> getMaterialWithSuppliers(SearchCriteria criteria);
     String savePurchaseOrder(Map<String, Object> orderData);
     String generatePurchaseCode();
+    List<MaterialsVO> getSuppliersByMaterial(SearchCriteria criteria);
+    List<MaterialsVO> getMaterialsBySupplier(SearchCriteria criteria);
 
     // 자재출고 관련 메서드
     List<MaterialsVO> getMateRelList();
@@ -25,4 +27,6 @@ public interface MateService {
     
     // 공장목록 조회 메서드
     List<MaterialsVO> getActiveFactoryList();
+
+    // 발주서 승인 관련 메서드
 }

@@ -117,6 +117,16 @@ export const getSuppliers = (searchParams) => {
   return axios.get('/api/materials/suppliers', { params });
 };
 
+// 🔥 특정 자재의 공급업체들 조회
+export const getSuppliersByMaterial = (mcode, mateVerCd) => {
+  return axios.get(`/api/materials/materials/${mcode}/${mateVerCd}/suppliers`);
+};
+
+// 🔥 특정 거래처의 자재들 조회  
+export const getMaterialsBySupplier = (cpCd) => {
+  return axios.get(`/api/materials/suppliers/${cpCd}/materials`);
+};
+
 // 자재출고 관련 API 함수들
 export const getMaterialOutboundList = () => {
   return axios.get('/api/materials/outbound');

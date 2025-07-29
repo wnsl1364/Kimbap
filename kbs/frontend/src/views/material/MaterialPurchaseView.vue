@@ -8,11 +8,69 @@ import { searchPurchaseOrders } from '@/api/materials';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import BasicTable from '@/components/kimbap/table/BasicTable.vue';
 import RadioButton from 'primevue/radiobutton';
+import { format, isValid } from 'date-fns';
+import { useCommonStore } from '@/stores/commonStore';
 
 // Store 및 Toast
 const materialStore = useMaterialStore();
 const memberStore = useMemberStore();
+const common = useCommonStore();
 const toast = useToast();
+const formatDate = (date) => {
+  if (!date) return '';
+  
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    if (!isValid(dateObj)) {
+      return '';
+    }
+    
+    return format(dateObj, 'yyyy-MM-dd');
+  } catch (error) {
+    console.error('날짜 포맷 에러:', error);
+    return '';
+  }
+};
+
+const convertUnitCodes = (list) => {
+  if (!list || !Array.isArray(list)) {
+    return [];
+  }
+
+  const unitCodes = common.getCodes('0G'); // 단위코드
+  const statusCodes = common.getCodes('0C'); // 발주상태코드
+  const matTypeCodes = common.getCodes('0H'); // 자재유형코드
+
+  return list.map(item => {
+    const matchedUnit = unitCodes.find(code => code.dcd === item.unit);
+    const matchedStatus = statusCodes.find(code => code.dcd === item.purcDStatus);
+    const matchedMatType = matTypeCodes.find(code => code.dcd === item.mateType);
+
+    return {
+      ...item,
+      unit: matchedUnit ? matchedUnit.cdInfo : item.unit,
+      purcDStatus: matchedStatus ? matchedStatus.cdInfo : item.purcDStatus,
+      mateType: matchedMatType ? matchedMatType.cdInfo : item.mateType,
+    };
+  });
+};
+
+const formatDataDates = (dataList) => {
+  const dateFields = ['exDeliDt', 'deliDt', 'ordDt']; // 포맷할 날짜 필드들
+  
+  return dataList.map(item => {
+    const formattedItem = { ...item };
+    
+    dateFields.forEach(field => {
+      if (formattedItem[field]) {
+        formattedItem[field] = formatDate(formattedItem[field]);
+      }
+    });
+    
+    return formattedItem;
+  });
+};
 
 // 반응형 데이터
 const userType = ref('internal');
@@ -57,7 +115,9 @@ const onSearch = async (searchData) => {
     isLoading.value = true;
     
     const response = await searchPurchaseOrders(searchData, actualUserType.value);
-    materialStore.setPurchaseOrderDetailData(response.data);
+    const formattedData = formatDataDates(response.data);
+    const convertedData = convertUnitCodes(formattedData);
+    materialStore.setPurchaseOrderDetailData(convertedData);
     
     toast.add({
       severity: 'success',
@@ -96,10 +156,12 @@ const loadPurchaseData = async () => {
     console.log('데이터 로드 시작 - 사용자 타입:', actualUserType.value);
     
     const response = await searchPurchaseOrders({}, actualUserType.value);
-    materialStore.setPurchaseOrderDetailData(response.data);
-    
-    console.log('데이터 로드 완료:', response.data.length, '건');
-    
+    const formattedData = formatDataDates(response.data);
+    const convertedData = convertUnitCodes(formattedData);
+    materialStore.setPurchaseOrderDetailData(convertedData);
+
+    console.log('데이터 로드 완료:', formattedData.length, '건');
+
   } catch (error) {
     console.error('데이터 로드 중 오류:', error);
     loadSampleData();
@@ -108,12 +170,25 @@ const loadPurchaseData = async () => {
   }
 };
 
+const convertedTableData = computed(() => {
+  const rawData = materialStore.purchaseOrderDetailData;
+  if (!rawData || !Array.isArray(rawData)) {
+    return [];
+  }
+  
+  return convertUnitCodes(rawData);
+});
+
 // 생명주기
 onMounted(async () => {
-  console.log('컴포넌트 마운트됨');
-  console.log('사용자 권한:', actualUserType.value);
+  // 공통코드 로드 추가
+  await Promise.all([
+    common.fetchCommonCodes('0G'), // 단위코드
+    common.fetchCommonCodes('0C'),  // 발주상태코드
+    common.fetchCommonCodes('0H')  // 자재유형코드
+  ]);
   
-  // 잠시 기다린 후 데이터 로드 (Store 초기화 대기)
+  // 기존 코드...
   await nextTick();
   loadPurchaseData();
 });
@@ -203,7 +278,7 @@ const loadSampleData = () => {
 
         <!-- 데이터 테이블 -->
         <BasicTable 
-          :data="materialStore.purchaseOrderDetailData"
+          :data="convertedTableData"
           :columns="currentTableColumns"
           :title="`발주 목록 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
           :loading="isLoading"

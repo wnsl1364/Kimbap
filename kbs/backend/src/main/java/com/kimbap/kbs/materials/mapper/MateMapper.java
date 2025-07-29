@@ -65,4 +65,18 @@ public interface MateMapper {
     void deletePurcOrderDetails(String purcCd);
 
     void updatePurcOrderDetail(MaterialsVO purcOrderDetail);
+
+    String getLastPurcDetailCode();
+
+    List<MaterialsVO> getSuppliersByMaterial(SearchCriteria criteria);
+
+    List<MaterialsVO> getMaterialsBySupplier(SearchCriteria criteria);
+
+    List<MaterialsVO> findMateSupplier(SearchCriteria criteria);
+
+    MaterialsVO getMateSupplierByKey(SearchCriteria criteria);
+
+    String getMateCpCd(@Param("mcode") String mcode, 
+                   @Param("mateVerCd") String mateVerCd, 
+                   @Param("cpCd") String cpCd);
 }

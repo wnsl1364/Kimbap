@@ -304,33 +304,62 @@
             po.regi,
             po.purc_status,
             po.ord_total_amount,
+            
+            -- 발주상세 정보
             pod.purc_d_cd,
-            pod.cp_cd,
+            pod.mate_cp_cd,
             pod.mcode,
-            pod.mate_ver_cd,
             pod.purc_qty,
             pod.unit,
             pod.unit_price,
             pod.ex_deli_dt,
             pod.note as detail_note,
             pod.purc_d_status,
-            -- 자재 정보
+            
+            -- 자재 정보 (material 테이블에서)
             m.mate_name,
+            m.mate_ver_cd,
             m.mate_type,
             m.std,
             m.sto_con,
-            -- 거래처 정보
+            
+            -- 거래처 정보 (mate_supplier 거쳐서)
+            c.cp_cd,
             c.cp_name,
             c.cp_type,
             c.repname,
             c.tel as cp_tel,
             c.address as cp_address
+            
         FROM purc_ord po
         LEFT JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
-        LEFT JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
-        LEFT JOIN company c ON pod.cp_cd = c.cp_cd
+        LEFT JOIN material m ON pod.mcode = m.mcode
+        LEFT JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
+        LEFT JOIN company c ON ms.cp_cd = c.cp_cd
         WHERE po.purc_cd = #{purcCd}
         ORDER BY pod.purc_d_cd
+    </select>
+
+    <!-- mate_supplier 테이블에서 PK 찾기 -->
+    <select id="findMateSupplier" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            mate_cp_cd,
+            mcode,
+            mate_ver_cd,
+            cp_cd,
+            unit_price,
+            ltime
+        FROM mate_supplier 
+        WHERE 1=1
+        <if test="mcode != null and mcode != ''">
+            AND mcode = #{mcode}
+        </if>
+        <if test="mateVerCd != null and mateVerCd != ''">
+            AND mate_ver_cd = #{mateVerCd}
+        </if>
+        <if test="cpCd != null and cpCd != ''">
+            AND cp_cd = #{cpCd}
+        </if>
     </select>
 
     <!-- 자재-거래처 연결 조회 (검색용) -->
@@ -346,6 +375,7 @@
             m.safe_stock,
             ms.unit_price,
             ms.ltime,
+            ms.mate_cp_cd,  -- 🔥 중간테이블 PK 추가!
             -- 거래처 정보
             c.cp_cd,
             c.cp_name,
@@ -355,7 +385,7 @@
             c.address as cp_address
         FROM material m
         INNER JOIN mate_supplier ms ON m.mcode = ms.mcode AND m.mate_ver_cd = ms.mate_ver_cd
-        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd  -- 🔥 mate_supplier 거쳐서 조인!
         WHERE m.is_used = 'f1' 
         AND c.is_used = 'f1'
         <if test="mcode != null and mcode != ''">
@@ -390,12 +420,36 @@
         )
     </insert>
 
+    <!-- 단건 조회용 -->
+    <select id="getMateSupplierByKey" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            mate_cp_cd,
+            mcode,
+            mate_ver_cd,
+            cp_cd,
+            unit_price,
+            ltime
+        FROM mate_supplier 
+        WHERE mcode = #{mcode}
+        AND mate_ver_cd = #{mateVerCd}
+        AND cp_cd = #{cpCd}
+    </select>
+
+    <!-- PK만 조회 (간단버전) -->
+    <select id="getMateCpCd" resultType="String">
+        SELECT mate_cp_cd
+        FROM mate_supplier 
+        WHERE mcode = #{mcode}
+        AND mate_ver_cd = #{mateVerCd}
+        AND cp_cd = #{cpCd}
+    </select>
+
     <!-- 발주서 상세 등록 -->
     <insert id="insertPurcOrderDetail" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         INSERT INTO purc_ord_d (
             purc_d_cd,
             purc_cd,
-            cp_cd,
+            mate_cp_cd,
             mcode,
             mate_ver_cd,
             purc_qty,
@@ -407,7 +461,7 @@
         ) VALUES (
             #{purcDCd},
             #{purcCd},
-            #{cpCd},
+            #{mateCpCd},
             #{mcode},
             #{mateVerCd},
             #{purcQty},
@@ -420,11 +474,12 @@
     </insert>
 
     <select id="getLastPurcCode" resultType="String">
-        SELECT purc_cd 
-        FROM purc_ord 
-        WHERE purc_cd LIKE 'PURC-%'
-        ORDER BY purc_cd DESC 
-        FETCH FIRST 1 ROWS ONLY
+        SELECT * FROM (
+            SELECT purc_cd 
+            FROM purc_ord 
+            WHERE purc_cd LIKE 'PURC-%' 
+            ORDER BY purc_cd DESC
+        ) WHERE ROWNUM = 1
     </select>
 
     <!-- 발주서 헤더 수정 -->
@@ -457,6 +512,15 @@
             purc_d_status = #{purcDStatus}
         WHERE purc_d_cd = #{purcDCd}
     </update>
+
+    <select id="getLastPurcDetailCode" resultType="String">
+        SELECT * FROM (
+            SELECT purc_d_cd 
+            FROM purc_ord_d 
+            WHERE purc_d_cd LIKE 'PURC-D-%'
+            ORDER BY purc_d_cd DESC
+        ) WHERE ROWNUM = 1
+    </select>
     
     <!-- 자재출고 목록 조회 -->
     <select id="getMateRelList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
@@ -513,5 +577,80 @@
             #{modDt}
         )
     </insert>
+
+    <!-- 자재 마스터만 조회 -->
+    <select id="getMaterials" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            m.mcode,
+            m.mate_ver_cd,
+            m.mate_name,
+            m.mate_type,
+            m.unit,
+            m.std,
+            m.safe_stock
+        FROM material m
+        WHERE m.is_used = 'f1'
+        <if test="mateName != null and mateName != ''">
+            AND UPPER(m.mate_name) LIKE UPPER('%' || #{mateName} || '%')
+        </if>
+        <if test="mateType != null and mateType != ''">
+            AND m.mate_type = #{mateType}
+        </if>
+        ORDER BY m.mate_name
+    </select>
+
+    <!-- 거래처 마스터만 조회 -->
+    <select id="getSuppliers" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            c.cp_cd,
+            c.cp_name,
+            c.cp_type,
+            c.repname,
+            c.tel as cp_tel,
+            c.address as cp_address
+        FROM company c
+        WHERE c.is_used = 'f1'
+        <if test="cpName != null and cpName != ''">
+            AND UPPER(c.cp_name) LIKE UPPER('%' || #{cpName} || '%')
+        </if>
+        <if test="cpCd != null and cpCd != ''">
+            AND c.cp_type = #{cpCd}
+        </if>
+        ORDER BY c.cp_name
+    </select>
+
+    <!-- 🔥 특정 자재의 공급업체들 조회 -->
+    <select id="getSuppliersByMaterial" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            c.cp_cd,
+            c.cp_name,
+            c.repname,
+            c.tel as cp_tel,
+            ms.unit_price,
+            ms.ltime
+        FROM mate_supplier ms
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        WHERE ms.mcode = #{mcode} 
+        AND ms.mate_ver_cd = #{mateVerCd}
+        AND c.is_used = 'f1'
+        ORDER BY c.cp_name
+    </select>
+
+    <!-- 🔥 특정 거래처의 자재들 조회 -->
+    <select id="getMaterialsBySupplier" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            m.mcode,
+            m.mate_ver_cd,
+            m.mate_name,
+            m.mate_type,
+            m.unit,
+            ms.unit_price,
+            ms.ltime
+        FROM mate_supplier ms
+        INNER JOIN material m ON ms.mcode = m.mcode AND ms.mate_ver_cd = m.mate_ver_cd
+        WHERE ms.cp_cd = #{cpCd}
+        AND m.is_used = 'f1'
+        ORDER BY m.mate_name
+    </select>
     
 </mapper>
