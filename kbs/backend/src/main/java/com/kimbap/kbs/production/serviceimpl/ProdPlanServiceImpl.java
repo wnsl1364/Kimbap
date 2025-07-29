@@ -27,14 +27,6 @@ public class ProdPlanServiceImpl implements ProdPlanService {
         return mapper.selectProdPlans();
     }
 
-
-    @Override
-    @Transactional
-    public void deletePlan(String produPlanCd) {
-        mapper.deleteDetailsByPlanCd(produPlanCd);
-        mapper.deleteProdPlan(produPlanCd);
-    }
-
     // 생산계획 조건 검색
     @Override
         public List<ProdPlanVO> getPlansByCondition(ProdPlanVO condition) {
@@ -50,10 +42,20 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     public List<ProdsVO> getAllProducts() {
         return mapper.selectAllProducts();
     }
-
+    // 생산계획 및 상세 저장
     @Override
-    public void savePlanWithDetails(ProdPlanFullVO fullVO) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'savePlanWithDetails'");
+    @Transactional
+    public void saveProdPlan(ProdPlanFullVO fullVO) {
+        String produPlanCd = mapper.getNewProdPlanCd(); // 생산계획 번호 생성
+        ProdPlanVO plan = fullVO.getPlan();
+        plan.setProduPlanCd(produPlanCd);
+
+        mapper.insertProdPlan(plan);
+     
+        for (ProdPlanDetailVO detail : fullVO.getPlanDetails()) {
+            detail.setProduPlanCd(produPlanCd);        // 생산계획(FK) 삽입
+            detail.setPpdcode(mapper.getNewPpdcode()); // 상세 목록 삽입
+            mapper.insertProdPlanDetail(detail);        
+        }
     }
 }

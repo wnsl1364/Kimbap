@@ -7,19 +7,21 @@ import com.kimbap.kbs.production.service.ProdPlanVO;
 import com.kimbap.kbs.production.service.ProdsVO;
 
 public interface ProdPlanMapper {
+    // 코드 생성용 함수 호출
+    String getNewProdPlanCd(); // 생산계획 PK
+    String getNewPpdcode();    // 생산계획상세 PK
+    
     // Master
-    List<ProdPlanVO> selectProdPlans();
-    int insertProdPlan(ProdPlanVO plan);
-    int updateProdPlan(ProdPlanVO plan);
-    int deleteProdPlan(String produPlanCd);
+    List<ProdPlanVO> selectProdPlans();                 // 전체 생산계획 조회
+    int insertProdPlan(ProdPlanVO plan);                // 생산계획 등록
+
 
     // Detail
-    int insertProdPlanDetail(ProdPlanDetailVO detail);
-    int updateProdPlanDetail(ProdPlanDetailVO detail);
-    int deleteDetailsByPlanCd(String produPlanCd);
+    int insertProdPlanDetail(ProdPlanDetailVO detail);  // 생산계획상세 등록
+
     
 
     List<ProdPlanVO> selectProdPlansByCondition(ProdPlanVO condition);   // 생산계획 조건 검색
     List<ProdPlanDetailVO> selectDetailsByPlanCd(String produPlanCd);    // 생산계획상세 검색
-    List<ProdsVO> selectAllProducts();                                    // 제품기준정보 ALL 검색
+    List<ProdsVO> selectAllProducts();                                   // 제품기준정보 ALL 검색
 }
