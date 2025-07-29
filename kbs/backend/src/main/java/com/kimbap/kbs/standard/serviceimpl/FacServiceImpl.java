@@ -56,9 +56,9 @@ public class FacServiceImpl  implements FacService{
         System.out.println("등록되는 VO: " + fac);
 
         // 최대 생산량 등록
-        if (fac.getFacMax() != null) {
+        if (fac.getFacMaxList() != null) {
             int index = facMapper.getFacMaxCountByfcode(fcode);
-            for (FacMaxVO facMax : fac.getFacMax()) {
+            for (FacMaxVO facMax : fac.getFacMaxList()) {
                 facMax.setFcode(fcode);
                 facMax.setFacVerCd(fac.getFacVerCd());
 
@@ -102,9 +102,9 @@ public class FacServiceImpl  implements FacService{
         facMapper.insertFac(newFac);
 
         // 최대 생산량 정보 insert
-        if(newFac.getFacMax() != null) {
+        if(newFac.getFacMaxList() != null) {
             int index = 1;
-            for (FacMaxVO facmax : newFac.getFacMax()) {
+            for (FacMaxVO facmax : newFac.getFacMaxList()) {
                 facmax.setFcode(newFac.getFcode());
                 facmax.setFacVerCd(newFac.getFacVerCd());
 
