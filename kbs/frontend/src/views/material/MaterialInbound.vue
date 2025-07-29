@@ -247,8 +247,9 @@ const handleInboundComplete = async () => {
     }
 
     if (!formData.value.facVerCd) {
-        const selectedFactory = factoryList.value.find(f => f.value === formData.value.fcode);
-        if (selectedFactory && selectedFactory.facVerCd) {
+        // 안전한 체크 추가
+        const selectedFactory = factoryList.value?.find(f => f.value === formData.value.fcode);
+        if (selectedFactory?.facVerCd) {
             formData.value.facVerCd = selectedFactory.facVerCd;
         } else {
             alert('선택된 공장의 버전 정보를 찾을 수 없습니다.');
@@ -331,9 +332,10 @@ const handleInboundComplete = async () => {
             @update:data="(newData) => {
                 formData = newData;
 
+                // 안전한 체크 추가
                 if (factoryList.value && Array.isArray(factoryList.value) && newData.fcode) {
                     const selectedFactory = factoryList.value.find(f => f.value === newData.fcode);
-                    if (selectedFactory && selectedFactory.facVerCd) {
+                    if (selectedFactory?.facVerCd) {
                         formData.facVerCd = selectedFactory.facVerCd;
                     }
                 }
