@@ -92,7 +92,9 @@ const getAlignClass = (align) => {
                         </div>
                     </template>
                     <template v-else>
-                        {{ slotProps.data[col.field] }}
+                        <div :class="getAlignClass(col.align)">
+                            {{ slotProps.data[col.field] }}
+                        </div>
                     </template>
                 </template>
             </Column>
