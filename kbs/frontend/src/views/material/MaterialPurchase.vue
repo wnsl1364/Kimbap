@@ -775,26 +775,25 @@ onUnmounted(() => {
   <div class="p-4">
     <Toast />
 
-    <!-- 👑 페이지 헤더 -->
+    <!-- 페이지 헤더 -->
     <div class="mb-6">
       <h1 class="text-3xl font-bold text-gray-800 mb-2">자재 발주서 작성</h1>
       <div class="flex items-center gap-4 text-sm text-gray-600">
-        <span>👤 {{ memberStore.user?.empName || '김김밥' }}</span>
+        <span>👤 {{ memberStore.user?.empName || '김김밥1' }}</span>
         <span>🏢 {{ memberStore.user?.deptName || '구매팀' }}</span>
-        <span class="text-green-600">✅ 발주 권한 있음</span>
       </div>
     </div>
 
-    <!-- 📋 주문 기본정보 (발주번호, 등록자, 주문일자만!) -->
+    <!-- 주문 기본정보 (발주번호, 등록자, 주문일자만!) -->
     <div class="mb-6">
-      <InputForm :columns="basicInfoColumns" :data="orderBasicInfo" title="📋 주문 기본정보" :buttons="formButtons"
+      <InputForm :columns="basicInfoColumns" :data="orderBasicInfo" title="주문 기본정보" :buttons="formButtons"
         button-position="top" @update:data="(newData) => { orderBasicInfo = newData }" @submit="handleSavePurchaseOrder"
         @reset="handleReset" @load="handleLoad" />
     </div>
 
-    <!-- 📦 자재 발주 상세 (🔥 핵심 수정!) -->
+    <!-- 자재 발주 상세-->
     <div>
-      <InputTable title="📦 자재 발주 상세" :scroll-height="'50vh'" :height="'60vh'" :columns="materialColumns"
+      <InputTable title="자재 발주 상세" :scroll-height="'50vh'" :height="'60vh'" :columns="materialColumns"
         :data="convertedMaterialList" :buttons="tableButtons" :enableRowActions="true" :enableSelection="true"
         :modalDataSets="convertedModalDataSets" :autoCalculation="{
           enabled: true,
@@ -804,9 +803,9 @@ onUnmounted(() => {
         }" :showRowCount="true" dataKey="uniqueKey" @dataChange="handleDataChange" />
     </div>
 
-    <!-- 📊 발주 요약 (데이터가 있을 때만 표시) -->
+    <!-- 발주 요약 (데이터가 있을 때만 표시) -->
     <div v-if="orderSummary.itemCount > 0" class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-      <h3 class="text-lg font-semibold text-blue-800 mb-2">📊 발주 요약</h3>
+      <h3 class="text-lg font-semibold text-blue-800 mb-2">발주 요약</h3>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         <div>
           <span class="text-gray-600">총 자재 수:</span>
@@ -819,22 +818,6 @@ onUnmounted(() => {
         <div>
           <span class="text-gray-600">총 발주 금액:</span>
           <span class="font-bold ml-2 text-blue-600">{{ orderSummary.totalAmount.toLocaleString() }}원</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 💡 사용법 안내 -->
-    <div v-if="orderSummary.itemCount === 0" class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-      <div class="flex items-start gap-2">
-        <i class="pi pi-info-circle text-green-500 mt-1"></i>
-        <div class="text-green-700">
-          <p class="font-semibold mb-1">💡 사용법</p>
-          <ul class="text-sm space-y-1">
-            <li>• <strong>새 발주서:</strong> 아래 "행 추가" 버튼으로 자재를 추가하세요</li>
-            <li>• <strong>기존 발주:</strong> 발주번호 입력 후 "기존 발주 불러오기" 클릭하거나, 발주번호 없이 클릭하면 목록에서 선택</li>
-            <li>• <strong>자재 검색:</strong> 자재명이나 공급업체명 옆 🔍 버튼으로 검색 가능</li>
-            <li>• <strong>🔥 새로운 기능:</strong> 자재명 클릭 → 자재별 공급업체 보기 | 공급업체명 클릭 → 업체별 자재 보기</li>
-          </ul>
         </div>
       </div>
     </div>
