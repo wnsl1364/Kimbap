@@ -25,6 +25,5 @@ public class FacVO {
     private String note; // 비고
     private String regi; // 등록자
     private String modi; // 수정자
-
-    private List<FacMaxVO> facMax; // 공장별 최대 생산량 
+    private List<FacMaxVO> facMaxList; // 공장별 최대 생산량 
 }

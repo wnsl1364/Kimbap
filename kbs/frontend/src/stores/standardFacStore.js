@@ -74,6 +74,7 @@ export const useStandardFacStore = defineStore('standardFac', () => {
         // ✅ mpqty 숫자 변환 처리
         sanitized.facMaxList = facMaxData.value.map((item) => ({
             pcode: item.pcode,
+            prodVerCd: item.prodVerCd,
             mpqty: item.mpqty != null && item.mpqty !== '' && !isNaN(Number(item.mpqty)) ?
                 Number(item.mpqty) :
                 null
