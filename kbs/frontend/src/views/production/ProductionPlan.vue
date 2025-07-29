@@ -3,10 +3,25 @@ import { ref, onMounted, computed, readonly } from 'vue'
 import { format } from 'date-fns'
 import InputForm from '@/components/kimbap/searchform/inputForm.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue';
+import Toast from 'primevue/toast'; // 알람 표시
+import { useToast } from 'primevue/usetoast'; // 알람 표시
 import { storeToRefs } from 'pinia'
 import { useProductStore } from '@/stores/productStore'
 import { useCommonStore } from '@/stores/commonStore'
+import { useMemberStore } from '@/stores/memberStore'
 import ProdPlanSelectModal from '@/views/production/ProdPlanSelectModal.vue' // 생산계획 가져오기 모달
+
+// 로그인 정보 가져오기 ====================================================
+const memberStore = useMemberStore()
+const { user } = storeToRefs(memberStore)
+
+const isEmployee = computed(() => user.value?.memType === 'p1')       // 사원
+const isCustomer = computed(() => user.value?.memType === 'p2')       // 매출업체
+const isSupplier = computed(() => user.value?.memType === 'p3')       // 공급업체
+const isManager = computed(() => user.value?.memType === 'p4')        // 담당자
+const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스템 관리자
+// ========================================================================
+const toast = useToast();
 
 const store = useProductStore()
 const { factoryList, productList  } = storeToRefs(store)
@@ -95,7 +110,6 @@ const productColumns = [
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
   { field: 'seq', header: '우선순위', type: 'input', align: 'center' }
 ]
-
 // 버튼 이벤트 핸들러
 const handleSave = async (data) => {
   try {
@@ -107,7 +121,7 @@ const handleSave = async (data) => {
         planEndDt: format(formData.value.planEndDt, 'yyyy-MM-dd'),
         fcode: formData.value.factory?.fcode,
         facVerCd: formData.value.factory?.facVerCd,
-        mname: 'EMP-00001',  
+        mname: 'EMP-10001',  
         note: formData.value.note
       },
       planDetails: prodDetailList.value.map(item => ({
@@ -123,10 +137,19 @@ const handleSave = async (data) => {
     console.log('📦 최종 payload (생산계획 저장용)', JSON.stringify(payload, null, 2))
 
     await store.saveProdPlan(payload)
-    alert('저장 성공')
+    toast.add({
+      severity: 'success',
+      summary: '저장 성공',
+      detail: '저장 성공했습니다.',
+      life: 3000
+    });
   } catch (err) {
-    console.error('❌ 저장 실패:', err)
-    alert('저장 실패')
+    toast.add({
+      severity: 'error',
+      summary: '저장 실패',
+      detail: '저장 실패했습니다.',
+      life: 3000
+    });
   }
 }
 
@@ -178,6 +201,16 @@ const modalDataSets = computed(() => ({
 </script>
 
 <template>
+  <Toast />
+
+    <!-- 👑 페이지 헤더 -->
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">생산계획 작성</h1>
+      <div class="flex items-center gap-4 text-sm text-gray-600">
+        <span>👤 {{ user?.empName || '로그로그' }}</span>
+        <span>🏢 {{ user?.deptName || '생산팀' }}</span>
+      </div>
+    </div>
   <div class="space-y-8">
     <!-- 생산계획 입력 폼 -->
     <InputForm
