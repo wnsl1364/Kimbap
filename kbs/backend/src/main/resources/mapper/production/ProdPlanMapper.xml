@@ -7,44 +7,6 @@
         SELECT * FROM prod_plan
     </select>
 
-    <insert id="insertProdPlan">
-        INSERT INTO prod_plan (produ_plan_cd, fcode, fac_ver_cd, plan_start_dt, plan_end_dt, mname, note)
-        VALUES (#{produPlanCd}, #{fcode}, #{facVerCd}, #{planStartDt}, #{planEndDt}, #{mname}, #{note})
-    </insert>
-
-    <update id="updateProdPlan">
-        UPDATE prod_plan SET
-            fcode = #{fcode},
-            fac_ver_cd = #{facVerCd},
-            plan_start_dt = #{planStartDt},
-            plan_end_dt = #{planEndDt},
-            mname = #{mname},
-            note = #{note}
-        WHERE produ_plan_cd = #{produPlanCd}
-    </update>
-
-    <delete id="deleteProdPlan">
-        DELETE FROM prod_plan WHERE produ_plan_cd = #{produPlanCd}
-    </delete>
-
-    <!-- Detail -->
-    <insert id="insertProdPlanDetail">
-        INSERT INTO prod_plan_d (ppdcode, produ_plan_cd, pcode, prod_ver_cd, plan_qty)
-        VALUES (#{ppdcode}, #{produPlanCd}, #{pcode}, #{prodVerCd}, #{planQty})
-    </insert>
-
-    <update id="updateProdPlanDetail">
-        UPDATE prod_plan_d SET
-            pcode = #{pcode},
-            prod_ver_cd = #{prodVerCd},
-            plan_qty = #{planQty}
-        WHERE ppdcode = #{ppdcode}
-    </update>
-
-    <delete id="deleteDetailsByPlanCd">
-        DELETE FROM prod_plan_d WHERE produ_plan_cd = #{produPlanCd}
-    </delete>
-
     <!-- 생산계획 조건 검색 -->
     <select id="selectProdPlansByCondition" parameterType="ProdPlanVO" resultType="ProdPlanVO">
         SELECT
@@ -114,7 +76,7 @@
         WHERE produ_plan_cd = #{produPlanCd}
         ORDER BY ppdcode
     </select>
-
+    <!-- 제품목록 검색 -->
     <select id="selectAllProducts" resultType="ProdsVO">
         SELECT
             pcode,
@@ -142,4 +104,39 @@
         )
         WHERE rn = 1
     </select>
+    <!-- 생산계획 저장 영역 ===================================== -->
+    <!-- 생산계획번호 자동 생성 -->
+    <select id="getNewProdPlanCd" resultType="string">
+        SELECT fn_create_prod_plan_cd() FROM dual
+    </select>
+
+    <!-- 상세코드 자동 생성 -->
+    <select id="getNewPpdcode" resultType="string">
+        SELECT fn_create_pk_code('prod_plan_d') FROM dual
+    </select>
+    <!-- 마스터 insert -->
+    <insert id="insertProdPlan">
+        INSERT INTO prod_plan (
+            produ_plan_cd, fcode, fac_ver_cd,
+            plan_start_dt, plan_end_dt, mname, plan_dt, note
+        ) VALUES (
+            #{produPlanCd}, #{fcode}, #{facVerCd},
+            #{planStartDt}, #{planEndDt}, #{mname}, #{planDt}, #{note}
+        )
+    </insert>
+    <!-- 상세 insert -->
+    <insert id="insertProdPlanDetail">
+        INSERT INTO prod_plan_d (
+            ppdcode, produ_plan_cd, pcode,
+            prod_ver_cd, plan_qty, unit, ex_produ_dt, seq
+        ) VALUES (
+            #{ppdcode}, #{produPlanCd}, #{pcode},
+            #{prodVerCd}, #{planQty}, #{unit}, #{exProduDt}, #{seq}
+        )
+    </insert>
+    <!-- 상세 delete -->
+    <delete id="deleteProdPlanDetail" parameterType="string">
+        DELETE FROM prod_plan_d WHERE ppdcode = #{ppdcode}
+    </delete>
+    <!-- ====================================================== -->
 </mapper>

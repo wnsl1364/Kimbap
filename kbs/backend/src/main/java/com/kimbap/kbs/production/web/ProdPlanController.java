@@ -30,17 +30,6 @@ public class ProdPlanController {
         return service.getAllPlans();
     }
 
-    @PostMapping
-    public ResponseEntity<?> save(@RequestBody ProdPlanFullVO fullVO) {
-        service.savePlanWithDetails(fullVO);
-        return ResponseEntity.ok("저장 완료");
-    }
-
-    @DeleteMapping("/{produPlanCd}")
-    public ResponseEntity<?> delete(@PathVariable String produPlanCd) {
-        service.deletePlan(produPlanCd);
-        return ResponseEntity.ok("삭제 완료");
-    }
     // 생산계획 조건 검색
     @PostMapping("/search")
     public List<ProdPlanVO> searchPlans(@RequestBody ProdPlanVO condition) {
@@ -55,5 +44,10 @@ public class ProdPlanController {
     @GetMapping("/productAll")
     public List<ProdsVO> getAllProducts() {
         return service.getAllProducts();
+    }
+    // 생산계획 및 상세 저장    
+    @PostMapping("/planSave")
+    public void saveProdPlan(@RequestBody ProdPlanFullVO fullVO) {
+        service.saveProdPlan(fullVO);
     }
 }
