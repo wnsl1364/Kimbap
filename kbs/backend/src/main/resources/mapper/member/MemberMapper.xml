@@ -3,81 +3,106 @@
 <mapper namespace="com.kimbap.kbs.simjaejine.mapper.MemberMapper">
 
 <select id="getUserInfo" resultType="MemberVO" parameterType="String"> <!-- 로그인 -->
-SELECT   
-    a.id,
-    a.pw,
-    a.mem_type,
-    a.is_used,
-    b.emp_name,
-    b.tel,
-    c.team_name,
-    d.dept_name,
-    e.cp_name
-FROM    
-    member a
-LEFT JOIN 
-    employee b ON a.emp_cd = b.emp_cd
-LEFT JOIN 
-    team c ON b.team_code = c.team_code
-LEFT JOIN 
-    department d ON c.dcode = d.dcode
-LEFT JOIN 
-    company e ON a.cp_cd = e.cp_cd
-WHERE   
-    a.id = #{id}
-
+  SELECT   
+      a.id,
+      a.pw,
+      a.mem_type,
+      a.is_used,
+      b.emp_name,
+      b.tel,
+      c.team_name,
+      d.dept_name,
+      e.cp_name
+  FROM    
+      member a
+  LEFT JOIN 
+      employee b ON a.emp_cd = b.emp_cd
+  LEFT JOIN 
+      team c ON b.team_code = c.team_code
+  LEFT JOIN 
+      department d ON c.dcode = d.dcode
+  LEFT JOIN 
+      company e ON a.cp_cd = e.cp_cd
+  WHERE   
+      a.id = #{id}
 </select>
 
+<insert id="getUserInfo" resultType="MemberVO" parameterType="String">
+
+
+<update id="" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->
+  UPDATE member
+  SET lDate = SYSDATE
+  WHERE memberId = #{memberId}
+</update>
+
+<update id="updateLoginFailCount" parameterType="MemberVO"> <!-- 로그인 실패시 실행ㅇ -->
+    UPDATE login_security
+    SET lcount = lcount + 1,
+        id_used = CASE 
+                    WHEN lcount + 1 >= 5 THEN 'f2'
+                    ELSE id_used
+                 END
+    WHERE mem_cd = #{mem_cd}
+</update>
+
+<update id="resetLoginFailCount" parameterType="MemberVO"> <!-- 로그인 성공시 실행ㅇ -->
+    UPDATE login_security
+    SET lcount = 0,
+        id_used = 'f1'
+    WHERE mem_cd = #{mem_cd}
+</update>
+
 <insert id="addMember" parameterType="MemberAddVO"> <!-- 회원정보 등록 -->
-INSERT INTO member 
-            (mem_cd, 
-            id, 
-            pw, 
-            ldate, 
-            reg_dt, 
-            mem_type, 
-            emp_cd, 
-            cp_cd,
-            is_used)
-VALUES (     
-    <choose>
-      <when test="memType == 'p1' or memType == 'p4'">
-        'MEM-EMP-' || LPAD(member_seq.NEXTVAL, 4, '0')
-      </when>
-      <when test="memType == 'p2' or memType == 'p3'">
-        'MEM-CP-' || LPAD(member_seq.NEXTVAL, 4, '0')
-      </when>
-      <otherwise>
-        'MEM-UNK-' || LPAD(member_seq.NEXTVAL, 4, '0')
-      </otherwise>
-    </choose>,
-        #{id}, 
-        #{pw}, 
-        #{lDate}, 
-        SYSDATE,
-        #{memType}, 
-        #{empCd}, 
-        #{cpCd}, 
-        'f1')
+  INSERT INTO member 
+              (mem_cd, 
+              id, 
+              pw, 
+              ldate, 
+              reg_dt, 
+              mem_type, 
+              emp_cd, 
+              cp_cd,
+              is_used)
+  VALUES (     
+      <choose>
+        <when test="memType == 'p1' or memType == 'p4'">
+          'MEM-EMP-' || LPAD(member_seq.NEXTVAL, 4, '0')
+        </when>
+        <when test="memType == 'p2' or memType == 'p3'">
+          'MEM-CP-' || LPAD(member_seq.NEXTVAL, 4, '0')
+        </when>
+        <otherwise>
+          'MEM-UNK-' || LPAD(member_seq.NEXTVAL, 4, '0')
+        </otherwise>
+      </choose>,
+          #{id}, 
+          #{pw}, 
+          #{lDate}, 
+          SYSDATE,
+          #{memType}, 
+          #{empCd}, 
+          #{cpCd}, 
+          'f1')
 </insert>
 
 <!-- 유효성 검사 -->
 <select id="idCheck" parameterType="string" resultType="int"> <!-- 아이디 중복 검사 -->
-SELECT COUNT(*)
-FROM   member
-WHERE  id = #{id}
+  SELECT COUNT(*)
+  FROM   member
+  WHERE  id = #{id}
 </select>
 
 <select id="getEmpList" resultType="EmpCpCheckVO"> <!-- 업체테이블 출력 -->
-SELECT emp_cd,
-       emp_name        
-FROM   employee
+  SELECT emp_cd,
+        emp_name        
+  FROM   employee
 </select>
 
 <select id="getCpList" resultType="EmpCpCheckVO"> <!-- 거래처테이블 출력 -->
-SELECT cp_cd,
-       cp_name
-FROM   company
+  SELECT cp_cd,
+        cp_name
+  FROM   company
 </select>
 
 </mapper>
