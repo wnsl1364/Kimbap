@@ -5,7 +5,7 @@ import { getCompanyList, insertCompany, updateCompany, getCompanyDetail ,CpChang
 
 export const useStandardCpStore = defineStore('standardCp', () => {
     // 전역 데이터 상태
-    const companyList     = ref([]);    // 자재 목록
+    const companyList     = ref([]);    // 거래처 목록
     const searchFilter     = ref({});    // 검색 필터
     const formData = ref({});          // 단건 조회
     const changeHistory = ref([]);    // 변경 이력 조회
@@ -26,7 +26,7 @@ export const useStandardCpStore = defineStore('standardCp', () => {
     searchFilter.value = filter;
     };
     
-    // 제품 목록 
+    // 거래처 목록 
     const fetchCompanys = async () => {
         try {
             const res = await getCompanyList();
@@ -56,30 +56,35 @@ export const useStandardCpStore = defineStore('standardCp', () => {
             return !sanitized.cpCd ? '등록 실패' : '수정 실패';
         }
         } catch (err) {
-        console.error('제품 저장 중 예외 발생:', err);
+        console.error('거래처 저장 중 예외 발생:', err);
         return '예외 발생';
         }
     }
     // 거래처 기준정보 단건조회
     const fetchCompanyDetail = async (cpCd) => {
+        if (!cpCd) {
+            console.warn('⚠️ cpCd가 비어있습니다. 단건조회 중단');
+            return;
+        }
+
         try {
             const { data } = await getCompanyDetail(cpCd);
             console.log('API 응답 :', data);
 
-            // 등록일자 포멧처리
             if (data.company?.regDt) {
                 data.company.regDt = format(new Date(data.company.regDt), 'yyyy-MM-dd');
             }
+
             formData.value = data.company;
-        }catch (err){
-            console.error('제품 단건 조회 실패:', err);
+        } catch (err) {
+            console.error('거래처 단건 조회 실패:', err);
         }
     };
 
     // 변경이력조회
-    const fetchChangeHistory = async (pcode) => {
+    const fetchChangeHistory = async (cpCd) => {
         try {
-            const res = await CpChangeHistory(pcode);
+            const res = await CpChangeHistory(cpCd);
             changeHistory.value = res.data.map(item => ({
                 ...item,
                 regDt: format(new Date(item.regDt), 'yyyy-MM-dd'),

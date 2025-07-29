@@ -28,6 +28,10 @@ const model = ref([
                 label: '거래처 기준정보',
                 to: '/standard/company'
             },
+            {
+                label: '공장 기준정보',
+                to: '/standard/factory'
+            },
         ]
     },
     {

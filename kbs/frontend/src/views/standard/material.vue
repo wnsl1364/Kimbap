@@ -201,10 +201,10 @@ onBeforeMount(() => {
     ];
 
     cpColumns.value = [
-        { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '250px', placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
+        { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '250px',align: "left" ,placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
         { field: 'cpName', header: '거래처명', width: '100px', type: 'input' },
-        { field: 'unitPrice', header: '단가(원)', width: '100px', type: 'input', inputType: 'number', placeholder: '단가를 입력하세요' },
-        { field: 'ltime', header: '리드타임(일)', width: '100px', type: 'input', inputType: 'number', placeholder: '리드타임을 입력하세요' }
+        { field: 'unitPrice', header: '단가(원)', width: '100px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
+        { field: 'ltime', header: '리드타임(일)', width: '100px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
     ];
 
     mataerialColumns.value = [

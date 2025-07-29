@@ -15,4 +15,9 @@ export default [
         name: 'stdCp',
         component: () => import('@/views/standard/company.vue'),
     },
+    {
+        path: '/standard/factory',
+        name: 'stdFac',
+        component: () => import('@/views/standard/factory.vue'),
+    },
 ];
