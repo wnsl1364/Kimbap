@@ -44,6 +44,7 @@ public class MaterialsVO {
 
     // ========== 자재입고 (MateInboVO) ==========
     private String mateInboCd;      // 자재입고코드
+    private String mateInboDCd;     // 자재입고상세코드
     private String wcode;           // 창고코드
     private String wareVerCd;       // 창고버전코드
     private String fcode;           // 공장코드

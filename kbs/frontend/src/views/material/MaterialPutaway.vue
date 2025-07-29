@@ -14,6 +14,7 @@ import InputForm from '@/components/kimbap/searchform/inputForm.vue';
           delete: { show: false, label: '삭제', severity: 'danger' },
           load: { show: false, label: '불러오기', severity: 'info' }
       }"
+      
     />
   </div>
     

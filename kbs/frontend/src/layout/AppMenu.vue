@@ -75,6 +75,10 @@ const model = ref([
                 to: '/material/materialLoadingWaitingList'
             },
             {
+                label: '자재 적재 처리',
+                to: '/material/materialPutaway'
+            },
+            {
                 label: '자재 이동 요청 등록',
                 to: '/material/transferRequestForm'
             },
@@ -101,7 +105,7 @@ const model = ref([
             {
                 label: '자재 출고',
                 to: '/material/materialOutbound'
-            }
+            },
         ]
     },
     {
