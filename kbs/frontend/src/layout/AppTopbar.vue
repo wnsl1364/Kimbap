@@ -40,7 +40,7 @@ const goToMemberAdd = () => {
                     </g>
                 </svg>
 
-                <span>SAKAI</span>
+                <span>KBS</span>
             </router-link>
         </div>
 

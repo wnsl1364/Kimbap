@@ -15,7 +15,7 @@ import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useMemberStore } from '@/stores/memberStore'
 
 // 날짜 포맷팅을 위한 date-fns
-import { format, addDays, isValid, parse } from 'date-fns'
+import { format, addDays, isValid, parse, parseISO } from 'date-fns'
 
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
@@ -51,7 +51,7 @@ const formFields = [
 const columns = [
   { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
   { field: 'pName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
-  { field: 'orderQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right' },
+  { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', min: 1, },
   { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
   { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true }
 ]
@@ -93,10 +93,10 @@ const purchaseFormButtons = ref({
 });
 
 // 총 금액 계산
-// products 배열의 각 항목에서 orderQty와 unitPrice를 곱하여 총 금액을 계산
+// products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
 const allTotalAmount = computed(() => {
   return products.value.reduce((sum, item) => {
-    const qty = Number(item.orderQty) || 0
+    const qty = Number(item.ordQty) || 0
     const price = Number(item.unitPrice) || 0
     return sum + qty * price
   }, 0)
@@ -134,6 +134,14 @@ const toDate = (value) => {
   return null
 }
 
+const formatDateFields = (obj, fields) => {
+  fields.forEach(field => {
+    if (obj[field]) {
+      obj[field] = format(parseISO(obj[field]), 'yyyy-MM-dd')
+    }
+  })
+}
+
 // 저장
 const handleSave = async () => {
   try {
@@ -152,7 +160,7 @@ const handleSave = async () => {
         alert(`${i + 1}번 제품의 정보를 선택해주세요.`)
         return
       }
-      if (!item.orderQty || Number(item.orderQty) <= 0) {
+      if (!item.ordQty || Number(item.ordQty) <= 0) {
         alert(`${i + 1}번 제품의 수량을 1 이상 입력해주세요.`)
         return
       }
@@ -172,7 +180,7 @@ const handleSave = async () => {
         ordCd: '',  // 마스터 등록 후 백에서 채움
         pcode: p.pcode,
         prodVerCd: p.prodVerCd || 'ver-250724-01', // 프론트에서 기본값 보완
-        ordQty: p.orderQty,
+        ordQty: p.ordQty,
         unitPrice: p.unitPrice,
         deliAvailDt: format(deliReqDt, 'yyyy-MM-dd'),
         ordDStatus: 't1',
@@ -242,13 +250,13 @@ watch(() => formData.value.ordStatus, (newStatus) => {
 
 
 // 수량변경 시 단가 및 총 금액 자동 계산
-// products 배열의 각 항목에서 orderQty와 unitPrice를 곱하여 총 금액을 계산
+// products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
 // 단가 계산은 주문 수량에 따라 할인 적용
 watch(
-  () => products.value.map(p => p.orderQty),
+  () => products.value.map(p => p.ordQty),
   () => {
     products.value.forEach((item) => {
-      const qty = Number(item.orderQty)
+      const qty = Number(item.ordQty)
       const base = Number(item.basePrice || item.unitPrice || 0)
       const newPrice = calculateDiscountedPrice(base, qty)
       const newAmount = qty > 0 ? qty * newPrice : 0  
@@ -306,7 +314,7 @@ onMounted(async () => {
 
       productModalConfig.value = {
         pName: {
-          displayField: 'prod_name',
+          displayField: 'prodName',
           items: productList,
           columns: [
             { field: 'pcode', header: '제품코드' },
@@ -319,7 +327,7 @@ onMounted(async () => {
             prodVerCd: 'prodVerCd',
             basePrice: 'prodUnitPrice',
             unitPrice: (item) => calculateDiscountedPrice(item.prodUnitPrice, 1),
-            orderQty: () => 1,
+            ordQty: () => 1,
             totalAmount: (item) => calculateDiscountedPrice(item.prodUnitPrice, 1) * 1
           }
         }
@@ -335,16 +343,20 @@ onMounted(async () => {
 onMounted(async () => {
   const ordCdFromQuery = route.query.ordCd
 
+  console.log('ordCdFromQuery:', ordCdFromQuery)
+
   if (ordCdFromQuery) {
     try {
-      const res = await axios.get('/api/order/getOne', {
-        params: { ordCd: ordCdFromQuery }
-      })
-      
+      const res = await axios.get(`/api/order/${ordCdFromQuery}`)
+
       if (res.data.result_code === 'SUCCESS') {
         const order = res.data.data
+
+        // 날짜 포맷을 적용해야 하는 부분 추가!
+        formatDateFields(order, ['ordDt', 'deliReqDt', 'exPayDt', 'regDt', 'actPayDt'])
+
         setFormData(order)           // 주문 기본 정보
-        setProducts(order.products) // 주문 상세 목록
+        setProducts(order.orderDetails) // 주문 상세 목록
       } else {
         alert(`주문 정보를 불러오는 데 실패했습니다: ${res.data.message}`)
       }
@@ -372,7 +384,7 @@ onUnmounted(() => {
         scrollHeight="360px" height="460px" :dataKey="'pcode'" :deleteKey="'ordDCd'" :deleteEventName="'handleProductDeleteList'"
         @handleProductDeleteList="handleProductDeleteList"
         :modalDataSets="productModalConfig"
-        :autoCalculation="{enabled: true, quantityField: 'orderQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
+        :autoCalculation="{enabled: true, quantityField: 'ordQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
         <!-- 하단 합계 영역 -->
         <div class="flex justify-end items-center mt-4 px-4">
           <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>

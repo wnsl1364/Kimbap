@@ -198,9 +198,18 @@ const emitDataChange = () => {
 
 // 필드 업데이트
 const updateField = (rowData, field, value) => {
+    // 음수 방지: 숫자 필드이며 0보다 작으면 무조건 0으로 교정
+    const columnDef = props.columns.find(col => col.field === field)
+    if (columnDef?.inputType === 'number') {
+        const numValue = Number(value)
+        if (!isNaN(numValue) && numValue < 0) {
+        value = 0
+        }
+    }
+
     rowData[field] = value
 
-    // 총액 자동계산 - 이제 설정 가능해! 🎉
+    // 총액 자동계산
     if (props.autoCalculation.enabled) {
         const { quantityField, priceField, totalField } = props.autoCalculation
         
@@ -333,6 +342,7 @@ const rowCount = computed(() => internalData.value.length)
                                     @input="updateField(slotProps.data, column.field, $event.target.value)"
                                     :type="column.inputType || 'text'" :readonly="column.readonly"
                                     :disabled="column.disabled" :placeholder="column.placeholder"
+                                    :min="column.inputType === 'number' ? 0 : undefined"
                                     :style="{ width: column.width || 'auto' }"
                                     :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
                             </div>

@@ -1,6 +1,7 @@
 package com.kimbap.kbs.materials.service;
 
 import java.util.List;
+import java.util.Map;
 public interface MateService {
     
     // 자재입고 관련 메서드
@@ -12,6 +13,11 @@ public interface MateService {
     // 발주 관련 메서드
     List<MaterialsVO> getPurcOrdList();
     List<MaterialsVO> getPurchaseOrders(SearchCriteria criteria);
+    List<MaterialsVO> getPurcOrderList();
+    Map<String, Object> getPurcOrderWithDetails(String purcCd);
+    List<MaterialsVO> getMaterialWithSuppliers(SearchCriteria criteria);
+    String savePurchaseOrder(Map<String, Object> orderData);
+    String generatePurchaseCode();
 
     // 자재출고 관련 메서드
     List<MaterialsVO> getMateRelList();

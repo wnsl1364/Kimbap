@@ -63,6 +63,60 @@ export const searchPurchaseOrders = (searchData, userType) => {
   return axios.get('/api/materials/purchaseOrders', { params });
 };
 
+export const getPurcOrderList = () => {
+  return axios.get('/api/materials/purchase-orders/list');
+};
+
+export const getPurcOrderWithDetails = (purcCd) => {
+  return axios.get(`/api/materials/purchase-orders/${purcCd}`);
+};
+
+export const savePurchaseOrder = (orderData) => {
+  return axios.post('/api/materials/purchase-orders', orderData);
+};
+
+export const generatePurchaseCode = () => {
+  return axios.post('/api/materials/purchase-orders/generate-code');
+};
+
+export const getMaterialsWithSuppliers = (searchParams) => {
+  const params = {
+    mcode: searchParams?.mcode,
+    mateName: searchParams?.mateName,
+    cpCd: searchParams?.cpCd,
+    cpName: searchParams?.cpName
+  };
+
+  Object.keys(params).forEach(key => 
+  (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+);
+  return axios.get('/api/materials/materials-with-suppliers', { params })
+}
+
+export const getMaterials = (searchParams) => {
+  const params = {
+    mateName: searchParams.mateName,
+    mateType: searchParams.mateType
+  };
+
+  Object.keys(params).forEach(key => 
+  (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+);
+  return axios.get('/api/materials/materials', { params });
+};
+
+export const getSuppliers = (searchParams) => {
+  const params = {
+    cpName: searchParams.cpName,
+    cpType: searchParams.cpType
+  };
+
+  Object.keys(params).forEach(key => 
+  (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+);
+  return axios.get('/api/materials/suppliers', { params });
+};
+
 // 자재출고 관련 API 함수들
 export const getMaterialOutboundList = () => {
   return axios.get('/api/materials/outbound');
