@@ -3,6 +3,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useMaterialStore } from '@/stores/materialStore';
 import { useMemberStore } from '@/stores/memberStore';
+import { useCommonStore } from '@/stores/commonStore';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue';
@@ -10,31 +11,65 @@ import { storeToRefs } from 'pinia';
 import Toast from 'primevue/toast';
 import { format, parseISO, isValid, formatISO } from 'date-fns';
 
-// 🔥 실제 API 함수들 import
+// 실제 API 함수들 import
 import {
   getPurcOrderList,
   getPurcOrderWithDetails,
   savePurchaseOrder,
   generatePurchaseCode,
-  getMaterialsWithSuppliers
+  getMaterialsWithSuppliers,
+  getMaterials,
+  getSuppliers,
+  getMaterialsBySupplier,
+  getSuppliersByMaterial
 } from '@/api/materials';
 
-// 🎯 Store 활용하기!
+// Store 활용하기!
 const materialStore = useMaterialStore();
 const memberStore = useMemberStore();
+const common = useCommonStore();
+const { commonCodes } = storeToRefs(common)
 const toast = useToast();
-
+const convertedMaterialList = computed(() => {
+  if (!purchaseData.value || !Array.isArray(purchaseData.value)) {
+    console.warn('convertedMaterialList: purchaseData가 배열이 아님:', typeof purchaseData.value);
+    return [];
+  }
+  return convertUnitCodes(purchaseData.value);
+});
 // Store에서 데이터 가져오기 (진짜 필요한 것만!)
-const { purchaseData, modalDataSets } = storeToRefs(materialStore);
+const { purchaseData } = storeToRefs(materialStore);
 
-// 🔥 주문 기본정보 (3개 항목만!)
+const convertUnitCodes = (list) => {
+  // 🛡️ 방어 코드 추가!
+  if (!list || !Array.isArray(list)) {
+    console.warn('convertUnitCodes: list가 배열이 아님:', typeof list, list);
+    return [];
+  }
+
+  const mateTypeCodes = common.getCodes('0H'); // 자재유형
+  const stoConCodes = common.getCodes('0G');   // 단위코드
+
+  return list.map(item => {
+    const matchedMateType = mateTypeCodes.find(code => code.dcd === item.mateType);
+    const matchedStoCon = stoConCodes.find(code => code.dcd === item.unit); // 🔥 unit 필드 매핑
+
+    return {
+      ...item,
+      mateType: matchedMateType ? matchedMateType.cdInfo : item.mateType,
+      unit: matchedStoCon ? matchedStoCon.cdInfo : item.unit, // 🔥 unit으로 변경
+    };
+  });
+};
+
+// 주문 기본정보 (3개 항목만!)
 const orderBasicInfo = ref({
   purcCd: '',  // 발주번호
   regi: '',    // 등록자
   ordDt: ''    // 주문일자
 });
 
-// 📋 기본정보 컬럼 (3개만!)
+// 기본정보 컬럼 (3개만!)
 const basicInfoColumns = ref([
   {
     key: 'purcCd',
@@ -74,7 +109,7 @@ const formatDateForBackend = (dateInput) => {
 
     if (!isValid(date)) return null;
 
-    // ✨ Date 객체 자체를 반환 (String 아님!)
+    // Date 객체 자체를 반환 (String 아님!)
     return date;
 
   } catch (error) {
@@ -133,7 +168,7 @@ const formatDateForDisplay = (dateInput) => {
   }
 };
 
-// 📦 자재 테이블 컬럼 (자재명/거래처명 검색 가능)
+// 자재 테이블 컬럼 (공급업체로 변경!)
 const materialColumns = ref([
   {
     field: 'materialName',
@@ -146,30 +181,12 @@ const materialColumns = ref([
   },
   {
     field: 'buyer',
-    header: '거래처명',
+    header: '공급업체',
     type: 'inputsearch',
     width: '150px',
     suffixIcon: 'pi pi-search',
-    placeholder: '거래처명 검색',
+    placeholder: '공급업체 검색',
     readonly: false
-  },
-  {
-    field: 'mcode',
-    header: '자재코드',
-    type: 'readonly',
-    width: '120px'
-  },
-  {
-    field: 'mateVerCd',
-    header: '버전',
-    type: 'readonly',
-    width: '80px'
-  },
-  {
-    field: 'cpCd',
-    header: '거래처코드',
-    type: 'readonly',
-    width: '120px'
   },
   {
     field: 'number',
@@ -190,7 +207,7 @@ const materialColumns = ref([
     header: '단가(원)',
     type: 'input',
     inputType: 'number',
-    width: '120px',
+    width: '100px',
     placeholder: '단가 입력'
   },
   {
@@ -214,154 +231,104 @@ const materialColumns = ref([
   }
 ]);
 
-// 🔍 실제 자재-거래처 통합 검색 데이터 (API 연결!)
-const searchModalData = ref({
-  materials: [],
-  suppliers: []
+// Store에서 모달 데이터 가져오기
+const tableModalDataSets = computed(() => materialStore.purchaseModalData);
+const convertedModalDataSets = computed(() => {
+  const modalData = tableModalDataSets.value;
+
+  if (!modalData || typeof modalData !== 'object') {
+    console.warn('convertedModalDataSets: modalData가 객체가 아님:', typeof modalData);
+    return {
+      materialName: { items: [], columns: [] },
+      buyer: { items: [], columns: [] }
+    };
+  }
+
+  return {
+    materialName: {
+      ...modalData.materialName,
+      items: convertUnitCodes(modalData.materialName?.items || [])
+    },
+    buyer: {
+      ...modalData.buyer,
+      items: convertUnitCodes(modalData.buyer?.items || [])
+    }
+  };
 });
 
-const currentModalRowData = ref(null);
-
-// 🚀 자재-거래처 데이터 로드 (실제 API 호출!)
-const loadMaterialsWithSuppliers = async () => {
+// 자재-공급업체 데이터 로드 (실제 API 호출!)
+const loadMaterialSupplierCombinations = async () => {
   try {
-    console.log('🔍 자재-거래처 데이터 로드 시작...');
+    console.log('🔍 자재-공급업체 조합 데이터 로드 시작...');
 
     const response = await getMaterialsWithSuppliers();
     console.log('API 응답:', response.data);
 
-    // 자재별로 그룹화
-    const materialsMap = new Map();
-    const suppliersMap = new Map();
+    // Store에 데이터 저장하면 computed에서 자동으로 모달 데이터 업데이트됨
+    materialStore.setMaterialSupplierCombinations(response.data);
 
-    response.data.forEach(item => {
-      // 자재 데이터 그룹화
-      const materialKey = `${item.mcode}_${item.mateVerCd}`;
-      if (!materialsMap.has(materialKey)) {
-        materialsMap.set(materialKey, {
-          mcode: item.mcode,
-          mateName: item.mateName,
-          mateVerCd: item.mateVerCd,
-          mateType: item.mateType,
-          unit: item.unit,
-          std: item.std,
-          safeStock: item.safeStock,
-          suppliers: []
-        });
-      }
-
-      // 해당 자재에 공급업체 추가
-      materialsMap.get(materialKey).suppliers.push({
-        cpCd: item.cpCd,
-        cpName: item.cpName,
-        unitPrice: item.unitPrice
-      });
-
-      // 거래처 데이터 그룹화
-      if (!suppliersMap.has(item.cpCd)) {
-        suppliersMap.set(item.cpCd, {
-          cpCd: item.cpCd,
-          cpName: item.cpName,
-          cpType: item.cpType,
-          repname: item.repname,
-          tel: item.cpTel,
-          address: item.cpAddress,
-          materials: []
-        });
-      }
-
-      // 해당 거래처에 자재 추가
-      suppliersMap.get(item.cpCd).materials.push({
-        mcode: item.mcode,
-        mateName: item.mateName,
-        unitPrice: item.unitPrice
-      });
-    });
-
-    // Map을 배열로 변환
-    searchModalData.value.materials = Array.from(materialsMap.values());
-    searchModalData.value.suppliers = Array.from(suppliersMap.values());
-
-    console.log('✅ 자재-거래처 데이터 로드 완료:', {
-      materials: searchModalData.value.materials.length,
-      suppliers: searchModalData.value.suppliers.length
-    });
+    console.log('✅ 자재-공급업체 조합 데이터 로드 완료:', response.data.length, '건');
 
   } catch (error) {
-    console.error('❌ 자재-거래처 데이터 로드 실패:', error);
+    console.error('❌ 자재-공급업체 데이터 로드 실패:', error);
 
     // API 실패 시 기본 데이터 사용
-    searchModalData.value.materials = [
+    const sampleData = [
       {
         mcode: 'MAT-1001',
         mateName: '김(건조)',
-        mateType: '원자재',
+        mateVerCd: 'V1',
+        mateType: 'h1',
         unit: 'kg',
         std: '1kg/포',
         safeStock: 100,
-        suppliers: [
-          { cpCd: 'CP-001', cpName: '황금쌀농협', unitPrice: 15000 },
-          { cpCd: 'CP-002', cpName: '바다김 수산', unitPrice: 14500 }
-        ]
+        cpCd: 'CP-001',
+        cpName: '황금쌀농협',
+        unitPrice: 15000,
+        ltime: 3
+      },
+      {
+        mcode: 'MAT-1001',
+        mateName: '김(건조)',
+        mateVerCd: 'V1',
+        mateType: 'h1',
+        unit: 'kg',
+        std: '1kg/포',
+        safeStock: 100,
+        cpCd: 'CP-002',
+        cpName: '바다김수산',
+        unitPrice: 14500,
+        ltime: 4
+      },
+      {
+        mcode: 'MAT-1002',
+        mateName: '쌀(백미)',
+        mateVerCd: 'V1',
+        mateType: 'h1',
+        unit: 'kg',
+        std: '20kg/포',
+        safeStock: 50,
+        cpCd: 'CP-001',
+        cpName: '황금쌀농협',
+        unitPrice: 2800,
+        ltime: 5
+      },
+      {
+        mcode: 'MAT-1003',
+        mateName: '참치(캔)',
+        mateVerCd: 'V1',
+        mateType: 'h1',
+        unit: 'ea',
+        std: '150g/캔',
+        safeStock: 200,
+        cpCd: 'CP-003',
+        cpName: '프레시야채',
+        unitPrice: 3000,
+        ltime: 2
       }
     ];
 
-    searchModalData.value.suppliers = [
-      {
-        cpCd: 'CP-001',
-        cpName: '황금쌀농협',
-        repname: '김농부',
-        tel: '02-1234-5678',
-        address: '경기도 이천시 쌀밭로 123',
-        materials: [
-          { mcode: 'MAT-1001', mateName: '김(건조)', unitPrice: 15000 }
-        ]
-      },
-      {
-        cpCd: 'CP-002',
-        cpName: '바다김 수산',
-        repname: '박해산',
-        tel: '061-9999-8888',
-        address: '전남 완도군 바다로 456',
-        materials: [
-          { mcode: 'MAT-1001', mateName: '김(건조)', unitPrice: 14500 },
-          { mcode: 'MAT-1002', mateName: '쌀(백미)', unitPrice: 2800 }
-        ]
-      },
-      {
-        cpCd: 'CP-003',
-        cpName: '프레시 야채',
-        repname: '이야채',
-        tel: '031-5555-6666',
-        address: '경기도 수원시 야채로 789',
-        materials: [
-          { mcode: 'MAT-1002', mateName: '쌀(백미)', unitPrice: 2900 },
-          { mcode: 'MAT-1003', mateName: '참치(캔)', unitPrice: 3000 }
-        ]
-      },
-      {
-        cpCd: 'CP-004',
-        cpName: '맛있는 소스',
-        repname: '최마요',
-        tel: '031-7777-8888',
-        address: '경기도 안산시 소스동 101',
-        materials: [
-          { mcode: 'MAT-1003', mateName: '참치(캔)', unitPrice: 3100 },
-          { mcode: 'MAT-1004', mateName: '마요네즈', unitPrice: 4500 }
-        ]
-      },
-      {
-        cpCd: 'CP-005',
-        cpName: '포장재 전문',
-        repname: '정포장',
-        tel: '02-3333-4444',
-        address: '서울특별시 구로구 포장로 202',
-        materials: [
-          { mcode: 'MAT-1004', mateName: '마요네즈', unitPrice: 4200 },
-          { mcode: 'MAT-2001', mateName: '포장지(김밥용)', unitPrice: 25000 }
-        ]
-      }
-    ];
+    materialStore.setMaterialSupplierCombinations(sampleData);
 
     toast.add({
       severity: 'warn',
@@ -372,69 +339,7 @@ const loadMaterialsWithSuppliers = async () => {
   }
 };
 
-// 🔍 모달 상태 관리
-const searchModalVisible = ref(false);
-const currentSearchType = ref(''); // 'material' 또는 'supplier'
-const currentRowIndex = ref(-1);
-const searchModalItems = ref([]);
-const searchModalColumns = ref([]);
-
-// 🎯 모달 데이터 설정 (동적 필터링 적용!)
-const tableModalDataSets = computed(() => ({
-  materialName: {
-    // 🔥 거래처가 선택되어 있으면 해당 거래처의 자재만!
-    items: currentModalRowData.value?.cpCd 
-      ? getMaterialsBySupplier(currentModalRowData.value.cpCd)
-      : searchModalData.value.materials,
-    columns: [
-      { field: 'mcode', header: '자재코드' },
-      { field: 'mateVerCd', header: '버전' },
-      { field: 'mateName', header: '자재명' },
-      { field: 'mateType', header: '유형' },
-      { field: 'unit', header: '단위' },
-      { field: 'std', header: '규격' },
-      { field: 'safeStock', header: '안전재고' }
-    ],
-    mappingFields: {
-      materialName: 'mateName',
-      mcode: 'mcode',
-      mateVerCd: 'mateVerCd',
-      unit: 'unit'
-    }
-  },
-  buyer: {
-    // 🔥 자재가 선택되어 있으면 해당 자재를 파는 거래처만!
-    items: currentModalRowData.value?.mcode && currentModalRowData.value?.mateVerCd
-      ? getSuppliersByMaterial(currentModalRowData.value.mcode, currentModalRowData.value.mateVerCd)
-      : searchModalData.value.suppliers,
-    columns: [
-      { field: 'cpCd', header: '거래처코드' },
-      { field: 'cpName', header: '거래처명' },
-      { field: 'repname', header: '대표자' },
-      { field: 'tel', header: '전화번호' },
-      { field: 'address', header: '주소' }
-    ],
-    mappingFields: {
-      buyer: 'cpName',
-      cpCd: 'cpCd'
-    }
-  }
-}));
-
-const handleModalOpen = (rowData, fieldName) => {
-  console.log('🔍 모달 열림:', fieldName, rowData);
-  currentModalRowData.value = { ...rowData };  // 🔥 이게 핵심!
-  
-  // 디버깅
-  if (fieldName === 'materialName' && rowData.cpCd) {
-    console.log('자재 모달 - 거래처 필터링 적용:', rowData.cpCd);
-  }
-  if (fieldName === 'buyer' && rowData.mcode) {
-    console.log('거래처 모달 - 자재 필터링 적용:', rowData.mcode);
-  }
-};
-
-// 🔥 기존 발주 정보 불러오기 (실제 API 연결!)
+// 기존 발주 정보 불러오기 (실제 API 연결!)
 const loadExistingOrder = async (purcCd) => {
   try {
     if (!purcCd) {
@@ -447,7 +352,7 @@ const loadExistingOrder = async (purcCd) => {
       return;
     }
 
-    console.log('🔍 발주정보 조회 시작:', purcCd);
+    console.log('발주정보 조회 시작:', purcCd);
 
     const response = await getPurcOrderWithDetails(purcCd);
     console.log('API 응답:', response.data);
@@ -455,7 +360,7 @@ const loadExistingOrder = async (purcCd) => {
     if (response.data && response.data.header) {
       const { header, details } = response.data;
 
-      // 🔥 date-fns로 날짜 처리
+      // date-fns로 날짜 처리
       orderBasicInfo.value = {
         purcCd: header.purcCd,
         regi: header.regi,
@@ -468,12 +373,13 @@ const loadExistingOrder = async (purcCd) => {
         materialName: item.mateName,
         buyer: item.cpName,
         mcode: item.mcode,
+        mateVerCd: item.mateVerCd,
         cpCd: item.cpCd,
         number: item.purcQty,
         unit: getUnitText(item.unit),
         price: item.unitPrice,
         totalPrice: item.totalAmount || (item.purcQty * item.unitPrice),
-        date: formatDateForInput(item.exDeliDt), // 🔥 date-fns 사용
+        date: formatDateForInput(item.exDeliDt), // date-fns 사용
         memo: item.note || ''
       }));
 
@@ -509,27 +415,26 @@ const loadExistingOrder = async (purcCd) => {
   }
 };
 
-// 💾 발주서 저장 (실제 API 연결!)
+// 발주서 저장 (실제 API 연결!)
 const handleSavePurchaseOrder = async (formData) => {
   try {
     console.log('💾 발주서 저장 시작:', formData);
 
-    // 🔥 완벽한 검증!
     const validItems = purchaseData.value.filter(item =>
       item.materialName &&
       item.buyer &&
       item.number > 0 &&
-      item.mcode &&         // 🔥 자재코드 필수!
-      item.mateVerCd &&     // 🔥 자재버전코드 필수!
-      item.cpCd             // 🔥 거래처코드 필수!
+      item.mcode &&
+      item.mateVerCd &&
+      item.cpCd
     );
 
-    console.log('🔍 검증 결과:');
+    console.log('검증 결과:');
     purchaseData.value.forEach((item, index) => {
       console.log(`  ${index + 1}행:`, {
         materialName: item.materialName,
         mcode: item.mcode,
-        mateVerCd: item.mateVerCd,  // 🔥 버전코드 확인!
+        mateVerCd: item.mateVerCd,
         buyer: item.buyer,
         cpCd: item.cpCd,
         number: item.number,
@@ -541,7 +446,7 @@ const handleSavePurchaseOrder = async (formData) => {
       toast.add({
         severity: 'warn',
         summary: '경고',
-        detail: '자재명과 거래처명을 🔍 버튼으로 검색해서 선택해주세요! (자재코드, 버전코드, 거래처코드가 모두 필요합니다)',
+        detail: '자재명과 공급업체명을 🔍 버튼으로 검색해서 선택해주세요! (자재코드, 버전코드, 거래처코드가 모두 필요합니다)',
         life: 4000
       });
       return;
@@ -551,7 +456,7 @@ const handleSavePurchaseOrder = async (formData) => {
 
     const saveData = {
       header: {
-        purcCd: '',  // 백엔드에서 자동생성
+        purcCd: formData.purcCd || '',  // 백엔드에서 자동생성
         ordDt: formatDateForBackend(formData.ordDt),
         regi: formData.regi,
         purcStatus: 'c1',
@@ -560,7 +465,7 @@ const handleSavePurchaseOrder = async (formData) => {
       details: validItems.map(item => ({
         cpCd: item.cpCd,
         mcode: item.mcode,
-        mateVerCd: item.mateVerCd,  // 🔥 버전코드 추가!
+        mateVerCd: item.mateVerCd,  // 버전코드 추가
         purcQty: item.number,
         unit: convertUnitToCode(item.unit),
         unitPrice: item.price,
@@ -596,31 +501,44 @@ const handleSavePurchaseOrder = async (formData) => {
   }
 };
 
-const getSuppliersByMaterial = (selectedMcode, selectedMateVerCd) => {
-  const material = searchModalData.value.materials.find(m =>
-    m.mcode === selectedMcode && m.mateVerCd === selectedMateVerCd
-  );
+const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
+  try {
+    console.log('🔍 특정 자재의 공급업체 조회:', selectedMcode, selectedMateVerCd);
+    const response = await getSuppliersByMaterial(selectedMcode, selectedMateVerCd); // 🔥 API 함수 호출
 
-  if (material && material.suppliers) {
-    return material.suppliers.map(supplier =>
-      searchModalData.value.suppliers.find(s => s.cpCd === supplier.cpCd)
-    ).filter(Boolean);
+    return response.data.map(item => ({
+      cpCd: item.cpCd,
+      cpName: item.cpName,
+      repname: item.repname,
+      tel: item.cpTel,
+      unitPrice: item.unitPrice,
+      ltime: item.ltime
+    }));
+  } catch (error) {
+    console.error('❌ 특정 자재의 공급업체 조회 실패:', error);
+    return materialStore.materialSupplierCombinations;
   }
-
-  return searchModalData.value.suppliers; // 전체 목록
 };
 
 // 🔍 거래처별 자재 필터링 함수 (추가!)
-const getMaterialsBySupplier = (selectedCpCd) => {
-  const supplier = searchModalData.value.suppliers.find(s => s.cpCd === selectedCpCd);
+const loadMaterialsBySupplier = async (selectedCpCd) => {
+  try {
+    console.log('🔍 특정 거래처의 자재 조회:', selectedCpCd);
+    const response = await getMaterialsBySupplier(selectedCpCd); // 🔥 API 함수 호출
 
-  if (supplier && supplier.materials) {
-    return supplier.materials.map(material =>
-      searchModalData.value.materials.find(m => m.mcode === material.mcode)
-    ).filter(Boolean);
+    return response.data.map(item => ({
+      mcode: item.mcode,
+      mateName: item.mateName,
+      mateVerCd: item.mateVerCd,
+      mateType: item.mateType,
+      unit: getUnitText(item.unit),
+      unitPrice: item.unitPrice,
+      ltime: item.ltime
+    }));
+  } catch (error) {
+    console.error('❌ 특정 거래처의 자재 조회 실패:', error);
+    return materialStore.materialSupplierCombinations;
   }
-
-  return searchModalData.value.materials; // 전체 목록
 };
 
 // 🗑️ 초기화
@@ -657,6 +575,8 @@ const handleLoad = async () => {
 // 💰 발주 요약 정보
 const orderSummary = computed(() => {
   const validItems = purchaseData.value.filter(item => item.materialName);
+  console.log('📊 발주 요약 정보:', validItems.length, '개 항목');
+  console.log('전체 목록 validItems : ', validItems);
   const totalAmount = validItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
   const uniqueSuppliers = new Set(validItems.map(item => item.buyer).filter(Boolean));
 
@@ -697,22 +617,36 @@ const tableButtons = ref({
 
 // 🎯 컴포넌트 초기화 (실제 API 연결!)
 onMounted(async () => {
-  // 기본정보 초기값 설정
-  orderBasicInfo.value = {
-    purcCd: '',
-    regi: memberStore.user?.empName || '김김밥',
-    ordDt: new Date().toISOString().split('T')[0]
-  };
+  try {
+    // 🔥 공통코드 먼저 로드!
+    console.log('📋 공통코드 로드 시작...');
+    await Promise.all([
+      common.fetchCommonCodes('0H'), // 자재유형
+      common.fetchCommonCodes('0G')  // 단위코드
+    ]);
+    console.log('✅ 공통코드 로드 완료');
 
-  // 빈 테이블로 시작
-  if (purchaseData.value.length === 0) {
-    purchaseData.value = [];
+    // 기본정보 초기값 설정
+    orderBasicInfo.value = {
+      purcCd: '',
+      regi: memberStore.user?.empName || '김김밥',
+      ordDt: new Date().toISOString().split('T')[0]
+    };
+
+    // 자재-공급업체 조합 데이터 로드
+    await loadMaterialSupplierCombinations();
+
+    console.log('🚀 MaterialPurchase 컴포넌트 초기화 완료');
+
+  } catch (error) {
+    console.error('❌ 초기화 중 오류:', error);
+    toast.add({
+      severity: 'warn',
+      summary: '공통코드 로드 실패',
+      detail: '일부 기능이 제한될 수 있습니다.',
+      life: 3000
+    });
   }
-
-  // 🚀 자재-거래처 데이터 로드
-  await loadMaterialsWithSuppliers();
-
-  console.log('🚀 MaterialPurchase 컴포넌트 초기화 완료');
 });
 
 // 🔧 단위 코드 변환 함수들
@@ -755,7 +689,7 @@ const orderListColumns = [
   { field: 'ordTotalAmount', header: '총금액(원)' }
 ];
 
-// 🚀 발주서 목록 로드 (실제 API 호출!)
+// 발주서 목록 로드 (실제 API 호출)
 const loadOrderList = async () => {
   try {
     console.log('📋 발주서 목록 로드 시작...');
@@ -763,7 +697,7 @@ const loadOrderList = async () => {
     const response = await getPurcOrderList();
     console.log('발주서 목록 API 응답:', response.data);
 
-    // 🔥 date-fns로 날짜 포맷팅
+    // date-fns로 날짜 포맷팅
     orderList.value = response.data.map(order => ({
       ...order,
       ordDt: formatDateForInput(order.ordDt), // date-fns 사용
@@ -858,16 +792,16 @@ onUnmounted(() => {
         @reset="handleReset" @load="handleLoad" />
     </div>
 
-    <!-- 📦 자재 발주 상세 -->
+    <!-- 📦 자재 발주 상세 (🔥 핵심 수정!) -->
     <div>
       <InputTable title="📦 자재 발주 상세" :scroll-height="'50vh'" :height="'60vh'" :columns="materialColumns"
-        :data="purchaseData" :buttons="tableButtons" :enableRowActions="true" :enableSelection="true"
-        :modalDataSets="tableModalDataSets" :autoCalculation="{
+        :data="convertedMaterialList" :buttons="tableButtons" :enableRowActions="true" :enableSelection="true"
+        :modalDataSets="convertedModalDataSets" :autoCalculation="{
           enabled: true,
           quantityField: 'number',
           priceField: 'price',
           totalField: 'totalPrice'
-        }" :showRowCount="true" dataKey="id" @dataChange="handleDataChange" @modalOpen="handleModalOpen" />
+        }" :showRowCount="true" dataKey="uniqueKey" @dataChange="handleDataChange" />
     </div>
 
     <!-- 📊 발주 요약 (데이터가 있을 때만 표시) -->
@@ -879,7 +813,7 @@ onUnmounted(() => {
           <span class="font-bold ml-2">{{ orderSummary.itemCount }}개</span>
         </div>
         <div>
-          <span class="text-gray-600">거래처 수:</span>
+          <span class="text-gray-600">공급업체 수:</span>
           <span class="font-bold ml-2">{{ orderSummary.supplierCount }}개</span>
         </div>
         <div>
@@ -898,7 +832,8 @@ onUnmounted(() => {
           <ul class="text-sm space-y-1">
             <li>• <strong>새 발주서:</strong> 아래 "행 추가" 버튼으로 자재를 추가하세요</li>
             <li>• <strong>기존 발주:</strong> 발주번호 입력 후 "기존 발주 불러오기" 클릭하거나, 발주번호 없이 클릭하면 목록에서 선택</li>
-            <li>• <strong>자재 검색:</strong> 자재명이나 거래처명 옆 🔍 버튼으로 검색 가능</li>
+            <li>• <strong>자재 검색:</strong> 자재명이나 공급업체명 옆 🔍 버튼으로 검색 가능</li>
+            <li>• <strong>🔥 새로운 기능:</strong> 자재명 클릭 → 자재별 공급업체 보기 | 공급업체명 클릭 → 업체별 자재 보기</li>
           </ul>
         </div>
       </div>

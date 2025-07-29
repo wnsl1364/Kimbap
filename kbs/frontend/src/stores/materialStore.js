@@ -1,8 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { format } from 'date-fns';
 
 export const useMaterialStore = defineStore('material', () => {
   const materials = ref([]);
+  const formatDate = (date) => {
+    if (!date) return null;
+    return format(new Date(date), 'yyyy-MM-dd');
+  };
 
   const setMaterials = (newMaterials) => {
     materials.value = newMaterials;
@@ -170,7 +175,68 @@ export const useMaterialStore = defineStore('material', () => {
     }
   };
 
-  // 모달 데이터 설정 (computed로 반응형 처리)
+  const materialSupplierCombinations = ref([]);
+  
+  const setMaterialSupplierCombinations = (data) => {
+    materialSupplierCombinations.value = data;
+    console.log('Store에 자재-공급업체 조합 저장 완료:', data.length, '건');
+  };
+
+  const purchaseModalData = computed(() => ({
+    // 자재명 중심 모달
+    materialName: {
+      items: materialSupplierCombinations.value.map(item => ({
+        ...item,
+        uniqueKey: `${item.mcode}-${item.mateVerCd}-${item.cpCd}` // 추가!
+      })),
+      columns: [
+        { field: 'mcode', header: '자재코드' },
+        { field: 'mateName', header: '자재명' },
+        { field: 'cpName', header: '공급업체' },
+        { field: 'unitPrice', header: '단가(원)' },
+        { field: 'unit', header: '단위' },
+        { field: 'ltime', header: '리드타임' }
+      ],
+      displayField: 'mateName',
+      mappingFields: {
+        materialName: 'mateName',
+        buyer: 'cpName',  // 공급업체로 매핑
+        mcode: 'mcode',
+        mateVerCd: 'mateVerCd',
+        cpCd: 'cpCd',
+        unit: 'unit',
+        price: 'unitPrice',  // 단가 자동 입력
+        uniqueKey: 'uniqueKey'
+      }
+    },
+    // 공급업체명 중심 모달
+    buyer: {
+      items: materialSupplierCombinations.value.map(item => ({
+        ...item, 
+        uniqueKey: `${item.mcode}-${item.mateVerCd}-${item.cpCd}` // 같은 키!
+      })),
+      columns: [
+        { field: 'cpName', header: '공급업체' },
+        { field: 'mateName', header: '자재명' },
+        { field: 'unitPrice', header: '단가(원)' },
+        { field: 'ltime', header: '리드타임' },
+        { field: 'unit', header: '단위' }
+      ],
+      displayField: 'cpName',
+      mappingFields: {
+        buyer: 'cpName',
+        materialName: 'mateName',
+        mcode: 'mcode',
+        mateVerCd: 'mateVerCd', 
+        cpCd: 'cpCd',
+        unit: 'unit',
+        price: 'unitPrice',  // 단가 자동 입력
+        uniqueKey: 'uniqueKey'
+      }
+    }
+  }));
+
+  // 모달 데이터 설정 (기존 - 호환성 유지)
   const modalDataSets = computed(() => ({
     buyer: {
       items: [
@@ -246,6 +312,9 @@ export const useMaterialStore = defineStore('material', () => {
     updatePurchaseStatus,
     modalDataSets,
     purchaseFormButtons,
-    materialTableButtons
+    materialTableButtons,
+    materialSupplierCombinations,
+    setMaterialSupplierCombinations,
+    purchaseModalData
   };
 });

@@ -86,6 +86,7 @@ public class MateController {
                     .body("자재입고 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
+
     /**
      * 공장목록 조회
      */
@@ -317,6 +318,46 @@ public class MateController {
             return ResponseEntity.ok(list);
         } catch (Exception e) {
             System.out.println("거래처 마스터 조회 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 🔥 특정 자재의 공급업체들 조회
+     */
+    @GetMapping("/materials/{mcode}/{mateVerCd}/suppliers")
+    public ResponseEntity<List<MaterialsVO>> getSuppliersByMaterial(
+            @PathVariable String mcode,
+            @PathVariable String mateVerCd) {
+
+        try {
+            SearchCriteria criteria = SearchCriteria.builder()
+                    .mcode(mcode)
+                    .mateVerCd(mateVerCd)
+                    .build();
+
+            List<MaterialsVO> list = mateService.getSuppliersByMaterial(criteria);
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 🔥 특정 거래처의 자재들 조회
+     */
+    @GetMapping("/suppliers/{cpCd}/materials")
+    public ResponseEntity<List<MaterialsVO>> getMaterialsBySupplier(
+            @PathVariable String cpCd) {
+
+        try {
+            SearchCriteria criteria = SearchCriteria.builder()
+                    .cpCd(cpCd)
+                    .build();
+
+            List<MaterialsVO> list = mateService.getMaterialsBySupplier(criteria);
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }

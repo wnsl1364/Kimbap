@@ -15,6 +15,7 @@ public class SearchCriteria {
     private String purcDCd;
     private String mateName;
     private String mcode;
+    private String mateVerCd;
     private String purcDStatus;
     private String purcStatus;
     private String cpCd;
