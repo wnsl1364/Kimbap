@@ -40,4 +40,7 @@ public class OrderVO {
 
     // 주문 상세 목록
     private List<OrderDetailVO> orderDetails;
+
+    // 수정 시 삭제된 상세 목록
+    private List<String> deletedOrdDCdList;
 }

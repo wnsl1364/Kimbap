@@ -39,8 +39,13 @@ public class OrderServiceImpl  implements OrderService {
             for (OrderDetailVO detail : orderVO.getOrderDetails()) {
                 detail.setOrdCd(newOrderCode); // 외래키 세팅
                 detail.setIsUsed("f1");
-                String ordDCd = orderMapper.getGeneratedOrderDetailCode(); // PK 코드 생성
-                detail.setOrdDCd(ordDCd); // DB 함수로 생성
+
+                // 시퀀스로 주문상세코드 생성
+                int seq = orderMapper.getNextOrderDetailSeq();
+                String year = new SimpleDateFormat("yyyy").format(new Date());
+                String newOrdDCd = "ORDD-" + year + "-" + String.format("%06d", seq);
+                detail.setOrdDCd(newOrdDCd);
+
                 orderMapper.insertOrderDetail(detail);
             }
         }
@@ -64,6 +69,41 @@ public class OrderServiceImpl  implements OrderService {
         return order;
     }
 
+    @Override
+    @Transactional
+    public void updateOrder(OrderVO orderVO) {
+        // 1. 주문 마스터 수정
+        orderMapper.updateOrderMaster(orderVO);
+
+        // 2. 주문 상세 처리
+        if (orderVO.getOrderDetails() != null) {
+            for (OrderDetailVO detail : orderVO.getOrderDetails()) {
+                detail.setOrdCd(orderVO.getOrdCd());
+                detail.setIsUsed("f1");
+
+                if (detail.getOrdDCd() == null || detail.getOrdDCd().isEmpty()) {
+                    // 신규 제품 → 시퀀스로 코드 생성 후 INSERT
+                    int seq = orderMapper.getNextOrderDetailSeq(); // 시퀀스
+                    String year = new SimpleDateFormat("yyyy").format(new Date());
+                    String newOrdDCd = "ORDD-" + year + "-" + String.format("%06d", seq);
+                    detail.setOrdDCd(newOrdDCd);
+
+                    orderMapper.insertOrderDetail(detail);
+                } else {
+                    // 기존 제품 → UPDATE
+                    orderMapper.updateOrderDetail(detail);
+                }
+            }
+        }
+
+        // 3. 삭제 대상 상세가 있다면 삭제 처리 (프론트에서 넘겨줄 경우)
+        if (orderVO.getDeletedOrdDCdList() != null) {
+            for (String ordDCd : orderVO.getDeletedOrdDCdList()) {
+                orderMapper.deleteOrderDetailByOrdDCd(ordDCd);
+            }
+        }
+    }
+
 
     // 주문코드 생성 메서드 (요구사항 형식 맞춤: ORD-20250001)
     private String generateOrderCode() {
@@ -79,5 +119,5 @@ public class OrderServiceImpl  implements OrderService {
         }
 
         return prefix + String.format("%04d", nextNumber); // 4자리 형식
-    }  
+    }
 }

@@ -1,12 +1,13 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, watchEffect  } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onUnmounted, computed, watch, watchEffect, readonly  } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 
 // 라우터 설정
 const route = useRoute()
+const router = useRouter()
 
 // Pinia store
 import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형이 유지됨
@@ -39,7 +40,7 @@ const maxExPayDate = addDays(new Date(), 14)
 // 주문 정보 필드 정의
 const formFields = [
   { label: '주문코드', field: 'ordCd', type: 'text', disabled: true },
-  { label: '주문일자', field: 'ordDt', type: 'text'  },
+  { label: '주문일자', field: 'ordDt', type: 'text', readonly: true },
   { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
   { label: '배송지주소', field: 'deliAdd', type: 'text' },
   { label: '납기요청일자', field: 'deliReqDt', type: 'calendar', readonly: true, minDate: minDeliReqDate },
@@ -92,6 +93,13 @@ const purchaseFormButtons = ref({
   load: { show: false, label: '불러오기', severity: 'info' }
 });
 
+// 행 추가 버튼 비활성화
+const isProductAddDisabled = computed(() => {
+  const isNewOrder = !formData.value.ordCd
+  const isWaiting = formData.value.ordStatus === STATUS_WAITING
+  return !(isNewOrder || isWaiting)
+})
+
 // 총 금액 계산
 // products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
 const allTotalAmount = computed(() => {
@@ -101,6 +109,8 @@ const allTotalAmount = computed(() => {
     return sum + qty * price
   }, 0)
 });
+
+const deletedOrdDCdList = ref([])
 
 const handleReset = () => {
   // 유지해야 할 값 백업
@@ -113,6 +123,7 @@ const handleReset = () => {
 
   resetForm()
   resetProducts()
+  deletedOrdDCdList.value = []
 
   // 유지할 값 다시 세팅
   formData.value.ordDt = format(new Date(), 'yyyy-MM-dd')
@@ -176,34 +187,42 @@ const handleSave = async () => {
       exPayDt: format(exPayDt, 'yyyy-MM-dd'),
       ordStatus: 's1',
       orderDetails: products.value.map(p => ({
-        ordDCd: '', // 서버에서 생성하거나 프론트에서 getGeneratedOrderDetailCode로 요청
-        ordCd: '',  // 마스터 등록 후 백에서 채움
+        ordDCd: p.ordDCd || '', // 신규 등록 시 빈 문자열로 설정
+        ordCd: formData.value.ordCd || '',  // 마스터 등록 후 백에서 채움
         pcode: p.pcode,
-        prodVerCd: p.prodVerCd || 'ver-250724-01', // 프론트에서 기본값 보완
+        prodVerCd: p.prodVerCd || 'ver-250724-01',
         ordQty: p.ordQty,
         unitPrice: p.unitPrice,
         deliAvailDt: format(deliReqDt, 'yyyy-MM-dd'),
         ordDStatus: 't1',
         isUsed: 'f1'
-      }))
+      })),
+      deletedOrdDCdList: deletedOrdDCdList.value
     }
 
     console.log('서버에 보낼 데이터:', requestBody)
     console.log("orderDetails", requestBody.orderDetails)
 
-    const res = await axios.post('/api/order/register', requestBody)
+    const isUpdate = !!formData.value.ordCd
+    const url = isUpdate
+      ? `/api/order/${formData.value.ordCd}/update`
+      : '/api/order/register'
+
+    const res = isUpdate
+      ? await axios.put(url, requestBody)
+      : await axios.post(url, requestBody)
 
     if (res.data.result_code === 'SUCCESS') {
       const createdOrder = res.data.data
-      alert(`주문이 성공적으로 등록되었습니다! \n주문번호: ${createdOrder.ordCd}`)
+      alert(`주문이 ${isUpdate ? '수정' : '등록'}되었습니다! \n주문번호: ${createdOrder.ordCd}`)
       handleReset()
+      router.push('/order/orderList')
     } else {
-      alert(`등록 실패: ${res.data.message}`)
+      alert(`${isUpdate ? '수정' : '등록'} 실패: ${res.data.message}`)
     }
-
   } catch (err) {
-    console.error('주문 등록 오류:', err)
-    alert('주문 등록 중 오류가 발생했습니다.')
+    console.error('주문 저장 오류:', err)
+    alert('주문 저장 중 오류가 발생했습니다.')
   }
 }
 
@@ -217,6 +236,7 @@ const handleDelete = async () => {
     if (res.data.result_code === 'SUCCESS') {
       alert('주문이 정상적으로 삭제(비활성)되었습니다.')
       handleReset()
+      router.push('/order/orderList')
     } else {
       alert(`삭제 실패: ${res.data.message}`)
     }
@@ -226,28 +246,35 @@ const handleDelete = async () => {
   }
 }
 
+
+// 제품 삭제 이벤트 핸들러
 const handleProductDeleteList = async (ordDCdList) => {
   for (const ordDCd of ordDCdList) {
     await axios.put(`/api/order-detail/${ordDCd}/deactivate`)
-    // 로컬에서 products 배열에서 제거
+
     const idx = products.value.findIndex(p => p.ordDCd === ordDCd)
     if (idx !== -1) products.value.splice(idx, 1)
+
+    // 삭제된 코드 따로 저장
+    deletedOrdDCdList.value.push(ordDCd)
   }
 }
 
+// ordCd가 없으면 등록 모드 → 저장/초기화 표시, 삭제 숨김
+// ordCd 있고 ordStatus === 's1'이면 → 수정 모드에서 삭제 버튼 활성화
+// 다른 상태(s2 이상)이면 → 삭제/초기화 숨김
+watch(
+  () => [formData.value.ordCd, formData.value.ordStatus],
+  ([ordCd, ordStatus]) => {
+    const isNewOrder = !ordCd
+    const isWaiting = ordStatus === STATUS_WAITING
 
-// 상태 감지해서 버튼 조건 변경하는 watch
-// 주문 상태가 신규(ordCd 없음) 또는 접수 대기(s1) 상태일 때 저장 및 초기화 버튼을 표시하고, 삭제 버튼은 접수 대기 상태일 때만 표시
-// 주문 상태가 접수 완료(s2) 이상이면 저장 및 초기화 버튼을 숨기고, 삭제 버튼은 숨김
-watch(() => formData.value.ordStatus, (newStatus) => {
-  const isNewOrder = !formData.value.ordCd           // 주문코드가 없으면 신규
-  const isWaiting = newStatus === STATUS_WAITING     // 접수 대기 상태인지 확인
-
-  infoFormButtons.value.save.show = isNewOrder || isWaiting
-  infoFormButtons.value.reset.show = isNewOrder || isWaiting
-  infoFormButtons.value.delete.show = !isNewOrder && isWaiting
-})
-
+    infoFormButtons.value.save.show = isNewOrder || isWaiting
+    infoFormButtons.value.reset.show = isNewOrder || isWaiting
+    infoFormButtons.value.delete.show = !isNewOrder && isWaiting
+  },
+  { immediate: true }
+)
 
 // 수량변경 시 단가 및 총 금액 자동 계산
 // products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
@@ -257,7 +284,7 @@ watch(
   () => {
     products.value.forEach((item) => {
       const qty = Number(item.ordQty)
-      const base = Number(item.basePrice || item.unitPrice || 0)
+      const base = Number(item.basePrice || 0)
       const newPrice = calculateDiscountedPrice(base, qty)
       const newAmount = qty > 0 ? qty * newPrice : 0  
 
@@ -270,7 +297,6 @@ watch(
   },
   { deep: true }
 )
-
 
 
 // 제품 모달 설정
@@ -355,6 +381,10 @@ onMounted(async () => {
         // 날짜 포맷을 적용해야 하는 부분 추가!
         formatDateFields(order, ['ordDt', 'deliReqDt', 'exPayDt', 'regDt', 'actPayDt'])
 
+        order.orderDetails.forEach(p => {
+          p.basePrice = p.unitPrice / 40
+        })
+
         setFormData(order)           // 주문 기본 정보
         setProducts(order.orderDetails) // 주문 상세 목록
       } else {
@@ -384,7 +414,8 @@ onUnmounted(() => {
         scrollHeight="360px" height="460px" :dataKey="'pcode'" :deleteKey="'ordDCd'" :deleteEventName="'handleProductDeleteList'"
         @handleProductDeleteList="handleProductDeleteList"
         :modalDataSets="productModalConfig"
-        :autoCalculation="{enabled: true, quantityField: 'ordQty', priceField: 'unitPrice', totalField: 'totalAmount' }"/>
+        :autoCalculation="{enabled: true, quantityField: 'ordQty', priceField: 'unitPrice', totalField: 'totalAmount' }"
+        :enableRowActions="!isProductAddDisabled" :enableSelection="!isProductAddDisabled"/>
         <!-- 하단 합계 영역 -->
         <div class="flex justify-end items-center mt-4 px-4">
           <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>

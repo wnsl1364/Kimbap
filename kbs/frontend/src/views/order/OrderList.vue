@@ -10,21 +10,16 @@ import { useRouter } from 'vue-router';
 
 // 라우터 설정
 const router = useRouter();
-const handleRowClick = (rowData) => {
-  console.log('[OrderList.vue] 라우터 이동 대상:', rowData)
-  const ordCd = rowData.ordCd
-  if (ordCd) {
-    router.push({ path: '/order/orderRegister', query: { ordCd } })
-  }
-}
 
 // 로그인 정보 가져오기
 const memberStore = useMemberStore()
 const { user } = storeToRefs(memberStore)
 
-const isEmployee = computed(() => user.value?.memType === 'p1')
-const isCustomer = computed(() => user.value?.memType === 'p2')
-const isSupplier = computed(() => user.value?.memType === 'p3')
+const isEmployee = computed(() => user.value?.memType === 'p1')       // 사원
+const isCustomer = computed(() => user.value?.memType === 'p2')       // 매출업체
+const isSupplier = computed(() => user.value?.memType === 'p3')       // 공급업체
+const isManager = computed(() => user.value?.memType === 'p4')        // 담당자
+const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스템 관리자
 
 console.log('현재 사용자 권한:', user.value)
 
@@ -56,7 +51,6 @@ const infoFormButtons = computed(() => {
   }
 })
 
-
 // 주문 목록 컬럼 정의
 const orderColumns = computed(() => {
   if (user.value?.memType === 'p2') { // 매출업체
@@ -76,6 +70,7 @@ const orderColumns = computed(() => {
     return [
       { field: 'ordCd', header: '주문코드', type: 'clickable' },
       { field: 'prodName', header: '제품명', type: 'readonly' },
+      { field: 'cpName', header: '거래처명', type: 'readonly' },
       { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
       { field: 'ordDt', header: '주문일자', type: 'readonly' },
       { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
@@ -149,6 +144,24 @@ const handleReset = () => {
         column.value = '';
     });
 };
+
+const handleRowClick = (rowData) => {
+  console.log('[OrderList.vue] 라우터 이동 대상:', rowData)
+  const ordCd = rowData.ordCd
+  const memType = user.value?.memType
+
+  if (!ordCd) return;
+
+  if (memType === 'p2') {
+    // 매출업체는 주문등록(수정) 페이지로
+    router.push({ path: '/order/orderRegister', query: { ordCd } })
+  } else if (['p1', 'p4', 'p5'].includes(memType)) {
+    // 사원/관리자/물류는 주문검토 페이지로
+    router.push({ path: '/order/orderReview', query: { ordCd } })
+  } else {
+    console.warn('지원되지 않는 사용자 유형입니다:', memType)
+  }
+}
 </script>
 <template>
   <!-- 검색 폼 컴포넌트 -->
