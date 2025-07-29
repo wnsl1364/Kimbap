@@ -115,11 +115,11 @@ onBeforeMount(async () => {
 </script>
 
 <template>
-  <div class="grid">
-    <div class="col-12">
-      <div class="card">
+  <div class="flex justify-center pt-20 min-h-screen bg-gray-50">
+    <div class="w-full max-w-[800px] px-4">
+      <div class="card p-6">
         <h5>계정 등록</h5>
-        
+
         <!-- 사용자 타입 선택 -->
         <div class="mb-4">
           <div class="field-radiobutton">
@@ -131,20 +131,17 @@ onBeforeMount(async () => {
             <label for="supplier" class="ml-2">공급업체직원</label>
           </div>
         </div>
-            <div class="flex flex-col md:flex-row gap-4 mt-6">
-        <div class="w-full md:basis-[45%]">
+          <div class="w-full md:basis-[45%]">
             <InputForm
-                title=""
-                v-model:data="formData"
-                :columns="inputColumns"
-                :buttons="inputFormButtons"
-                :formData="formData"
-                :isReadonly="isReadonly"
-                @submit="handleSaveMember"
+              title=""
+              v-model:data="formData"
+              :columns="inputColumns"
+              :buttons="inputFormButtons"
+              :formData="formData"
+              :isReadonly="isReadonly"
+              @submit="handleSaveMember"
             />
         </div>
-        
-    </div>
       </div>
     </div>
   </div>
