@@ -88,4 +88,11 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             }
         }
     }
+    // 생산계획과 관련 상세 삭제
+    @Transactional
+    @Override
+    public void deleteProdPlan(String produPlanCd) {
+        mapper.deleteProdPlanDetailByPlanCd(produPlanCd);
+        mapper.deleteProdPlan(produPlanCd);
+    }
 }

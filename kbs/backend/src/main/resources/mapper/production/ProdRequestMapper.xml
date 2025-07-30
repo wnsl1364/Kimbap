@@ -1,79 +1,72 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.kimbap.kbs.production.mapper.ProdPlanMapper">
-    <!-- 생산계획 전체 조회 -->
-    <select id="selectProdPlans" resultType="ProdPlanVO">
-        SELECT * FROM prod_plan
-    </select>
-
-    <!-- 생산계획 조건 검색 -->
-    <select id="selectProdPlansByCondition" parameterType="ProdPlanVO" resultType="ProdPlanVO">
+<mapper namespace="com.kimbap.kbs.production.mapper.ProdRequestMapper">
+    <!-- 생산요청 조건 검색 -->
+    <select id="selectProdRequestByCondition" parameterType="ProdRequestVO" resultType="ProdRequestVO">
         SELECT
-            pp.produ_plan_cd,
+            pr.produ_req_cd,
             pp.fcode,
             pp.fac_ver_cd,
-            pp.plan_dt,
-            pp.plan_start_dt,
-            pp.plan_end_dt,
+            pr.req_dt,
+            pr.pr_req_status,
+            pr.produ_plan_cd,
             f.fac_name,
-            pp.note,
-            SUM(ppd.plan_qty) AS sum_plan_qty,
-            MIN(ppd.unit) KEEP (DENSE_RANK FIRST ORDER BY ppd.ppdcode) AS first_unit
-        FROM prod_plan pp
+            pr.note,
+            SUM(prr.req_qty) AS sum_req_qty,
+            MIN(p.unit) KEEP (DENSE_RANK FIRST ORDER BY pr.produ_req_cd) AS first_unit
+        FROM production_req pr
+        JOIN prod_plan pp
+            ON pr.produ_plan_cd = pp.produ_plan_cd
         JOIN factory f
             ON pp.fcode = f.fcode
             AND pp.fac_ver_cd = f.fac_ver_cd
-        LEFT JOIN prod_plan_d ppd
-            ON pp.produ_plan_cd = ppd.produ_plan_cd
+        LEFT JOIN prod_req prr
+            ON pr.produ_req_cd = prr.produ_req_cd
+        JOIN product p
+            ON prr.pcode = p.pcode
+            AND prr.prod_ver_cd = p.prod_ver_cd
         <where>
-            <if test="produPlanCd != null and produPlanCd != ''">
-            AND LOWER(pp.produ_plan_cd) LIKE '%' || LOWER(#{produPlanCd}) || '%'
+            <if test="produReqCd != null and produReqCd != ''">
+            AND LOWER(pr.produ_plan_cd) LIKE '%' || LOWER(#{produReqCd}) || '%'
             </if>
-            <if test="planDtStart != null">
-            AND pp.plan_dt &gt;= #{planDtStart}
+            <if test="reqDtStart != null">
+            AND pr.req_dt &gt;= #{reqDtStart}
             </if>
-            <if test="planDtEnd != null">
-            AND pp.plan_dt &lt;= #{planDtEnd}
-            </if>
-            <if test="periodStartDt != null">
-            AND pp.plan_start_dt &gt;= #{periodStartDt}
-            </if>
-            <if test="periodEndDt != null">
-            AND pp.plan_end_dt &lt;= #{periodEndDt}
+            <if test="reqDtEnd != null">
+            AND pr.req_dt &lt;= #{reqDtEnd}
             </if>
             <if test="fcode != null and facVerCd != null">
             AND pp.fcode = #{fcode}
             AND pp.fac_ver_cd = #{facVerCd}
             </if>
         </where>
-        GROUP BY
-            pp.produ_plan_cd,
+        GROUP BY 
+            pr.produ_req_cd,
             pp.fcode,
             pp.fac_ver_cd,
-            pp.plan_dt,
-            pp.plan_start_dt,
-            pp.plan_end_dt,
+            pr.req_dt,
+            pr.pr_req_status,
+            pr.produ_plan_cd,
             f.fac_name,
-            pp.note
+            pr.note
     </select>
     <!-- 생산계획상세 조건 검색 -->
-    <select id="selectDetailsByPlanCd"  parameterType="String" resultType="ProdPlanDetailVO">
+    <select id="selectDetailsByProduReqCd"  parameterType="String" resultType="ProdRequestDetailVO">
         SELECT
-            pp.ppdcode,
-            pp.produ_plan_cd,
-            pp.pcode,
-            pp.prod_ver_cd,
-            pp.plan_qty,
-            pp.unit,
-            pp.ex_produ_dt,
-            pp.seq,
+            pr.produ_prod_cd,
+            pr.pcode,
+            pr.prod_ver_cd,
+            pr.produ_req_cd,
+            pr.req_qty,
+            pr.seq,
+            p.unit,
             p.prod_name
-        FROM prod_plan_d pp
+        FROM prod_req pr
         JOIN product p
-            ON pp.pcode = p.pcode
-            AND pp.prod_ver_cd = p.prod_ver_cd
-        WHERE produ_plan_cd = #{produPlanCd}
-        ORDER BY ppdcode
+            ON pr.pcode = p.pcode
+            AND pr.prod_ver_cd = p.prod_ver_cd
+        WHERE produ_req_cd = #{produReqCd}
+        ORDER BY produ_prod_cd
     </select>
     <!-- 제품목록 검색 -->
     <select id="selectAllProducts" resultType="ProdsVO">

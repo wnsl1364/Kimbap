@@ -2,6 +2,8 @@ package com.kimbap.kbs.production.web;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/prod/prodPlan")
 @RequiredArgsConstructor
 public class ProdPlanController {
-      private final ProdPlanService service;
+    private final ProdPlanService service;
 
     @GetMapping("/list")
     public List<ProdPlanVO> list() {
@@ -47,5 +49,11 @@ public class ProdPlanController {
     @PostMapping("/planSave")
     public void saveProdPlan(@RequestBody ProdPlanFullVO fullVO) {
         service.saveProdPlan(fullVO);
+    }
+    // 생산계획과 관련 상세 삭제
+    @DeleteMapping("/{produPlanCd}")
+    public ResponseEntity<Void> deleteProdPlan(@PathVariable String produPlanCd) {
+        service.deleteProdPlan(produPlanCd);
+        return ResponseEntity.noContent().build();
     }
 }
