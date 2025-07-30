@@ -13,6 +13,10 @@ const props = defineProps({
     columns: {
         type: Array,
         required: true
+    },
+    gridColumns: {
+        type: Number,
+        default: 4
     }
 });
 
@@ -33,6 +37,10 @@ const handleMinChange = (column) => {
         column.value.max = column.value.min;
     }
 };
+
+const gridClass = computed(() => {
+    return `grid grid-cols-1 lg:grid-cols-${props.gridColumns} gap-6`;
+});
 
 const handleMaxChange = (column) => {
     const minVal = parseFloat(column.value.min);
@@ -117,7 +125,7 @@ const handleReset = () => {
             <div class="card flex flex-col gap-4 !p-5 !rounded-none">
 
                 <!-- 동적 검색 필드들 - 2열 그리드 -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div :class="gridClass">
                     <div v-for="(column, index) in searchColumns" :key="column.key" class="flex flex-col gap-2">
                         <label :for="`search_${column.key}`" class="font-medium text-gray-700 mb-1">
                             {{ column.label }}
