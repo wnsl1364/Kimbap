@@ -4,11 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue';
-
-// 라우터 설정
-const route = useRoute()
-const router = useRouter()
-
 // Pinia store
 import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형이 유지됨
 import { useOrderFormStore } from '@/stores/orderFormStore'
@@ -18,13 +13,19 @@ import { useMemberStore } from '@/stores/memberStore'
 // 날짜 포맷팅을 위한 date-fns
 import { format, addDays, isValid, parse, parseISO } from 'date-fns'
 
+// 라우터 설정
+const route = useRoute()
+const router = useRouter()
+
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
 const productStore = useOrderProductStore()
+const memberStore = useMemberStore()
 
 // 반응형 상태
 const { formData } = storeToRefs(formStore)
 const { products } = storeToRefs(productStore)
+const { user } = storeToRefs(memberStore)
 
 // store 메서드
 const { setFormData, resetForm } = formStore
@@ -51,7 +52,7 @@ const formFields = [
 // 제품 정보 테이블 컬럼 정의
 const columns = [
   { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
-  { field: 'pName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
+  { field: 'prodName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
   { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', min: 1, },
   { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
   { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true }
@@ -167,7 +168,7 @@ const handleSave = async () => {
 
      for (let i = 0; i < products.value.length; i++) {
       const item = products.value[i]
-      if (!item.pcode || !item.pName) {
+      if (!item.pcode || !item.prodName) {
         alert(`${i + 1}번 제품의 정보를 선택해주세요.`)
         return
       }
@@ -303,35 +304,6 @@ watch(
 const productModalConfig = ref({})
 
 onMounted(async () => {
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  // 하드코딩 테스트 데이터
-  const hardcodedCompany = {
-    cpCd: 'CP-101',
-    cpName: 'GS25강남점',
-    deliAdd: '서울시 강남구 테헤란로 303',
-    loanTerm: 15,
-    regi: 'EMP-10005' //'MEM-001'
-  }
-
-  // 초기 폼 데이터 설정
-  setFormData({
-    ordCd: '',
-    ordDt: today,
-    cpCd: hardcodedCompany.cpCd,
-    cpName: hardcodedCompany.cpName,
-    deliAdd: hardcodedCompany.deliAdd,
-    deliReqDt: '',
-    exPayDt: '',
-    note: '',
-    regi: hardcodedCompany.regi,
-    ordTotalAmount: 0,
-    ordStatus: 's1'
-  })
-
-  // 입금일자 최대값 세팅
-  maxExPayDate.value = addDays(new Date(), hardcodedCompany.loanTerm)
-
   // 제품 목록(DB)
   try {
     const res = await axios.get('/api/product/list')
@@ -339,7 +311,7 @@ onMounted(async () => {
       const productList = res.data.data
 
       productModalConfig.value = {
-        pName: {
+        prodName: {
           displayField: 'prodName',
           items: productList,
           columns: [
@@ -349,7 +321,7 @@ onMounted(async () => {
           ],
           mappingFields: {
             pcode: 'pcode',
-            pName: 'prodName',
+            prodName: 'prodName',
             prodVerCd: 'prodVerCd',
             basePrice: 'prodUnitPrice',
             unitPrice: (item) => calculateDiscountedPrice(item.prodUnitPrice, 1),
@@ -366,13 +338,56 @@ onMounted(async () => {
   }
 })
 
+onMounted(() => {
+  console.log('[디버깅] memberStore:', memberStore)
+  console.log('[디버깅] 현재 user:', user.value)
+})
+
+onMounted(() => {
+  watch(
+    () => user?.value,
+    (val) => {
+      if (!val) return
+
+      const today = format(new Date(), 'yyyy-MM-dd')
+
+      // 로그인한 사용자 정보에서 cpCd, cpName, deliAdd, loanTerm 가져오기
+      const companyInfo = {
+        cpCd: val.cpCd || '',
+        cpName: val.cpName || '',
+        deliAdd: val.address || '',
+        loanTerm: val.loanTerm || 14,
+        regi: val.empCd || val.memCd || ''
+      }
+
+      // 초기 폼 데이터 설정
+      setFormData({
+        ordCd: '',
+        ordDt: today,
+        cpCd: companyInfo.cpCd,
+        cpName: companyInfo.cpName,
+        deliAdd: companyInfo.deliAdd,
+        deliReqDt: '',
+        exPayDt: '',
+        note: '',
+        regi: companyInfo.regi,
+        ordTotalAmount: 0,
+        ordStatus: 's1'
+      })
+
+      // 입금일자 최대값 세팅
+      maxExPayDate.value = addDays(new Date(), companyInfo.loanTerm)
+    },
+    { immediate: true }
+  )
+})
+
 onMounted(async () => {
   const ordCdFromQuery = route.query.ordCd
 
-  console.log('ordCdFromQuery:', ordCdFromQuery)
-
   if (ordCdFromQuery) {
     try {
+      console.log('ordCdFromQuery:', ordCdFromQuery)
       const res = await axios.get(`/api/order/${ordCdFromQuery}`)
 
       if (res.data.result_code === 'SUCCESS') {

@@ -72,16 +72,51 @@ public class OrderController {
     @GetMapping("/list")
     public Map<String, Object> getOrderList(
         @RequestParam(required = false) String id,
-        @RequestParam(required = false) String memType
+        @RequestParam(required = false) String memType,
+        @RequestParam(required = false) String ordCd,
+        @RequestParam(required = false) String ordDtStart,
+        @RequestParam(required = false) String ordDtEnd,
+        @RequestParam(required = false) String deliReqDtStart,
+        @RequestParam(required = false) String deliReqDtEnd,
+        @RequestParam(required = false) String cpName,
+        @RequestParam(required = false) String ordStatus
     ) {
         Map<String, Object> response = new HashMap<>();
         try {
             Map<String, Object> params = new HashMap<>();
-            // 매출업체일 경우 → id 기준 필터링
+
+            // 회원 유형 분기 처리
             if ("p2".equals(memType)) {
-                params.put("cpCd", id);  // 뷰에서 cp_cd가 주문자 ID로 추정
+                params.put("cpCd", id); // 매출업체
             }
+
+            // 검색 조건 추가
+            if (ordCd != null && !ordCd.isEmpty()) {
+                params.put("ordCd", ordCd);
+            }
+            if (cpName != null && !cpName.isEmpty()) {
+                params.put("cpName", cpName);
+            }
+            if (ordStatus != null && !ordStatus.isEmpty()) {
+                params.put("ordStatus", ordStatus);
+            }
+
+            // 날짜 범위 분리
+            if (ordDtStart != null && !ordDtStart.isEmpty()) {
+                params.put("ordDtStart", ordDtStart);
+            }
+            if (ordDtEnd != null && !ordDtEnd.isEmpty()) {
+                params.put("ordDtEnd", ordDtEnd);
+            }
+            if (deliReqDtStart != null && !deliReqDtStart.isEmpty()) {
+                params.put("deliReqDtStart", deliReqDtStart);
+            }
+            if (deliReqDtEnd != null && !deliReqDtEnd.isEmpty()) {
+                params.put("deliReqDtEnd", deliReqDtEnd);
+            }
+
             List<OrderVO> list = orderService.getOrderList(params);
+
             response.put("result_code", "SUCCESS");
             response.put("message", "주문 목록 조회 성공");
             response.put("data", list);
@@ -92,6 +127,7 @@ public class OrderController {
         }
         return response;
     }
+    
 
     // 주문 상세 조회 (주문코드로 단건 조회)
     @GetMapping("/{ordCd}")
