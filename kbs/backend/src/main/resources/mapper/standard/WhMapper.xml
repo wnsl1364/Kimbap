@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.standard.mapper.WhMapper">
+    <!-- 창고 목록 조회 -->
+    <select id="getWarehouseList" resultType="com.kimbap.kbs.standard.service.WhVO">
+        SELECT  wcode,
+                ware_ver_cd,
+                ware_name,
+                ware_type,
+                address,
+                max_row,
+                max_col,
+                max_floor,
+                is_used,
+                reg_dt,
+                note,
+                cha_rea,
+                fcode,
+                fac_ver_cd,
+                regi,
+                modi
+        FROM    warehouse
+        WHERE   is_used = 'f1'
+        ORDER BY   wcode
+    </select>
+
+    <!-- 창고 등록 -->
+    <insert id="insertWh" parameterType="com.kimbap.kbs.standard.service.WhVO">
+        INSERT INTO warehouse
+                    (wcode,
+                    ware_ver_cd,
+                    ware_name,
+                    ware_type,
+                    address,
+                    max_row,
+                    max_col,
+                    max_floor,
+                    is_used,
+                    reg_dt,
+                    note,
+                    cha_rea,
+                    fcode,
+                    fac_ver_cd,
+                    regi,
+                    modi
+                    )
+        VALUES  (#{wcode},
+                #{wareVerCd},
+                #{wareName},
+                #{wareType},
+                #{address},
+                #{maxRow},
+                #{maxCol},
+                #{maxFloor},
+                #{isUsed},
+                SYSDATE,
+                #{note},
+                #{chaRea},
+                #{fcode},
+                #{facVerCd},
+                #{regi},
+                #{modi}
+                )
+    </insert>
+
+    <!-- 창고 단건 조회 -->
+    <select id="getWhdetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.WhVO">
+        SELECT  w.wcode,
+                w.ware_ver_cd,
+                w.ware_name,
+                w.ware_type,
+                w.address,
+                w.max_row,
+                w.max_col,
+                w.max_floor,
+                w.is_used,
+                w.reg_dt,
+                w.note,
+                w.cha_rea,
+                w.fcode,
+                f.fac_name AS facName,  <!-- 공장명 조인 -->
+                w.fac_ver_cd,
+                w.regi,
+                w.modi
+        FROM (
+            SELECT  w.*
+            FROM    warehouse w
+            WHERE   w.wcode = #{wcode}
+            ORDER BY w.ware_ver_cd DESC
+        ) w
+        LEFT JOIN factory f ON w.fcode = f.fcode
+        WHERE ROWNUM = 1
+    </select>
+
+    <!-- 창고 이력 조회 -->
+    <select id="selectWhHistory" resultType="com.kimbap.kbs.standard.service.WhVO">
+        SELECT  wcode,
+                ware_ver_cd,
+                ware_name,
+                ware_type,
+                address,
+                max_row,
+                max_col,
+                max_floor,
+                is_used,
+                reg_dt,
+                note,
+                cha_rea,
+                fcode,
+                fac_ver_cd,
+                regi,
+                modi
+        FROM    warehouse
+        WHERE   wcode = #{wcode}
+        ORDER BY  ware_ver_cd DESC
+    </select>
+
+    <!-- 창고 코드 시퀀스 -->
+    <select id="getNextRawWarehouseCodeBySeq" resultType="int">
+        SELECT  seq_raw_Warehouse_code.NEXTVAL
+        FROM    dual
+    </select>
+
+    <!-- 기존 창고 버전 비활성화 -->
+    <update id="disableOldVersion" parameterType="string">
+        UPDATE  warehouse
+        SET  is_used = 'f2'
+        WHERE   wcode = #{wcode}
+        AND  is_used = 'f1'
+    </update>
+
+    <!-- 창고 코드 중복 체크-->
+    <select id="existsWcode" parameterType="string" resultType="int">
+        SELECT COUNT(*) 
+        FROM   warehouse
+        WHERE  wcode = #{wcode}
+    </select>
+
+    <!-- 창고 상세 등록 -->
+    <insert id="insertWhDetail" parameterType="WhDetailVO">
+        INSERT INTO ware_d 
+                (ware_area_cd,
+                 area_row, 
+                 area_col, 
+                 area_floor,
+                 is_used, 
+                 vol, 
+                 wcode, 
+                 ware_ver_cd
+                 )
+        VALUES  (
+                #{wareAreaCd},
+                #{areaRow},
+                #{areaCol},
+                #{areaFloor},
+                #{isUsed},
+                #{vol},
+                #{wcode},
+                #{wareVerCd}
+                )
+    </insert>
+    <!-- 창고 최신버전 1건 조회 -->
+    <select id="selectLatestVersion" parameterType="string" resultType="com.kimbap.kbs.standard.service.WhVO">
+        SELECT  wcode,
+                ware_ver_cd,
+                ware_name,
+                ware_type,
+                address,
+                max_row,
+                max_col,
+                max_floor,
+                is_used,
+                reg_dt,
+                note,
+                cha_rea,
+                fcode,
+                fac_ver_cd,
+                regi,
+                modi
+        FROM (
+            SELECT  wcode,
+                    ware_ver_cd,
+                    ware_name,
+                    ware_type,
+                    address,
+                    max_row,
+                    max_col,
+                    max_floor,
+                    is_used,
+                    reg_dt,
+                    note,
+                    cha_rea,
+                    fcode,
+                    fac_ver_cd,
+                    regi,
+                    modi
+            FROM    warehouse
+            WHERE   wcode = #{wcode}
+            ORDER BY ware_ver_cd DESC
+            )
+        WHERE ROWNUM = 1
+    </select>
+    
+    <update id="updateWh" parameterType="com.kimbap.kbs.standard.service.WhVO">
+        UPDATE warehouse SET ware_name = ware_name WHERE 1 = 0
+    </update>
+
+</mapper>

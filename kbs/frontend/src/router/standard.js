@@ -20,4 +20,9 @@ export default [
         name: 'stdFac',
         component: () => import('@/views/standard/factory.vue'),
     },
+    {
+        path: '/standard/warehouse',
+        name: 'stdWh',
+        component: () => import('@/views/standard/warehouse.vue'),
+    },
 ];

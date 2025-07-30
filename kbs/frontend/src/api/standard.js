@@ -93,3 +93,25 @@ export const updateFactory = (data) => {
 export function FacChangeHistory(fcode) {
   return axios.get(`/api/std/fac/change-history/${fcode}`);
 }
+
+// 창고 기준정보
+// 창고 기준정보 목록 조회 API
+export const getWarehouseList = () => {
+  return axios.get('/api/std/wh/list');
+}
+// 창고 기준정보 등록 API
+export const insertWarehouse = (data) => {
+  return axios.post('/api/std/wh/insert', data);
+}
+// 창고 기준정보 단건 조회 API
+export function getWarehouseDetail(wcode) {
+  return axios.get(`/api/std/wh/detail/${wcode}`);
+}
+// 창고 기준정보 수정 API
+export const updateWarehouse = (data) => {
+  return axios.put('/api/std/wh/update', data);
+}
+// 창고 변경이력 조회 API
+export function WhChangeHistory(wcode) {
+  return axios.get(`/api/std/wh/change-history/${wcode}`);
+}
