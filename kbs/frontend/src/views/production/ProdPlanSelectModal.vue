@@ -10,7 +10,8 @@ import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import StandartTable from '@/components/kimbap/table/StandardTable.vue';
 
 const props = defineProps({
-  visible: Boolean
+  visible: Boolean,
+  mode: { type: String, default: 'full' }
 });
 const emit = defineEmits(['update:visible', 'select']);
 
@@ -63,15 +64,18 @@ const handleSearch = async (searchData) => {
 };
 // 생산계획 행 클릭 시 해당 정보 전달
 const handleRowClick = async (row) => {
-  await fetchProdPlanDetailList(row.produPlanCd);
-  emit('select', {
-    basicInfo: row,
-    detailList: convertDetailUnitCodes(prodPlanDetailList.value)
-  });
-  
+  if (props.mode === 'basic') {
+    emit('select', { basicInfo: row });
+  } else {
+    await fetchProdPlanDetailList(row.produPlanCd);
+    emit('select', {
+      basicInfo: row,
+      detailList: convertDetailUnitCodes(prodPlanDetailList.value)
+    });
+  }
+
   emit('update:visible', false);
 };
-
 const prodPlanColumns = [
   { field: 'produPlanCd', header: '생산계획번호' },
   { field: 'planDt', header: '계획일자' },
