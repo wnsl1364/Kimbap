@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.simjaejine.mapper.MemberMapper;
 import com.kimbap.kbs.simjaejine.service.EmpCpCheckVO;
+import com.kimbap.kbs.simjaejine.service.LoginSecurityVO;
 import com.kimbap.kbs.simjaejine.service.MemberAddVO;
 import com.kimbap.kbs.simjaejine.service.MemberService;
 import com.kimbap.kbs.simjaejine.service.MemberVO;
@@ -26,15 +27,33 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.getUserInfo(id);
     }
 
+    @Override
+    public void loginSuccess(LoginSecurityVO vo) {
+        memberMapper.loginSuccess(vo);   // 실패 횟수 초기화
+        memberMapper.recentLogin(vo);    // 최근 로그인 시간 갱신
+    }
+
+    @Override
+    public void loginFailure(LoginSecurityVO vo) {
+        memberMapper.loginFailure(vo);   // 실패 횟수 증가 및 잠금 처리
+    }
+
     // 회원등록
     @Transactional
     @Override
     public int addMember(MemberAddVO memberAddVO) {
+        // 비밀번호 암호화
         String rawPw = memberAddVO.getPw();
         String encodedPw = passwordEncoder.encode(rawPw);
         memberAddVO.setPw(encodedPw);
 
-        return memberMapper.addMember(memberAddVO);
+        // member 테이블 등록 (selectKey로 memCd 생성됨)
+        int result = memberMapper.addMember(memberAddVO);
+
+        // login_security 테이블 등록 (위에서 생성된 memCd 사용)
+        memberMapper.memberAddSecurity(memberAddVO);
+
+        return result;
     }
 
     // 업체 출력    

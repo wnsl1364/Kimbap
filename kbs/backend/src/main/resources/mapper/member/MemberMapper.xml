@@ -4,6 +4,7 @@
 
 <select id="getUserInfo" resultType="MemberVO" parameterType="String"> <!-- 로그인 -->
   SELECT   
+      a.mem_cd,
       a.id,
       a.pw,
       a.mem_type,
@@ -13,7 +14,23 @@
       b.tel,
       c.team_name,
       d.dept_name,
-      e.cp_name
+      e.cp_cd,
+      e.cp_name,
+      e.cp_type,
+      e.repname,
+      e.tel AS cp_tel,
+      e.cp_email,
+      e.fax_num,
+      e.loan_term,
+      e.mname,
+      e.address,
+      e.is_used AS cp_is_used,
+      e.cha_rea,
+      e.reg_dt,
+      e.note,
+      e.regi,
+      e.modi,
+      f.id_used
   FROM    
       member a
   LEFT JOIN 
@@ -24,34 +41,34 @@
       department d ON c.dcode = d.dcode
   LEFT JOIN 
       company e ON a.cp_cd = e.cp_cd
+  LEFT JOIN 
+      login_security f ON a.mem_cd = f.mem_cd
   WHERE   
       a.id = #{id}
 </select>
 <!-- <insert id="getUserInfo" resultType="MemberVO" parameterType="String"> -->
 
-
-
-<update id="" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->
+<update id="recentLogin" parameterType="LoginSecurityVO"> <!-- 최근 로그인ㅇ -->
   UPDATE member
   SET lDate = SYSDATE
-  WHERE memberId = #{memberId}
+  WHERE mem_cd = #{memCd}
 </update>
 
-<update id="loginFailure" parameterType="MemberVO"> <!-- 로그인 실패시 실행ㅇ -->
+<update id="loginFailure" parameterType="LoginSecurityVO"> <!-- 로그인 실패시 실행ㅇ -->
   UPDATE login_security
   SET lcount = lcount + 1,
       id_used = CASE 
                   WHEN lcount + 1 >= 5 THEN 'f2'
                   ELSE id_used
                END
-  WHERE mem_cd = #{mem_cd}
+  WHERE mem_cd = #{memCd}
 </update>
 
-<update id="loginSuccess" parameterType="MemberVO"> <!-- 로그인 성공시 실행ㅇ -->
+<update id="loginSuccess" parameterType="LoginSecurityVO"> <!-- 로그인 성공시 실행ㅇ -->
   UPDATE login_security
   SET lcount = 0,
       id_used = 'f1'
-  WHERE mem_cd = #{mem_cd}
+  WHERE mem_cd = #{memCd}
 </update>
 
 <insert id="addMember" parameterType="MemberAddVO"> <!-- 회원정보 등록 -->
@@ -86,7 +103,7 @@
           'f1')
 </insert>
 
-<insert id="memberAddSecurity" parameterType="MemberAddVO"> <!-- 회원등록시 로그인보안 테이블 행 추가-->
+<insert id="memberAddSecurity" parameterType="MemberAddVO"> <!-- 회원등록시 해당 계정 로그인보안table 행 추가-->
   INSERT INTO  login_security 
               (secu_cd, 
               lcount, 

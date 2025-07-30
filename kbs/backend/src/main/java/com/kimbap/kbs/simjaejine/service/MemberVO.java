@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MemberVO {
+  private String memCd;
   private String id;
   private String pw;
   private String memType;
@@ -19,4 +20,24 @@ public class MemberVO {
   private String tel;
   private String teamName;
   private String deptName;
+  private String idUsed;
+
+  // 거래처 정보
+  private String cpCd;
+  private String cpName;
+  private String cpType;
+  private String repname;
+  private String crnumber;
+  private String cpTel;
+  private String cpEmail;
+  private String faxNum;
+  private int loanTerm;
+  private String mName;
+  private String address;
+  private String cpisUsed;
+  private String chaRea;
+  private String regDt;
+  private String note;
+  private String regi;
+  private String modi;
 }

@@ -17,4 +17,10 @@ public interface MemberService {
 
     // 아이디 중복 검사
     boolean idCheck(String id);
+
+        // ✅ 로그인 성공 시 처리
+    void loginSuccess(LoginSecurityVO vo);
+
+    // ✅ 로그인 실패 시 처리
+    void loginFailure(LoginSecurityVO vo);
 }
