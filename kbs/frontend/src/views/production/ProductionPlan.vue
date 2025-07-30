@@ -113,6 +113,8 @@ const productColumns = [
 // 버튼 이벤트 핸들러
 const handleSave = async (data) => {
   try {
+    const isNew = !formData.value.produPlanCd; // 등록/수정 여부 판별
+
     const payload = {
       plan: {
         produPlanCd: formData.value.produPlanCd || null,
@@ -125,6 +127,7 @@ const handleSave = async (data) => {
         note: formData.value.note
       },
       planDetails: prodDetailList.value.map(item => ({
+        ppdcode: item.ppdcode,
         pcode: item.pcode,
         prodVerCd: item.prodVerCd,
         planQty: item.planQty,
@@ -139,8 +142,8 @@ const handleSave = async (data) => {
     await store.saveProdPlan(payload)
     toast.add({
       severity: 'success',
-      summary: '저장 성공',
-      detail: '저장 성공했습니다.',
+      summary: isNew ? '신규 등록 완료' : '수정 완료',
+      detail: isNew ? '생산계획이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
       life: 3000
     });
   } catch (err) {
@@ -209,6 +212,7 @@ const modalDataSets = computed(() => ({
       <div class="flex items-center gap-4 text-sm text-gray-600">
         <span>👤 {{ user?.empName || '로그로그' }}</span>
         <span>🏢 {{ user?.deptName || '생산팀' }}</span>
+        <span>{{ user }}</span>
       </div>
     </div>
   <div class="space-y-8">
