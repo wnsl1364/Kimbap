@@ -1,18 +1,22 @@
 <script setup>
 import { ref, onMounted, computed, watch} from 'vue'
-import { useRoute } from 'vue-router'
 import { getOrderList } from '@/api/order'
 import axios from 'axios'
 import { format, parseISO } from 'date-fns'
+import { storeToRefs } from 'pinia';
+import { useOrderFormStore } from '@/stores/orderFormStore'
+import { useOrderProductStore } from '@/stores/orderProductStore'
 
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
 
-const route = useRoute()
+// 스토어 인스턴스
+const formStore = useOrderFormStore()
+const productStore = useOrderProductStore()
 
-// 상태
-const formData = ref({})
-const products = ref([])
+// 반응형 상태
+const { formData } = storeToRefs(formStore)
+const { products } = storeToRefs(productStore)
 
 // 미수금
 const arrears = ref(0)
@@ -87,7 +91,8 @@ const loadOrderListForModal = async () => {
           prodName: 'prodName',
           cpName: 'cpName',
           ordDt: 'ordDt'
-        }
+        },
+        emitEvent: 'load' 
       }
     }
   } catch (err) {
@@ -95,28 +100,38 @@ const loadOrderListForModal = async () => {
   }
 }
 
+const handleLoadOrder = async (selectedRow) => {
+  try {
+    const ordCd = selectedRow.ordCd
+    
+    const res = await axios.get(`/api/order/${ordCd}`)
+    const order = res.data.data
 
-// 모달로 선택된 주문코드 감지 → 상세 조회
-watch(
-  () => formData.value.ordCd,
-  async (newOrdCd) => {
-    if (!newOrdCd || products.value.length > 0) return
-    try {
-      const res = await axios.get(`/api/order/${newOrdCd}`)
-      if (res.data.result_code === 'SUCCESS') {
-        const order = res.data.data
-        formatDateFields(order, ['ordDt', 'deliReqDt', 'exPayDt', 'regDt', 'actPayDt'])
-        order.orderDetails.forEach(p => {
-          p.basePrice = p.unitPrice / 40
-        })
-        Object.assign(formData.value, order)
-        products.value = order.orderDetails
-      }
-    } catch (err) {
-      console.error('주문 조회 실패:', err)
-    }
+    // 기본정보 세팅
+    formStore.setFormData({
+      ordCd: order.ordCd,
+      ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
+      cpCd: order.cpCd,
+      cpName: order.cpName,
+      deliAdd: order.deliAdd,
+      deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
+      exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
+      note: order.note,
+      regi: order.regi
+    })
+
+    // 제품목록 세팅
+    productStore.setProducts(
+      order.products.map(item => ({
+        ...item,
+        deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : ''
+      }))
+    )
+  } catch (err) {
+    console.error('주문 상세 불러오기 실패:', err)
   }
-)
+}
+
 
 // 날짜 포맷
 const formatDateFields = (obj, fields) => {
@@ -130,26 +145,6 @@ const formatDateFields = (obj, fields) => {
 // 주문 불러오기
 onMounted(async () => {
   await loadOrderListForModal()
-
-  const ordCdFromQuery = route.query.ordCd
-  if (!ordCdFromQuery) return
-  try {
-    const res = await axios.get(`/api/order/${ordCdFromQuery}`)
-    if (res.data.result_code === 'SUCCESS') {
-      const order = res.data.data
-      formatDateFields(order, ['ordDt', 'deliReqDt', 'exPayDt', 'regDt', 'actPayDt'])
-      order.orderDetails.forEach(p => {
-        p.basePrice = p.unitPrice / 40
-      })
-      formData.value = order
-      products.value = order.orderDetails
-    } else {
-      alert(`주문 정보를 불러오는 데 실패했습니다: ${res.data.message}`)
-    }
-  } catch (err) {
-    console.error('주문 조회 오류:', err)
-    alert('주문 정보를 불러오는 중 오류가 발생했습니다.')
-  }
 })
 </script>
 
@@ -164,6 +159,7 @@ onMounted(async () => {
       :modalDataSets="modalDataSets"
       :dataKey="'ordCd'"
       @showArrearsModal="showArrearsModal = true"
+      @load="handleLoadOrder"
     />
   </div>
 
