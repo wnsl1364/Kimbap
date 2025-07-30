@@ -29,7 +29,9 @@
 </select>
 <!-- <insert id="getUserInfo" resultType="MemberVO" parameterType="String"> -->
 
-<update id="recentLogin" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->
+
+
+<update id="" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->
   UPDATE member
   SET lDate = SYSDATE
   WHERE memberId = #{memberId}

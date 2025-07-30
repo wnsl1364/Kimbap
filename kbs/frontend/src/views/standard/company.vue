@@ -195,8 +195,8 @@ const handleSearch = async (searchData) => {
                 @row-select="handleSelectCompany"
                 @clear-selection="clearForm"
                 :scrollable="true"
-                scrollHeight="470px"
-                height="560px"
+                scrollHeight="530px"
+                height="630px"
             />
         </div>
         <div class="w-full md:basis-[45%]">

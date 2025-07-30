@@ -209,10 +209,6 @@ public class FacServiceImpl  implements FacService{
                 changeItems.add(new ChangeItemVO("담당자", prev.getMname(), current.getMname(),
                     current.getChaRea(), current.getFacVerCd(), current.getRegDt(), current.getModi()));
             }
-            if (!Objects.equals(current.getOpStatus(), prev.getOpStatus())) {
-                changeItems.add(new ChangeItemVO("가동상태", prev.getOpStatus(), current.getOpStatus(),
-                    current.getChaRea(), current.getFacVerCd(), current.getRegDt(), current.getModi()));
-            }
             if (!Objects.equals(current.getNote(), prev.getNote())) {
                 changeItems.add(new ChangeItemVO("비고", prev.getNote(), current.getNote(),
                     current.getChaRea(), current.getFacVerCd(), current.getRegDt(), current.getModi()));

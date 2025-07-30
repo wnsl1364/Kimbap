@@ -15,5 +15,7 @@ public class FacMaxVO {
     private String facVerCd; // 공장버전코드
     private Double mpqty; // 최대생산량
     private String pcode; // 제품마스터코드
+    private String prodName; // 제품명
     private String prodVerCd; // 제품버전코드
+
 }
