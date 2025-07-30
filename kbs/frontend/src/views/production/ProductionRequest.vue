@@ -9,7 +9,7 @@ import { storeToRefs } from 'pinia'
 import { useProductStore } from '@/stores/productStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore'
-import ProdRequestSelectModal from '@/views/production/ProdRequestSelectModal.vue' // 생산계획 가져오기 모달
+import ProdPlanSelectModal from '@/views/production/ProdPlanSelectModal.vue' // 생산계획 가져오기 모달
 
 // 로그인 정보 가져오기 ====================================================
 const memberStore = useMemberStore()
@@ -79,10 +79,9 @@ const factoryOptions = computed(() =>
 
 // 폼 필드 정의 (InputForm.vue 기준 key 속성 사용)
 const fields = [
+  { key: 'produReqCd', label: '생산요청번호', type: 'readonly' },
   { key: 'produPlanCd', label: '생산계획번호', type: 'readonly' },
-  { key: 'planDt', label: '계획일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
-  { key: 'planStartDt', label: '계획기간(시작)', type: 'calendar', placeholder: 'MM/DD/YYYY' },
-  { key: 'planEndDt', label: '계획기간(종료)', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'reqDt', label: '생산요청일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
   {
     key: 'factory',
     label: '공장',
@@ -90,6 +89,8 @@ const fields = [
     options: factoryOptions,
     placeholder: '공장을 선택하세요'
   },
+  { key: 'planEndDt', label: '요청자', type: 'text', placeholder: 'MM/DD/YYYY' },
+  { key: 'planStartDt', label: '납기일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
   { key: 'note', label: '비고', type: 'textarea' }
 ]
 
@@ -291,8 +292,9 @@ const modalDataSets = computed(() => ({
       />
     </div>
     <!-- 생산계획 불러오기 모달 -->
-    <ProdRequestSelectModal
+    <ProdPlanSelectModal
       v-model:visible="modalVisible"
+      mode="basic"
       @select="handlePlanSelect"
     />
   </div>

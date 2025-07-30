@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.kimbap.kbs.production.mapper.ProdRequestMapper;
-import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdRequestDetailVO;
 import com.kimbap.kbs.production.service.ProdRequestService;
 import com.kimbap.kbs.production.service.ProdRequestVO;
