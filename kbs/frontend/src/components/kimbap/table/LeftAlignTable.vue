@@ -78,6 +78,10 @@ const handleModalSelect = (selectedItem) => {
       const displayValue = selectedItem[modalConfig.displayField]
       updateField(currentField.value, displayValue)
     }
+
+    if (modalConfig?.emitEvent) {
+      emit(modalConfig.emitEvent, selectedItem)
+    }
   }
   resetModalState()
 }
