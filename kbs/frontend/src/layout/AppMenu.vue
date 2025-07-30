@@ -32,6 +32,10 @@ const model = ref([
                 label: '공장 기준정보',
                 to: '/standard/factory'
             },
+            {
+                label: '창고 기준정보',
+                to: '/standard/warehouse'
+            },
         ]
     },
     {
