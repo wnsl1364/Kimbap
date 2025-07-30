@@ -14,6 +14,7 @@ public class MemberVO {
   private String pw;
   private String memType;
   private String isUsed;
+  private String empCd;
   private String empName;
   private String tel;
   private String teamName;
