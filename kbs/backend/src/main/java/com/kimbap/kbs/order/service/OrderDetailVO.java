@@ -19,8 +19,8 @@ public class OrderDetailVO {
     private String ordCd;       // 주문코드 (외래키)
     private String ordDCd; // 주문상세코드 (ORDD-2025-000001)
     private String pcode;       // 제품코드
-    @JsonProperty("pName")
-    private String pName;
+    @JsonProperty("prodName")
+    private String prodName;
     private String prodVerCd;   // 제품버전코드 (옵션)
     private Integer ordQty;       // 주문수량
     private BigDecimal unitPrice; // 단가
