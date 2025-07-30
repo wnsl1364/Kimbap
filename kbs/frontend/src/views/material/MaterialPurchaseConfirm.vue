@@ -106,7 +106,7 @@ purchaseColumns.value = [
 
 const getPurc = async () => {
   try {
-    const response = await fetchPurcOrderList();
+    const response = await getPurcOrderList();
     if (response && response.data) {
       purchaseData.value = formatDataDates(response.data);
     } else {
@@ -154,7 +154,7 @@ const formatDataDates = (data) => {
 
 onMounted(() => {
   console.log('MaterialPurchaseConfirm.vue mounted');
-  getPurcOrderList();
+  getPurc();
 });
 
 </script>
