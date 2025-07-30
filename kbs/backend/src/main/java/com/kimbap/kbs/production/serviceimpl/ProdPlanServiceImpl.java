@@ -1,6 +1,9 @@
 package com.kimbap.kbs.production.serviceimpl;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,16 +49,43 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     @Override
     @Transactional
     public void saveProdPlan(ProdPlanFullVO fullVO) {
-        String produPlanCd = mapper.getNewProdPlanCd(); // 생산계획 번호 생성
         ProdPlanVO plan = fullVO.getPlan();
+        List<ProdPlanDetailVO> details = fullVO.getPlanDetails();
+
+        boolean isNew = (plan.getProduPlanCd() == null || plan.getProduPlanCd().isEmpty());
+        String produPlanCd = isNew ? mapper.getNewProdPlanCd() : plan.getProduPlanCd();
         plan.setProduPlanCd(produPlanCd);
 
-        mapper.insertProdPlan(plan);
-     
-        for (ProdPlanDetailVO detail : fullVO.getPlanDetails()) {
-            detail.setProduPlanCd(produPlanCd);        // 생산계획(FK) 삽입
-            detail.setPpdcode(mapper.getNewPpdcode()); // 상세 목록 삽입
-            mapper.insertProdPlanDetail(detail);        
+        if (isNew) {
+            mapper.insertProdPlan(plan);
+        } else {
+            mapper.updateProdPlan(plan);
+        }
+
+        // 기존 상세 목록 가져오기
+        List<ProdPlanDetailVO> existingDetails = mapper.selectDetailsByPlanCd(produPlanCd);
+        Set<String> incomingPpdcodes = details.stream()
+                                            .map(ProdPlanDetailVO::getPpdcode)
+                                            .filter(Objects::nonNull)
+                                            .collect(Collectors.toSet());
+
+        // 삭제 대상만 삭제
+        for (ProdPlanDetailVO exist : existingDetails) {
+            if (!incomingPpdcodes.contains(exist.getPpdcode())) {
+                mapper.deleteProdPlanDetail(exist.getPpdcode());
+            }
+        }
+
+        // 신규 또는 수정 분기 처리
+        for (ProdPlanDetailVO detail : details) {
+            detail.setProduPlanCd(produPlanCd);
+
+            if (detail.getPpdcode() == null || detail.getPpdcode().isEmpty()) {
+                detail.setPpdcode(mapper.getNewPpdcode());
+                mapper.insertProdPlanDetail(detail);
+            } else {
+                mapper.updateProdPlanDetail(detail);
+            }
         }
     }
 }
