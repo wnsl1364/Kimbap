@@ -13,8 +13,14 @@
                cha_rea,
                reg_dt,
                note
-        FROM   factory
-        WHERE  op_status = 'r1'
+        FROM (
+            SELECT 
+                f.*,
+                ROW_NUMBER() OVER (PARTITION BY f.fcode ORDER BY f.fac_ver_cd DESC) AS rn
+            FROM factory f
+            WHERE f.is_used = 'f1'
+        )
+        WHERE rn = 1
     </select>
 
 

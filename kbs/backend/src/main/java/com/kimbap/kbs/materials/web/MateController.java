@@ -1,8 +1,10 @@
 package com.kimbap.kbs.materials.web;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -113,6 +115,7 @@ public class MateController {
             @RequestParam(required = false) String purcDStatus, // 발주상세상태
             @RequestParam(required = false) String purcStatus, // 발주상태 (추가!)
             @RequestParam(required = false) String cpCd, // 회사코드 (추가!)
+            @RequestParam(required = false) String mateCpCd,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String exDeliStartDate,
@@ -358,6 +361,162 @@ public class MateController {
             List<MaterialsVO> list = mateService.getMaterialsBySupplier(criteria);
             return ResponseEntity.ok(list);
         } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/purchase-orders/approval-list")
+    public ResponseEntity<List<MaterialsVO>> getPurcOrderDetailListForApproval() {
+        try {
+            List<MaterialsVO> list = mateService.getPurcOrderDetailListForApproval();
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PutMapping("/purchase-orders/status")
+    public ResponseEntity<Map<String, Object>> updatePurchaseOrderStatus(
+            @RequestBody MaterialsVO statusUpdateData) {
+        try {
+            System.out.println("🔄 발주 상태 업데이트 요청: " + statusUpdateData.getPurcDCd() 
+                            + " → " + statusUpdateData.getPurcDStatus());
+
+            // 필수 데이터 검증
+            if (statusUpdateData.getPurcDCd() == null || statusUpdateData.getPurcDCd().trim().isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "발주상세코드가 필요합니다.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            if (statusUpdateData.getPurcDStatus() == null || statusUpdateData.getPurcDStatus().trim().isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "변경할 상태가 필요합니다.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            // 상태 업데이트 실행
+            mateService.updatePurchaseOrderStatus(statusUpdateData);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "발주 상태가 성공적으로 업데이트되었습니다.");
+            response.put("purcDCd", statusUpdateData.getPurcDCd());
+            response.put("newStatus", statusUpdateData.getPurcDStatus());
+
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("❌ 발주 상태 업데이트 실패: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "발주 상태 업데이트 중 오류가 발생했습니다: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * 📋 승인 대기 발주 목록 조회 (관리자용)
+     */
+    @GetMapping("/purchase-orders/pending-approval")
+    public ResponseEntity<List<MaterialsVO>> getPendingApprovalOrders(
+            @RequestParam(required = false) String purcCd,
+            @RequestParam(required = false) String mateName,
+            @RequestParam(required = false) String cpName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String minAmount,
+            @RequestParam(required = false) String maxAmount) {
+
+        try {
+            System.out.println("📋 승인 대기 발주 목록 조회 요청");
+
+            SearchCriteria criteria = SearchCriteria.builder()
+                    .purcCd(purcCd)
+                    .mateName(mateName)
+                    .cpName(cpName)
+                    .purcDStatus("c1")  // 승인 대기 상태만 조회
+                    .startDate(startDate)
+                    .endDate(endDate)
+                    .memtype("p1")      // 내부직원용
+                    .build();
+
+            List<MaterialsVO> list = mateService.getPurchaseOrders(criteria);
+            
+            // 승인 대기 상태만 필터링 (이중 체크)
+            List<MaterialsVO> pendingList = list.stream()
+                    .filter(item -> "c1".equals(item.getPurcDStatus()))
+                    .collect(Collectors.toList());
+
+            System.out.println("✅ 승인 대기 발주 조회 완료: " + pendingList.size() + "건");
+            return ResponseEntity.ok(pendingList);
+            
+        } catch (Exception e) {
+            System.err.println("❌ 승인 대기 발주 목록 조회 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 📊 발주 통계 조회 (대시보드용)
+     */
+    @GetMapping("/purchase-orders/statistics")
+    public ResponseEntity<Map<String, Object>> getPurchaseOrderStatistics(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        try {
+            System.out.println("📊 발주 통계 조회 요청: " + startDate + " ~ " + endDate);
+
+            SearchCriteria criteria = SearchCriteria.builder()
+                    .startDate(startDate)
+                    .endDate(endDate)
+                    .memtype("p1")
+                    .build();
+
+            // 전체 발주 데이터 조회
+            List<MaterialsVO> allOrders = mateService.getPurchaseOrders(criteria);
+
+            // 상태별 통계 계산
+            Map<String, Long> statusCounts = allOrders.stream()
+                    .collect(Collectors.groupingBy(
+                        MaterialsVO::getPurcDStatus,
+                        Collectors.counting()
+                    ));
+
+            // 총 금액 계산
+            BigDecimal totalAmount = allOrders.stream()
+                    .filter(order -> order.getUnitPrice() != null && order.getPurcQty() != null)
+                    .map(order -> order.getUnitPrice().multiply(BigDecimal.valueOf(order.getPurcQty())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // 공급업체별 통계
+            Map<String, Long> supplierCounts = allOrders.stream()
+                    .filter(order -> order.getCpName() != null)
+                    .collect(Collectors.groupingBy(
+                        MaterialsVO::getCpName,
+                        Collectors.counting()
+                    ));
+
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("totalOrders", allOrders.size());
+            statistics.put("pendingApproval", statusCounts.getOrDefault("c1", 0L));
+            statistics.put("approved", statusCounts.getOrDefault("c2", 0L));
+            statistics.put("rejected", statusCounts.getOrDefault("c6", 0L));
+            statistics.put("totalAmount", totalAmount);
+            statistics.put("statusBreakdown", statusCounts);
+            statistics.put("topSuppliers", supplierCounts);
+
+            System.out.println("✅ 발주 통계 조회 완료");
+            return ResponseEntity.ok(statistics);
+            
+        } catch (Exception e) {
+            System.err.println("❌ 발주 통계 조회 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }

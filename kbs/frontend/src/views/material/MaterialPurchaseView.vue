@@ -10,12 +10,14 @@ import BasicTable from '@/components/kimbap/table/BasicTable.vue';
 import RadioButton from 'primevue/radiobutton';
 import { format, isValid } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
+import InputTable from '@/components/kimbap/table/InputTable.vue';
 
 // Store 및 Toast
 const materialStore = useMaterialStore();
 const memberStore = useMemberStore();
 const common = useCommonStore();
 const toast = useToast();
+
 const formatDate = (date) => {
   if (!date) return '';
   
@@ -76,6 +78,14 @@ const formatDataDates = (dataList) => {
 const userType = ref('internal');
 const isLoading = ref(false);
 const showTestControls = ref(true);
+
+// 🔥 여기가 중요! materialTableButtons를 밖으로 빼냈어!
+const materialTableButtons = ref({
+  add: { show: false, label: '추가', severity: 'primary' },
+  edit: { show: false, label: '수정', severity: 'secondary' },
+  delete: { show: false, label: '삭제', severity: 'danger' },
+  save: { show: false, label: '저장', severity: 'success' }
+});
 
 // 실제 사용자 권한 기반 타입 설정
 const actualUserType = computed(() => {
@@ -179,6 +189,24 @@ const convertedTableData = computed(() => {
   return convertUnitCodes(rawData);
 });
 
+// 강제 재렌더링용
+const forceRenderKey = ref(0);
+const forceRender = () => {
+  forceRenderKey.value++;
+  console.log('🔄 강제 재렌더링 실행:', forceRenderKey.value);
+};
+
+// convertedTableData 변화 감지
+watch(convertedTableData, (newData) => {
+  console.log('🔥 convertedTableData 변경됨:', newData?.length || 0, '건');
+  console.log('첫 번째 데이터:', newData?.[0]);
+}, { immediate: true, deep: true });
+
+// materialStore 데이터 직접 감지
+watch(() => materialStore.purchaseOrderDetailData, (newData) => {
+  console.log('🏪 Store 데이터 변경됨:', newData?.length || 0, '건');
+}, { immediate: true, deep: true });
+
 // 생명주기
 onMounted(async () => {
   // 공통코드 로드 추가
@@ -193,7 +221,7 @@ onMounted(async () => {
   loadPurchaseData();
 });
 
-// 샘플 데이터 로드 (백업용)
+// 샘플 데이터 로드 (백업용) - 🔥 materialTableButtons 제거!
 const loadSampleData = () => {
   console.log('샘플 데이터 로드');
   const sampleData = [
@@ -239,6 +267,15 @@ const loadSampleData = () => {
       <div class="card">
         <h5>자재 구매/발주 관리</h5>
 
+        <!-- 🔥 디버깅 정보 추가! -->
+        <div class="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded">
+          <h6 class="text-yellow-800">🐛 디버깅 정보</h6>
+          <p><strong>convertedTableData 길이:</strong> {{ convertedTableData?.length || 0 }}</p>
+          <p><strong>store 데이터 길이:</strong> {{ materialStore.purchaseOrderDetailData?.length || 0 }}</p>
+          <p><strong>첫 번째 데이터:</strong></p>
+          <pre class="text-xs">{{ JSON.stringify(convertedTableData?.[0], null, 2) }}</pre>
+        </div>
+
         <!-- 현재 사용자 정보 표시 -->
         <div class="mb-4 p-3 border-round surface-100">
           <div class="flex align-items-center gap-3">
@@ -246,7 +283,7 @@ const loadSampleData = () => {
             <div>
               <strong>{{ memberStore.user?.empName || '테스트 사용자' }}</strong>
               <span class="ml-2 text-500">
-                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
+                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체용' }})
               </span>
             </div>
           </div>
@@ -277,19 +314,62 @@ const loadSampleData = () => {
           @reset="onReset"
         />
 
-        <!-- 데이터 테이블 -->
+        <!-- 기본 데이터 테이블 -->
         <BasicTable 
           :data="convertedTableData"
           :columns="currentTableColumns"
-          :title="`발주 목록 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
+          :title="`BasicTable 발주 목록 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
           :loading="isLoading"
           selectionMode="single"
         />
 
+        <!-- 🎯 InputTable - 강제로 key 추가해서 재렌더링 유도 -->
+        <InputTable
+          :key="`input-table-${convertedTableData?.length || 0}`"
+          :columns="currentTableColumns"
+          :data="convertedTableData"
+          :scroll-height="'50vh'" 
+          :height="'60vh'"
+          :title="`InputTable 발주 목록 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
+          dataKey="purcDCd"
+          :buttons="materialTableButtons"
+          :enableRowActions="false"
+          :enableSelection="false"
+          @dataChange="(newData) => console.log('InputTable 데이터 변경:', newData)"
+        />
+
+        <!-- 🔥 원본 데이터 직접 테스트 -->
+        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+          <h6 class="text-blue-800">🧪 원본 데이터 직접 테스트</h6>
+          <InputTable
+            :key="`raw-test-${Date.now()}`"
+            :columns="[
+              { field: 'purcDCd', header: '발주상세코드', type: 'readonly' },
+              { field: 'mateName', header: '자재명', type: 'readonly' },
+              { field: 'purcQty', header: '수량', type: 'readonly' },
+              { field: 'unit', header: '단위', type: 'readonly' }
+            ]"
+            :data="[
+              { purcDCd: 'TEST-001', mateName: '테스트자재1', purcQty: 100, unit: 'kg' },
+              { purcDCd: 'TEST-002', mateName: '테스트자재2', purcQty: 200, unit: 'ea' }
+            ]"
+            :scroll-height="'30vh'" 
+            :height="'40vh'"
+            title="🧪 하드코딩 테스트 데이터"
+            dataKey="purcDCd"
+            :buttons="{ save: { show: false }, reset: { show: false } }"
+            :enableRowActions="false"
+            :enableSelection="false"
+          />
+        </div>
+
         <!-- 강제 새로고침 버튼 (테스트용) -->
         <div class="mt-4" v-if="showTestControls">
-          <button @click="loadPurchaseData" class="p-button p-button-secondary">
+          <button @click="loadPurchaseData" class="p-button p-button-secondary mr-2">
             데이터 강제 새로고침
+          </button>
+          <button @click="forceRender" class="p-button p-button-info">
+            강제 재렌더링
           </button>
         </div>
       </div>

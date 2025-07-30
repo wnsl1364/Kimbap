@@ -24,8 +24,14 @@ const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스�
 const toast = useToast();
 
 const store = useProductStore()
-const { factoryList, productList  } = storeToRefs(store)
-const { fetchFactoryList, fetchProductList, saveProdPlan } = store
+const { 
+  factoryList,      // 공장 목록
+  productList       // 제품 목록
+} = storeToRefs(store)
+const { 
+  fetchFactoryList, // 공장 목록 불러오기
+  fetchProductList  // 제품 목록 불러오기
+} = store
 
 const prodDetailList = ref([]); // 생산계획 제품 목록
 const formData = ref({});  // 선택된 행 초기값 
@@ -56,6 +62,11 @@ onMounted(async () => {
   await fetchFactoryList() // 공장 목록 조회
   await fetchProductList() // 제품 목록 가져오기
   await common.fetchCommonCodes('0G') // 공통코드 가져오기
+
+  // 오늘 날짜를 기본값으로 설정
+  if (!formData.value.planDt) {
+    formData.value.planDt = new Date()
+  }
 })
 
 // 공장 드롭다운 옵션
@@ -69,9 +80,9 @@ const factoryOptions = computed(() =>
 // 폼 필드 정의 (InputForm.vue 기준 key 속성 사용)
 const fields = [
   { key: 'produPlanCd', label: '생산계획번호', type: 'readonly' },
-  { key: 'planDt', label: '계획일자', type: 'calendar', placeholder: 'YYYY-MM-DD' },
-  { key: 'planStartDt', label: '계획기간(시작)', type: 'calendar', placeholder: 'YYYY-MM-DD' },
-  { key: 'planEndDt', label: '계획기간(종료)', type: 'calendar', placeholder: 'YYYY-MM-DD' },
+  { key: 'planDt', label: '계획일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'planStartDt', label: '계획기간(시작)', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'planEndDt', label: '계획기간(종료)', type: 'calendar', placeholder: 'MM/DD/YYYY' },
   {
     key: 'factory',
     label: '공장',
@@ -110,7 +121,7 @@ const productColumns = [
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
   { field: 'seq', header: '우선순위', type: 'input', align: 'center' }
 ]
-// 버튼 이벤트 핸들러
+// 생산계획과 관련 상세 저장(등록, 수정)
 const handleSave = async (data) => {
   try {
     const isNew = !formData.value.produPlanCd; // 등록/수정 여부 판별
@@ -140,6 +151,7 @@ const handleSave = async (data) => {
     console.log('📦 최종 payload (생산계획 저장용)', JSON.stringify(payload, null, 2))
 
     await store.saveProdPlan(payload)
+    prodDetailList.value = []
     toast.add({
       severity: 'success',
       summary: isNew ? '신규 등록 완료' : '수정 완료',
@@ -155,14 +167,49 @@ const handleSave = async (data) => {
     });
   }
 }
-
+// 검색 입력란과 검색 결과 초기화
 const handleReset = () => {
   formData.value = {}
   prodDetailList.value = []
 }
+// 생산계획과 관련 상세 삭제
+const handleDelete = async (data) => {
+    const planCd = formData.value.produPlanCd
+  if (!planCd) {
+    toast.add({
+      severity: 'warn',
+      summary: '삭제 불가',
+      detail: '저장되지 않은 계획은 삭제할 수 없습니다.',
+      life: 3000
+    })
+    return
+  }
 
-const handleDelete = (data) => {
-  console.log('🗑 삭제 요청됨:', data)
+  if (!confirm(`생산계획 '${planCd}'을 정말 삭제하시겠습니까?`)) {
+    return
+  }
+
+  try {
+    await store.deleteProdPlan(planCd)
+
+    toast.add({
+      severity: 'success',
+      summary: '삭제 완료',
+      detail: `'${planCd}' 삭제되었습니다.`,
+      life: 3000
+    })
+
+    formData.value = {}
+    prodDetailList.value = []
+
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: '삭제 실패',
+      detail: '삭제 중 오류가 발생했습니다.',
+      life: 3000
+    })
+  }
 }
 // =========================================
 // 생산계획 불러오기 모달 버튼
@@ -208,7 +255,7 @@ const modalDataSets = computed(() => ({
 
     <!-- 👑 페이지 헤더 -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">생산계획 작성</h1>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">생산계획 등록</h1>
       <div class="flex items-center gap-4 text-sm text-gray-600">
         <span>👤 {{ user?.empName || '로그로그' }}</span>
         <span>🏢 {{ user?.deptName || '생산팀' }}</span>
