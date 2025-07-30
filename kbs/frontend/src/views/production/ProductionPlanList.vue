@@ -4,10 +4,21 @@ import { format } from 'date-fns';
 import { storeToRefs } from 'pinia'
 import { useProductStore } from '@/stores/productStore'
 import { useCommonStore } from '@/stores/commonStore'
+import { useMemberStore } from '@/stores/memberStore'
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue'
 import StandartTable from '@/components/kimbap/table/StandardTable.vue'
 import ProdPlanDetailModal from '@/views/production/ProdPlanDetailModal.vue'
 
+// 로그인 정보 가져오기 ====================================================
+const memberStore = useMemberStore()
+const { user } = storeToRefs(memberStore)
+
+const isEmployee = computed(() => user.value?.memType === 'p1')       // 사원
+const isCustomer = computed(() => user.value?.memType === 'p2')       // 매출업체
+const isSupplier = computed(() => user.value?.memType === 'p3')       // 공급업체
+const isManager = computed(() => user.value?.memType === 'p4')        // 담당자
+const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스템 관리자
+// ========================================================================
 
 // 공통코드 가져오기
 const common = useCommonStore()
@@ -127,6 +138,15 @@ const handleReset = async () => {
 };
 </script>
 <template>
+  <!-- 👑 페이지 헤더 -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">생산계획 조회</h1>
+    <div class="flex items-center gap-4 text-sm text-gray-600">
+      <span>👤 {{ user?.empName || '로그로그' }}</span>
+      <span>🏢 {{ user?.deptName || '생산팀' }}</span>
+      <span>{{ user }}</span>
+    </div>
+  </div>
   <div>
     <!-- 검색 모달 -->
     <SearchForm

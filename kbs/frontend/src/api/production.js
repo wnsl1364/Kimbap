@@ -26,3 +26,15 @@ export const getAllProducts = () => {
 export const postSaveProdPlan = (data) => {
   return axios.post('/api/prod/prodPlan/planSave', data)
 }
+// 생산계획과 관련 상세 삭제
+export const deleteProdutionPlan = async (produPlanCd) => {
+  return axios.delete(`/api/prod/prodPlan/${produPlanCd}`)
+}
+// 조건 검색용 생산요청 조회
+export const postProdRequestListByCondition = (searchParams) => {
+  return axios.post('/api/prod/request/search', searchParams);
+};
+// 생산요청상세 목록 조회
+export const getProdRequestDetailList = (produReqCd) => {
+  return axios.get(`/api/prod/request/${produReqCd}`);
+};
