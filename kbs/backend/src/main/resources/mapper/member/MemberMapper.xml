@@ -8,6 +8,7 @@
       a.pw,
       a.mem_type,
       a.is_used,
+      b.emp_cd,
       b.emp_name,
       b.tel,
       c.team_name,
@@ -27,33 +28,39 @@
       a.id = #{id}
 </select>
 
-<insert id="getUserInfo" resultType="MemberVO" parameterType="String">
-
-
-<update id="" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->
+<update id="recentLogin" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->
   UPDATE member
   SET lDate = SYSDATE
   WHERE memberId = #{memberId}
 </update>
 
-<update id="updateLoginFailCount" parameterType="MemberVO"> <!-- 로그인 실패시 실행ㅇ -->
-    UPDATE login_security
-    SET lcount = lcount + 1,
-        id_used = CASE 
-                    WHEN lcount + 1 >= 5 THEN 'f2'
-                    ELSE id_used
-                 END
-    WHERE mem_cd = #{mem_cd}
+<update id="loginFailure" parameterType="MemberVO"> <!-- 로그인 실패시 실행ㅇ -->
+  UPDATE login_security
+  SET lcount = lcount + 1,
+      id_used = CASE 
+                  WHEN lcount + 1 >= 5 THEN 'f2'
+                  ELSE id_used
+               END
+  WHERE mem_cd = #{mem_cd}
 </update>
 
-<update id="resetLoginFailCount" parameterType="MemberVO"> <!-- 로그인 성공시 실행ㅇ -->
-    UPDATE login_security
-    SET lcount = 0,
-        id_used = 'f1'
-    WHERE mem_cd = #{mem_cd}
+<update id="loginSuccess" parameterType="MemberVO"> <!-- 로그인 성공시 실행ㅇ -->
+  UPDATE login_security
+  SET lcount = 0,
+      id_used = 'f1'
+  WHERE mem_cd = #{mem_cd}
 </update>
 
 <insert id="addMember" parameterType="MemberAddVO"> <!-- 회원정보 등록 -->
+  <selectKey keyProperty="memCd" resultType="string" order="BEFORE">
+    SELECT 
+      CASE
+        WHEN #{memType} = 'p1' OR #{memType} = 'p4' THEN 'MEM-EMP-' || LPAD(member_seq.NEXTVAL, 4, '0')
+        WHEN #{memType} = 'p2' OR #{memType} = 'p3' THEN 'MEM-CP-' || LPAD(member_seq.NEXTVAL, 4, '0')
+        ELSE 'MEM-UNK-' || LPAD(member_seq.NEXTVAL, 4, '0')
+      END
+    FROM dual
+  </selectKey>
   INSERT INTO member 
               (mem_cd, 
               id, 
@@ -65,17 +72,7 @@
               cp_cd,
               is_used)
   VALUES (     
-      <choose>
-        <when test="memType == 'p1' or memType == 'p4'">
-          'MEM-EMP-' || LPAD(member_seq.NEXTVAL, 4, '0')
-        </when>
-        <when test="memType == 'p2' or memType == 'p3'">
-          'MEM-CP-' || LPAD(member_seq.NEXTVAL, 4, '0')
-        </when>
-        <otherwise>
-          'MEM-UNK-' || LPAD(member_seq.NEXTVAL, 4, '0')
-        </otherwise>
-      </choose>,
+          #{memCd},
           #{id}, 
           #{pw}, 
           #{lDate}, 
@@ -84,6 +81,18 @@
           #{empCd}, 
           #{cpCd}, 
           'f1')
+</insert>
+
+<insert id="memberAddSecurity" parameterType="MemberAddVO"> <!-- 회원등록시 로그인보안 테이블 행 추가-->
+  INSERT INTO  login_security 
+              (secu_cd, 
+              lcount, 
+              id_used, 
+              mem_cd)
+  VALUES      ('SECU-' || LPAD(security_seq.NEXTVAL, 4, '0'),
+              0,
+              'f1',
+              #{memCd})
 </insert>
 
 <!-- 유효성 검사 -->

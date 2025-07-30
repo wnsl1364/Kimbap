@@ -16,6 +16,9 @@ public interface MemberMapper {
 	// 회원정보 등록
 	public int addMember(MemberAddVO memberAddVO);
 
+	// 회원정보 등록시 보안테이블 데이터 생성
+	public int memberAddSecurity(MemberAddVO memberAddVO);
+
 	// 업체 출력
 	List<EmpCpCheckVO> getEmpList();
 
