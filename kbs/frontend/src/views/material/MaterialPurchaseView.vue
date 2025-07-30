@@ -272,6 +272,7 @@ const loadSampleData = () => {
         <!-- 검색 폼 -->
         <SearchForm 
           :columns="searchColumns"
+          :gridColumns="3"
           @search="onSearch"
           @reset="onReset"
         />

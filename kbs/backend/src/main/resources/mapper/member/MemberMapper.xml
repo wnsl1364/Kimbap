@@ -27,7 +27,7 @@
       a.id = #{id}
 </select>
 
-<insert id="getUserInfo" resultType="MemberVO" parameterType="String">
+<!-- <insert id="getUserInfo" resultType="MemberVO" parameterType="String"> -->
 
 
 <update id="" parameterType="MemberVO"> <!-- 최근 로그인ㅇ -->

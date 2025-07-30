@@ -501,7 +501,6 @@
     <!-- 발주서 상세 수정 -->
     <update id="updatePurcOrderDetail" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         UPDATE purc_ord_d SET
-            cp_cd = #{cpCd},
             mcode = #{mcode},
             mate_ver_cd = #{mateVerCd},
             purc_qty = #{purcQty},
