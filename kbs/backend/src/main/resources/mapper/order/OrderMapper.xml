@@ -91,6 +91,7 @@
             note,
             ord_status AS ordStatus
         FROM vw_order_list
+        WHERE is_used = 'f1'
         ORDER BY ord_cd DESC
     </select>
 

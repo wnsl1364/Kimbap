@@ -4,9 +4,15 @@ import InputTable from '@/components/kimbap/table/InputTable.vue';
 import { useMaterialStore } from '@/stores/materialStore';
 import { storeToRefs } from 'pinia';
 import { readonly } from 'vue';
+import { format } from 'date-fns';
+import { useToast } from 'primevue/usetoast';
+import { ref, onMounted } from 'vue';
+import { getPurcOrderList } from '@/api/materials';
 
 const materialStore = useMaterialStore();
 const { searchColumns, purchaseColumns, purchaseData, purchaseFormButtons } = storeToRefs(materialStore);
+const toast = useToast();
+const searchData = ref({});
 
 // 검색 폼 설정
 searchColumns.value = [
@@ -98,6 +104,21 @@ purchaseColumns.value = [
   }
 ];
 
+const getPurc = async () => {
+  try {
+    const response = await getPurcOrderList();
+    if (response && response.data) {
+      purchaseData.value = formatDataDates(response.data);
+    } else {
+      console.warn('발주서 목록이 비어있습니다.');
+      purchaseData.value = [];
+    }
+  } catch (error) {
+    console.error('발주서 목록 불러오기 실패:', error);
+    purchaseData.value = [];
+  }
+};
+
 // 테이블 버튼 설정 - 기존 버튼들 다 숨기기! 🙈
 const materialTableButtons = {
   add: { show: false, label: '추가', severity: 'primary' },
@@ -118,6 +139,23 @@ const handleApprove = () => {
   // 여기에 승인 로직 구현  
   alert('승인 처리되었습니다!');
 };
+
+const formatDataDates = (data) => {
+  return data.map(item => {
+    return {
+      ...item,
+      deliveryDate: format(new Date(item.deliveryDate), 'yyyy-MM-dd'),
+      orderDate: format(new Date(item.orderDate), 'yyyy-MM-dd')
+    };
+  });
+};
+
+
+
+onMounted(() => {
+  console.log('MaterialPurchaseConfirm.vue mounted');
+  getPurc();
+});
 
 </script>
 <template>

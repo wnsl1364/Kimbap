@@ -105,7 +105,7 @@
         WHERE ROWNUM = 1
     </select>
 
-    <!-- 해당 공장 최대생산량 조회-->
+    <!-- 해당 공장 최대생산량 조회 -->
     <select id="getFacMaxs" parameterType="string" resultType="com.kimbap.kbs.standard.service.FacMaxVO">
         SELECT
             f.max_produ_cd,
@@ -113,13 +113,15 @@
             f.fac_ver_cd,
             f.mpqty,
             f.pcode,
-            p.prod_ver_cd
+            p.prod_ver_cd,
+            p.prod_name
         FROM factory_max f
         JOIN (
             SELECT p1.pcode, MAX(p1.prod_ver_cd) AS prod_ver_cd
             FROM product p1
             GROUP BY p1.pcode
-        ) p ON f.pcode = p.pcode
+        ) latest ON f.pcode = latest.pcode
+        JOIN product p ON p.pcode = latest.pcode AND p.prod_ver_cd = latest.prod_ver_cd
         WHERE f.fcode = #{fcode}
         AND f.fac_ver_cd = (
             SELECT fac_ver_cd

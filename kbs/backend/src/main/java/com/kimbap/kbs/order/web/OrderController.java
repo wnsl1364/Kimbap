@@ -52,7 +52,7 @@ public class OrderController {
   }
 
   // 주문 삭제 (비활성화)
-    @PutMapping("/order/{ordCd}/deactivate")
+    @PutMapping("/{ordCd}/deactivate")
     public ResponseEntity<?> deactivateOrder(@PathVariable String ordCd) {
         try {
             orderService.deactivateOrder(ordCd);

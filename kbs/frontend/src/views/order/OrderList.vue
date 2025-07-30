@@ -98,34 +98,64 @@ onMounted(async () => {
 });
 
 // 동적 검색 컬럼 설정
-const searchColumns = ref([
-    {
-        key: 'location',
+const searchColumns = computed(() => {
+  if (user.value?.memType === 'p2') {
+    // 매출업체용
+    return [
+      {
+        key: 'ordCd',
         label: '주문코드',
         type: 'text',
         placeholder: '주문코드를 입력하세요'
-    },
-    {
-      key: 'ordDt',
-      label: '주문일자',
-      type: 'dateRange'
-    },
-    {
-      key: 'deliReqDt',
-      label: '납기일자',
-      type: 'dateRange'
-    },
-    {
-        key: 'status',
+      },
+      {
+        key: 'ordDt',
+        label: '주문일자',
+        type: 'dateRange'
+      },
+      {
+        key: 'deliReqDt',
+        label: '납기일자',
+        type: 'dateRange'
+      },
+      {
+        key: 'ordStatus',
         label: '상태',
         type: 'dropdown',
-        options: [
-            { label: '반품취소', value: 'cancel' },
-            { label: '주문완료', value: 'ordComplete' },
-            { label: '배송완료', value: 'delComplete' }
-        ]
-    }
-]);
+        options: common.getCodes('0S').map(code => ({
+          label: code.cdInfo,
+          value: code.dcd
+        }))
+      }
+    ];
+  } else {
+    // 사원, 관리자용
+    return [
+      {
+        key: 'ordCd',
+        label: '주문코드',
+        type: 'text',
+        placeholder: '주문코드를 입력하세요'
+      },
+      {
+        key: 'ordDt',
+        label: '주문일자',
+        type: 'dateRange'
+      },
+      {
+        key: 'deliReqDt',
+        label: '납기일자',
+        type: 'dateRange'
+      },
+      {
+        key: 'cpName',
+        label: '거래처',
+        type: 'text',
+        placeholder: '거래처명을 입력하세요'
+      }
+    ];
+  }
+});
 
 // 검색 이벤트 핸들러
 const handleSearch = (searchData) => {
@@ -176,7 +206,7 @@ const handleRowClick = (rowData) => {
       :columns="orderColumns"
       :enableRowActions="false"
       :enableSelection="true"
-      scrollHeight="400px"
+      :scroll-height="'55vh'" :height="'65vh'"
       :selectionMode="'single'"
       :showRowCount="true"
       :buttons="infoFormButtons"
