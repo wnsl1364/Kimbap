@@ -66,7 +66,6 @@ const error = ref('');
 const rememberId = ref(false) // 아이디 저장 여부
 
 async function handleLogin() {
-
   // 프론트단 유효성 검사
   if (!id.value) {
     error.value = '아이디를 입력하세요.';
@@ -78,93 +77,39 @@ async function handleLogin() {
     return;
   }
 
-  // 서버에 요청
-  // 로그인 정보 필요할시 아래 코드 user.value 로 접근가능
   try {
     const response = await axios.post('/api/login', {
       id: id.value,
       pw: pw.value,
     });
 
-    if (response.data && response.data.id) {
-      const userData = response.data;
-      memberStore.saveUser({
-        // 저장될 로그인 정보들
-        id: userData.id,
-        memType : userData.memType,
-        isUsed : userData.isUsed,
-        empCd: userData.empCd,
-        empName: userData.empName,
-        tel: userData.tel,
-        teamName : userData.teamName,
-        deptName : userData.deptName
-      });
-      sessionStorage.setItem('member', JSON.stringify({
-        id: userData.id,
-        memType : userData.memType,
-        isUsed : userData.isUsed,
-        empCd: userData.empCd,
-        empName: userData.empName,
-        tel: userData.tel,
-        teamName : userData.teamName,
-        deptName : userData.deptName
-      }));
-      console.log('저장된 로그인정보');
-      console.log(sessionStorage.getItem('member'))
+    // 응답 { token: "...", user: { id, memType, ... } }
+    const { token, user } = response.data;
+
+  if (user && user.id) {
+      delete user.pw;
+
+      memberStore.saveUser(user);                 // Pinia 저장
+      sessionStorage.setItem('member', JSON.stringify(user)); // 세션 저장
+      localStorage.setItem('token', token);       // 토큰은 로컬 저장
+
+      console.log('저장된 정보:', user);
+      console.log('저장된 토큰:', token);
+
+      // 메인페이지로 이동
       router.push('/');
     } else {
-      error.value = response.data.message;
+      error.value = '로그인 응답이 올바르지 않습니다.';
     }
   } catch (err) {
-    console.error('로그인 오류:', err);
+    console.error(' 로그인 오류:', err);
     error.value = '사원번호와 비밀번호를 확인해주세요.';
   }
 }
-
-// XXXXXXXXXXXXXXXXXX
-// async function handleLogin() {
-//   // 프론트단 유효성 검사
-//   if (!id.value) {
-//     error.value = '아이디를 입력하세요.';
-//     return;
-//   }
-
-//   if (!pw.value) {
-//     error.value = '비밀번호를 입력하세요.';
-//     return;
-//   }
-
-//   // 서버에 요청
-//   try {
-//     const response = await axios.post('/api/login', {
-//       id: id.value,
-//       pw: pw.value,
-//     });
-
-//     if (response.data && response.data.id) {
-//       // 모든 필드를 한 번에 객체로 만듦
-//       const userObj = {
-//         id: response.data.id,
-//         memType: response.data.memType,
-//         isUsed: response.data.isUsed,
-//         empName: response.data.empName,
-//         tel: response.data.tel,
-//         teamName: response.data.teamName,
-//         deptName: response.data.deptName
-//       };
-//       // Pinia Store에 저장
-//       memberStore.saveUser(userObj);
-//       // sessionStorage에도 저장
-//       sessionStorage.setItem('member', JSON.stringify(userObj));
-//       console.log('저장된 로그인정보', userObj);
-//       router.push('/');
-//     } else {
-//       error.value = response.data.message;
-//     }
-//   } catch (err) {
-//     console.error('로그인 오류:', err);
-//     error.value = '사원번호와 비밀번호를 확인해주세요.';
-//   }
+// logout() {
+//   this.user = null;
+//   sessionStorage.removeItem('member');
+//   localStorage.removeItem('token');
 // }
 </script>
 
