@@ -86,9 +86,10 @@ const modalDataSets = computed(() => ({
         columns: [
             { field: 'pcode', header: '제품코드'},
             { field: 'prodName', header: '제품명'},
+            { field: 'prodVerCd', header: '제품버전'},
         ],
         displayField: 'pcode',
-        mappingFields: { pcode: 'pcode', prodName: 'prodName'}
+        mappingFields: { pcode: 'pcode', prodName: 'prodName', prodVerCd: 'prodVerCd'}
     }
 }));
 
@@ -96,17 +97,8 @@ const modalDataSets = computed(() => ({
 onBeforeMount(() => {
     searchColumns.value = [
         { key: 'fcode', label: '공장코드', type: 'text', placeholder: '공장코드를 입력하세요' },
-        { key: 'facName', label: '공장명', type: 'text', placeholder: '공장코드를 입력하세요' },
-        {
-            key: 'opStatus',
-            label: '가동상태',
-            type: 'dropdown',
-            options: [
-                { label: '활성', value: 'r1' },
-                { label: '비활성', value: 'r2' }
-            ]
-        },
-        { key: 'regDt', label: '등록일자', type: 'calendar'},
+        { key: 'facName', label: '공장명', type: 'text', placeholder: '공장명 입력하세요' },
+        { key: 'regDt', label: '등록일자', type: 'dateRange'},
     ];
     inputColumns.value = [
         { key: 'fcode', label: '공장코드', type: 'readonly' },
@@ -126,13 +118,13 @@ onBeforeMount(() => {
         { field: 'fcode', header: '공장코드' },
         { field: 'facName', header: '공장명' },
         { field: 'address', header: '주소' },
-        { field: 'opStatus', header: '가동상태' },
         { field: 'regDt', header: '등록일자' },
     ];
     facMaxColumns.value = [
-        { field: 'pcode', header: '거래처코드', type: 'inputsearch', align: "left" ,placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
-        { field: 'prodName', header: '거래처명',  type: 'input' },
-        { field: 'mpqty', header: '최대생산량(EA)',  type: 'input',align: "right", inputType: 'number', placeholder: '최대생산량을 입력하세요' },
+        { field: 'pcode', header: '제품코드', type: 'inputsearch',width: "100px" ,align: "left" ,placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
+        { field: 'prodName', header: '제품명',  type: 'input',width: "100px"  },
+        { field: 'prodVerCd', header: '제품버전',  type: 'input',width: "100px"  },
+        { field: 'mpqty', header: '최대생산량(EA)',  type: 'input',width: "100px" ,align: "right", inputType: 'number', placeholder: '최대생산량을 입력하세요' },
     ]
     inputFormButtons.value = {
         save: { show: true, label: '저장', severity: 'success' }
@@ -166,22 +158,30 @@ const handleReset = async () => {
 };
 
 const handleSearch = async (searchData) => {
-    await fetchFactorys(); // 최신 데이터 가져오기
+    await fetchFactorys();
 
     factoryList.value = factoryList.value.filter((item) => {
         const matchfcode = !searchData.fcode || item.fcode?.toLowerCase().includes(searchData.fcode.toLowerCase());
         const matchfacName = !searchData.facName || item.facName?.includes(searchData.facName);
-        const matchopStatus = !searchData.opStatus || item.opStatus?.includes(searchData.opStatus);
-        const matchregDt = !searchData.regDt || String(item.regDt) === String(searchData.regDt);
 
-        return matchfcode && matchfacName && matchopStatus && matchregDt;
+        // 🔍 날짜 범위 비교
+        let matchregDt = true;
+        const startDate = searchData.regDt?.start;
+        const endDate = searchData.regDt?.end;
+
+        if (startDate && endDate && item.regDt) {
+        const reg = new Date(item.regDt);
+        matchregDt = reg >= new Date(startDate) && reg <= new Date(endDate);
+        }
+
+        return matchfcode && matchfacName && matchregDt;
     });
 };
 </script>
 
 <template>
     <!-- 검색 영역 -->
-    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
+    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3"/>
 
     <!-- 메인 영역 -->
     <div class="flex flex-col md:flex-row gap-4 mt-6">
