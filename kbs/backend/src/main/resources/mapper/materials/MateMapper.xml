@@ -205,19 +205,6 @@
     <select id="getPurcOrdList" parameterType="map" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
     SELECT 
     <choose>
-        <when test="memtype == 'p1'">
-            po.purc_cd,
-            pod.purc_d_cd,
-            mat.mate_name,
-            mat.mate_type,
-            pod.purc_qty,
-            pod.unit,
-            pod.ex_deli_dt,
-            mati.deli_dt,
-            pod.purc_d_status,
-            po.ord_dt,
-            pod.note
-        </when>
         <when test="memtype == 'p3'">
             po.purc_cd,
             pod.purc_d_cd,
@@ -225,10 +212,27 @@
             mat.mate_name,
             pod.purc_qty,
             pod.unit,
+            pod.unit_price,
             pod.ex_deli_dt,
             mati.deli_dt,
             pod.purc_d_status,
             (pod.purc_qty * pod.unit_price) AS total_amount,
+            pod.note
+        </when>
+        <when test="memtype == 'p3'">
+            <!-- 공급업체용도 동일하게 보강 -->
+            po.purc_cd,
+            pod.purc_d_cd,
+            pod.mcode,
+            mat.mate_name,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price,                                    -- 🔥 추가!
+            pod.ex_deli_dt,
+            pod.purc_d_status,
+            (pod.purc_qty * pod.unit_price) AS total_amount,   -- 🔥 추가!
+            po.regi,                                           -- 🔥 추가!
+            e.emp_name AS regi_name,                          -- 🔥 추가!
             pod.note
         </when>
         <otherwise>
@@ -242,6 +246,7 @@
         LEFT JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
         LEFT JOIN material mat ON pod.mcode = mat.mcode
         LEFT JOIN mate_inbo mati ON pod.purc_d_cd = mati.purc_d_cd
+        LEFT JOIN employee e ON po.regi = e.emp_cd 
         <where>
             <if test="purcCd != null and purcCd != ''">
                 AND UPPER(po.purc_cd) LIKE UPPER('%' || #{purcCd} || '%')
@@ -519,6 +524,210 @@
             WHERE purc_d_cd LIKE 'PURC-D-%'
             ORDER BY purc_d_cd DESC
         ) WHERE ROWNUM = 1
+    </select>
+
+    <select id="getPurcOrderDetailListForApproval" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            po.ord_total_amount,
+            pod.purc_d_cd,
+            pod.purc_qty,
+            pod.unit_price,
+            pod.ex_deli_dt,
+            pod.note,
+            pod.purc_d_status,
+            m.mate_name,
+            c.cp_name
+        FROM purc_ord po
+        INNER JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        INNER JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        WHERE po.purc_status IN ('c1', 'c2')  -- 승인 대기 중인 것들만
+        ORDER BY po.ord_dt DESC, pod.purc_d_cd
+    </select>
+
+    <!-- 🔄 발주 상세 상태 업데이트 (승인/반려용) -->
+    <update id="updatePurcOrderDetailStatus" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
+        UPDATE purc_ord_d 
+        SET purc_d_status = #{purcDStatus}
+        <if test="note != null and note != ''">
+            , note = #{note}
+        </if>
+        WHERE purc_d_cd = #{purcDCd}
+    </update>
+
+    <!-- 🔄 발주 헤더 상태 업데이트 -->
+    <update id="updatePurcOrderHeaderStatus" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
+        UPDATE purc_ord 
+        SET purc_status = #{purcStatus}
+        WHERE purc_cd = #{purcCd}
+    </update>
+
+    <!-- 📋 승인 대기 발주 목록 조회 (상세 정보 포함) -->
+    <select id="getPendingApprovalOrdersDetailed" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            po.ord_total_amount,
+            
+            -- 발주상세 정보
+            pod.purc_d_cd,
+            pod.mate_cp_cd,
+            pod.mcode,
+            pod.mate_ver_cd,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price,
+            pod.ex_deli_dt,
+            pod.note,
+            pod.purc_d_status,
+            
+            -- 자재 정보
+            m.mate_name,
+            m.mate_type,
+            m.std,
+            m.sto_con,
+            
+            -- 거래처 정보
+            c.cp_cd,
+            c.cp_name,
+            c.cp_type,
+            c.repname,
+            c.tel as cp_tel,
+            c.address as cp_address,
+            
+            e.emp_name as regi_name,
+            e.emp_name as emp_name
+            
+        FROM purc_ord po
+        INNER JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        INNER JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        LEFT JOIN employee e ON po.regi = e.emp_cd
+        WHERE pod.purc_d_status = 'c1'  -- 승인 대기 상태만
+        <if test="purcCd != null and purcCd != ''">
+            AND UPPER(po.purc_cd) LIKE UPPER('%' || #{purcCd} || '%')
+        </if>
+        <if test="mateName != null and mateName != ''">
+            AND UPPER(m.mate_name) LIKE UPPER('%' || #{mateName} || '%')
+        </if>
+        <if test="cpName != null and cpName != ''">
+            AND UPPER(c.cp_name) LIKE UPPER('%' || #{cpName} || '%')
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND po.ord_dt &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND po.ord_dt &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+        </if>
+        ORDER BY po.ord_dt DESC, pod.purc_d_cd ASC
+    </select>
+
+    <!-- 📊 발주 상태별 통계 조회 -->
+    <select id="getPurchaseOrderStatusStatistics" resultType="java.util.Map">
+        SELECT 
+            purc_d_status as status,
+            COUNT(*) as count,
+            SUM(purc_qty * unit_price) as total_amount
+        FROM purc_ord_d pod
+        INNER JOIN purc_ord po ON pod.purc_cd = po.purc_cd
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND po.ord_dt &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND po.ord_dt &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+        </if>
+        GROUP BY purc_d_status
+        ORDER BY purc_d_status
+    </select>
+
+    <!-- 📊 월별 발주 통계 조회 -->
+        <select id="getMonthlyPurchaseStatistics" resultType="java.util.Map">
+        SELECT 
+            TO_CHAR(po.ord_dt, 'YYYY-MM') as order_month,
+            COUNT(*) as order_count,
+            SUM(pod.purc_qty * pod.unit_price) as total_amount,
+            COUNT(DISTINCT po.purc_cd) as unique_orders,
+            COUNT(DISTINCT ms.cp_cd) as unique_suppliers
+        FROM purc_ord po
+        INNER JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND po.ord_dt &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND po.ord_dt &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+        </if>
+        GROUP BY TO_CHAR(po.ord_dt, 'YYYY-MM')
+        ORDER BY order_month DESC
+    </select>
+
+    <!-- 📊 공급업체별 발주 통계 조회 -->
+    <select id="getSupplierPurchaseStatistics" resultType="java.util.Map">
+        SELECT 
+            c.cp_name as supplier_name,
+            c.cp_cd as supplier_code,
+            COUNT(*) as order_count,
+            SUM(pod.purc_qty * pod.unit_price) as total_amount,
+            AVG(pod.purc_qty * pod.unit_price) as avg_amount
+        FROM purc_ord po
+        INNER JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        WHERE 1=1
+        <if test="startDate != null and startDate != ''">
+            AND po.ord_dt &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND po.ord_dt &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+        </if>
+        GROUP BY c.cp_name, c.cp_cd
+        ORDER BY total_amount DESC
+        FETCH FIRST 10 ROWS ONLY
+    </select>
+
+    <!-- 🔍 발주 상세 정보 조회 (승인 이력 포함) -->
+    <select id="getPurchaseOrderDetailWithHistory" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            pod.purc_d_cd,
+            pod.purc_cd,
+            pod.mcode,
+            pod.mate_ver_cd,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price,
+            pod.ex_deli_dt,
+            pod.note,
+            pod.purc_d_status,
+            
+            -- 자재 정보
+            m.mate_name,
+            m.mate_type,
+            
+            -- 거래처 정보
+            c.cp_name,
+            c.repname,
+            
+            -- 발주 기본 정보
+            po.ord_dt,
+            po.regi,
+            po.purc_status
+            
+        FROM purc_ord_d pod
+        INNER JOIN purc_ord po ON pod.purc_cd = po.purc_cd
+        INNER JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        WHERE pod.purc_d_cd = #{purcDCd}
     </select>
     
     <!-- 자재출고 목록 조회 -->

@@ -30,6 +30,7 @@ public class MaterialsVO {
     private String regiName;        // 담당자명
     private String purcStatus;      // 발주상태 ✅ 추가
     private String mateCpCd;       // 자재거래처코드
+    private String empName;
 
     // ========== p1 권한 추가 필드 ==========
     private String purcDCd;         // 발주상세코드

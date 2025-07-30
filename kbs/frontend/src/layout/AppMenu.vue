@@ -108,7 +108,7 @@ const model = ref([
             },
             {
                 label: '자재 발주 승인',
-                to: '/material/materialPurchaseConfirm'
+                to: '/material/MaterialPurchaseApproval'
             },
             {
                 label: '자재 출고',
