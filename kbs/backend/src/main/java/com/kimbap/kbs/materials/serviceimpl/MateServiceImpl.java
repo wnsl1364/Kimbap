@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -536,6 +537,11 @@ public class MateServiceImpl implements MateService {
     }
 
     @Override
+    public List<MaterialsVO> getPurcOrderDetailListForApproval() {
+        return mateMapper.getPurcOrderDetailListForApproval();
+    }
+
+    @Override
     public List<MaterialsVO> getSuppliersByMaterial(SearchCriteria criteria) {
         try {
             System.out.println("=== 특정 자재의 공급업체들 조회 ===");
@@ -550,6 +556,192 @@ public class MateServiceImpl implements MateService {
             System.err.println("특정 자재의 공급업체 조회 실패: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("특정 자재의 공급업체 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void updatePurchaseOrderStatus(MaterialsVO statusData) {
+        try {
+            System.out.println("🔄 발주 상태 업데이트 시작: " + statusData.getPurcDCd()
+                    + " → " + statusData.getPurcDStatus());
+
+            // 기존 발주 데이터 조회하여 검증
+            List<MaterialsVO> existingData = mateMapper.getPurcOrderWithDetails(statusData.getPurcCd());
+            if (existingData == null || existingData.isEmpty()) {
+                throw new RuntimeException("존재하지 않는 발주코드입니다: " + statusData.getPurcCd());
+            }
+
+            // 상태 업데이트 실행
+            mateMapper.updatePurcOrderDetailStatus(statusData);
+
+            // 상태 변경이 '승인'인 경우, 발주 헤더의 상태도 업데이트
+            if ("c2".equals(statusData.getPurcDStatus())) {
+                MaterialsVO headerUpdate = MaterialsVO.builder()
+                        .purcCd(statusData.getPurcCd())
+                        .purcStatus("c2") // 헤더도 승인으로 변경
+                        .build();
+                mateMapper.updatePurcOrderHeaderStatus(headerUpdate);
+            }
+
+            System.out.println("✅ 발주 상태 업데이트 완료: " + statusData.getPurcDCd());
+
+            // 알림 전송 (선택사항)
+            // sendStatusChangeNotification(statusData.getPurcDCd(), statusData.getPurcDStatus(), "시스템");
+        } catch (Exception e) {
+            System.err.println("❌ 발주 상태 업데이트 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("발주 상태 업데이트 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<MaterialsVO> getPendingApprovalOrders(SearchCriteria criteria) {
+        try {
+            System.out.println("📋 승인 대기 발주 목록 조회 시작");
+
+            // 승인 대기 상태(c1)로 고정
+            criteria.setPurcDStatus("c1");
+
+            List<MaterialsVO> pendingOrders = mateMapper.getPurcOrdList(criteria);
+
+            // 승인 대기 상태만 필터링 (이중 체크)
+            List<MaterialsVO> filteredOrders = pendingOrders.stream()
+                    .filter(order -> "c1".equals(order.getPurcDStatus()))
+                    .collect(Collectors.toList());
+
+            System.out.println("✅ 승인 대기 발주 목록 조회 완료: " + filteredOrders.size() + "건");
+            return filteredOrders;
+
+        } catch (Exception e) {
+            System.err.println("❌ 승인 대기 발주 목록 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("승인 대기 발주 목록 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getPurchaseOrderStatistics(SearchCriteria criteria) {
+        try {
+            System.out.println("📊 발주 통계 조회 시작");
+
+            // 전체 발주 데이터 조회
+            List<MaterialsVO> allOrders = mateMapper.getPurcOrdList(criteria);
+
+            // 상태별 집계
+            Map<String, Long> statusCounts = allOrders.stream()
+                    .collect(Collectors.groupingBy(
+                            order -> order.getPurcDStatus() != null ? order.getPurcDStatus() : "unknown",
+                            Collectors.counting()
+                    ));
+
+            // 총 금액 계산
+            BigDecimal totalAmount = allOrders.stream()
+                    .filter(order -> order.getUnitPrice() != null && order.getPurcQty() != null)
+                    .map(order -> order.getUnitPrice().multiply(BigDecimal.valueOf(order.getPurcQty())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // 월별 집계 (주문일자 기준)
+            Map<String, Long> monthlyStats = allOrders.stream()
+                    .filter(order -> order.getOrdDt() != null)
+                    .collect(Collectors.groupingBy(
+                            order -> {
+                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+                                return sdf.format(order.getOrdDt());
+                            },
+                            Collectors.counting()
+                    ));
+
+            // 공급업체별 집계
+            Map<String, Long> supplierStats = allOrders.stream()
+                    .filter(order -> order.getCpName() != null && !order.getCpName().isEmpty())
+                    .collect(Collectors.groupingBy(
+                            MaterialsVO::getCpName,
+                            Collectors.counting()
+                    ));
+
+            // 자재별 집계 (TOP 10)
+            Map<String, Long> materialStats = allOrders.stream()
+                    .filter(order -> order.getMateName() != null && !order.getMateName().isEmpty())
+                    .collect(Collectors.groupingBy(
+                            MaterialsVO::getMateName,
+                            Collectors.counting()
+                    ))
+                    .entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .limit(10)
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (e1, e2) -> e1,
+                            LinkedHashMap::new
+                    ));
+
+            // 결과 구성
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("totalOrders", allOrders.size());
+            statistics.put("totalAmount", totalAmount);
+            statistics.put("statusCounts", statusCounts);
+            statistics.put("monthlyStats", monthlyStats);
+            statistics.put("supplierStats", supplierStats);
+            statistics.put("topMaterials", materialStats);
+
+            // 주요 지표들
+            statistics.put("pendingApproval", statusCounts.getOrDefault("c1", 0L));
+            statistics.put("approved", statusCounts.getOrDefault("c2", 0L));
+            statistics.put("rejected", statusCounts.getOrDefault("c6", 0L));
+            statistics.put("completed", statusCounts.getOrDefault("c5", 0L));
+
+            System.out.println("✅ 발주 통계 조회 완료");
+            return statistics;
+
+        } catch (Exception e) {
+            System.err.println("❌ 발주 통계 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("발주 통계 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void sendStatusChangeNotification(String purcDCd, String newStatus, String approver) {
+        try {
+            System.out.println("🔔 발주 상태 변경 알림 전송: " + purcDCd + " → " + newStatus);
+
+            // 실제 알림 시스템 연동 시 구현
+            // 예: 이메일, SMS, 시스템 알림 등
+            String statusText = getStatusText(newStatus);
+            String message = String.format("발주상세 %s가 %s로 변경되었습니다. (승인자: %s)",
+                    purcDCd, statusText, approver);
+
+            System.out.println("📧 알림 메시지: " + message);
+            // TODO: 실제 알림 전송 로직 구현
+
+        } catch (Exception e) {
+            System.err.println("❌ 알림 전송 실패: " + e.getMessage());
+            // 알림 실패는 주요 기능에 영향을 주지 않도록 예외를 던지지 않음
+        }
+    }
+
+    /**
+     * 상태 코드를 텍스트로 변환하는 헬퍼 메서드
+     */
+    private String getStatusText(String statusCode) {
+        switch (statusCode) {
+            case "c1":
+                return "요청";
+            case "c2":
+                return "승인";
+            case "c3":
+                return "입고대기";
+            case "c4":
+                return "부분입고";
+            case "c5":
+                return "입고완료";
+            case "c6":
+                return "거절";
+            case "c7":
+                return "반품";
+            default:
+                return statusCode;
         }
     }
 

@@ -48,9 +48,9 @@ export default [
         component: () => import('@/views/material/MaterialPurchaseView.vue'),
     },
     {
-        path: '/material/MaterialPurchaseConfirm',
-        name: 'materialPurchaseConfirm',
-        component: () => import('@/views/material/MaterialPurchaseConfirm.vue'),
+        path: '/material/MaterialPurchaseApproval',
+        name: 'materialPurchaseApproval',
+        component: () => import('@/views/material/MaterialPurchaseApproval.vue'),
     },
     {
         path: '/material/MaterialOutbound',

@@ -67,6 +67,12 @@ export const getPurcOrderList = () => {
   return axios.get('/api/materials/purchase-orders/list');
 };
 
+export const getPurcOrderDetailList = () => {
+  return axios.get('/api/materials/purchaseOrders', { 
+    params: { memtype: 'p1' } // 내부직원 권한으로 상세 조회
+  });
+};
+
 export const getPurcOrderWithDetails = (purcCd) => {
   return axios.get(`/api/materials/purchase-orders/${purcCd}`);
 };
@@ -77,6 +83,10 @@ export const savePurchaseOrder = (orderData) => {
 
 export const generatePurchaseCode = () => {
   return axios.post('/api/materials/purchase-orders/generate-code');
+};
+
+export const getPurcOrderDetailListForApproval = () => {
+  return axios.get('/api/materials/purchase-orders/approval-list');
 };
 
 export const getMaterialsWithSuppliers = (searchParams) => {
@@ -134,4 +144,62 @@ export const getMaterialOutboundList = () => {
 
 export const saveMaterialOutbound = (outboundData) => {
   return axios.post('/api/materials/outbound', outboundData);
+};
+
+export const updatePurchaseOrderStatus = (statusData) => {
+  return axios.put('/api/materials/purchase-orders/status', statusData);
+}
+
+export const getPendingApprovalOrders = () => {
+  const params = {
+    purcDStatus: 'c1',
+    ...searchParams
+  };
+
+  Object.keys(params).forEach(key => 
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  return axios.get('/api/materials/purchase-orders/pending-approval', { params });
+};
+
+export const getPurchaseOrderStatistics = (dateRange = {}) => {
+  const params = {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate
+  };
+  
+  Object.keys(params).forEach(key => 
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  return axios.get('/api/materials/purchase-orders/statistics', { params });
+};
+
+export const sendApprovalNotification = (notificationData) => {
+  return axios.post('/api/materials/purchase-orders/notification', notificationData);
+};
+
+export const getPurchaseOrderDetailWithHistory = (purcDCd) => {
+  return axios.get(`/api/materials/purchase-orders/detail/${purcDCd}`);
+};
+
+export const bulkApprovePurchaseOrders = (purcDCdList, approver = 'system') => {
+  const requestData = {
+    purcDCdList: purcDCdList,
+    newStatus: 'c2', // 승인
+    approver: approver
+  };
+  
+  return axios.put('/api/materials/purchase-orders/bulk-status', requestData);
+};
+
+export const bulkRejectPurchaseOrders = (purcDCdList, reason = '', approver = 'system') => {
+  const requestData = {
+    purcDCdList: purcDCdList,
+    newStatus: 'c6', // 거절
+    reason: reason,
+    approver: approver
+  };
+  
+  return axios.put('/api/materials/purchase-orders/bulk-status', requestData);
 };
