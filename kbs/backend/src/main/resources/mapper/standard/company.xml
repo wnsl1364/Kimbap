@@ -28,7 +28,6 @@
     <!-- 거래처 목록 조회 -->
     <select id="getCompanyList" resultType="com.kimbap.kbs.standard.service.CompanyVO">
         SELECT  cp_cd,
-                cp_ver_cd,
                 cp_name,
                 cp_type,
                 repname,
@@ -50,36 +49,10 @@
         ORDER BY cp_cd
     </select>
 
-    <!-- 거래처 이력 조회 -->
-    <select id="selectCpHistory" resultType="com.kimbap.kbs.standard.service.CompanyVO">
-        SELECT  cp_cd,
-                cp_ver_cd,
-                cp_name,
-                cp_type,
-                repname,
-                crnumber,
-                tel,
-                cp_email,
-                fax_num,
-                loan_term,
-                mname,
-                address,
-                is_used,
-                cha_rea,
-                reg_dt,
-                regi,
-                modi,
-                note
-        FROM    company
-        WHERE   cp_cd = #{cpCd}
-        ORDER BY cp_ver_cd DESC
-    </select>
-
     <!-- 거래처 등록 -->
     <insert id="insertCp" parameterType="com.kimbap.kbs.standard.service.CompanyVO">
         INSERT INTO company
                     (cp_cd,
-                    cp_ver_cd,
                     cp_name,
                     cp_type,
                     repname,
@@ -98,7 +71,6 @@
                     note
                     )
         VALUES      (#{cpCd},
-                    #{cpVerCd},
                     #{cpName},
                     #{cpType},
                     #{repname},
@@ -125,53 +97,6 @@
     <!-- 거래처 기준정보 단건 조회 -->
     <select id="getCpDetail" parameterType="string" resultType="com.kimbap.kbs.standard.service.CompanyVO">
         SELECT  cp_cd,
-                cp_ver_cd,
-                cp_name,
-                cp_type,
-                repname,
-                crnumber,
-                tel,
-                cp_email,
-                fax_num,
-                loan_term,
-                mname,
-                address,
-                is_used,
-                cha_rea,
-                reg_dt,
-                regi,
-                modi,
-                note
-        FROM (
-            SELECT  cp_cd,
-                    cp_ver_cd,
-                    cp_name,
-                    cp_type,
-                    repname,
-                    crnumber,
-                    tel,
-                    cp_email,
-                    fax_num,
-                    loan_term,
-                    mname,
-                    address,
-                    is_used,
-                    cha_rea,
-                    reg_dt,
-                    regi,
-                    modi,
-                    note
-            FROM    company
-            WHERE   cp_cd = #{cpCd}
-            ORDER BY cp_ver_cd DESC
-            )
-        WHERE ROWNUM = 1
-    </select>
-
-    <!-- 거래처 최신버전 1건 조회 -->
-    <select id="selectLatestVersion" parameterType="string" resultType="com.kimbap.kbs.standard.service.CompanyVO">
-        SELECT  cp_cd,
-                cp_ver_cd,
                 cp_name,
                 cp_type,
                 repname,
@@ -190,15 +115,28 @@
                 note
         FROM    company
         WHERE   cp_cd = #{cpCd}
-        AND     is_used = 'f1'
     </select>
 
-    <!-- 기존 거래처 버전 비활성화 -->
-    <update id="disableOldVersion" parameterType="string">
+    <!-- 거래처 수정 -->
+    <update id="updateCp" parameterType="com.kimbap.kbs.standard.service.CompanyVO">
         UPDATE company
-        SET is_used = 'f2'
+        SET cp_name   = #{cpName},
+            cp_type   = #{cpType},
+            repname   = #{repname},
+            crnumber  = #{crnumber},
+            tel       = #{tel},
+            cp_email  = #{cpEmail},
+            fax_num   = #{faxNum},
+            loan_term = #{loanTerm},
+            mname     = #{mname},
+            address   = #{address},
+            is_used   = #{isUsed},
+            cha_rea   = #{chaRea},
+            reg_dt    = SYSDATE,
+            regi      = #{regi},
+            modi      = #{modi},
+            note      = #{note}
         WHERE cp_cd = #{cpCd}
-        AND is_used = 'f1'
     </update>
 
     <!-- 거래처 코드 중복 체크 -->

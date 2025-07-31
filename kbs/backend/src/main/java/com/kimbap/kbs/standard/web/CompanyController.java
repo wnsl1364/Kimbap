@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,8 +12,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.kimbap.kbs.standard.service.ChangeItemVO;
 import com.kimbap.kbs.standard.service.CompanyService;
 import com.kimbap.kbs.standard.service.CompanyVO;
 
@@ -63,27 +59,18 @@ public class CompanyController {
 
     // 거래처 기준정보 수정
     @PutMapping("/update")
-    public ResponseEntity<Map<String,Object>> updateCompnay(@RequestBody CompanyVO cp)  {
+    public Map<String, Object> updateCp(@RequestBody CompanyVO cp) {
         try {
             companyService.updateCp(cp);
-            
-            Map<String, Object> response = Map.of(
+            return Map.of(
                 "success", true,
-                "message", "제품 정보가 성공적으로 수정되었습니다."
+                "message", "수정 성공"
             );
-            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, Object> error = Map.of(
+            return Map.of(
                 "success", false,
-                "message", "제품 수정 중 오류 발생: " + e.getMessage()
+                "message", "수정 실패: " + e.getMessage()
             );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error); // HTTP 500
         }
-    }
-
-    // 변경 이력조회
-    @GetMapping("/change-history/{cpCd}")
-    public List<ChangeItemVO> getChangeHistory(@PathVariable String cpCd){
-        return companyService.getChangeHistory(cpCd);
     }
 }

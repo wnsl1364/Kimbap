@@ -154,8 +154,12 @@ const model = ref([
         label: '결제',
         items: [
             {
-                label: '자재 재고 조회',
-                to: '/material/materialStockView'
+                label: '입출금 관리',
+                to: '/payment/cashflow'
+            },
+            {
+                label: '미수금 분배',
+                to: '/payment/unpaidallocation'
             },
         ]
     },
