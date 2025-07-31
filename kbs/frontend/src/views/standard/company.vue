@@ -11,7 +11,7 @@ import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardCpStore();
 const { companyList, formData, changeHistory } = storeToRefs(store);
-const { fetchCompanys, saveCompany, fetchCompanyDetail, fetchChangeHistory } = store;
+const { fetchCompanys, saveCompany, fetchCompanyDetail } = store;
 
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');

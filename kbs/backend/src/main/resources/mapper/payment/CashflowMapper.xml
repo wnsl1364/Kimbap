@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.payment.mapper.CashflowMapper">
+    <!-- 입출금 내역 조회 -->
+    <select id="getCashflowList" parameterType="map" resultType="com.kimbap.kbs.payment.service.CashflowVO">
+        SELECT  
+            statement_cd,
+            trans_type,
+            depo,
+            deposit_amount,
+            bank_name,
+            regi,
+            modi,
+            reg_dt,
+            note
+        FROM statement
+        WHERE 1=1
+        <if test="statementCd != null and statementCd != ''">
+            AND statement_cd LIKE '%' || #{statementCd} || '%'
+        </if>
+        <if test="transType != null and transType != ''">
+            AND trans_type = #{transType}
+        </if>
+        <if test="depo != null and depo != ''">
+            AND depo LIKE '%' || #{depo} || '%'
+        </if>
+        
+        <!-- 등록일자 범위 조건 -->
+        <if test="regDtStart != null and regDtStart != ''">
+            AND TRUNC(reg_dt) &gt;= TO_DATE(#{regDtStart}, 'YYYY-MM-DD')
+        </if>
+        <if test="regDtEnd != null and regDtEnd != ''">
+            AND TRUNC(reg_dt) &lt;= TO_DATE(#{regDtEnd}, 'YYYY-MM-DD')
+        </if>
+
+        ORDER BY statement_cd
+    </select>
+    
+    <!-- 입출금 내역 등록 -->
+    <insert id="insterCf" parameterType="com.kimbap.kbs.payment.service.CashflowVO">
+        INSERT INTO statement
+                    (statement_cd,
+                    trans_type,
+                    depo,
+                    deposit_amount,
+                    bank_name,
+                    regi,
+                    modi,
+                    reg_dt,
+                    note
+                    )
+        VALUES      (
+                    #{statementCd},
+                    #{transType},
+                    #{depo},
+                    #{depositAmount},
+                    #{bankName},
+                    #{regi},
+                    #{modi},
+                    SYSDATE,
+                    #{note}
+                    )
+    </insert>
+
+    <!-- 입출금 내역 수정 -->
+    <update id="updateCf" parameterType="com.kimbap.kbs.payment.service.CashflowVO">
+        UPDATE  statement
+        SET     statement_cd    = #{statementCd},
+                trans_type      = #{transType},
+                depo            = #{depo},
+                deposit_amount  = #{depositAmount},
+                bank_name       = #{bankName},
+                regi            = #{regi},
+                modi            = #{modi},
+                reg_dt          = SYSDATE,
+                note            = #{note}
+        WHERE   statement_cd    = #{statementCd}
+    </update>
+
+    <!-- 입출금 내역 단건 조회 -->
+    <select id="getCfDetail" parameterType="string" resultType="com.kimbap.kbs.payment.service.CashflowVO">
+        SELECT  statement_cd,
+                trans_type,
+                depo,
+                deposit_amount,
+                bank_name,
+                regi,
+                modi,
+                reg_dt,
+                note
+        FROM    statement
+        WHERE   statement_cd = #{statementCd}
+    </select>
+
+    <!-- 입출금 내역 코드 존재여부확인 -->
+    <select id="existsCfcode" parameterType="string" resultType="int">
+        SELECT  COUNT(*)
+        FROM    statement
+        WHERE   statement_cd = #{statementCd}
+    </select>
+
+    <!-- 입금 시퀀스 -->
+    <select id="getNextInCashflowCode" resultType="int">
+        SELECT seq_cashflow_in.NEXTVAL FROM dual
+    </select>
+
+    <!-- 출금 시퀀스 -->
+    <select id="getNextOutCashflowCode" resultType="int">
+        SELECT seq_cashflow_out.NEXTVAL FROM dual
+    </select>
+</mapper>
