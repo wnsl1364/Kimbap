@@ -29,7 +29,6 @@ const props = defineProps({
             load: { show: false, label: '불러오기', severity: 'info' },
             refund: { show: false, label: '반품요청', severity: 'help' },
             refundReq: { show: false, label: '반품처리', severity: 'info' },
-            location: { show: false, label: '위치선택', severity: 'warning' }
         })
     },
     buttonPosition: {
@@ -400,7 +399,6 @@ defineExpose({
                                 }}
                             </span>
                         </template>
-
                         <template v-else-if="column.type === 'button'">
                             <Button 
                                 :label="column.buttonLabel || '버튼'"
