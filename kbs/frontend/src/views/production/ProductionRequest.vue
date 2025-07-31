@@ -10,6 +10,7 @@ import { useProductStore } from '@/stores/productStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore'
 import ProdPlanSelectModal from '@/views/production/ProdPlanSelectModal.vue' // 생산계획 가져오기 모달
+import ProdReqSelectModal from '@/views/production/ProdReqSelectModal.vue'   // 생산요청 가져오기 모달
 
 // 로그인 정보 가져오기 ====================================================
 const memberStore = useMemberStore()
@@ -33,27 +34,50 @@ const {
   fetchProductList  // 제품 목록 불러오기
 } = store
 
-const prodDetailList = ref([]); // 생산계획 제품 목록
-const formData = ref({});  // 선택된 행 초기값 
-const modalVisible = ref(false) // 모달 열기 상태
+const prodDetailList = ref([]);        // 생산계획 제품 목록
+const formData = ref({});              // 선택된 행 초기값 
+const planModalvisible = ref(false)    // 생산계획 모달 닫기 기본상태
+const requestModalvisible = ref(false) // 생산요청 모달 닫기 기본상태
 
 // 공통코드 가져오기
 const common = useCommonStore()
 const { commonCodes } = storeToRefs(common)
 
 
-// 모달에서 선택된 데이터 처리
-const handlePlanSelect = ({ basicInfo, detailList }) => {
+// 모달에서 선택된 생산계획 데이터 처리
+const handlePlanSelect = ({ basicInfo }) => {
   formData.value = {
     produPlanCd: basicInfo.produPlanCd,
     factory: {
       fcode: basicInfo.fcode,
       facVerCd: basicInfo.facVerCd
     },
+    requ: user.value.empCd,
+    empName: user.value.empName,
     note: basicInfo.note,
   }
   // 오늘 날짜를 기본값으로 설정
   formData.value.reqDt = new Date()
+}
+
+// 모달에서 선택된 생산요청 데이터 처리
+const handleReqSelect = ({ basicInfo, detailList }) => {
+  formData.value = {
+    produReqCd: basicInfo.produReqCd,
+    produPlanCd: basicInfo.produPlanCd,
+    reqDt: basicInfo.reqDt,
+    deliDt: basicInfo.deliDt,
+    requ: basicInfo.requ,
+    empName: basicInfo.empName,
+    factory: {
+      fcode: basicInfo.fcode,
+      facVerCd: basicInfo.facVerCd
+    },
+    note: basicInfo.note,
+  }
+  console.log(formData.value)
+
+  prodDetailList.value = detailList
 }
 
 onMounted(async () => {
@@ -73,7 +97,7 @@ const factoryOptions = computed(() =>
 // 폼 필드 정의 (InputForm.vue 기준 key 속성 사용)
 const fields = [
   { key: 'produReqCd', label: '생산요청번호', type: 'readonly' },
-  { key: 'produPlanCd', label: '생산계획번호', type: 'readonly' },
+  { key: 'produPlanCd', label: '생산계획번호', type: 'readonlyModal', clickable: true, placeholder: '클릭 시 검색모달' },
   { key: 'reqDt', label: '생산요청일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
   {
     key: 'factory',
@@ -82,7 +106,7 @@ const fields = [
     options: factoryOptions,
     placeholder: '공장을 선택하세요'
   },
-  { key: 'requ', label: '요청자', type: 'text' },
+  { key: 'empName', label: '요청자', type: 'readonly' },
   { key: 'deliDt', label: '납기일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
   { key: 'note', label: '비고', type: 'textarea' }
 ]
@@ -91,7 +115,7 @@ const prodReqFormButtons = ref({
   save: { show: true, label: '저장', severity: 'success' },
   reset: { show: true, label: '초기화', severity: 'secondary' },
   delete: { show: true, label: '삭제', severity: 'danger' },
-  load: { show: true, label: '생산계획 불러오기', severity: 'info' }
+  load: { show: true, label: '생산요청 불러오기', severity: 'info' }
 })
 const prodPlanDetailButtons = ref({
   save: { show: false, label: '저장', severity: 'success' },
@@ -128,7 +152,7 @@ const handleSave = async (data) => {
         deliDt: format(formData.value.deliDt, 'yyyy-MM-dd'),
         fcode: formData.value.factory?.fcode,
         facVerCd: formData.value.factory?.facVerCd,
-        requ: 'EMP-10001',  
+        requ: formData.value.requ,  
         note: formData.value.note
       },
       reqDetails: prodDetailList.value.map(item => ({
@@ -208,8 +232,13 @@ const handleDelete = async (data) => {
 // =========================================
 // 생산계획 불러오기 모달 버튼
 const handleLoad = () => {
-  modalVisible.value = true
+  requestModalvisible.value = true;
 }
+const handleFieldClick = (fieldKey) => {
+  if (fieldKey === 'produPlanCd') {
+    planModalvisible.value = true;
+  }
+};
 // =========================================
 // 공통코드 변환
 const convertedProductList = computed(() => {
@@ -261,6 +290,7 @@ const modalDataSets = computed(() => ({
     <InputForm
       v-model:data="formData"
       :columns="fields"
+      @fieldClick="handleFieldClick"
       title="생산계획 기본 정보"
       :buttons="prodReqFormButtons"
       buttonPosition="top"
@@ -286,9 +316,15 @@ const modalDataSets = computed(() => ({
     </div>
     <!-- 생산계획 불러오기 모달 -->
     <ProdPlanSelectModal
-      v-model:visible="modalVisible"
+      v-model:visible="planModalvisible"
       mode="basic"
       @select="handlePlanSelect"
+    />
+    <!-- 생산요청 불러오기 모달 -->
+    <ProdReqSelectModal
+      v-model:visible="requestModalvisible"
+      mode="full"
+      @select="handleReqSelect"
     />
   </div>
 </template>

@@ -107,6 +107,12 @@ const getOptions = (options) => {
   if ('value' in options) return options.value;
   return options;
 };
+
+const handleFieldClick = (field) => {
+  if (field.clickable) {
+    emit('fieldClick', field.key);
+  }
+};
 </script>
 
 <template>
@@ -229,6 +235,18 @@ const getOptions = (options) => {
                 class="w-full bg-gray-100" 
                 readonly 
                 />
+
+                <!-- 읽기 전용 모달 -->
+                <div v-else-if="field.type === 'readonlyModal'" class="relative">
+                    <InputText
+                        v-model="formData[field.key]"
+                        :placeholder="field.placeholder" 
+                        :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
+                        class="w-full bg-gray-100 cursor-pointer"
+                        readonly
+                        @click="() => handleFieldClick(field)"
+                    />
+                </div>
                 
                 <!-- 비활성화 -->
                 <InputText 

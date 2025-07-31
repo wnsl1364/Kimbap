@@ -1,5 +1,5 @@
-<!-- views/production/ProdPlanDetailModal.vue -->
- <script setup>
+<!-- views/production/ProdPlanSelectModal.vue -->
+<script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useProductStore } from '@/stores/productStore';
