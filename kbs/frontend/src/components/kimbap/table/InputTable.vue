@@ -104,6 +104,7 @@ const emit = defineEmits([
   'load',
   'handleProductDeleteList',
   'rowClick',
+  'selectionChange',
   'locationSelect'
 ])
 
@@ -133,6 +134,16 @@ const modalVisible = ref(false)
 const currentRowData = ref(null) // 현재 수정중인 행 데이터
 const currentField = ref('') // 현재 수정중인 필드명
 
+// 🔥 선택 상태 변경 감지해서 부모에게 전달!
+watch(selectedRows, (newSelection, oldSelection) => {
+  console.log('🐛 InputTable 선택 변경!')
+  console.log('  - 이전:', oldSelection?.length || 0, '개')
+  console.log('  - 현재:', newSelection?.length || 0, '개')
+  console.log('  - 선택된 항목들:', newSelection)
+  
+  // 🎯 부모 컴포넌트에게 선택 상태 전달!
+  emit('selectionChange', newSelection)
+}, { deep: true })
 
 // 초기화 관련 추가(민준)
 watch(
@@ -282,6 +293,10 @@ const getAlignClass = (align) => {
 }
 
 const rowCount = computed(() => internalData.value.length)
+
+defineExpose({
+  selectedRows
+})
 </script>
 
 <template>

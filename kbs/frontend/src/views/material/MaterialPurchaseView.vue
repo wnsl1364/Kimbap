@@ -61,7 +61,7 @@ const convertUnitCodes = (list) => {
 // 반응형 데이터
 const userType = ref('internal');
 const isLoading = ref(false);
-const showTestControls = ref(true);
+const showTestControls = ref(false);
 
 const materialTableButtons = ref({
   add: { show: false },
@@ -343,11 +343,8 @@ const handleRowClick = (rowData) => {
 
   if (!purcCd) return;
 
-  if (memType === 'p2') {
+  if (memType === 'p3') {
     // 매출업체는 주문등록(수정) 페이지로
-    router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
-  } else if (['p1', 'p4', 'p5'].includes(memType)) {
-    // 사원/관리자/물류는 주문검토 페이지로
     router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
   } else {
     console.warn('지원되지 않는 사용자 유형입니다:', memType)
@@ -384,7 +381,15 @@ onMounted(async () => {
           <div class="flex align-items-center gap-3">
             <i class="pi pi-user text-primary"></i>
             <div>
-              <strong>{{ memberStore.user?.empName || '테스트 사용자' }}</strong>
+              <strong>
+                {{ 
+                  memberStore.user?.memType === 'p1' 
+                    ? (memberStore.user?.empName || '테스트 사용자')
+                    : memberStore.user?.memType === 'p3'
+                    ? (memberStore.user?.cpName || '테스트 거래처')
+                    : '테스트 사용자'
+                }}
+              </strong>
               <span class="ml-2 text-500">
                 ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
               </span>
