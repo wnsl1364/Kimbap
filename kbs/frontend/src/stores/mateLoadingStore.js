@@ -78,9 +78,17 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
     { field: 'unit', header: '단위', type: 'readonly' },
     { field: 'stoCon', header: '보관조건', type: 'readonly' },
     { field: 'lotNo', header: 'LOT번호', type: 'readonly' },
-    { field: 'note', header: '비고', type: 'input', placeholder: '비고 입력' },
+    { field: 'note', header: '비고', type: 'readonly', placeholder: '비고 입력' },
     { field: 'facName', header: '공장', type: 'readonly' },
-    { field: 'wareAreaCd', header: '적재구역', type: 'readonly' },
+    { field: 'wareAreaCd', header: '창고구역', type: 'readonly' },
+    { 
+      field: 'locationSelect', 
+      header: '위치선택', 
+      type: 'button', 
+      buttonLabel: '위치선택', 
+      buttonIcon: 'pi pi-map-marker',
+      buttonEvent: 'locationSelect'
+    }
   ]);
 
   // ========== Computed ==========
