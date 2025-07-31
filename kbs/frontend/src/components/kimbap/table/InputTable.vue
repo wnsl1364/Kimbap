@@ -29,6 +29,7 @@ const props = defineProps({
             load: { show: false, label: '불러오기', severity: 'info' },
             refund: { show: false, label: '반품요청', severity: 'help' },
             refundReq: { show: false, label: '반품처리', severity: 'info' },
+            location: { show: false, label: '위치선택', severity: 'warning' }
         })
     },
     buttonPosition: {
@@ -102,7 +103,8 @@ const emit = defineEmits([
   'save',
   'load',
   'handleProductDeleteList',
-  'rowClick'
+  'rowClick',
+  'locationSelect'
 ])
 
 // console.log('[InputTable.vue] 실제 columns:', props.columns)
@@ -303,6 +305,8 @@ const rowCount = computed(() => internalData.value.length)
                     <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="$emit('load')"/>
                     <Button v-if="buttons.refund?.show" :label="buttons.refund.label" :severity="buttons.refund.severity" @click="$emit('refund')"/>
                     <Button v-if="buttons.refundReq?.show" :label="buttons.refundReq.label" :severity="buttons.refundReq.severity" @click="$emit('refundReq')"/>
+                    <Button v-if="buttons.location?.show" :label="buttons.location.label" :severity="buttons.location.severity" @click="$emit('location')" />
+
 
                     <!-- 행 관리 버튼들 -->
                     <template v-if="enableRowActions">
@@ -380,6 +384,15 @@ const rowCount = computed(() => internalData.value.length)
                                     : slotProps.data[column.field]
                                 }}
                             </span>
+                        </template>
+
+                        <template v-else-if="column.type === 'button'">
+                            <Button 
+                                :label="column.buttonLabel || '버튼'"
+                                :severity="column.buttonSeverity || 'info'"
+                                size="small"
+                                @click.stop="$emit(column.buttonEvent || 'buttonClick', slotProps.data, column)"
+                            />
                         </template>
 
                     </template>

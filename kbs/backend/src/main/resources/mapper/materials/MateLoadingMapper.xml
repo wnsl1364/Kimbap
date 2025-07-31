@@ -1,6 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.kimbap.kbs.materials.mapper.MateLoadingMapper">
+
+    <!-- 자재 적재 대기 목록 전체 조회 -->
+    <select id="getAllMateLoadingWaitList" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            mi.mate_inbo_cd,
+            mi.mcode,
+            mi.mate_ver_cd,
+            mi.wcode,
+            mi.ware_ver_cd,
+            mi.fcode,
+            mi.fac_ver_cd,
+            mi.purc_d_cd,
+            mi.lot_no,
+            mi.supplier_lot_no,
+            mi.inbo_dt,
+            mi.inbo_status,
+            mi.total_qty,
+            mi.mname,
+            mi.note,
+            mi.cp_cd,
+            mi.deli_dt,
+            m.mate_name,
+            m.mate_type,
+            m.sto_con,
+            m.unit,
+            m.std,
+            m.piece_unit,
+            m.conver_qty,
+            m.moqty,
+            m.safe_stock,
+            m.edate,
+            m.corigin,
+            m.is_used,
+            m.regi,
+            m.modi,
+            m.cha_rea,
+            m.reg_dt,
+            f.fac_name,
+            f.tel,
+            f.op_status,
+            f.address
+        FROM mate_inbo mi
+        INNER JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN factory f ON mi.fcode = f.fcode AND mi.fac_ver_cd = f.fac_ver_cd
+        WHERE mi.inbo_status = 'c5'  -- 입고완료 상태만 (적재 대기)
+        AND f.op_status = 'r1'       -- 활성화된 공장만
+        AND m.is_used = 'f1'         -- 활성화된 자재만
+        ORDER BY mi.inbo_dt DESC, mi.mate_inbo_cd DESC
+    </select>
+
+    <!-- 특정 입고번호의 적재 대기 자재 단건 조회 -->
+    <select id="getMateLoadingByInboCd" parameterType="string" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            mi.mate_inbo_cd,
+            mi.mcode,
+            mi.mate_ver_cd,
+            mi.wcode,
+            mi.ware_ver_cd,
+            mi.fcode,
+            mi.fac_ver_cd,
+            mi.purc_d_cd,
+            mi.lot_no,
+            mi.supplier_lot_no,
+            mi.inbo_dt,
+            mi.inbo_status,
+            mi.total_qty,
+            mi.mname,
+            mi.note,
+            mi.cp_cd,
+            mi.deli_dt,
+            m.mate_name,
+            m.mate_type,
+            m.sto_con,
+            m.unit,
+            m.std,
+            m.piece_unit,
+            m.conver_qty,
+            m.moqty,
+            m.safe_stock,
+            m.edate,
+            m.corigin,
+            m.is_used,
+            m.regi,
+            m.modi,
+            m.cha_rea,
+            m.reg_dt,
+            f.fac_name,
+            f.tel,
+            f.op_status,
+            f.address
+        FROM mate_inbo mi
+        INNER JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN factory f ON mi.fcode = f.fcode AND mi.fac_ver_cd = f.fac_ver_cd
+        WHERE mi.mate_inbo_cd = #{mateInboCd}
+        AND mi.inbo_status = 'c5'    -- 입고완료 상태만
+        AND f.op_status = 'r1'       -- 활성화된 공장만
+        AND m.is_used = 'f1'         -- 활성화된 자재만
+    </select>
+
+    <!-- 자재 적재 처리 (ware_stock 테이블에 INSERT) -->
+    <insert id="insertWareStock" parameterType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        INSERT INTO ware_stock (
+            wslcode,
+            ware_area_cd,
+            mate_inbo_cd,
+            prod_inbo_cd,
+            item_type,
+            inbo_dt,
+            regi,
+            qty,
+            unit
+        ) VALUES (
+            #{wslcode},
+            #{wareAreaCd},
+            #{mateInboCd},
+            NULL,                    -- 제품입고코드는 NULL (자재이므로)
+            'h1',                    -- 품목유형: 자재 (원자재/부자재 구분은 추후)
+            #{inboDt},
+            #{regi},
+            #{qty},
+            #{unit}
+        )
+    </insert>
+
+    <!-- 활성화된 공장 목록 조회 (드롭다운용) -->
+    <select id="getActiveFactoryList" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            f.fcode,
+            f.fac_ver_cd,
+            f.fac_name,
+            f.address,
+            f.tel,
+            f.mname,
+            f.op_status,
+            f.cha_rea,
+            f.reg_dt,
+            f.note,
+            f.regi,
+            f.modi
+        FROM factory f
+        WHERE f.op_status = 'r1'     -- 활성화된 공장만
+        ORDER BY f.fac_name ASC
+    </select>
+
+    <!-- 창고 구역별 wslcode 조회 -->
+    <select id="getWslCodeByArea" parameterType="string" resultType="string">
+        SELECT 
+            COALESCE(
+                (SELECT MAX(wslcode) FROM ware_stock WHERE ware_area_cd = #{wareAreaCd}),
+                CONCAT('WARE-', REPLACE(#{wareAreaCd}, 'FAC', ''), '-001')
+            ) AS wslcode
+    </select>
 
 </mapper>
