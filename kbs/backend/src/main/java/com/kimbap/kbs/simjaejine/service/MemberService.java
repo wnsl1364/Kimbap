@@ -23,4 +23,8 @@ public interface MemberService {
 
     // ✅ 로그인 실패 시 처리
     void loginFailure(LoginSecurityVO vo);
+    
+    // 🔽 권한(role) 리스트 조회
+    List<String> selectRolesByMemberId(String memCd);
+
 }

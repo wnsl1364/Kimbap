@@ -21,10 +21,24 @@ public class MemberServiceImpl implements MemberService {
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
 
-    // 로그인
     @Override
     public MemberVO getUserInfo(String id) {
-        return memberMapper.getUserInfo(id);
+        // 1. 사용자 기본 정보 조회
+        MemberVO user = memberMapper.getUserInfo(id);
+
+        // 2. 사용자 권한 조회 및 VO에 세팅
+        if (user != null) {
+            List<String> roles = memberMapper.selectRolesByMemberId(user.getMemCd());
+            user.setAuthorities(roles); // ✅ 권한 주입
+        }
+
+        // 3. 컨트롤러로 반환
+        return user;
+    }
+
+    @Override
+    public List<String> selectRolesByMemberId(String memCd) {
+        return memberMapper.selectRolesByMemberId(memCd);
     }
 
     @Override

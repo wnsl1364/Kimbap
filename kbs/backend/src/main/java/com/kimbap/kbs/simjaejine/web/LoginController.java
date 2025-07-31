@@ -56,7 +56,7 @@ public ResponseEntity<?> login(@RequestBody MemberVO loginRequest) {
         memberService.loginSuccess(LoginSecurityVO.builder().memCd(user.getMemCd()).build());
 
         // JWT 생성
-        String token = jwtUtil.generateToken(user.getId());
+        String token = jwtUtil.generateToken(user);
 
         // 비밀번호는 응답에서 제거
         user.setPw(null);

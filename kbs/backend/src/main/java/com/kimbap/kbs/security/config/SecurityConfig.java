@@ -45,19 +45,22 @@ public class SecurityConfig {
     }
 
     // 3. JWT 필터 등록 및 시큐리티 체인 설정
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    return http
-            .cors(Customizer.withDefaults())
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // ✅ 모든 경로 인증 없이 허용
-            )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
-                    UsernamePasswordAuthenticationFilter.class)
-            .build();
-}
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                    // .requestMatchers("/api/standard/**","/std/**","/standard","/std","/api/std","/api/standard").hasRole("ADMIN")
+                    // .requestMatchers("/login", "/login/**", "/api/login").permitAll() // 로그인, 회원가입은 모두 허용
+                    // .anyRequest().authenticated() // 나머지는 인증만 되어 있으면 허용
+                    .anyRequest().permitAll() // 모든 요청 허용
+                )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
+                        UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
 
 
     // 4. CORS 설정 (Vue 등 프론트 허용)
