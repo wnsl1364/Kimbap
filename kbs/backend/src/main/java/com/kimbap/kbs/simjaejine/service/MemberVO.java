@@ -43,6 +43,6 @@ public class MemberVO {
   private String regi;
   private String modi;
 
-  // 권한
+    // 권한
   private List<String> authorities;
 }
