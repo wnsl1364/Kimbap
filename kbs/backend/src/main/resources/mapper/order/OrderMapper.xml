@@ -179,6 +179,7 @@
             od.ord_qty AS ordQty,
             od.unit_price AS unitPrice,
             od.deli_avail_dt AS deliAvailDt,
+            od.ord_d_status AS ordDStatus,
             (od.ord_qty * od.unit_price) AS totalAmount,
             od.is_used AS isUsed
         FROM order_d od

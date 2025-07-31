@@ -1,14 +1,18 @@
 <script setup>
-import { ref, onMounted, computed, watch} from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
 import { getOrderList } from '@/api/order'
 import axios from 'axios'
+import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
+import InputTable from '@/components/kimbap/table/InputTable.vue'
 import { format, parseISO } from 'date-fns'
 import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
+import { useRoute } from 'vue-router';
 
-import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
-import InputTable from '@/components/kimbap/table/InputTable.vue'
+// 라우터 설정
+const route = useRoute()
+const ordCd = route.query.ordCd
 
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
@@ -130,7 +134,8 @@ const handleLoadOrder = async (selectedRow) => {
         return {
           ...item,
           totalAmount: total,
-          deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : ''
+          deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : '',
+          ordDStatus: item.ordDStatus || 't1'
         }
       })
     )
@@ -196,7 +201,18 @@ const handleReject = async () => {
 // 주문 불러오기
 onMounted(async () => {
   await loadOrderListForModal()
+
+  // 자동 주문 불러오기
+  if (ordCd) {
+    await handleLoadOrder({ ordCd })
+  }
 })
+
+// 피니아 리셋
+onUnmounted(() => {
+  formStore.$reset();
+  productStore.$reset();
+});
 </script>
 
 <template>
