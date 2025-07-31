@@ -1,5 +1,7 @@
 package com.kimbap.kbs.simjaejine.service;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,4 +42,7 @@ public class MemberVO {
   private String note;
   private String regi;
   private String modi;
+
+  // 권한
+  private List<String> authorities;
 }

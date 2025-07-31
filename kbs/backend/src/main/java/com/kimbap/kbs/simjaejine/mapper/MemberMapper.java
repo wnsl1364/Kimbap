@@ -38,5 +38,6 @@ public interface MemberMapper {
 	// 아이디 중복 검사
 	int idCheck(String id);
 
-
+  // 🔽 권한(role) 리스트 조회
+  List<String> selectRolesByMemberId(String memCd);
 }
