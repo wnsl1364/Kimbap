@@ -206,6 +206,7 @@ watch(() => formData.value.fcode, (newFcode) => {
                 @clear-selection="clearForm"
                 :scrollable="true"
                 scrollHeight="530px"
+                :showRowCount="true"
                 height="630px"
             />
         </div>

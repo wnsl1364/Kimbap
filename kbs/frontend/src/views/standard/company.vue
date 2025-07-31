@@ -163,6 +163,7 @@ const handleSearch = async (searchData) => {
                 :scrollable="true"
                 scrollHeight="530px"
                 height="630px"
+                :showRowCount="true"
             />
         </div>
         <div class="w-full md:basis-[45%]">

@@ -277,6 +277,7 @@ const handleReset = async () => {
                 :scrollable="true"
                 scrollHeight="230px"
                 height="320px"
+                :showRowCount="true"
                 class="mb-2"
             />
             <InputTable title="자재별 공급처" v-model:data="supplierData" :columns="cpColumns" :buttons="rowButtons" dataKey="cpCd" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />

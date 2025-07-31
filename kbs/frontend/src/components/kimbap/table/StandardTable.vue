@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import Button from 'primevue/button';
 
 const props = defineProps({
@@ -12,7 +12,8 @@ const props = defineProps({
     tableMinWidth: { type: String, default: '50rem' }, // 👈 추가
     showHistoryButton: { type: Boolean, default: true }, // 이력조회 숨기기 추가
     selectable: { type: Boolean, default: true }, // select 숨기기 추가
-    hoverable: { type: Boolean, default: false } // 행 hover 기능 추가
+    hoverable: { type: Boolean, default: false }, // 행 hover 기능 추가
+    showRowCount: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['view-history', 'row-select', 'clear-selection']);
@@ -29,11 +30,15 @@ watch(selected, (val) => {
     }
 });
 
+const rowCount = computed(() => props.data.length);
 </script>
 
 <template>
     <div class="border p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
-        <h2 v-if="title" class="text-lg font-semibold mb-4">{{ title }}</h2>
+        <div>
+            <h2 v-if="title" class="text-lg font-semibold mb-4">{{ title }}</h2>
+            <h3 v-if="showRowCount" class="text-base text-gray-600 mb-0 mt-0">검색결과 {{ rowCount }}건</h3>
+        </div>
         <DataTable
             :value="data"
             :tableStyle="{ minWidth: '50rem' }"

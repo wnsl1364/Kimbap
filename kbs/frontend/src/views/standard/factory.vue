@@ -197,7 +197,9 @@ const handleSearch = async (searchData) => {
                 :scrollable="true"
                 scrollHeight="230px"
                 height="320px"
+                :showRowCount="true"
                 class="mb-2"
+
             />
             <InputTable title="공장별최대생산량" v-model:data="facMaxData" :columns="facMaxColumns" :buttons="rowButtons" dataKey="pcode" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
         </div>
