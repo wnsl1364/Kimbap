@@ -64,6 +64,7 @@ const searchColumns = [
 const prodRequestColumns = [
   { field: 'produReqCd', header: '생산요청번호' },
   { field: 'reqDt', header: '요청일자' },
+  { field: 'deliDt', header: '납기일자' },
   { field: 'facName', header: '공장' },
   { field: 'sumReqQty', header: '총요청수량' },
   { field: 'firstUnit', header: '단위' },
@@ -116,6 +117,7 @@ const detailColumns = [
   { field: 'prodName', header: '제품명' },
   { field: 'reqQty', header: '요청수량' },
   { field: 'unit', header: '단위' },
+  { field: 'exProduDt', header: '생산예정일자' },
   { field: 'seq', header: '우선순위' }
 ]
 // 공통코드 변환

@@ -1,5 +1,9 @@
 package com.kimbap.kbs.production.service;
 
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +20,8 @@ public class ProdRequestDetailVO {
   private String produReqCd;      // 생산요청번호(FK)
   private Integer reqQty;         // 요청수량
   private Integer seq;            // 요청순서
+  @JsonFormat(pattern = "yyyy-MM-dd")
+  private Date exProduDt;         // 생산요청일자
   
   // 검색 호출용
   private String unit;            // 단위

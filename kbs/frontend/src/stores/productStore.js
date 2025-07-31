@@ -9,7 +9,9 @@ import { getFactoryList,                  // 공장 목록 조회
          postSaveProdPlan,                // 생산계획 등록
          deleteProdutionPlan,             // 생산계획과 관련 상세 삭제
          postProdRequestListByCondition,  // 생산요청 목록 조건 검색
-         getProdRequestDetailList         // 생산요청별 상세내역 조회
+         getProdRequestDetailList,        // 생산요청별 상세내역 조회
+         postSaveProdReq,                 // 생산요청 등록
+         deleteProductionReq               // 생산요청 삭제
         } from '@/api/production';
 
 export const useProductStore = defineStore('product', () => {
@@ -105,7 +107,26 @@ export const useProductStore = defineStore('product', () => {
       console.error('생산요청상세 조회 실패:', err);
     }
   };
-
+  // 생산요청 저장
+  const saveProdReq = async (requestData) => {
+    try {
+      const res = await postSaveProdReq(requestData);
+      return res.data;
+    } catch (err) {
+      console.error('생산요청 저장 실패:', err);
+      throw err;
+    }
+  }
+  // 생산요청과 관련 상세 삭제
+  const deleteProdReq = async (produReqCd) => {
+    try {
+      const res = await deleteProductionReq(produReqCd);
+      return res.data;
+    } catch (err) {
+      console.error('생산요청 삭제 실패:', err);
+      throw err;
+    }
+  }
 
   return {
     factoryList,                      // 공장 목록
@@ -123,6 +144,8 @@ export const useProductStore = defineStore('product', () => {
     saveProdPlan,                     // 생산계획 저장
     deleteProdPlan,                   // 생산계획과 관련 상세 삭제
     fetchProdRequestListByCondition,  // 생산요청 목록 조건 조회 함수
-    fetchProdRequestDetailList        // 생산요청의 상세 목록 조회
+    fetchProdRequestDetailList,       // 생산요청의 상세 목록 조회
+    saveProdReq,                      // 생산요청 저장
+    deleteProdReq                     // 생산요청 삭제
   }
 })
