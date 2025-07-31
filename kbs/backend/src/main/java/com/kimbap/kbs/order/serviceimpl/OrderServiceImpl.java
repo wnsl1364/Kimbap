@@ -14,7 +14,9 @@ import com.kimbap.kbs.order.service.OrderService;
 import com.kimbap.kbs.order.service.OrderVO;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl  implements OrderService {
@@ -141,6 +143,11 @@ public class OrderServiceImpl  implements OrderService {
                 } else {
                     // 기존 제품 → UPDATE
                     orderMapper.updateOrderDetail(detail);
+                }
+
+                if (detail.getOrdDStatus() != null) {
+                    log.info("💥 상태 강제 업데이트 실행 → 상세코드: {}, 상태: {}", detail.getOrdDCd(), detail.getOrdDStatus());
+                    orderMapper.updateOrderStatus(detail);
                 }
             }
         }

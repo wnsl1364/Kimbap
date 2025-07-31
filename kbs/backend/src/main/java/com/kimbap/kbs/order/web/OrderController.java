@@ -215,14 +215,16 @@ public class OrderController {
 
     // 주문 거절(내부직원)
     @PutMapping("/{ordCd}/reject")
-    public ResponseEntity<?> rejectOrder(@PathVariable String ordCd) {
+    public ResponseEntity<?> rejectOrder(@PathVariable String ordCd, @RequestBody OrderVO orderVO) {
         try {
-            OrderVO order = new OrderVO();
-            order.setOrdCd(ordCd);
-            order.setOrdStatusInternal("a3"); // 거절
-            order.setOrdStatusCustomer("s4"); // 주문취소
+            orderVO.setOrdCd(ordCd); // path 변수 세팅
+            orderVO.setOrdStatusInternal("a3"); // 내부 상태: 거절
+            orderVO.setOrdStatusCustomer("s4"); // 고객 상태: 주문취소
 
-            orderService.updateOrder(order);
+            log.warn("거절 요청 상세 개수: {}", 
+                    orderVO.getOrderDetails() != null ? orderVO.getOrderDetails().size() : "null");
+
+            orderService.updateOrder(orderVO); // 상태와 상세까지 포함해서 업데이트
 
             return ResponseEntity.ok(Map.of(
                 "result_code", "SUCCESS",
@@ -236,4 +238,5 @@ public class OrderController {
             ));
         }
     }
+
 }

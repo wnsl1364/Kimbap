@@ -26,7 +26,7 @@ const { products } = storeToRefs(productStore)
 const arrears = ref(0)
 const showArrearsModal = ref(false)
 
-// 반려 사유
+// 거절 사유
 const rejectReason = ref('')
 
 // form 필드
@@ -56,7 +56,7 @@ const columns = [
 const infoFormButtons = ref({
   reset: { show: true, label: '승인', severity: 'info' },
   load: { show: true, label: '주문정보 불러오기', severity: 'success' },
-  delete: { show: true, label: '반려', severity: 'danger' }
+  delete: { show: true, label: '거절', severity: 'danger' }
 });
 
 // 제품 추가 영역 버튼 설정
@@ -131,11 +131,14 @@ const handleLoadOrder = async (selectedRow) => {
         const price = item.unitPrice || 0
         const total = qty * price
 
+        console.log('✅ 제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
+
         return {
           ...item,
           totalAmount: total,
           deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : '',
-          ordDStatus: item.ordDStatus || 't1'
+          ordDStatus: item.ordDStatus || 't1',
+          ordDCd: item.ordDCd
         }
       })
     )
@@ -178,29 +181,44 @@ const handleApprove = async () => {
   }
 }
 
-// 반려
+// 거절
 const handleReject = async () => {
   // if (!rejectReason.value) {
-  //   return alert('반려 사유를 입력해주세요.')
+  //   return alert('거절 사유를 입력해주세요.')
   // }
   try {
     const ordCd = formData.value.ordCd
-    const res = await axios.put(`/api/order/${ordCd}/reject`)
+    const updatedProducts = products.value.map(p => ({
+      ...p,
+      ordDStatus: 't2'
+    }));
+
+    const payload = {
+      ordCd: ordCd,
+      orderDetails: updatedProducts,
+      ordStatusInternal: 'a3',
+    };
+
+    console.log('🚨 거절 요청 payload:', JSON.stringify(payload, null, 2))
+
+    const res = await axios.put(`/api/order/${ordCd}/reject`, payload);
     if (res.data.result_code === 'SUCCESS') {
-      alert('주문 반려 완료!')
+      alert('주문 거절 완료!')
     } else {
-      alert('반려 실패: ' + res.data.message)
+      alert('거절 실패: ' + res.data.message)
     }
   } catch (err) {
-    console.error('반려 오류:', err)
-    alert('반려 중 오류가 발생했습니다.')
+    console.error('거절 오류:', err)
+    alert('거절 중 오류가 발생했습니다.')
   }
 }
 
 
 // 주문 불러오기
 onMounted(async () => {
-  await loadOrderListForModal()
+  if (!ordCd) {
+    await loadOrderListForModal();
+  }
 
   // 자동 주문 불러오기
   if (ordCd) {
@@ -246,7 +264,7 @@ onUnmounted(() => {
     />
   </div>
   <!-- <div class="mt-4">
-    <h2 class="text-lg mb-0 font-semibold">반려사유</h2>
-    <input v-model="rejectReason" type="text" class="border rounded px-3 py-2 w-full " placeholder="반려 사유를 입력하세요" />
+    <h2 class="text-lg mb-0 font-semibold">거절사유</h2>
+    <input v-model="rejectReason" type="text" class="border rounded px-3 py-2 w-full " placeholder="거절 사유를 입력하세요" />
   </div> -->
 </template>
