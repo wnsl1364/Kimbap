@@ -95,19 +95,11 @@ onBeforeMount(() => {
                 { label: '240', value: 'n2' }
             ]
         },
-        {
-            key: 'unit',
-            label: '단위',
-            type: 'dropdown',
-            options: [
-                { label: 'EA', value: 'g5' }
-            ]
-        },
-
     ];
     inputColumns.value = [
         { key: 'pcode', label: '제품코드', type: 'readonly' },
         { key: 'prodName', label: '제품명', type: 'text' },
+        { key: 'unit', label: '단위', type: 'dropdown', options: [{ label: 'EA', value: 'g5' }] },
         {
             key: 'wei',
             label: '중량',
@@ -117,7 +109,6 @@ onBeforeMount(() => {
                 { label: '240', value: 'n2' }
             ]
         },
-        { key: 'unit', label: '단위', type: 'dropdown', options: [{ label: 'EA', value: 'g5' }] },
         { key: 'edate', label: '소비기한(일)', type: 'number' },
         { key: 'stoTemp', label: '보관온도', type: 'text' },
         { key: 'safeStock', label: '안전재고', type: 'number' },
@@ -146,8 +137,8 @@ onBeforeMount(() => {
     productColumns.value = [
         { field: 'pcode', header: '제품코드' },
         { field: 'prodName', header: '제품명' },
-        { field: 'wei', header: '중량' },
         { field: 'unit', header: '단위' },
+        { field: 'wei', header: '중량' },
         { field: 'stoTemp', header: '보관온도' }
     ];
 
@@ -205,15 +196,14 @@ const handleSearch = async (searchData) => {
     const matchPcode     = !searchData.pcode     || item.pcode?.toLowerCase().includes(searchData.pcode);
     const matchProdName  = !searchData.prodName  || item.prodName?.includes(searchData.prodName);
     const matchWei  = !searchData.wei  || item.wei === searchData.wei;
-    const matchUnit    = !searchData.unit    || item.unit === searchData.unit;
 
-    return matchPcode && matchProdName && matchWei && matchUnit;
+    return matchPcode && matchProdName && matchWei ;
   });
 };
 </script>
 <template>
     <!-- 검색 영역 -->
-    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
+    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3" />
 
     <!-- 메인 영역 -->
     <div class="flex flex-col md:flex-row gap-4 mt-6">
