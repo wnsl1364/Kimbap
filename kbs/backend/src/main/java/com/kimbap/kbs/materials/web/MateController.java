@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kimbap.kbs.materials.service.MateService;
 import com.kimbap.kbs.materials.service.MaterialsVO;
+import com.kimbap.kbs.materials.service.PurchaseOrderViewVO;
 import com.kimbap.kbs.materials.service.SearchCriteria;
 
 @RestController
@@ -517,6 +518,54 @@ public class MateController {
             
         } catch (Exception e) {
             System.err.println("❌ 발주 통계 조회 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/purchase-orders-view")
+    public ResponseEntity<List<PurchaseOrderViewVO>> getPurchaseOrdersForView(
+            @RequestParam(required = false) String purcCd,
+            @RequestParam(required = false) String purcDCd,
+            @RequestParam(required = false) String mateName,
+            @RequestParam(required = false) String mcode,
+            @RequestParam(required = false) String purcDStatus,
+            @RequestParam(required = false) String purcStatus,
+            @RequestParam(required = false) String cpCd,
+            @RequestParam(required = false) String cpName,
+            @RequestParam(required = false) String mateType,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String exDeliStartDate,
+            @RequestParam(required = false) String exDeliEndDate,
+            @RequestParam(required = false) String memtype) {
+
+        try {
+            System.out.println("🎯 발주 조회 전용 API 호출: " + memtype);
+            
+            SearchCriteria criteria = SearchCriteria.builder()
+                    .purcCd(purcCd)
+                    .purcDCd(purcDCd)
+                    .mateName(mateName)
+                    .mcode(mcode)
+                    .purcDStatus(purcDStatus)
+                    .purcStatus(purcStatus)
+                    .cpCd(cpCd)
+                    .cpName(cpName)
+                    .mateType(mateType)
+                    .startDate(startDate)
+                    .endDate(endDate)
+                    .exDeliStartDate(exDeliStartDate)
+                    .exDeliEndDate(exDeliEndDate)
+                    .memtype(memtype)
+                    .build();
+
+            List<PurchaseOrderViewVO> list = mateService.getPurchaseOrdersForView(criteria);
+            
+            System.out.println("✅ 발주 조회 전용 API 성공: " + list.size() + "건");
+            return ResponseEntity.ok(list);
+            
+        } catch (Exception e) {
+            System.err.println("❌ 발주 조회 전용 API 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }

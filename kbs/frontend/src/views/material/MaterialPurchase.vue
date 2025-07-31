@@ -65,7 +65,7 @@ const convertUnitCodes = (list) => {
 // 주문 기본정보 (3개 항목만!)
 const orderBasicInfo = ref({
   purcCd: '',  // 발주번호
-  regi: '',    // 등록자
+  regi: memberStore.user?.empCd || 'EMP-10001',    // 등록자
   ordDt: ''    // 주문일자
 });
 
@@ -363,7 +363,7 @@ const loadExistingOrder = async (purcCd) => {
       // date-fns로 날짜 처리
       orderBasicInfo.value = {
         purcCd: header.purcCd,
-        regi: header.regi,
+        regi: header.regiName || header.regi,
         ordDt: formatDateForInput(header.ordDt) // date-fns 사용
       };
 
@@ -458,7 +458,7 @@ const handleSavePurchaseOrder = async (formData) => {
       header: {
         purcCd: formData.purcCd || '',  // 백엔드에서 자동생성
         ordDt: formatDateForBackend(formData.ordDt),
-        regi: formData.regi,
+        regi: memberStore.user?.empCd || 'EMP-10001',
         purcStatus: 'c1',
         ordTotalAmount: totalAmount
       },
@@ -776,8 +776,10 @@ onUnmounted(() => {
     <Toast />
 
     <!-- 페이지 헤더 -->
-    <div class="mb-6">
+    <div class="mb-6 flex flex-col-2">
+    <div class="flex-1">
       <h1 class="text-3xl font-bold text-gray-800 mb-2">자재 발주서 작성</h1>
+    </div>
       <div class="flex items-center gap-4 text-sm text-gray-600">
         <span>👤 {{ memberStore.user?.empName || '김김밥1' }}</span>
         <span>🏢 {{ memberStore.user?.deptName || '구매팀' }}</span>
@@ -793,14 +795,14 @@ onUnmounted(() => {
 
     <!-- 자재 발주 상세-->
     <div>
-      <InputTable title="자재 발주 상세" :scroll-height="'50vh'" :height="'60vh'" :columns="materialColumns"
+      <InputTable title="자재 발주 상세" :scroll-height="'40vh'" :height="'50vh'" :columns="materialColumns"
         :data="convertedMaterialList" :buttons="tableButtons" :enableRowActions="true" :enableSelection="true"
         :modalDataSets="convertedModalDataSets" :autoCalculation="{
           enabled: true,
           quantityField: 'number',
           priceField: 'price',
           totalField: 'totalPrice'
-        }" :showRowCount="true" dataKey="uniqueKey" @dataChange="handleDataChange" />
+        }" :showRowCount="true" dataKey="mcode" @dataChange="handleDataChange" />
     </div>
 
     <!-- 발주 요약 (데이터가 있을 때만 표시) -->

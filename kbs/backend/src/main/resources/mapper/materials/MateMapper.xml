@@ -729,6 +729,95 @@
         INNER JOIN company c ON ms.cp_cd = c.cp_cd
         WHERE pod.purc_d_cd = #{purcDCd}
     </select>
+
+    <!-- 발주 조회 전용 쿼리 - Oracle 호환성 수정! -->
+    <select id="getPurchaseOrdersForView" resultType="com.kimbap.kbs.materials.service.PurchaseOrderViewVO">
+        SELECT DISTINCT 
+            (po.purc_cd || '-' || pod.purc_d_cd) as id,
+            
+            -- 발주 기본 정보 (purc_ord)
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            po.ord_total_amount,
+            
+            -- 발주 상세 정보 (purc_ord_d)
+            pod.purc_d_cd,
+            pod.mcode,
+            pod.mate_ver_cd,
+            pod.purc_qty,
+            pod.unit,
+            pod.unit_price,
+            pod.ex_deli_dt,
+            pod.purc_d_status,
+            pod.note,
+            
+            -- 자재 정보 (material) - 필수만!
+            m.mate_name,
+            m.mate_type,
+            
+            -- 거래처 정보 (company) - 필수만!
+            c.cp_cd,
+            c.cp_name,
+            
+            -- 계산된 필드
+            (pod.purc_qty * pod.unit_price) as total_amount,
+            
+            -- 등록자명 (employee) - 선택적!
+            e.emp_name as regi_name,
+            po.regi,
+            
+            -- 모든 경우에 deli_dt 포함 (NULL 처리로 안전하게!)
+            mi.deli_dt
+            
+        FROM purc_ord po
+        INNER JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+        INNER JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd  
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        LEFT JOIN employee e ON po.regi = e.emp_cd
+        LEFT JOIN mate_inbo mi ON pod.purc_d_cd = mi.purc_d_cd
+        
+        <where>
+            1=1
+            <if test="purcCd != null and purcCd != ''">
+                AND UPPER(po.purc_cd) LIKE UPPER('%' || #{purcCd} || '%')
+            </if>
+            <if test="purcDCd != null and purcDCd != ''">
+                AND UPPER(pod.purc_d_cd) LIKE UPPER('%' || #{purcDCd} || '%')
+            </if>
+            <if test="mateName != null and mateName != ''">
+                AND UPPER(m.mate_name) LIKE UPPER('%' || #{mateName} || '%')
+            </if>
+            <if test="mateType != null and mateType != ''">
+                AND m.mate_type = #{mateType}
+            </if>
+            <if test="purcDStatus != null and purcDStatus != ''">
+                AND pod.purc_d_status = #{purcDStatus}
+            </if>
+            <if test="mcode != null and mcode != ''">
+                AND pod.mcode = #{mcode}
+            </if>
+            <if test="cpName != null and cpName != ''">
+                AND UPPER(c.cp_name) LIKE UPPER('%' || #{cpName} || '%')
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND po.ord_dt &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND po.ord_dt &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="exDeliStartDate != null and exDeliStartDate != ''">
+                AND pod.ex_deli_dt &gt;= TO_DATE(#{exDeliStartDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="exDeliEndDate != null and exDeliEndDate != ''">
+                AND pod.ex_deli_dt &lt;= TO_DATE(#{exDeliEndDate}, 'YYYY-MM-DD')
+            </if>
+        </where>
+        
+        ORDER BY po.ord_dt DESC, pod.purc_d_cd ASC
+    </select>
     
     <!-- 자재출고 목록 조회 -->
     <select id="getMateRelList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
