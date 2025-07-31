@@ -14,7 +14,8 @@
             ord_total_amount,
             regi,
             reg_dt,
-            ord_status,
+            ord_status_internal,
+            ord_status_customer,
             is_used
         )
         VALUES (
@@ -28,7 +29,8 @@
             #{ordTotalAmount},
             #{regi},
             SYSDATE,
-            #{ordStatus},
+            #{ordStatusInternal},
+            #{ordStatusCustomer},
             #{isUsed}
         )
     </insert>
@@ -89,7 +91,8 @@
             ord_dt AS ordDt,
             deli_req_dt AS deliReqDt,
             note,
-            ord_status AS ordStatus
+            ord_status_internal AS ordStatusInternal,
+            ord_status_customer AS ordStatusCustomer
         FROM vw_order_list
         WHERE is_used = 'f1'
 
@@ -114,8 +117,11 @@
             AND deli_req_dt &lt;= TO_DATE(#{deliReqDtEnd}, 'YYYY-MM-DD')
         </if>
 
-        <if test="ordStatus != null and ordStatus != ''">
-            AND ord_status = #{ordStatus}
+        <if test="ordStatusInternal != null and ordStatusInternal != ''">
+            AND ord_status_internal = #{ordStatusInternal}
+        </if>
+        <if test="ordStatusCustomer != null and ordStatusCustomer != ''">
+            AND ord_status_customer = #{ordStatusCustomer}
         </if>
 
         <if test="cpName != null and cpName != ''">
@@ -147,7 +153,8 @@
             o.ord_dt AS ordDt,
             o.note,
             o.deli_req_dt AS deliReqDt,
-            o.ord_status AS ordStatus,
+            o.ord_status_internal AS ordStatusInternal,
+            o.ord_status_customer AS ordStatusCustomer,
             o.deli_add AS deliAdd,
             o.regi,
             o.reg_dt AS regDt,
@@ -171,6 +178,7 @@
             od.prod_ver_cd AS prodVerCd,
             od.ord_qty AS ordQty,
             od.unit_price AS unitPrice,
+            od.deli_avail_dt AS deliAvailDt,
             (od.ord_qty * od.unit_price) AS totalAmount,
             od.is_used AS isUsed
         FROM order_d od
@@ -188,7 +196,8 @@
             deli_add = #{deliAdd},
             note = #{note},
             ord_total_amount = #{ordTotalAmount},
-            ord_status = #{ordStatus}
+            ord_status_internal = #{ordStatusInternal},
+            ord_status_customer = #{ordStatusCustomer}
         WHERE ord_cd = #{ordCd}
     </update>
 

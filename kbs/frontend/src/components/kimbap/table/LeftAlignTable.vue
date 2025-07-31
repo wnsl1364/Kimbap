@@ -135,14 +135,14 @@ const handleButtonClick = (type) => {
           </template>
 
           <template v-else>
-            <div class="flex items-center border rounded w-full h-10">
+            <div class="flex items-center w-full h-10">
               <input
                 :value="props.data[field.field]"
                 @input="updateField(field.field, $event.target.value)"
                 :type="field.inputType || 'text'"
                 :readonly="field.readonly"
                 :disabled="field.disabled"
-                class="border-none outline-none flex-1 bg-transparent px-3 py-2"
+                class="border rounded flex-1 px-3 py-2"
               />
               <i
                 v-if="field.suffixIcon"
@@ -151,7 +151,7 @@ const handleButtonClick = (type) => {
               />
               <button v-if="field.suffixButton"
                       type="button"
-                      class="rounded px-2 ml-1 bg-blue-600 hover:bg-blue-700 whitespace-nowrap h-10 text-white"
+                      class="rounded px-2 ml-2 bg-blue-600 hover:bg-blue-700 whitespace-nowrap h-10 text-white"
                       @click="openModal(props.data, field.field)">
                 {{ field.suffixButton }}
               </button>

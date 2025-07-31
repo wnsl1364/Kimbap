@@ -21,8 +21,9 @@ public class OrderVO {
     private Date ordDt;
     private String note;
     private Date deliReqDt;
-    private Date deliAvailDt;
-    private String ordStatus;
+    // private Date deliAvailDt;
+    private String ordStatusInternal;    // 내부용 상태코드 (a1, a2, a3)
+    private String ordStatusCustomer;    // 매출업체용 상태코드 (s1~s6)
     private String deliAdd;
     private String regi;
     private Date regDt;

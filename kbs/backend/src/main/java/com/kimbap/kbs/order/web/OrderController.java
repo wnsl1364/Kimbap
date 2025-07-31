@@ -98,8 +98,13 @@ public class OrderController {
                 params.put("cpName", cpName);
             }
             if (ordStatus != null && !ordStatus.isEmpty()) {
-                params.put("ordStatus", ordStatus);
+                if ("p2".equals(memType)) {
+                    params.put("ordStatusCustomer", ordStatus); // 매출업체
+                } else {
+                    params.put("ordStatusInternal", ordStatus); // 내부직원
+                }
             }
+
 
             // 날짜 범위 분리
             if (ordDtStart != null && !ordDtStart.isEmpty()) {
@@ -167,6 +172,68 @@ public class OrderController {
             response.put("message", "주문 수정 실패");
             response.put("data", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    // 주문 승인(내부직원)
+    @PutMapping("/{ordCd}/approve")
+    public ResponseEntity<?> approveOrder(@PathVariable String ordCd) {
+        try {
+            // 기존 주문 정보 조회 (기존 상태 유지 & 상세 포함)
+            OrderVO existingOrder = orderService.getOrderWithDetails(ordCd);
+
+            // 납기 가능일자 누락 검증
+            boolean hasMissingDeliAvail = existingOrder.getOrderDetails().stream()
+                .anyMatch(d -> d.getDeliAvailDt() == null);
+            if (hasMissingDeliAvail) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "result_code", "FAIL",
+                    "message", "모든 제품에 납기 가능일자를 입력해야 승인할 수 있습니다."
+                ));
+            }
+
+            // 상태만 수정
+            existingOrder.setOrdStatusInternal("a2"); // 승인
+            existingOrder.setOrdStatusCustomer("s2"); // 접수완료
+
+            // update 호출
+            orderService.updateOrder(existingOrder);
+
+            return ResponseEntity.ok(Map.of(
+                "result_code", "SUCCESS",
+                "message", "주문 승인 완료"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "result_code", "FAIL",
+                "message", "주문 승인 실패",
+                "data", e.getMessage()
+            ));
+        }
+    }
+
+
+    // 주문 거절(내부직원)
+    @PutMapping("/{ordCd}/reject")
+    public ResponseEntity<?> rejectOrder(@PathVariable String ordCd) {
+        try {
+            OrderVO order = new OrderVO();
+            order.setOrdCd(ordCd);
+            order.setOrdStatusInternal("a3"); // 거절
+            order.setOrdStatusCustomer("s4"); // 주문취소
+
+            orderService.updateOrder(order);
+
+            return ResponseEntity.ok(Map.of(
+                "result_code", "SUCCESS",
+                "message", "주문 거절 완료"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "result_code", "FAIL",
+                "message", "주문 거절 실패",
+                "data", e.getMessage()
+            ));
         }
     }
 }

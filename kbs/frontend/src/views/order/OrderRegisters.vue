@@ -97,9 +97,10 @@ const purchaseFormButtons = ref({
 // 행 추가 버튼 비활성화
 const isProductAddDisabled = computed(() => {
   const isNewOrder = !formData.value.ordCd
-  const isWaiting = formData.value.ordStatus === STATUS_WAITING
+  const isWaiting = formData.value.ordStatusCustomer === STATUS_WAITING
   return !(isNewOrder || isWaiting)
 })
+
 
 // 총 금액 계산
 // products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
@@ -128,7 +129,8 @@ const handleReset = () => {
 
   // 유지할 값 다시 세팅
   formData.value.ordDt = format(new Date(), 'yyyy-MM-dd')
-  formData.value.ordStatus = 's1'
+  formData.value.ordStatusCustomer = 's1'
+  formData.value.ordStatusInternal = 'a1'
   formData.value.ordTotalAmount = 0
 
   Object.assign(formData.value, baseInfo)
@@ -186,7 +188,8 @@ const handleSave = async () => {
       ordDt: format(ordDt, 'yyyy-MM-dd'),
       deliReqDt: format(deliReqDt, 'yyyy-MM-dd'),
       exPayDt: format(exPayDt, 'yyyy-MM-dd'),
-      ordStatus: 's1',
+      ordStatusCustomer: 's1',     // 매출업체 상태: 접수대기
+      ordStatusInternal: 'a1',     // 내부 상태: 요청
       orderDetails: products.value.map(p => ({
         ordDCd: p.ordDCd || '', // 신규 등록 시 빈 문자열로 설정
         ordCd: formData.value.ordCd || '',  // 마스터 등록 후 백에서 채움
@@ -262,10 +265,10 @@ const handleProductDeleteList = async (ordDCdList) => {
 }
 
 // ordCd가 없으면 등록 모드 → 저장/초기화 표시, 삭제 숨김
-// ordCd 있고 ordStatus === 's1'이면 → 수정 모드에서 삭제 버튼 활성화
+// ordCd 있고 ordStatusCustomer === 's1'이면 → 수정 모드에서 삭제 버튼 활성화
 // 다른 상태(s2 이상)이면 → 삭제/초기화 숨김
 watch(
-  () => [formData.value.ordCd, formData.value.ordStatus],
+  () => [formData.value.ordCd, formData.value.ordStatusCustomer],
   ([ordCd, ordStatus]) => {
     const isNewOrder = !ordCd
     const isWaiting = ordStatus === STATUS_WAITING
@@ -372,7 +375,8 @@ onMounted(() => {
         note: '',
         regi: companyInfo.regi,
         ordTotalAmount: 0,
-        ordStatus: 's1'
+        ordStatusCustomer: 's1',      // 매출업체 상태 초기값
+        ordStatusInternal: 'a1'       // 내부 상태 초기값
       })
 
       // 입금일자 최대값 세팅
