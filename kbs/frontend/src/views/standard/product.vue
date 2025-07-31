@@ -228,6 +228,7 @@ const handleSearch = async (searchData) => {
                 @clear-selection="clearForm"
                 :scrollable="true"
                 scrollHeight="470px"
+                :showRowCount="true"
                 height="560px"
             />
         </div>

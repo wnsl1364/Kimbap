@@ -148,6 +148,7 @@ const handleSearch = async (searchData) => {
                 @clear-selection="clearForm"
                 :showHistoryButton="false"
                 :scrollable="true"
+                :showRowCount="true"
                 scrollHeight="420px"
                 height="500px"
             />
