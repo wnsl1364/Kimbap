@@ -46,27 +46,20 @@ const { commonCodes } = storeToRefs(common)
 const handlePlanSelect = ({ basicInfo, detailList }) => {
   formData.value = {
     produPlanCd: basicInfo.produPlanCd,
-    planDt: basicInfo.planDt,
-    planStartDt: basicInfo.planStartDt,
-    planEndDt: basicInfo.planEndDt,
     factory: {
       fcode: basicInfo.fcode,
       facVerCd: basicInfo.facVerCd
     },
-    note: basicInfo.note
+    note: basicInfo.note,
   }
-  prodDetailList.value = detailList
+  // 오늘 날짜를 기본값으로 설정
+  formData.value.reqDt = new Date()
 }
 
 onMounted(async () => {
   await fetchFactoryList() // 공장 목록 조회
   await fetchProductList() // 제품 목록 가져오기
   await common.fetchCommonCodes('0G') // 공통코드 가져오기
-
-  // 오늘 날짜를 기본값으로 설정
-  if (!formData.value.planDt) {
-    formData.value.planDt = new Date()
-  }
 })
 
 // 공장 드롭다운 옵션
@@ -89,12 +82,12 @@ const fields = [
     options: factoryOptions,
     placeholder: '공장을 선택하세요'
   },
-  { key: 'planEndDt', label: '요청자', type: 'text', placeholder: 'MM/DD/YYYY' },
-  { key: 'planStartDt', label: '납기일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'requ', label: '요청자', type: 'text' },
+  { key: 'deliDt', label: '납기일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
   { key: 'note', label: '비고', type: 'textarea' }
 ]
 
-const prodPlanFormButtons = ref({
+const prodReqFormButtons = ref({
   save: { show: true, label: '저장', severity: 'success' },
   reset: { show: true, label: '초기화', severity: 'secondary' },
   delete: { show: true, label: '삭제', severity: 'danger' },
@@ -117,46 +110,46 @@ const productColumns = [
     placeholder: '검색'
   },
   { field: 'prodName', header: '제품명', type: 'input', align: 'left', readonly },
-  { field: 'planQty', header: '생산수량', type: 'input', align: 'right' },
+  { field: 'reqQty', header: '요청수량', type: 'input', align: 'right' },
   { field: 'unitName', header: '단위', type: 'input', align: 'center', readonly },
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
   { field: 'seq', header: '우선순위', type: 'input', align: 'center' }
 ]
-// 생산계획과 관련 상세 저장(등록, 수정)
+// 생산요청과 관련 상세 저장(등록, 수정)
 const handleSave = async (data) => {
   try {
-    const isNew = !formData.value.produPlanCd; // 등록/수정 여부 판별
+    const isNew = !formData.value.produReqCd; // 등록/수정 여부 판별
 
     const payload = {
-      plan: {
-        produPlanCd: formData.value.produPlanCd || null,
-        planDt: format(formData.value.planDt, 'yyyy-MM-dd'),
-        planStartDt: format(formData.value.planStartDt, 'yyyy-MM-dd'),
-        planEndDt: format(formData.value.planEndDt, 'yyyy-MM-dd'),
+      request: {
+        produReqCd: formData.value.produReqCd || null,
+        produPlanCd: formData.value.produPlanCd,
+        reqDt: format(formData.value.reqDt, 'yyyy-MM-dd'),
+        deliDt: format(formData.value.deliDt, 'yyyy-MM-dd'),
         fcode: formData.value.factory?.fcode,
         facVerCd: formData.value.factory?.facVerCd,
-        mname: 'EMP-10001',  
+        requ: 'EMP-10001',  
         note: formData.value.note
       },
-      planDetails: prodDetailList.value.map(item => ({
-        ppdcode: item.ppdcode,
+      reqDetails: prodDetailList.value.map(item => ({
+        produProdCd: item.produProdCd,
         pcode: item.pcode,
         prodVerCd: item.prodVerCd,
-        planQty: item.planQty,
+        reqQty: item.reqQty,
         unit: item.unit,
         exProduDt: item.exProduDt,
         seq: item.seq
       }))
     }
 
-    console.log('📦 최종 payload (생산계획 저장용)', JSON.stringify(payload, null, 2))
+    console.log('📦 최종 payload (생산요청 저장용)', JSON.stringify(payload, null, 2))
 
-    await store.saveProdPlan(payload)
+    await store.saveProdReq(payload)
     prodDetailList.value = []
     toast.add({
       severity: 'success',
       summary: isNew ? '신규 등록 완료' : '수정 완료',
-      detail: isNew ? '생산계획이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
+      detail: isNew ? '생산요청이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
       life: 3000
     });
   } catch (err) {
@@ -173,30 +166,30 @@ const handleReset = () => {
   formData.value = {}
   prodDetailList.value = []
 }
-// 생산계획과 관련 상세 삭제
+// 생산요청과 관련 상세 삭제
 const handleDelete = async (data) => {
-    const planCd = formData.value.produPlanCd
-  if (!planCd) {
+    const reqCd = formData.value.produReqCd
+  if (!reqCd) {
     toast.add({
       severity: 'warn',
       summary: '삭제 불가',
-      detail: '저장되지 않은 계획은 삭제할 수 없습니다.',
+      detail: '저장되지 않은 요청은 삭제할 수 없습니다.',
       life: 3000
     })
     return
   }
 
-  if (!confirm(`생산계획 '${planCd}'을 정말 삭제하시겠습니까?`)) {
+  if (!confirm(`생산요청 '${reqCd}'을 정말 삭제하시겠습니까?`)) {
     return
   }
 
   try {
-    await store.deleteProdPlan(planCd)
+    await store.deleteProdReq(reqCd)
 
     toast.add({
       severity: 'success',
       summary: '삭제 완료',
-      detail: `'${planCd}' 삭제되었습니다.`,
+      detail: `'${reqCd}' 삭제되었습니다.`,
       life: 3000
     })
 
@@ -269,7 +262,7 @@ const modalDataSets = computed(() => ({
       v-model:data="formData"
       :columns="fields"
       title="생산계획 기본 정보"
-      :buttons="prodPlanFormButtons"
+      :buttons="prodReqFormButtons"
       buttonPosition="top"
       @submit="handleSave"
       @reset="handleReset"

@@ -38,3 +38,11 @@ export const postProdRequestListByCondition = (searchParams) => {
 export const getProdRequestDetailList = (produReqCd) => {
   return axios.get(`/api/prod/request/${produReqCd}`);
 };
+// 생산요청 등록
+export const postSaveProdReq = (data) => {
+  return axios.post('/api/prod/request/requestSave', data)
+}
+// 생산요청과 관련 상세 삭제
+export const deleteProductionReq = async (produReqCd) => {
+  return axios.delete(`/api/prod/request/${produReqCd}`)
+}

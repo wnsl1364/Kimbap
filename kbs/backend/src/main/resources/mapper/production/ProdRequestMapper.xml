@@ -48,10 +48,11 @@
             pr.req_dt,
             pr.pr_req_status,
             pr.produ_plan_cd,
+            pr.deli_dt,
             f.fac_name,
             pr.note
     </select>
-    <!-- 생산계획상세 조건 검색 -->
+    <!-- 생산요청상세 조건 검색 -->
     <select id="selectDetailsByProduReqCd"  parameterType="String" resultType="ProdRequestDetailVO">
         SELECT
             pr.produ_prod_cd,
@@ -61,7 +62,8 @@
             pr.req_qty,
             pr.seq,
             p.unit,
-            p.prod_name
+            p.prod_name,
+            pr.ex_produ_dt
         FROM prod_req pr
         JOIN product p
             ON pr.pcode = p.pcode
@@ -99,76 +101,77 @@
     </select>
     <!-- 생산계획 저장 영역 ===================================== -->
     <!-- 생산계획번호 자동 생성 -->
-    <select id="getNewProdPlanCd" resultType="string">
-        SELECT fn_create_prod_plan_cd() FROM dual
+    <select id="getNewProduReqCd" resultType="string">
+        SELECT fn_create_produ_req_cd() FROM dual
     </select>
 
     <!-- 상세코드 자동 생성 -->
-    <select id="getNewPpdcode" resultType="string">
-        SELECT fn_create_pk_code('prod_plan_d') FROM dual
+    <select id="getNewProduProdCd" resultType="string">
+        SELECT fn_create_pk_code('prod_req') FROM dual
     </select>
     <!-- 마스터 insert -->
-    <insert id="insertProdPlan">
-        INSERT INTO prod_plan (
-            produ_plan_cd, fcode, fac_ver_cd,
-            plan_start_dt, plan_end_dt, mname, plan_dt, note
+    <insert id="insertProductionReq">
+        INSERT INTO production_req (
+            produ_req_cd, req_dt, requ,
+            pr_req_status, produ_plan_cd, deli_dt, note
         ) VALUES (
-            #{produPlanCd}, #{fcode}, #{facVerCd},
-            #{planStartDt}, #{planEndDt}, #{mname}, #{planDt}, #{note}
+            #{produReqCd}, #{reqDt}, #{requ},
+            'b1', #{produPlanCd}, #{deliDt}, #{note}
         )
     </insert>
     <!-- 마스터 update -->
-    <update id="updateProdPlan" parameterType="ProdPlanVO">
-        UPDATE prod_plan
+    <update id="updateProductionReq" parameterType="ProdRequestVO">
+        UPDATE production_req
         SET
-            fcode = #{fcode},
-            fac_ver_cd = #{facVerCd},
-            plan_dt = #{planDt},
-            plan_start_dt = #{planStartDt},
-            plan_end_dt = #{planEndDt},
-            mname = #{mname},
+            produ_req_cd = #{produReqCd},
+            req_dt = #{reqDt},
+            requ = #{requ},
+            pr_req_status = #{prReqStatus},
+            produ_plan_cd = #{produPlanCd},
+            deli_dt = #{deliDt},
             note = #{note}
-        WHERE produ_plan_cd = #{produPlanCd}
+        WHERE produ_req_cd = #{produReqCd}
     </update>
     <!-- 상세 insert -->
-    <insert id="insertProdPlanDetail">
-        INSERT INTO prod_plan_d (
-            ppdcode, produ_plan_cd, pcode,
-            prod_ver_cd, plan_qty, unit, ex_produ_dt, seq
+    <insert id="insertProdReqDetail">
+        INSERT INTO prod_req (
+            produ_prod_cd, pcode,
+            prod_ver_cd, produ_req_cd, req_qty, seq, ex_produ_dt
         ) VALUES (
-            #{ppdcode}, #{produPlanCd}, #{pcode},
-            #{prodVerCd}, #{planQty}, #{unit}, #{exProduDt}, #{seq}
+            #{produProdCd}, #{pcode},
+            #{prodVerCd}, #{produReqCd}, #{reqQty}, #{seq}, #{exProduDt}
         )
     </insert>
     <!-- 상세 update -->
-    <update id="updateProdPlanDetail" parameterType="ProdPlanDetailVO">
-        UPDATE prod_plan_d
+    <update id="updateProdReqDetail" parameterType="ProdRequestDetailVO">
+        UPDATE prod_req
         SET
+            produ_prod_cd = #{produProdCd},
             pcode = #{pcode},
             prod_ver_cd = #{prodVerCd},
-            plan_qty = #{planQty},
-            unit = #{unit},
-            ex_produ_dt = #{exProduDt},
-            seq = #{seq}
-        WHERE ppdcode = #{ppdcode}
+            produ_plan_cd = #{produPlanCd},
+            req_qty = #{reqQty},
+            seq = #{seq},
+            ex_produ_dt = #{exProduDt}
+        WHERE produ_prod_cd = #{produProdCd}
     </update>
     <!-- 상세 delete -->
-    <delete id="deleteProdPlanDetail" parameterType="string">
-        DELETE FROM prod_plan_d
-        WHERE ppdcode = #{ppdcode}
+    <delete id="deleteProdReqDetail" parameterType="string">
+        DELETE FROM prod_req
+        WHERE produ_prod_cd = #{produProdCd}
     </delete>
     <!-- ====================================================== -->
-    
-    <!-- 생산계획 삭제 영역 ===================================== -->
-    <!-- 생산계획코드 기준 생산계획상세 삭제 -->
-    <delete id="deleteProdPlanDetailByPlanCd" parameterType="String">
-        DELETE FROM prod_plan_d
-        WHERE produ_plan_cd = #{produPlanCd}
+
+    <!-- 생산요청 삭제 영역 ===================================== -->
+    <!-- 생산요청코드 기준 생산계획상세 삭제 -->
+    <delete id="deleteProdReqDetailByReqCd" parameterType="String">
+        DELETE FROM prod_req
+        WHERE produ_req_cd = #{produReqCd}
     </delete>
-    <!-- 생산계획코드 기준 삭제 -->
-    <delete id="deleteProdPlan" parameterType="String">
-        DELETE FROM prod_plan
-        WHERE produ_plan_cd = #{produPlanCd}
+    <!-- 생산요청코드 기준 삭제 -->
+    <delete id="deleteProductionReq" parameterType="String">
+        DELETE FROM production_req
+        WHERE produ_req_cd = #{produReqCd}
     </delete>
     <!-- ====================================================== -->
 </mapper>

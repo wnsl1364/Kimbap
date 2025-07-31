@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ProdReqiestFullVO {
+public class ProdRequestFullVO {
   private ProdRequestVO request;
   private List<ProdRequestDetailVO> reqDetails;
 }
