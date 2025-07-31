@@ -29,14 +29,21 @@ const { commonCodes } = storeToRefs(common)
 
 // 공통코드 형변환
 const ordStatusCodes = (list) => {
-  const unitCodes = common.getCodes('0S');
+  const custCodes = common.getCodes('0S');
+  const internalCodes = common.getCodes('0A');
 
   return list.map(item => {
-    const dcd = user.value?.memType === 'p2'
-      ? item.ordStatusCustomer
-      : item.ordStatusInternal;
+    let dcd;
+    let matched;
 
-    const matched = unitCodes.find(code => code.dcd === dcd);
+    if (user.value?.memType === 'p2') {
+      dcd = item.ordStatusCustomer;
+      matched = custCodes.find(code => code.dcd === dcd);
+    } else {
+      dcd = item.ordStatusInternal;
+      matched = internalCodes.find(code => code.dcd === dcd);
+    }
+
     return {
       ...item,
       ordStatus: matched ? matched.cdInfo : dcd
@@ -90,11 +97,16 @@ const orders = ref([]);
 // 주문 목록 조회
 onMounted(async () => {
   try {
+    await Promise.all([
+      common.fetchCommonCodes('0S'),
+      common.fetchCommonCodes('0A')
+    ]);
+
     const res = await getOrderList({
       id: user.value.id,
       memType: user.value.memType
     });
-    await common.fetchCommonCodes('0S');
+
     orders.value = ordStatusCodes(res.data.data);
     console.log('실제 응답 내용:', res.data);
   } catch (err) {
