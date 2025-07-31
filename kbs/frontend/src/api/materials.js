@@ -203,3 +203,37 @@ export const bulkRejectPurchaseOrders = (purcDCdList, reason = '', approver = 's
   
   return axios.put('/api/materials/purchase-orders/bulk-status', requestData);
 };
+
+// ========== 자재 적재 관련 API 함수들 (materials.js에 추가) ==========
+
+// 자재 적재 대기 목록 전체 조회
+export const getMateLoadingWaitList = () => {
+  return axios.get('/api/materials/mateLoading/waitList');
+};
+
+// 특정 입고번호의 적재 대기 자재 단건 조회
+export const getMateLoadingByInboCd = (mateInboCd) => {
+  return axios.get(`/api/materials/mateLoading/detail/${mateInboCd}`);
+};
+
+// 단건 자재 적재 처리
+export const processMateLoadingSingle = (mateLoadingData) => {
+  return axios.post('/api/materials/mateLoading/processSingle', mateLoadingData);
+};
+
+// 다중 자재 적재 처리 (선택된 여러 자재 한번에 처리)
+export const processMateLoadingBatch = (mateLoadingList) => {
+  return axios.post('/api/materials/mateLoading/processBatch', mateLoadingList);
+};
+
+// 활성화된 공장 목록 조회 (검색조건 드롭다운용)
+export const getMateLoadingFactoryList = () => {
+  return axios.get('/api/materials/mateLoading/factories');
+};
+
+// 창고 구역별 wslcode 조회 (위치선택 시 사용)
+export const getWslCodeByArea = (wareAreaCd) => {
+  return axios.get('/api/materials/mateLoading/wslcode', {
+    params: { wareAreaCd }
+  });
+};
