@@ -31,56 +31,41 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 
-// 🎯 Store에서 반응형 데이터 가져오기 (storeToRefs 사용!)
+// Store에서 반응형 데이터 가져오기
 const { 
   approvalOrderHeader,
   approvalOrderDetails, 
   selectedApprovalItems 
 } = storeToRefs(materialStore);
 
-// 🐛 디버그: 선택 상태 감시
-watch(selectedApprovalItems, (newVal, oldVal) => {
-  console.log('🐛 selectedApprovalItems 변경됨!');
-  console.log('  - 이전값:', oldVal?.length || 0, '개');
-  console.log('  - 새값:', newVal?.length || 0, '개');
-  console.log('  - 상세:', newVal);
-}, { deep: true });
-
-//🎯 반응형 데이터들
+//반응형 데이터들
 const isLoading = ref(false);
 const purcCd = ref('');
 
-// 🐛 로컬 선택 데이터 (InputTable 내부 구조에 맞춤!)
+// 선택 상태 관리
 const localSelectedItems = ref([]);
 
-// 🎯 더 간단한 방법: 버튼 클릭 시 직접 InputTable에서 선택 상태 가져오기!
-const getSelectedItemsFromTable = () => {
-  try {
-    // InputTable 컴포넌트의 내부 선택 상태에 접근
-    const tableComponent = inputTableRef.value;
-    if (tableComponent) {
-      // InputTable 내부의 selectedRows 접근
-      const selectedRows = tableComponent.selectedRows || [];
-      console.log('🐛 테이블에서 직접 가져온 선택:', selectedRows?.length || 0, '개');
-      console.log('🐛 선택된 데이터:', selectedRows);
-      return selectedRows;
-    }
-    return [];
-  } catch (error) {
-    console.error('🐛 선택 상태 가져오기 실패:', error);
-    return [];
-  }
-};
+// 임시 상태 변경 관리 (핵심!)
+const pendingChanges = ref([]); // 저장 대기 중인 변경사항들
+const hasUnsavedChanges = computed(() => pendingChanges.value.length > 0);
 
-// 🎯 InputTable 참조
+// InputTable에서 선택 상태 변경 시 호출되는 핸들러
+const handleSelectionChange = (selectedItems) => {
+  console.log('🎉 부모에서 선택 상태 받음!')
+  console.log('  - 받은 선택:', selectedItems?.length || 0, '개')
+  
+  localSelectedItems.value = [...selectedItems]
+  materialStore.setSelectedApprovalItems([...selectedItems])
+}
+
+// InputTable 참조
 const inputTableRef = ref(null);
 
-// 반려 사유 모달 관련
+// 거절 사유 모달 관련
 const rejectModalVisible = ref(false);
 const rejectReason = ref('');
-const selectedRejectItems = ref([]);
 
-// 🎨 기본정보 필드 설정 (readonly로!)
+// 기본정보 필드 설정
 const basicInfoFields = ref([
   { field: 'purcCd', label: '발주번호', type: 'input', readonly: true },
   { field: 'ordDt', label: '주문일자', type: 'input', readonly: true },
@@ -90,7 +75,7 @@ const basicInfoFields = ref([
   { field: 'approver', label: '승인자', type: 'input', readonly: true }
 ]);
 
-// 🎨 상세정보 테이블 컬럼 설정
+// 상세정보 테이블 컬럼 설정
 const detailTableColumns = computed(() => [
   {
     field: 'purcDCd',
@@ -141,7 +126,7 @@ const detailTableColumns = computed(() => [
     align: 'center'
   },
   {
-    field: 'purcDStatus',
+    field: 'purcDStatusText',  // 변경된 상태 텍스트 표시
     header: '상태',
     type: 'readonly',
     align: 'center'
@@ -154,18 +139,17 @@ const detailTableColumns = computed(() => [
   }
 ]);
 
-// 🎨 테이블 버튼 설정 (승인/반려 버튼만!)
+// 테이블 버튼 설정 (저장 버튼 추가!)
 const tableButtons = ref({
-  save: { show: false },
+  save: { show: true, label: '변경사항 저장', severity: 'success' },
   reset: { show: false },
   delete: { show: false },
   load: { show: false }
 });
 
-// 🔧 날짜 포맷팅 함수
+// 헬퍼 함수들
 const formatDate = (date) => {
   if (!date) return '';
-  
   try {
     const dateObj = date instanceof Date ? date : new Date(date);
     if (!isValid(dateObj)) return '';
@@ -176,7 +160,6 @@ const formatDate = (date) => {
   }
 };
 
-// 🔧 상태 텍스트 변환
 const getStatusText = (statusCode) => {
   const statusMap = {
     'c1': '요청',
@@ -190,7 +173,6 @@ const getStatusText = (statusCode) => {
   return statusMap[statusCode] || statusCode;
 };
 
-// 🔧 단위 텍스트 변환
 const getUnitText = (unitCode) => {
   const unitMap = {
     'g1': 'g',
@@ -204,31 +186,28 @@ const getUnitText = (unitCode) => {
   return unitMap[unitCode] || unitCode;
 };
 
-// 💰 총 승인 대상 금액 계산 (로컬 데이터 사용!)
+// 계산된 값들
 const totalApprovalAmount = computed(() => {
-  console.log('🐛 totalApprovalAmount 계산:', localSelectedItems.value?.length || 0, '개');
   return localSelectedItems.value.reduce((sum, item) => {
     return sum + (item.totalAmount || 0);
   }, 0);
 });
 
-// ✅ 승인 가능 여부 체크 (로컬 데이터 사용!)
 const canApprove = computed(() => {
-  const result = localSelectedItems.value.length > 0 && 
-         localSelectedItems.value.every(item => item.purcDStatus === 'c1');
-  console.log('🐛 canApprove 계산:', result, '(선택:', localSelectedItems.value.length, '개)');
-  return result;
+  return localSelectedItems.value.length > 0 && 
+         localSelectedItems.value.every(item => 
+           item.purcDStatus === 'c1' || item.tempStatus === 'c1' // 🔥 임시상태도 체크
+         );
 });
 
-// ❌ 반려 가능 여부 체크 (로컬 데이터 사용!)
 const canReject = computed(() => {
-  const result = localSelectedItems.value.length > 0 && 
-         localSelectedItems.value.every(item => item.purcDStatus === 'c1');
-  console.log('🐛 canReject 계산:', result, '(선택:', localSelectedItems.value.length, '개)');
-  return result;
+  return localSelectedItems.value.length > 0 && 
+         localSelectedItems.value.every(item => 
+           item.purcDStatus === 'c1' || item.tempStatus === 'c1' // 🔥 임시상태도 체크
+         );
 });
 
-// 📋 발주 상세 정보 로드 (핵심 함수!)
+// 발주 상세 정보 로드
 const loadOrderDetails = async (orderCode) => {
   try {
     isLoading.value = true;
@@ -240,7 +219,7 @@ const loadOrderDetails = async (orderCode) => {
     if (response.data && response.data.header && response.data.details) {
       const { header, details } = response.data;
       
-      // 🎯 헤더 정보 설정 (store에 저장!)
+      // 헤더 정보 설정
       materialStore.setApprovalOrderHeader({
         purcCd: header.purcCd,
         ordDt: formatDate(header.ordDt),
@@ -251,10 +230,9 @@ const loadOrderDetails = async (orderCode) => {
         approver: memberStore.user?.empName || '현재 로그인 사용자'
       });
       
-      // 🎯 상세 정보 설정 (store에 저장!)
+      // 상세 정보 설정 (임시 상태 필드 추가!)
       const detailsData = details.map((item, index) => ({
-        // 🐛 dataKey 확인: purcDCd를 고유 식별자로 사용
-        purcDCd: item.purcDCd,  // 이게 dataKey!
+        purcDCd: item.purcDCd,
         id: `detail_${index + 1}`,
         mateName: item.mateName,
         cpName: item.cpName,
@@ -263,23 +241,20 @@ const loadOrderDetails = async (orderCode) => {
         unitPrice: Number(item.unitPrice || 0).toLocaleString(),
         totalAmount: Number(item.totalAmount || 0),
         exDeliDt: formatDate(item.exDeliDt),
-        purcDStatus: item.purcDStatus,
-        purcDStatusText: getStatusText(item.purcDStatus),
+        purcDStatus: item.purcDStatus,  // 원본 상태
+        tempStatus: null,  // 임시 상태 (변경사항)
+        purcDStatusText: getStatusText(item.purcDStatus),  // 표시용 상태 텍스트
         note: item.note || '',
-        // 원본 데이터도 보존
         _original: item
       }));
       
       materialStore.setApprovalOrderDetails(detailsData);
       
-      // 🐛 데이터 로드 후 선택 초기화
+      // 상태 초기화
       localSelectedItems.value = [];
+      pendingChanges.value = [];
       
-      console.log('✅ 발주 정보 로드 완료!', {
-        header: approvalOrderHeader.value,
-        detailCount: approvalOrderDetails.value.length,
-        firstDetailKey: detailsData[0]?.purcDCd  // 🐛 dataKey 확인용
-      });
+      console.log('✅ 발주 정보 로드 완료!');
       
       toast.add({
         severity: 'success',
@@ -294,41 +269,16 @@ const loadOrderDetails = async (orderCode) => {
     
   } catch (error) {
     console.error('❌ 발주 정보 로드 실패:', error);
-    
-    if (error.response?.status === 404) {
-      toast.add({
-        severity: 'warn',
-        summary: '발주서 없음 😢',
-        detail: `발주번호 ${orderCode}에 해당하는 발주서를 찾을 수 없어!`,
-        life: 4000
-      });
-      
-      // 목록으로 돌아가기
-      setTimeout(() => {
-        router.push('/material/MaterialPurchaseView');
-      }, 2000);
-      
-    } else {
-      toast.add({
-        severity: 'error',
-        summary: '로드 실패 ㅠㅠ',
-        detail: '발주서 정보를 불러오는 중 문제가 생겼어! 다시 시도해줘~',
-        life: 3000
-      });
-      
-      // 샘플 데이터로 대체
-      loadSampleData(orderCode);
-    }
+    loadSampleData(orderCode);
   } finally {
     isLoading.value = false;
   }
 };
 
-// 🧪 샘플 데이터 로드 (API 실패 시 대비)
+// 샘플 데이터 로드
 const loadSampleData = (orderCode) => {
   console.log('🧪 샘플 데이터 로드:', orderCode);
   
-  // Store에 샘플 헤더 데이터 저장
   materialStore.setApprovalOrderHeader({
     purcCd: orderCode || 'PURC-001',
     ordDt: '2025-07-29',
@@ -338,11 +288,9 @@ const loadSampleData = (orderCode) => {
     approver: memberStore.user?.empName || '김승인'
   });
   
-  // Store에 샘플 상세 데이터 저장
   materialStore.setApprovalOrderDetails([
     {
-      // 🐛 dataKey 확인: purcDCd를 고유 식별자로 사용
-      purcDCd: 'PURC-D-001',  // 이게 dataKey!
+      purcDCd: 'PURC-D-001',
       id: 'detail_1',
       mateName: '김(건조)',
       cpName: '황금쌀농협',
@@ -352,6 +300,7 @@ const loadSampleData = (orderCode) => {
       totalAmount: 1500000,
       exDeliDt: '2025-08-01',
       purcDStatus: 'c1',
+      tempStatus: null,  // 🔥 임시 상태
       purcDStatusText: '요청',
       note: '긴급 발주 건',
       _original: {
@@ -361,8 +310,8 @@ const loadSampleData = (orderCode) => {
     }
   ]);
   
-  // 🐛 샘플 데이터 로드 후 선택 초기화
   localSelectedItems.value = [];
+  pendingChanges.value = [];
   
   toast.add({
     severity: 'info',
@@ -372,104 +321,126 @@ const loadSampleData = (orderCode) => {
   });
 };
 
-// ✅ 승인 처리 함수 (실시간 선택 상태 가져오기!)
-const handleApprove = async () => {
-  // 🎯 버튼 클릭 시 실시간으로 선택 상태 가져오기!
-  const currentSelection = getSelectedItemsFromTable();
-  localSelectedItems.value = currentSelection;
+// 임시 상태 변경 함수들 (웹페이지에서만 변경!)
+const updateTempStatus = (items, newStatus, reason = '') => {
+  items.forEach(item => {
+    // 원본 데이터 수정 (화면에 바로 반영)
+    const originalItem = approvalOrderDetails.value.find(detail => detail.purcDCd === item.purcDCd);
+    if (originalItem) {
+      originalItem.tempStatus = newStatus;
+      originalItem.purcDStatusText = getStatusText(newStatus);
+      
+      // 거절인 경우 비고에 사유 추가
+      if (newStatus === 'c6' && reason) {
+        originalItem.note = `거절사유: ${reason}`;
+      }
+    }
+    
+    // 변경사항 기록 (저장용)
+    const changeIndex = pendingChanges.value.findIndex(change => change.purcDCd === item.purcDCd);
+    if (changeIndex >= 0) {
+      // 기존 변경사항 업데이트
+      pendingChanges.value[changeIndex] = {
+        purcDCd: item.purcDCd,
+        purcCd: item._original.purcCd,
+        newStatus: newStatus,
+        reason: reason,
+        item: item
+      };
+    } else {
+      // 새 변경사항 추가
+      pendingChanges.value.push({
+        purcDCd: item.purcDCd,
+        purcCd: item._original.purcCd,
+        newStatus: newStatus,
+        reason: reason,
+        item: item
+      });
+    }
+  });
   
-  console.log('🐛 승인 처리 시작 - 실시간 선택:', localSelectedItems.value?.length || 0, '개');
-  console.log('🐛 선택된 항목들:', localSelectedItems.value);
+  console.log('🎯 임시 상태 변경 완료:', pendingChanges.value.length, '건 대기중');
+};
+
+// 임시 승인 처리 (웹페이지에서만!)
+const handleTempApprove = () => {
+  console.log('🎉 임시 승인 처리!')
   
-  const canApproveNow = localSelectedItems.value.length > 0 && 
-                       localSelectedItems.value.every(item => item.purcDStatus === 'c1');
-  
-  if (!canApproveNow) {
+  if (!canApprove.value) {
     toast.add({
       severity: 'warn',
       summary: '승인 불가 ⚠️',
-      detail: '승인할 항목을 선택하거나, 이미 처리된 항목은 승인할 수 없어!',
+      detail: '승인할 항목을 선택해주세요!',
       life: 3000
     });
     return;
   }
   
-  try {
-    isLoading.value = true;
-    console.log('✅ 승인 처리 시작:', localSelectedItems.value.length, '건');
-    
-    // 선택된 각 발주상세에 대해 승인 처리
-    for (const detail of localSelectedItems.value) {
-      const statusData = {
-        purcDCd: detail.purcDCd,
-        purcCd: detail._original.purcCd,
-        purcDStatus: 'c2', // 승인
-        note: `${memberStore.user?.empName || '시스템'}에 의해 승인됨`
-      };
-      
-      console.log('🐛 승인 API 호출:', statusData);
-      await updatePurchaseOrderStatus(statusData);
-      console.log(`✅ ${detail.purcDCd} 승인 완료!`);
-    }
-    
-    toast.add({
-      severity: 'success',
-      summary: '승인 완료! 🎉',
-      detail: `${localSelectedItems.value.length}건의 발주가 승인되었어! 완전 굿~! 👏`,
-      life: 4000
-    });
-    
-    // 선택 초기화 및 데이터 새로고침
-    localSelectedItems.value = [];
-    await loadOrderDetails(purcCd.value);
-    
-  } catch (error) {
-    console.error('❌ 승인 처리 실패:', error);
-    toast.add({
-      severity: 'error',
-      summary: '승인 실패 ㅠㅠ',
-      detail: '승인 처리 중 문제가 생겼어! 다시 시도해줘~',
-      life: 3000
-    });
-  } finally {
-    isLoading.value = false;
-  }
+  // 화면에서만 상태 변경!
+  updateTempStatus(localSelectedItems.value, 'c2', '승인 대기중');
+  
+  toast.add({
+    severity: 'info',
+    summary: '임시 승인 완료! 📝',
+    detail: `${localSelectedItems.value.length}건이 승인 대기 상태로 변경됐어! "저장" 버튼을 눌러서 실제 저장해줘~`,
+    life: 4000
+  });
+  
+  // 선택 해제
+  localSelectedItems.value = [];
 };
 
-// ❌ 반려 모달 열기 (실시간 선택 상태 가져오기!)
+// 거절 모달 열기
 const openRejectModal = () => {
-  // 🎯 버튼 클릭 시 실시간으로 선택 상태 가져오기!
-  const currentSelection = getSelectedItemsFromTable();
-  localSelectedItems.value = currentSelection;
-  
-  console.log('🐛 반려 모달 열기 - 실시간 선택:', localSelectedItems.value?.length || 0, '개');
-  console.log('🐛 선택된 항목들:', localSelectedItems.value);
-  
-  const canRejectNow = localSelectedItems.value.length > 0 && 
-                      localSelectedItems.value.every(item => item.purcDStatus === 'c1');
-  
-  if (!canRejectNow) {
+  if (!canReject.value) {
     toast.add({
       severity: 'warn',
-      summary: '반려 불가 ⚠️',
-      detail: '반려할 항목을 선택하거나, 이미 처리된 항목은 반려할 수 없어!',
+      summary: '거절 불가 ⚠️',
+      detail: '거절할 항목을 선택해주세요!',
       life: 3000
     });
     return;
   }
   
-  selectedRejectItems.value = [...localSelectedItems.value];
   rejectReason.value = '';
   rejectModalVisible.value = true;
 };
 
-// ❌ 반려 처리 함수
-const handleReject = async () => {
+// 임시 거절 처리 (웹페이지에서만!)
+const handleTempReject = () => {
   if (!rejectReason.value.trim()) {
     toast.add({
       severity: 'warn',
-      summary: '반려 사유 필요 📝',
-      detail: '반려 사유를 입력해줘야 해!',
+      summary: '거절 사유 필요 📝',
+      detail: '거절 사유를 입력해줘야 해!',
+      life: 3000
+    });
+    return;
+  }
+  
+  // 화면에서만 상태 변경!
+  updateTempStatus(localSelectedItems.value, 'c6', rejectReason.value);
+  
+  toast.add({
+    severity: 'info',
+    summary: '임시 거절 완료! 📝',
+    detail: `${localSelectedItems.value.length}건이 거절 대기 상태로 변경됐어! "저장" 버튼을 눌러서 실제 저장해줘~`,
+    life: 4000
+  });
+  
+  // 모달 닫기 및 선택 해제
+  rejectModalVisible.value = false;
+  localSelectedItems.value = [];
+  rejectReason.value = '';
+};
+
+// 실제 저장 처리! (진짜 API 호출)
+const handleSaveChanges = async () => {
+  if (!hasUnsavedChanges.value) {
+    toast.add({
+      severity: 'info',
+      summary: '저장할 변경사항 없음 🤷‍♀️',
+      detail: '변경된 내용이 없어서 저장할 게 없어!',
       life: 3000
     });
     return;
@@ -477,42 +448,40 @@ const handleReject = async () => {
   
   try {
     isLoading.value = true;
-    console.log('❌ 반려 처리 시작:', selectedRejectItems.value.length, '건');
+    console.log('💾 실제 저장 시작:', pendingChanges.value.length, '건');
     
-    // 선택된 각 발주상세에 대해 반려 처리
-    for (const detail of selectedRejectItems.value) {
+    // 각 변경사항에 대해 실제 API 호출!
+    for (const change of pendingChanges.value) {
       const statusData = {
-        purcDCd: detail.purcDCd,
-        purcCd: detail._original.purcCd,
-        purcDStatus: 'c6', // 거절
-        note: `반려사유: ${rejectReason.value} (반려자: ${memberStore.user?.empName || '시스템'})`
+        purcDCd: change.purcDCd,
+        purcCd: change.purcCd,
+        purcDStatus: change.newStatus,
+        note: change.newStatus === 'c6' 
+          ? `거절사유: ${change.reason} (거절자: ${memberStore.user?.empName || '시스템'})`
+          : `${memberStore.user?.empName || '시스템'}에 의해 ${change.newStatus === 'c2' ? '승인' : '처리'}됨`
       };
       
+      console.log('🔥 실제 API 호출:', statusData);
       await updatePurchaseOrderStatus(statusData);
-      console.log(`❌ ${detail.purcDCd} 반려 완료!`);
+      console.log(`✅ ${change.purcDCd} 저장 완료!`);
     }
     
     toast.add({
-      severity: 'info',
-      summary: '반려 완료 📋',
-      detail: `${selectedRejectItems.value.length}건의 발주가 반려되었어.`,
+      severity: 'success', 
+      summary: '저장 완료! 🎉',
+      detail: `${pendingChanges.value.length}건의 변경사항이 성공적으로 저장됐어! 진짜 완료! 👏`,
       life: 4000
     });
     
-    // 모달 닫기 및 데이터 새로고침
-    rejectModalVisible.value = false;
+    // 저장 후 데이터 새로고침
     await loadOrderDetails(purcCd.value);
-    localSelectedItems.value = []; // 로컬 선택 초기화!
-    materialStore.clearSelectedApprovalItems(); // store 초기화!
-    selectedRejectItems.value = [];
-    rejectReason.value = '';
     
   } catch (error) {
-    console.error('❌ 반려 처리 실패:', error);
+    console.error('❌ 저장 실패:', error);
     toast.add({
       severity: 'error',
-      summary: '반려 실패 ㅠㅠ',
-      detail: '반려 처리 중 문제가 생겼어! 다시 시도해줘~',
+      summary: '저장 실패 ㅠㅠ',
+      detail: '저장 중 문제가 생겼어! 다시 시도해줘~',
       life: 3000
     });
   } finally {
@@ -520,16 +489,54 @@ const handleReject = async () => {
   }
 };
 
-// 🔙 목록으로 돌아가기
-const goBackToList = () => {
-  router.push('/material/MaterialPurchaseView');
+// 변경사항 초기화
+const handleResetChanges = () => {
+  if (!hasUnsavedChanges.value) {
+    toast.add({
+      severity: 'info',
+      summary: '초기화할 변경사항 없음 🤷‍♀️',
+      detail: '변경된 내용이 없어서 초기화할 게 없어!',
+      life: 3000
+    });
+    return;
+  }
+  
+  // 모든 임시 변경사항 되돌리기
+  pendingChanges.value.forEach(change => {
+    const originalItem = approvalOrderDetails.value.find(detail => detail.purcDCd === change.purcDCd);
+    if (originalItem) {
+      originalItem.tempStatus = null;
+      originalItem.purcDStatusText = getStatusText(originalItem.purcDStatus);
+      originalItem.note = change.item.note; // 원본 비고로 복원
+    }
+  });
+  
+  pendingChanges.value = [];
+  localSelectedItems.value = [];
+  
+  toast.add({
+    severity: 'info',
+    summary: '변경사항 초기화 완료! 🔄',
+    detail: '모든 임시 변경사항이 되돌려졌어!',
+    life: 3000
+  });
 };
 
-// 🎯 초기화 (컴포넌트 마운트 시)
+// 목록으로 돌아가기
+const goBackToList = () => {
+  if (hasUnsavedChanges.value) {
+    if (confirm('저장하지 않은 변경사항이 있어! 정말 나갈래?')) {
+      router.push('/material/MaterialPurchaseView');
+    }
+  } else {
+    router.push('/material/MaterialPurchaseView');
+  }
+};
+
+// 초기화
 onMounted(async () => {
   console.log('🚀 MaterialPurchaseApproval 마운트됨!');
   
-  // URL에서 purcCd 파라미터 가져오기
   purcCd.value = route.query.purcCd || route.params.purcCd || '';
   
   if (!purcCd.value) {
@@ -547,12 +554,10 @@ onMounted(async () => {
   }
   
   console.log('📋 처리할 발주번호:', purcCd.value);
-  
-  // 발주 상세 정보 로드
   await loadOrderDetails(purcCd.value);
 });
 
-// 🎯 route 변경 감지 (발주번호가 바뀔 때)
+// route 변경 감지
 watch(() => route.query.purcCd, (newPurcCd) => {
   if (newPurcCd && newPurcCd !== purcCd.value) {
     purcCd.value = newPurcCd;
@@ -568,7 +573,7 @@ watch(() => route.query.purcCd, (newPurcCd) => {
     <!-- 페이지 헤더 -->
     <div class="mb-6 flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">발주 승인/반려 처리</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">발주 승인/거절 처리</h1>
         <p class="text-gray-600">
           {{ approvalOrderHeader.purcCd || '발주번호 로딩중...' }} 
           <span class="mx-2">|</span>
@@ -578,16 +583,24 @@ watch(() => route.query.purcCd, (newPurcCd) => {
         </p>
       </div>
       
-      <Button 
-        label="목록으로 돌아가기" 
-        icon="pi pi-arrow-left" 
-        severity="secondary"
-        @click="goBackToList"
-        :disabled="isLoading"
-      />
+      <div class="flex gap-2">
+        <!-- 저장하지 않은 변경사항 경고 -->
+        <div v-if="hasUnsavedChanges" class="flex items-center text-orange-600 mr-3">
+          <i class="pi pi-exclamation-triangle mr-1"></i>
+          <span class="text-sm">{{ pendingChanges.length }}건 저장 대기중</span>
+        </div>
+        
+        <Button 
+          label="목록으로 돌아가기" 
+          icon="pi pi-arrow-left" 
+          severity="secondary"
+          @click="goBackToList"
+          :disabled="isLoading"
+        />
+      </div>
     </div>
 
-    <!-- 📋 발주 기본정보 -->
+    <!-- 발주 기본정보 -->
     <div class="mb-6">
       <LeftAlignTable
         :data="approvalOrderHeader"
@@ -596,7 +609,7 @@ watch(() => route.query.purcCd, (newPurcCd) => {
       />
     </div>
 
-    <!-- 💰 승인 요약 정보 (선택된 항목이 있을 때만) -->
+    <!-- 승인 요약 정보 -->
     <div v-if="localSelectedItems.length > 0" 
          class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
       <h3 class="text-lg font-semibold text-blue-800 mb-2">승인 처리 요약</h3>
@@ -618,17 +631,38 @@ watch(() => route.query.purcCd, (newPurcCd) => {
           </span>
         </div>
       </div>
+    </div>
+
+    <!-- 변경사항 요약 -->
+    <div v-if="hasUnsavedChanges" 
+         class="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+      <h3 class="text-lg font-semibold text-yellow-800 mb-2">💾 저장 대기 중인 변경사항</h3>
+      <div class="space-y-2">
+        <div v-for="change in pendingChanges" :key="change.purcDCd" class="text-sm">
+          • <strong>{{ change.purcDCd }}</strong>: 
+          {{ change.newStatus === 'c2' ? '✅ 승인' : '❌ 거절' }}
+          <span v-if="change.reason" class="text-gray-600 ml-2">({{ change.reason }})</span>
+        </div>
+      </div>
       
-      <!-- 🐛 디버그 정보 -->
-      <div class="mt-3 p-2 bg-yellow-100 rounded text-xs">
-        <strong>🐛 디버그:</strong> 
-        로컬선택: {{ localSelectedItems.length }}개 | 
-        Store선택: {{ selectedApprovalItems.length }}개 |
-        dataKey 확인: {{ localSelectedItems[0]?.purcDCd || 'N/A' }}
+      <div class="flex gap-2 mt-3">
+        <Button 
+          label="💾 지금 저장하기" 
+          severity="success" 
+          @click="handleSaveChanges"
+          :disabled="isLoading"
+          :loading="isLoading"
+        />
+        <Button 
+          label="🔄 변경사항 취소" 
+          severity="secondary" 
+          @click="handleResetChanges"
+          :disabled="isLoading"
+        />
       </div>
     </div>
 
-    <!-- 📊 발주 상세 목록 -->
+    <!-- 발주 상세 목록 -->
     <div class="mb-6">
       <InputTable
         ref="inputTableRef"
@@ -643,20 +677,20 @@ watch(() => route.query.purcCd, (newPurcCd) => {
         :enableSelection="true"
         selectionMode="multiple"
         :showRowCount="true"
-        @dataChange="(newData) => console.log('🐛 InputTable dataChange:', newData)"
+        @selectionChange="handleSelectionChange"
+        @save="handleSaveChanges"
       >
-        <!-- 🎯 승인/반려 버튼들 -->
+        <!-- 승인/거절 버튼들 -->
         <template #top-buttons>
           <Button 
-            label="승인" 
+            label="임시 승인" 
             severity="success" 
             icon="pi pi-check"
-            @click="handleApprove"
+            @click="handleTempApprove"
             :disabled="!canApprove || isLoading"
-            :loading="isLoading"
           />
           <Button 
-            label="반려" 
+            label="임시 거절" 
             severity="danger" 
             icon="pi pi-times"
             @click="openRejectModal"
@@ -666,18 +700,18 @@ watch(() => route.query.purcCd, (newPurcCd) => {
       </InputTable>
     </div>
 
-    <!-- ❌ 반려 사유 입력 모달 -->
+    <!-- 거절 사유 입력 모달 -->
     <Dialog 
       v-model:visible="rejectModalVisible"
       modal
-      header="반려 사유 입력"
+      header="거절 사유 입력"
       :style="{ width: '500px' }"
       :closable="false"
     >
       <div class="mb-4">
-        <h4 class="mb-2">반려할 발주 상세 ({{ selectedRejectItems.length }}건)</h4>
+        <h4 class="mb-2">거절할 발주 상세 ({{ localSelectedItems.length }}건)</h4>
         <div class="max-h-32 overflow-y-auto bg-gray-50 p-3 rounded">
-          <div v-for="item in selectedRejectItems" :key="item.purcDCd" 
+          <div v-for="item in localSelectedItems" :key="item.purcDCd" 
                class="text-sm mb-1">
             • {{ item.purcDCd }} - {{ item.mateName }}
           </div>
@@ -686,14 +720,14 @@ watch(() => route.query.purcCd, (newPurcCd) => {
       
       <div class="mb-4">
         <label for="rejectReason" class="block text-sm font-medium mb-2">
-          반려 사유 <span class="text-red-500">*</span>
+          거절 사유 <span class="text-red-500">*</span>
         </label>
         <Textarea 
           id="rejectReason"
           v-model="rejectReason"
           rows="4"
           cols="50"
-          placeholder="반려 사유를 상세히 입력해주세요..."
+          placeholder="거절 사유를 상세히 입력해주세요..."
           class="w-full"
           :class="{ 'p-invalid': !rejectReason.trim() }"
         />
@@ -707,11 +741,10 @@ watch(() => route.query.purcCd, (newPurcCd) => {
           :disabled="isLoading"
         />
         <Button 
-          label="반려 처리" 
+          label="임시 거절 처리" 
           severity="danger" 
-          @click="handleReject"
+          @click="handleTempReject"
           :disabled="!rejectReason.trim() || isLoading"
-          :loading="isLoading"
         />
       </div>
     </Dialog>
@@ -725,5 +758,22 @@ watch(() => route.query.purcCd, (newPurcCd) => {
 
 :deep(.p-dialog) {
   z-index: 9998;
+}
+
+/* 저장 대기 중인 항목 스타일링 */
+:deep(.p-datatable-tbody > tr.pending-change) {
+  background-color: #fef3c7 !important;
+  border-left: 4px solid #f59e0b !important;
+}
+
+/* 승인 대기 상태 강조 */
+:deep(.status-approved) {
+  color: #059669 !important;
+  font-weight: bold !important;
+}
+
+:deep(.status-rejected) {
+  color: #dc2626 !important;
+  font-weight: bold !important;
 }
 </style>
