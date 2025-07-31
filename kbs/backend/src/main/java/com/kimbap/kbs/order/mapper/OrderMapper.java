@@ -45,4 +45,7 @@ public interface OrderMapper {
 
   // 기존 상세 수정
   int updateOrderDetail(OrderDetailVO detail);
+
+  // 주문 상태 수정
+  void updateOrderStatus(OrderDetailVO detail);
 }

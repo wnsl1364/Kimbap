@@ -18,5 +18,4 @@ public interface  OrderService {
 
   // 주문 수정 (기존 상세는 update, 신규는 시퀀스로 insert, 삭제된 상세는 delete)
   void updateOrder(OrderVO orderVO);
-
 }

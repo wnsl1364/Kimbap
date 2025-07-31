@@ -221,4 +221,11 @@
         DELETE FROM order_d
         WHERE ord_cd = #{ordCd}
     </delete>
+
+    <!-- 주문 상태 수정 -->
+    <update id="updateOrderStatus">
+        UPDATE order_d
+        SET ord_d_status = #{ordDStatus}
+        WHERE ord_d_cd = #{ordDCd}
+    </update>
 </mapper>
