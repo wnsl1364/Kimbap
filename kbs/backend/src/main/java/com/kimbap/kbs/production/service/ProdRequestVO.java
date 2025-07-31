@@ -23,6 +23,7 @@ public class ProdRequestVO {
   private String produPlanCd;         // 생산계획번호(FK)
   @JsonFormat(pattern = "yyyy-MM-dd")
   private Date deliDt;                // 납기일자
+  private String empName;             // 사원이름
 
   // production_req 조건 검색을 위한 VO
   private String fcode;               // 공장코드(FK)

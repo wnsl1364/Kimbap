@@ -11,7 +11,7 @@ import { getFactoryList,                  // 공장 목록 조회
          postProdRequestListByCondition,  // 생산요청 목록 조건 검색
          getProdRequestDetailList,        // 생산요청별 상세내역 조회
          postSaveProdReq,                 // 생산요청 등록
-         deleteProductionReq               // 생산요청 삭제
+         deleteProductionReq              // 생산요청 삭제
         } from '@/api/production';
 
 export const useProductStore = defineStore('product', () => {

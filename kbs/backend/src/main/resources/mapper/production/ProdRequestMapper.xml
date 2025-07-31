@@ -8,11 +8,13 @@
             pp.fcode,
             pp.fac_ver_cd,
             pr.req_dt,
+            pr.requ,
             pr.pr_req_status,
             pr.produ_plan_cd,
             pr.deli_dt,
             f.fac_name,
             pr.note,
+            e.emp_name,
             SUM(prr.req_qty) AS sum_req_qty,
             MIN(p.unit) KEEP (DENSE_RANK FIRST ORDER BY pr.produ_req_cd) AS first_unit
         FROM production_req pr
@@ -21,6 +23,8 @@
         JOIN factory f
             ON pp.fcode = f.fcode
             AND pp.fac_ver_cd = f.fac_ver_cd
+        JOIN employee e
+            ON pr.requ = e.emp_cd
         LEFT JOIN prod_req prr
             ON pr.produ_req_cd = prr.produ_req_cd
         JOIN product p
@@ -46,11 +50,13 @@
             pp.fcode,
             pp.fac_ver_cd,
             pr.req_dt,
+            pr.requ,
             pr.pr_req_status,
             pr.produ_plan_cd,
             pr.deli_dt,
             f.fac_name,
-            pr.note
+            pr.note,
+            e.emp_name
     </select>
     <!-- 생산요청상세 조건 검색 -->
     <select id="selectDetailsByProduReqCd"  parameterType="String" resultType="ProdRequestDetailVO">
@@ -99,8 +105,8 @@
         )
         WHERE rn = 1
     </select>
-    <!-- 생산계획 저장 영역 ===================================== -->
-    <!-- 생산계획번호 자동 생성 -->
+    <!-- 생산요청 저장 영역 ===================================== -->
+    <!-- 생산요청번호 자동 생성 -->
     <select id="getNewProduReqCd" resultType="string">
         SELECT fn_create_produ_req_cd() FROM dual
     </select>
@@ -126,7 +132,6 @@
             produ_req_cd = #{produReqCd},
             req_dt = #{reqDt},
             requ = #{requ},
-            pr_req_status = #{prReqStatus},
             produ_plan_cd = #{produPlanCd},
             deli_dt = #{deliDt},
             note = #{note}
@@ -149,7 +154,7 @@
             produ_prod_cd = #{produProdCd},
             pcode = #{pcode},
             prod_ver_cd = #{prodVerCd},
-            produ_plan_cd = #{produPlanCd},
+            produ_req_cd = #{produReqCd},
             req_qty = #{reqQty},
             seq = #{seq},
             ex_produ_dt = #{exProduDt}
