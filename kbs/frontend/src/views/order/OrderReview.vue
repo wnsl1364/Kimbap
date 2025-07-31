@@ -122,10 +122,17 @@ const handleLoadOrder = async (selectedRow) => {
 
     // 제품목록 세팅
     productStore.setProducts(
-      order.products.map(item => ({
-        ...item,
-        deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : ''
-      }))
+      order.orderDetails.map(item => {
+        const qty = item.ordQty || 0
+        const price = item.unitPrice || 0
+        const total = qty * price
+
+        return {
+          ...item,
+          totalAmount: total,
+          deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : ''
+        }
+      })
     )
   } catch (err) {
     console.error('주문 상세 불러오기 실패:', err)
@@ -141,6 +148,50 @@ const formatDateFields = (obj, fields) => {
     }
   })
 }
+
+// 승인
+const handleApprove = async () => {
+  // 납기가능일자 누락 체크
+  const missingDeliAvail = products.value.some(p => !p.deliAvailDt)
+
+  if (missingDeliAvail) {
+    alert('모든 제품에 납기가능일자를 입력해주세요.')
+    return
+  }
+
+  try {
+    const ordCd = formData.value.ordCd
+    const res = await axios.put(`/api/order/${ordCd}/approve`)
+    if (res.data.result_code === 'SUCCESS') {
+      alert('주문 승인 완료!')
+    } else {
+      alert('승인 실패: ' + res.data.message)
+    }
+  } catch (err) {
+    console.error('승인 오류:', err)
+    alert('승인 중 오류가 발생했습니다.')
+  }
+}
+
+// 반려
+const handleReject = async () => {
+  // if (!rejectReason.value) {
+  //   return alert('반려 사유를 입력해주세요.')
+  // }
+  try {
+    const ordCd = formData.value.ordCd
+    const res = await axios.put(`/api/order/${ordCd}/reject`)
+    if (res.data.result_code === 'SUCCESS') {
+      alert('주문 반려 완료!')
+    } else {
+      alert('반려 실패: ' + res.data.message)
+    }
+  } catch (err) {
+    console.error('반려 오류:', err)
+    alert('반려 중 오류가 발생했습니다.')
+  }
+}
+
 
 // 주문 불러오기
 onMounted(async () => {
@@ -160,6 +211,8 @@ onMounted(async () => {
       :dataKey="'ordCd'"
       @showArrearsModal="showArrearsModal = true"
       @load="handleLoadOrder"
+      @reset="handleApprove"
+      @delete="handleReject"
     />
   </div>
 
@@ -168,16 +221,16 @@ onMounted(async () => {
       :data="products"
       :columns="columns"
       :title="'제품'"
-      scrollHeight="300px"
-      height="400px"
+      scrollHeight="360px"
+      height="460px"
       :dataKey="'pcode'"
       :buttons="purchaseFormButtons"
       :enableRowActions="false"
       :enableSelection="false"
     />
   </div>
-  <div class="mt-4">
+  <!-- <div class="mt-4">
     <h2 class="text-lg mb-0 font-semibold">반려사유</h2>
     <input v-model="rejectReason" type="text" class="border rounded px-3 py-2 w-full " placeholder="반려 사유를 입력하세요" />
-  </div>
+  </div> -->
 </template>

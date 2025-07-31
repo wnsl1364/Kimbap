@@ -31,6 +31,10 @@ public class OrderServiceImpl  implements OrderService {
         // 주문 활성화
         orderVO.setIsUsed("f1");
 
+        // 주문 상태 코드 초기값 설정
+        orderVO.setOrdStatusInternal("a1");   // 내부 요청 상태
+        orderVO.setOrdStatusCustomer("s1");   // 고객 접수 대기 상태
+
         // 2. 주문 마스터 등록
         orderMapper.insertOrderMaster(orderVO);
 
@@ -39,6 +43,8 @@ public class OrderServiceImpl  implements OrderService {
             for (OrderDetailVO detail : orderVO.getOrderDetails()) {
                 detail.setOrdCd(newOrderCode); // 외래키 세팅
                 detail.setIsUsed("f1");
+
+                detail.setDeliAvailDt(null);
 
                 // 시퀀스로 주문상세코드 생성
                 int seq = orderMapper.getNextOrderDetailSeq();
@@ -72,6 +78,49 @@ public class OrderServiceImpl  implements OrderService {
     @Override
     @Transactional
     public void updateOrder(OrderVO orderVO) {
+        // 0. 기존 주문 상태 조회 → 상태 null로 들어올 경우 기존 상태 유지
+        OrderVO existingOrder = orderMapper.selectOrder(orderVO.getOrdCd());
+        if (existingOrder == null) {
+            throw new IllegalArgumentException("존재하지 않는 주문코드입니다: " + orderVO.getOrdCd());
+        }
+
+        if (orderVO.getOrdStatusInternal() == null) {
+            orderVO.setOrdStatusInternal(existingOrder.getOrdStatusInternal());
+        }
+        if (orderVO.getOrdStatusCustomer() == null) {
+            orderVO.setOrdStatusCustomer(existingOrder.getOrdStatusCustomer());
+        }
+        if (orderVO.getOrdDt() == null) {
+            orderVO.setOrdDt(existingOrder.getOrdDt());
+        }
+        if (orderVO.getDeliReqDt() == null) {
+            orderVO.setDeliReqDt(existingOrder.getDeliReqDt());
+        }
+        if (orderVO.getExPayDt() == null) {
+            orderVO.setExPayDt(existingOrder.getExPayDt());
+        }
+        if (orderVO.getDeliAdd() == null) {
+            orderVO.setDeliAdd(existingOrder.getDeliAdd());
+        }
+        if (orderVO.getNote() == null) {
+            orderVO.setNote(existingOrder.getNote());
+        }
+        if (orderVO.getOrdTotalAmount() == null) {
+            orderVO.setOrdTotalAmount(existingOrder.getOrdTotalAmount());
+        }
+
+        // 승인 상태일 경우 납기가능일자 필수 입력 검증
+        if ("a2".equals(orderVO.getOrdStatusInternal())) {
+            List<OrderDetailVO> details = orderVO.getOrderDetails();
+            if (details != null) {
+                for (OrderDetailVO detail : details) {
+                    if (detail.getDeliAvailDt() == null) {
+                        throw new IllegalArgumentException("승인 처리 시 납기가능일자가 없는 제품이 있습니다.");
+                    }
+                }
+            }
+        }
+
         // 1. 주문 마스터 수정
         orderMapper.updateOrderMaster(orderVO);
 

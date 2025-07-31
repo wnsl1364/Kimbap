@@ -32,10 +32,14 @@ const ordStatusCodes = (list) => {
   const unitCodes = common.getCodes('0S');
 
   return list.map(item => {
-    const matched = unitCodes.find(code => code.dcd === item.ordStatus);
+    const dcd = user.value?.memType === 'p2'
+      ? item.ordStatusCustomer
+      : item.ordStatusInternal;
+
+    const matched = unitCodes.find(code => code.dcd === dcd);
     return {
       ...item,
-      ordStatus: matched ? matched.cdInfo : item.ordStatus
+      ordStatus: matched ? matched.cdInfo : dcd
     };
   });
 };
@@ -73,8 +77,9 @@ const orderColumns = computed(() => {
       { field: 'cpName', header: '거래처명', type: 'readonly' },
       { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
       { field: 'ordDt', header: '주문일자', type: 'readonly' },
-      { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
-      { field: 'note', header: '비고', type: 'readonly' }
+      { field: 'deliReqDt', header: '납기요청일자', type: 'readonly' },
+      { field: 'note', header: '비고', type: 'readonly' },
+      { field: 'ordStatus', header: '상태', type: 'readonly' }
     ]
   }
 })
