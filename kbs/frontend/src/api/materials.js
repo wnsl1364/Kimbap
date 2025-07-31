@@ -204,6 +204,25 @@ export const bulkRejectPurchaseOrders = (purcDCdList, reason = '', approver = 's
   return axios.put('/api/materials/purchase-orders/bulk-status', requestData);
 };
 
+export const getPurchaseOrdersForView = (searchParams = {}, userType = 'p1') => {
+  const memtypeMap = {
+    'internal': 'p1',
+    'supplier': 'p3'
+  };
+  
+  const params = {
+    ...searchParams,
+    memtype: memtypeMap[userType] || 'p1'
+  };
+  
+  // null이나 undefined 값 제거
+  Object.keys(params).forEach(key => 
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  return axios.get('/api/materials/purchase-orders-view', { params });
+};
+
 // ========== 자재 적재 관련 API 함수들 (materials.js에 추가) ==========
 
 // 자재 적재 대기 목록 전체 조회

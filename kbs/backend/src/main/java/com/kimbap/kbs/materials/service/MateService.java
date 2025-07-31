@@ -75,4 +75,6 @@ public interface MateService {
      * @param approver 승인자
      */
     void sendStatusChangeNotification(String purcDCd, String newStatus, String approver);
+
+    List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria);
 }

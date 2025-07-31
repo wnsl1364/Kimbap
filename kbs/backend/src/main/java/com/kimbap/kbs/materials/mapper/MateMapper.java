@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 
 import com.kimbap.kbs.materials.service.MaterialsVO;
+import com.kimbap.kbs.materials.service.PurchaseOrderViewVO;
 import com.kimbap.kbs.materials.service.SearchCriteria;
 
 public interface MateMapper {
@@ -124,4 +125,6 @@ public interface MateMapper {
      * 🔍 발주 상세 정보 조회 (승인 이력 포함)
      */
     MaterialsVO getPurchaseOrderDetailWithHistory(String purcDCd);
+
+    List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria);
 }

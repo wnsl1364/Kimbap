@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kimbap.kbs.materials.mapper.MateMapper;
 import com.kimbap.kbs.materials.service.MateService;
 import com.kimbap.kbs.materials.service.MaterialsVO;
+import com.kimbap.kbs.materials.service.PurchaseOrderViewVO;
 import com.kimbap.kbs.materials.service.SearchCriteria;
 
 @Service
@@ -249,6 +250,23 @@ public class MateServiceImpl implements MateService {
             System.err.println("공장 목록 조회 실패: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("공장 목록 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria) {
+        try {
+            System.out.println("🎯 발주 조회 전용 서비스 시작 - 사용자 타입: " + criteria.getMemtype());
+            
+            List<PurchaseOrderViewVO> list = mateMapper.getPurchaseOrdersForView(criteria);
+            
+            System.out.println("✅ 발주 조회 완료: " + list.size() + "건");
+            return list;
+            
+        } catch (Exception e) {
+            System.err.println("❌ 발주 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("발주 조회 실패: " + e.getMessage(), e);
         }
     }
 

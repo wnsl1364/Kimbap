@@ -125,6 +125,34 @@ export const useMaterialStore = defineStore('material', () => {
     }
   ]);
 
+  // 🎯 승인 관련 state 추가
+  const approvalOrderHeader = ref({});
+  const approvalOrderDetails = ref([]);
+  const selectedApprovalItems = ref([]);
+
+  // 🎯 승인 관련 actions
+  const setApprovalOrderHeader = (headerData) => {
+    approvalOrderHeader.value = headerData;
+  };
+
+  const setApprovalOrderDetails = (detailsData) => {
+    approvalOrderDetails.value = detailsData;
+  };
+
+  const setSelectedApprovalItems = (selectedItems) => {
+    selectedApprovalItems.value = selectedItems;
+  };
+
+  const clearSelectedApprovalItems = () => {
+    selectedApprovalItems.value = [];
+  };
+
+  const clearApprovalData = () => {
+    approvalOrderHeader.value = {};
+    approvalOrderDetails.value = [];
+    selectedApprovalItems.value = [];
+  };
+
   // 공급업체직원용 구매/발주 검색 컬럼 설정 (수정!)
   const supplierPurchaseSearchColumns = computed(() => [
     { 
@@ -315,6 +343,14 @@ export const useMaterialStore = defineStore('material', () => {
     materialTableButtons,
     materialSupplierCombinations,
     setMaterialSupplierCombinations,
-    purchaseModalData
+    purchaseModalData,
+    approvalOrderHeader,
+    approvalOrderDetails,
+    selectedApprovalItems,
+    setApprovalOrderHeader,
+    setApprovalOrderDetails,
+    setSelectedApprovalItems,
+    clearSelectedApprovalItems,
+    clearApprovalData
   };
 });

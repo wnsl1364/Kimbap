@@ -3,8 +3,9 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useMaterialStore } from '@/stores/materialStore';
 import { useMemberStore } from '@/stores/memberStore';
 import { useToast } from 'primevue/usetoast';
-import { searchPurchaseOrders } from '@/api/materials';
-
+// 🎯 새로운 깔끔한 API 함수 import!
+import { getPurchaseOrdersForView } from '@/api/materials';
+import { useRouter } from 'vue-router';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import BasicTable from '@/components/kimbap/table/BasicTable.vue';
 import RadioButton from 'primevue/radiobutton';
@@ -12,22 +13,22 @@ import { format, isValid } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 
-// Store 및 Toast
+// Store들
 const materialStore = useMaterialStore();
 const memberStore = useMemberStore();
 const common = useCommonStore();
 const toast = useToast();
+const router = useRouter();
+
+// 🎯 깔끔한 데이터 구조!
+const cleanPurchaseData = ref([]);
 
 const formatDate = (date) => {
   if (!date) return '';
   
   try {
     const dateObj = date instanceof Date ? date : new Date(date);
-    
-    if (!isValid(dateObj)) {
-      return '';
-    }
-    
+    if (!isValid(dateObj)) return '';
     return format(dateObj, 'yyyy-MM-dd');
   } catch (error) {
     console.error('날짜 포맷 에러:', error);
@@ -35,14 +36,13 @@ const formatDate = (date) => {
   }
 };
 
+// 🎯 단위코드 변환 (기존 함수 재사용)
 const convertUnitCodes = (list) => {
-  if (!list || !Array.isArray(list)) {
-    return [];
-  }
+  if (!list || !Array.isArray(list)) return [];
 
-  const unitCodes = common.getCodes('0G'); // 단위코드
-  const statusCodes = common.getCodes('0C'); // 발주상태코드
-  const matTypeCodes = common.getCodes('0H'); // 자재유형코드
+  const unitCodes = common.getCodes('0G');
+  const statusCodes = common.getCodes('0C');
+  const matTypeCodes = common.getCodes('0H');
 
   return list.map(item => {
     const matchedUnit = unitCodes.find(code => code.dcd === item.unit);
@@ -58,40 +58,20 @@ const convertUnitCodes = (list) => {
   });
 };
 
-const formatDataDates = (dataList) => {
-  const dateFields = ['exDeliDt', 'deliDt', 'ordDt']; // 포맷할 날짜 필드들
-  
-  return dataList.map(item => {
-    const formattedItem = { ...item };
-    
-    dateFields.forEach(field => {
-      if (formattedItem[field]) {
-        formattedItem[field] = formatDate(formattedItem[field]);
-      }
-    });
-    
-    return formattedItem;
-  });
-};
-
 // 반응형 데이터
 const userType = ref('internal');
 const isLoading = ref(false);
 const showTestControls = ref(true);
 
-// 🔥 여기가 중요! materialTableButtons를 밖으로 빼냈어!
 const materialTableButtons = ref({
-  add: { show: false, label: '추가', severity: 'primary' },
-  edit: { show: false, label: '수정', severity: 'secondary' },
-  delete: { show: false, label: '삭제', severity: 'danger' },
-  save: { show: false, label: '저장', severity: 'success' }
+  add: { show: false },
+  edit: { show: false },
+  delete: { show: false },
+  save: { show: false }
 });
 
-// 실제 사용자 권한 기반 타입 설정
 const actualUserType = computed(() => {
-  if (showTestControls.value) {
-    return userType.value;
-  }
+  if (showTestControls.value) return userType.value;
   
   const memType = memberStore.user?.memType;
   if (memType === 'p1') return 'internal';
@@ -99,48 +79,167 @@ const actualUserType = computed(() => {
   return 'internal';
 });
 
-// 검색 컬럼 설정 (반응성 유지!)
 const searchColumns = computed(() => {
   return actualUserType.value === 'internal' 
     ? materialStore.internalPurchaseSearchColumns 
     : materialStore.supplierPurchaseSearchColumns;
 });
 
-// 현재 사용할 테이블 컬럼 (반응성 유지!)
+// 🔥 InputTable용 컬럼 정의 (실제 데이터 필드와 매치!)
+const inputTableColumns = computed(() => {
+  const baseColumns = [
+    {
+      field: 'purcCd',
+      header: '발주번호',
+      type: 'clickable',
+      align: 'center'
+    },
+    {
+      field: 'purcDCd', 
+      header: '발주상세번호',
+      type: 'readonly',
+      align: 'center'
+    },
+    {
+      field: 'mateName',
+      header: '자재명',
+      type: 'readonly',
+      align: 'left'
+    },
+    {
+      field: 'cpName',
+      header: '거래처명',
+      type: 'readonly',
+      align: 'left'
+    },
+    {
+      field: 'purcQty',
+      header: '수량',
+      type: 'readonly',
+      align: 'right'
+    },
+    {
+      field: 'unit',
+      header: '단위',
+      type: 'readonly',
+      align: 'center'
+    },
+    {
+      field: 'unitPrice',
+      header: '단가(원)',
+      type: 'readonly',
+      align: 'right'
+    },
+    {
+      field: 'totalAmount',
+      header: '총액(원)',
+      type: 'readonly',
+      align: 'right'
+    },
+    {
+      field: 'exDeliDt',
+      header: '납기예정일',
+      type: 'readonly',
+      align: 'center'
+    },
+    {
+      field: 'purcDStatus',
+      header: '발주상태',
+      type: 'readonly',
+      align: 'center'
+    },
+    {
+      field: 'note',
+      header: '비고',
+      type: 'readonly',
+      align: 'left'
+    }
+  ];
+
+  // 🔥 사용자 타입별 추가 컬럼
+  if (actualUserType.value === 'internal') {
+    // 내부직원용: 실제납기일, 등록자, 주문일자 추가
+    baseColumns.splice(1, 0, {
+      field: 'ordDt',
+      header: '주문일자',
+      type: 'readonly',
+      align: 'center'
+    });
+    
+    baseColumns.splice(2, 0, {
+      field: 'regiName',
+      header: '등록자',
+      type: 'readonly',
+      align: 'center'
+    });
+    
+    baseColumns.splice(10, 0, {
+      field: 'deliDt',
+      header: '실제납기일',
+      type: 'readonly',
+      align: 'center'
+    });
+  }
+
+  return baseColumns;
+});
+
+// BasicTable용 컬럼 (기존 Store 사용)
 const currentTableColumns = computed(() => {
   return actualUserType.value === 'internal' 
     ? materialStore.internalPurchaseColumns 
     : materialStore.supplierPurchaseColumns;
 });
 
-// 사용자 타입 변경 시 데이터 다시 로드
-watch(actualUserType, () => {
-  console.log('사용자 타입 변경됨:', actualUserType.value);
-  loadPurchaseData();
+// 🎯 깔끔한 데이터만 표시!
+const cleanConvertedData = computed(() => {
+  console.log('🎯 깔끔한 데이터 변환 시작:', cleanPurchaseData.value?.length);
+  
+  if (!cleanPurchaseData.value || !Array.isArray(cleanPurchaseData.value)) {
+    return [];
+  }
+  
+  // 날짜 포맷팅
+  const formattedData = cleanPurchaseData.value.map(item => ({
+    ...item,
+    ordDt: formatDate(item.ordDt),
+    exDeliDt: formatDate(item.exDeliDt),
+    deliDt: formatDate(item.deliDt),
+    // 🔥 숫자 포맷팅 추가
+    unitPrice: Number(item.unitPrice || 0).toLocaleString(),
+    totalAmount: Number(item.totalAmount || 0).toLocaleString()
+  }));
+  
+  // 단위코드 변환
+  const converted = convertUnitCodes(formattedData);
+  
+  console.log('✅ 깔끔한 데이터 변환 완료:', converted?.length);
+  return converted;
 });
 
-// 메서드들
+// 🎯 새로운 깔끔한 API 호출!
 const onSearch = async (searchData) => {
   try {
     isLoading.value = true;
+    console.log('🎯 깔끔한 검색 시작:', searchData, actualUserType.value);
     
-    const response = await searchPurchaseOrders(searchData, actualUserType.value);
-    const formattedData = formatDataDates(response.data);
-    const convertedData = convertUnitCodes(formattedData);
-    materialStore.setPurchaseOrderDetailData(convertedData);
+    const response = await getPurchaseOrdersForView(searchData, actualUserType.value);
+    cleanPurchaseData.value = response.data;
+    
+    console.log('✅ 깔끔한 검색 완료:', response.data);
     
     toast.add({
       severity: 'success',
-      summary: '검색 완료',
-      detail: `${response.data.length}건의 발주 데이터를 조회했습니다.`,
+      summary: '검색 완료! 🎉',
+      detail: `${response.data.length}건의 깔끔한 발주 데이터를 조회했습니다!`,
       life: 3000
     });
     
   } catch (error) {
-    console.error('검색 중 오류:', error);
+    console.error('❌ 깔끔한 검색 실패:', error);
     toast.add({
       severity: 'error',
-      summary: '검색 실패',
+      summary: '검색 실패 ㅠㅠ',
       detail: '발주 데이터 조회 중 오류가 발생했습니다.',
       life: 3000
     });
@@ -150,115 +249,128 @@ const onSearch = async (searchData) => {
 };
 
 const onReset = () => {
-  loadPurchaseData();
+  loadCleanPurchaseData();
   toast.add({
     severity: 'info',
-    summary: '초기화 완료',
+    summary: '초기화 완료 ✨',
     detail: '검색 조건이 초기화되고 전체 목록을 조회했습니다.',
     life: 3000
   });
 };
 
-// 발주 데이터 로드
-const loadPurchaseData = async () => {
+// 🎯 깔끔한 데이터 로드!
+const loadCleanPurchaseData = async () => {
   try {
     isLoading.value = true;
-    console.log('데이터 로드 시작 - 사용자 타입:', actualUserType.value);
+    console.log('🎯 깔끔한 데이터 로드 시작 - 사용자 타입:', actualUserType.value);
     
-    const response = await searchPurchaseOrders({}, actualUserType.value);
-    const formattedData = formatDataDates(response.data);
-    const convertedData = convertUnitCodes(formattedData);
-    materialStore.setPurchaseOrderDetailData(convertedData);
+    const response = await getPurchaseOrdersForView({}, actualUserType.value);
+    cleanPurchaseData.value = response.data;
 
-    console.log('데이터 로드 완료:', formattedData.length, '건');
+    console.log('✅ 깔끔한 데이터 로드 완료:', response.data.length, '건');
 
   } catch (error) {
-    console.error('데이터 로드 중 오류:', error);
-    loadSampleData();
+    console.error('❌ 깔끔한 데이터 로드 실패:', error);
+    loadCleanSampleData();
   } finally {
     isLoading.value = false;
   }
 };
 
-const convertedTableData = computed(() => {
-  const rawData = materialStore.purchaseOrderDetailData;
-  if (!rawData || !Array.isArray(rawData)) {
-    return [];
-  }
+// 🎯 깔끔한 샘플 데이터!
+const loadCleanSampleData = () => {
+  console.log('🧹 깔끔한 샘플 데이터 로드');
   
-  return convertUnitCodes(rawData);
-});
-
-// 강제 재렌더링용
-const forceRenderKey = ref(0);
-const forceRender = () => {
-  forceRenderKey.value++;
-  console.log('🔄 강제 재렌더링 실행:', forceRenderKey.value);
-};
-
-// convertedTableData 변화 감지
-watch(convertedTableData, (newData) => {
-  console.log('🔥 convertedTableData 변경됨:', newData?.length || 0, '건');
-  console.log('첫 번째 데이터:', newData?.[0]);
-}, { immediate: true, deep: true });
-
-// materialStore 데이터 직접 감지
-watch(() => materialStore.purchaseOrderDetailData, (newData) => {
-  console.log('🏪 Store 데이터 변경됨:', newData?.length || 0, '건');
-}, { immediate: true, deep: true });
-
-// 생명주기
-onMounted(async () => {
-  // 공통코드 로드 추가
-  await Promise.all([
-    common.fetchCommonCodes('0G'), // 단위코드
-    common.fetchCommonCodes('0C'),  // 발주상태코드
-    common.fetchCommonCodes('0H')  // 자재유형코드
-  ]);
-  
-  // 기존 코드...
-  await nextTick();
-  loadPurchaseData();
-});
-
-// 샘플 데이터 로드 (백업용) - 🔥 materialTableButtons 제거!
-const loadSampleData = () => {
-  console.log('샘플 데이터 로드');
-  const sampleData = [
+  const cleanSampleData = [
     {
-      purcDCd: 'PD001',
-      purcCd: 'P001',
-      mcode: 'M001',
-      mateName: '스테인리스 스틸 304',
-      mateType: '금속재료',
+      id: 'PURC-001-PURC-D-001',
+      purcCd: 'PURC-001',
+      ordDt: '2025-07-29',
+      regi: 'EMP-10001',
+      regiName: '김구매',
+      purcStatus: 'c2',
+      ordTotalAmount: 1500000,
+      purcDCd: 'PURC-D-001',
+      mcode: 'MAT-1001',
+      mateVerCd: 'V1',
       purcQty: 100,
-      unit: 'kg',
-      totalAmount: 500000,
-      exDeliDt: new Date('2025-08-01'),
-      deliDt: null,
-      note: '긴급 주문',
-      purcDStatus: 'c2',
-      ordDt: new Date('2025-07-20')
+      unit: 'g2',
+      unitPrice: 15000,
+      exDeliDt: '2025-08-01',
+      purcDStatus: 'c1',
+      note: '긴급 발주',
+      mateName: '김(건조)',
+      mateType: 'h1',
+      cpCd: 'CP-001',
+      cpName: '황금쌀농협',
+      totalAmount: 1500000,
+      deliDt: null
     },
     {
-      purcDCd: 'PD002',
-      purcCd: 'P002',
-      mcode: 'M002',
-      mateName: '알루미늄 합금 6061',
-      mateType: '금속재료',
-      purcQty: 50,
-      unit: 'kg',
-      totalAmount: 400000,
-      exDeliDt: new Date('2025-08-05'),
-      deliDt: null,
-      note: '정기 주문',
-      purcDStatus: 'c3',
-      ordDt: new Date('2025-07-22')
+      id: 'PURC-002-PURC-D-002',
+      purcCd: 'PURC-002',
+      ordDt: '2025-07-28',
+      regi: 'EMP-10002',
+      regiName: '이발주',
+      purcStatus: 'c2',
+      ordTotalAmount: 560000,
+      purcDCd: 'PURC-D-002',
+      mcode: 'MAT-1002',
+      mateVerCd: 'V1',
+      purcQty: 200,
+      unit: 'g2',
+      unitPrice: 2800,
+      exDeliDt: '2025-08-05',
+      purcDStatus: 'c2',
+      note: '정기 발주',
+      mateName: '쌀(백미)',
+      mateType: 'h1',
+      cpCd: 'CP-002',
+      cpName: '바다김수산',
+      totalAmount: 560000,
+      deliDt: '2025-07-30'
     }
   ];
   
-  materialStore.setPurchaseOrderDetailData(sampleData);
+  cleanPurchaseData.value = cleanSampleData;
+  console.log('🧹 깔끔한 샘플 데이터 설정 완료!');
 };
+
+const handleRowClick = (rowData) => {
+  console.log('[MaterialPurchaseView.vue] 라우터 이동 대상:', rowData)
+  const purcCd = rowData.purcCd
+  const memType = memberStore.user?.memType
+
+  if (!purcCd) return;
+
+  if (memType === 'p2') {
+    // 매출업체는 주문등록(수정) 페이지로
+    router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
+  } else if (['p1', 'p4', 'p5'].includes(memType)) {
+    // 사원/관리자/물류는 주문검토 페이지로
+    router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
+  } else {
+    console.warn('지원되지 않는 사용자 유형입니다:', memType)
+  }
+}
+
+// 사용자 타입 변경 감지
+watch(actualUserType, () => {
+  console.log('👤 사용자 타입 변경됨:', actualUserType.value);
+  loadCleanPurchaseData();
+});
+
+// 초기화
+onMounted(async () => {
+  await Promise.all([
+    common.fetchCommonCodes('0G'),
+    common.fetchCommonCodes('0C'),
+    common.fetchCommonCodes('0H')
+  ]);
+  
+  await nextTick();
+  loadCleanPurchaseData();
+});
 </script>
 
 <template>
@@ -267,30 +379,21 @@ const loadSampleData = () => {
       <div class="card">
         <h5>자재 구매/발주 관리</h5>
 
-        <!-- 🔥 디버깅 정보 추가! -->
-        <div class="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded">
-          <h6 class="text-yellow-800">🐛 디버깅 정보</h6>
-          <p><strong>convertedTableData 길이:</strong> {{ convertedTableData?.length || 0 }}</p>
-          <p><strong>store 데이터 길이:</strong> {{ materialStore.purchaseOrderDetailData?.length || 0 }}</p>
-          <p><strong>첫 번째 데이터:</strong></p>
-          <pre class="text-xs">{{ JSON.stringify(convertedTableData?.[0], null, 2) }}</pre>
-        </div>
-
-        <!-- 현재 사용자 정보 표시 -->
+        <!-- 현재 사용자 정보 -->
         <div class="mb-4 p-3 border-round surface-100">
           <div class="flex align-items-center gap-3">
             <i class="pi pi-user text-primary"></i>
             <div>
               <strong>{{ memberStore.user?.empName || '테스트 사용자' }}</strong>
               <span class="ml-2 text-500">
-                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체용' }})
+                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
               </span>
             </div>
           </div>
         </div>
 
         <!-- 테스트용 권한 변경 -->
-        <div class="mb-4" v-if="showTestControls">
+        <!-- <div class="mb-4" v-if="showTestControls">
           <h6>테스트용 권한 변경:</h6>
           <div class="field-radiobutton">
             <RadioButton v-model="userType" inputId="internal" value="internal" />
@@ -300,78 +403,32 @@ const loadSampleData = () => {
             <RadioButton v-model="userType" inputId="supplier" value="supplier" />
             <label for="supplier" class="ml-2">공급업체직원 (p3)</label>
           </div>
-          <div class="field-checkbox mt-2">
-            <input type="checkbox" v-model="showTestControls" id="testMode" />
-            <label for="testMode" class="ml-2">테스트 모드</label>
-          </div>
-        </div>
+        </div> -->
 
         <!-- 검색 폼 -->
         <SearchForm 
           :columns="searchColumns"
           @search="onSearch"
-          :gridColumns="4"
+          :gridColumns="5"
           @reset="onReset"
         />
 
-        <!-- 기본 데이터 테이블 -->
-        <BasicTable 
-          :data="convertedTableData"
-          :columns="currentTableColumns"
-          :title="`BasicTable 발주 목록 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
-          :loading="isLoading"
-          selectionMode="single"
-        />
-
-        <!-- 🎯 InputTable - 강제로 key 추가해서 재렌더링 유도 -->
+        <!-- 🔥 완벽 매핑된 InputTable -->
         <InputTable
-          :key="`input-table-${convertedTableData?.length || 0}`"
-          :columns="currentTableColumns"
-          :data="convertedTableData"
+          :key="`clean-input-table-${cleanConvertedData?.length || 0}`"
+          :columns="inputTableColumns"
+          :data="cleanConvertedData"
           :scroll-height="'50vh'" 
           :height="'60vh'"
-          :title="`InputTable 발주 목록 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
-          dataKey="purcDCd"
+          :title="`발주 목록 조회 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
+          dataKey="purcCd"
           :buttons="materialTableButtons"
           :enableRowActions="false"
           :enableSelection="false"
-          @dataChange="(newData) => console.log('InputTable 데이터 변경:', newData)"
+          @rowClick="handleRowClick"
+          :enableRowClick="true"
+          @dataChange="(newData) => console.log('🎯 깔끔한 InputTable 데이터 변경:', newData)"
         />
-
-        <!-- 🔥 원본 데이터 직접 테스트 -->
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
-          <h6 class="text-blue-800">🧪 원본 데이터 직접 테스트</h6>
-          <InputTable
-            :key="`raw-test-${Date.now()}`"
-            :columns="[
-              { field: 'purcDCd', header: '발주상세코드', type: 'readonly' },
-              { field: 'mateName', header: '자재명', type: 'readonly' },
-              { field: 'purcQty', header: '수량', type: 'readonly' },
-              { field: 'unit', header: '단위', type: 'readonly' }
-            ]"
-            :data="[
-              { purcDCd: 'TEST-001', mateName: '테스트자재1', purcQty: 100, unit: 'kg' },
-              { purcDCd: 'TEST-002', mateName: '테스트자재2', purcQty: 200, unit: 'ea' }
-            ]"
-            :scroll-height="'30vh'" 
-            :height="'40vh'"
-            title="🧪 하드코딩 테스트 데이터"
-            dataKey="purcDCd"
-            :buttons="{ save: { show: false }, reset: { show: false } }"
-            :enableRowActions="false"
-            :enableSelection="false"
-          />
-        </div>
-
-        <!-- 강제 새로고침 버튼 (테스트용) -->
-        <div class="mt-4" v-if="showTestControls">
-          <button @click="loadPurchaseData" class="p-button p-button-secondary mr-2">
-            데이터 강제 새로고침
-          </button>
-          <button @click="forceRender" class="p-button p-button-info">
-            강제 재렌더링
-          </button>
-        </div>
       </div>
     </div>
   </div>

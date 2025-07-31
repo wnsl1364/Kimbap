@@ -352,7 +352,7 @@ const rowCount = computed(() => internalData.value.length)
                             </div>
                         </template>
                         
-                        <!-- 여기가 핵심! inputsearch 타입에서 모달 연결 -->
+                        <!-- inputsearch 타입에서 모달 연결 -->
                         <template v-else-if="column.type === 'inputsearch'">
                             <div class="flex items-center border rounded w-full h-10">
                                 <input :value="slotProps.data[column.field]"
