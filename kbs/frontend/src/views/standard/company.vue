@@ -7,7 +7,6 @@ import { storeToRefs } from 'pinia';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
-import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardCpStore();
@@ -39,40 +38,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const productColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
- 
-// 이력조회 모달 관련
-const selectedHistoryItems = ref([]);
-const historyModalVisible = ref(false); // 모달 표시 여부
-const selectedCpcode = ref(''); // 선택된 거래처코드
-const changeColumns = [
-    { field: 'version', header: '버전' },
-    { field: 'fieldName', header: '변경항목' },
-    { field: 'oldValue', header: '변경 전 값' },
-    { field: 'newValue', header: '변경 후 값' },
-    { field: 'changeReason', header: '변경사유' },
-    { field: 'regDt', header: '등록일자' }
-];
-
-// 함수 내용만 교체
-const fetchHistoryItems = async () => {
-    if (!selectedCpcode.value) {
-        console.warn('cpCode가 비어있습니다');
-        return [];
-    }
-
-    await fetchChangeHistory(selectedCpcode.value); // 데이터를 불러옴
-    selectedHistoryItems.value = changeHistory.value;
-    return changeHistory.value;
-};
-// 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
-const handleViewHistory = async (rowData) => {
-    selectedCpcode.value = rowData.cpCd;
-    await store.fetchChangeHistory(rowData.cpCd);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
-    historyModalVisible.value = true;
-};
-
+  
 // UI 구성 정의
 onBeforeMount(() => {
     searchColumns.value = [
@@ -191,9 +157,9 @@ const handleSearch = async (searchData) => {
                 :data="convertedcompanyList"
                 dataKey="cpCd"
                 :columns="productColumns"
-                @view-history="handleViewHistory"
                 @row-select="handleSelectCompany"
                 @clear-selection="clearForm"
+                :showHistoryButton="false"
                 :scrollable="true"
                 scrollHeight="530px"
                 height="630px"
@@ -203,5 +169,4 @@ const handleSearch = async (searchData) => {
             <InputForm title="거래처정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveCompany" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
 </template>

@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CompanyVO {
     private String cpCd; // 거래처코드
-    private String cpVerCd; // 거래처 버전코드
     private String cpName;  // 거래처명 
     private String cpType; // 거래처 유형
     private String repname; // 대표자명
