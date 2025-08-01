@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.dashboard.mapper.ChartMapper">
+
+  <!-- 대시보드 상단 card 데이터 -->
+  <select id="getChartData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
+    SELECT
+        (SELECT COUNT(*) FROM prod_inbo) AS prodInbo,
+        (SELECT COUNT(*) FROM prod_return) AS prodReturn,
+        (SELECT COUNT(*) FROM release_ord) AS releaseOrd,
+        (SELECT COUNT(*) FROM prod_rel) AS prodRel
+    FROM dual
+  </select>
+
+  <!-- 파이차트 데이터 -->
+  <select id="getPieData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
+    SELECT 
+      PCODE,
+      SUM(REL_QTY) AS pieTotalQty
+    FROM 
+      PROD_REL
+    WHERE 
+      TO_DATE(SUBSTR(LOT_NO, 9, 8), 'YYYYMMDD') BETWEEN
+      TRUNC(SYSDATE, 'MM')
+      AND LAST_DAY(SYSDATE)
+    GROUP BY 
+      PCODE
+    ORDER BY 
+      pieTotalQty DESC
+  </select>
+  
+  <!-- 바 차트 월별 매출 데이터-->
+  <select id="getBarData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
+    SELECT 
+      TO_CHAR(TO_DATE(SUBSTR(LOT_NO, 9, 8), 'YYYYMMDD'), 'YYYY-MM') AS month,
+      SUM(TO_NUMBER(REGEXP_SUBSTR(REL_QTY, '[0-9]+')) * UNIT_PRICE) AS totalSales
+    FROM 
+      PROD_REL
+    GROUP BY 
+      TO_CHAR(TO_DATE(SUBSTR(LOT_NO, 9, 8), 'YYYYMMDD'), 'YYYY-MM')
+    ORDER BY 
+      month
+  </select>
+
+  <!-- 금일 요청주문 목록 -->
+  <select id="getOrderData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
+    SELECT 
+      a.ord_dt,
+      b.cp_name,
+      SUM(c.ord_qty) AS ordTotalQty,
+      c.deli_avail_dt,
+      c.ord_d_status
+    FROM order_list a 
+      JOIN company b ON a.cp_cd = b.cp_cd
+      JOIN order_d c ON a.ord_cd = c.ord_cd
+    GROUP BY 
+      a.ord_dt, b.cp_name, c.deli_avail_dt, c.ord_d_status
+  </select>
+
+</mapper>
