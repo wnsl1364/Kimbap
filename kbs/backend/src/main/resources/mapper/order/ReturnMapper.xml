@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kimbap.kbs.order.mapper.ReturnMapper">
+
+  <!-- 1. 반품 등록 -->
+  <insert id="insertReturnItem" parameterType="com.kimbap.kbs.order.service.ReturnItemVO">
+    INSERT INTO prod_return (
+      prod_return_cd,
+      ord_cd,
+      lot_no,
+      return_dt,
+      return_qty,
+      return_amount,
+      return_rea
+    )
+    VALUES (
+      #{prodReturnCd},
+      #{ordCd},
+      #{lotNo},
+      #{returnDt},
+      #{returnQty},
+      #{returnAmount},
+      #{returnRea}
+    )
+  </insert>
+
+  <!-- 2. 반품코드 시퀀스 조회 -->
+  <select id="getNextReturnCodeSeq" resultType="string">
+    SELECT LPAD(SEQ_PROD_RETURN.NEXTVAL, 6, '0') FROM dual
+  </select>
+
+  <!-- 3. 주문 상세 상태 변경 → 't4' (반품요청) -->
+  <update id="updateOrderDetailStatus" parameterType="string">
+    UPDATE order_d
+    SET ord_d_status = 't4'
+    WHERE ord_d_cd = #{ordDCd}
+  </update>
+
+  <!-- 4. 주문 마스터 상태 변경 → 's4' (반품요청) -->
+  <update id="updateOrderStatusCustomer" parameterType="string">
+    UPDATE order_list
+    SET ord_status_customer = 's4'
+    WHERE ord_cd = #{ordCd}
+  </update>
+
+  <!-- 5. 반품 이력 조회 -->
+  <select id="getReturnHistoryByOrdCd" resultType="com.kimbap.kbs.order.service.ReturnItemVO">
+    SELECT
+      prod_return_cd AS prodReturnCd,
+      ord_cd AS ordCd,
+      lot_no AS lotNo,
+      return_dt AS returnDt,
+      return_qty AS returnQty,
+      return_amount AS returnAmount,
+      return_rea AS returnRea
+    FROM prod_return
+    WHERE ord_cd = #{ordCd}
+  </select>
+
+</mapper>

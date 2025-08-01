@@ -7,6 +7,7 @@ import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import Fluid from 'primevue/fluid';
 import { defineProps, defineEmits } from 'vue';
+import { format } from 'date-fns';
 
 // Props 정의
 const props = defineProps({
@@ -98,8 +99,9 @@ const searchData = computed(() => {
 });
 
 const handleSearch = () => {
-    console.log('검색 실행:', searchData.value);
-    emit('search', searchData.value);
+    const searchPayload = flattenSearchData(searchColumns.value);
+    console.log('검색 실행:', searchPayload);
+    emit('search', searchPayload);
 };
 
 const handleReset = () => {
@@ -115,6 +117,37 @@ const handleReset = () => {
         }
     });
     emit('reset');
+};
+
+// 날짜 필드 평탄화 함수
+const flattenSearchData = (columns) => {
+  const flatData = {};
+
+  columns.forEach(column => {
+    if (column.type === 'dateRange' && column.value) {
+      const key = column.key;
+      const start = column.value.start;
+      const end = column.value.end;
+
+      if (start) {
+        flatData[`${key}Start`] =
+          typeof start === 'string'
+            ? start.slice(0, 10)
+            : format(start, 'yyyy-MM-dd');
+      }
+
+      if (end) {
+        flatData[`${key}End`] =
+          typeof end === 'string'
+            ? end.slice(0, 10)
+            : format(end, 'yyyy-MM-dd');
+      }
+    } else {
+      flatData[column.key] = column.value;
+    }
+  });
+
+  return flatData;
 };
 </script>
 

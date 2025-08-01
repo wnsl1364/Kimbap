@@ -101,10 +101,12 @@ const emit = defineEmits([
   'reset',
   'save',
   'load',
+  'refund', 
   'handleProductDeleteList',
   'rowClick',
   'selectionChange',
-  'locationSelect'
+  'locationSelect',
+  'update:selection'
 ])
 
 // console.log('[InputTable.vue] 실제 columns:', props.columns)
@@ -136,13 +138,10 @@ const currentField = ref('') // 현재 수정중인 필드명
 // 🔥 선택 상태 변경 감지해서 부모에게 전달!
 watch(selectedRows, (newSelection, oldSelection) => {
   console.log('🐛 InputTable 선택 변경!')
-  console.log('  - 이전:', oldSelection?.length || 0, '개')
-  console.log('  - 현재:', newSelection?.length || 0, '개')
-  console.log('  - 선택된 항목들:', newSelection)
-  
-  // 🎯 부모 컴포넌트에게 선택 상태 전달!
-  emit('selectionChange', newSelection)
+  emit('selectionChange', newSelection) // 기존 커스텀 이벤트
+  emit('update:selection', newSelection) // ✅ v-model:selection 동작하게 만드는 핵심 코드!
 }, { deep: true })
+
 
 // 초기화 관련 추가(민준)
 watch(

@@ -103,18 +103,18 @@
 
         <!-- 주문일자 범위 조건 -->
         <if test="ordDtStart != null and ordDtStart != ''">
-            AND ord_dt &gt;= TO_DATE(#{ordDtStart}, 'YYYY-MM-DD')
+            AND TRUNC(ord_dt) &gt;= TO_DATE(#{ordDtStart}, 'YYYY-MM-DD')
         </if>
         <if test="ordDtEnd != null and ordDtEnd != ''">
-            AND ord_dt &lt;= TO_DATE(#{ordDtEnd}, 'YYYY-MM-DD')
+            AND TRUNC(ord_dt) &lt;= TO_DATE(#{ordDtEnd}, 'YYYY-MM-DD')
         </if>
 
         <!-- 납기일자 범위 조건 -->
         <if test="deliReqDtStart != null and deliReqDtStart != ''">
-            AND deli_req_dt &gt;= TO_DATE(#{deliReqDtStart}, 'YYYY-MM-DD')
+            AND TRUNC(deli_req_dt) &gt;= TO_DATE(#{deliReqDtStart}, 'YYYY-MM-DD')
         </if>
         <if test="deliReqDtEnd != null and deliReqDtEnd != ''">
-            AND deli_req_dt &lt;= TO_DATE(#{deliReqDtEnd}, 'YYYY-MM-DD')
+            AND TRUNC(deli_req_dt) &lt;= TO_DATE(#{deliReqDtEnd}, 'YYYY-MM-DD')
         </if>
 
         <if test="ordStatusInternal != null and ordStatusInternal != ''">
