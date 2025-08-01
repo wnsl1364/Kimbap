@@ -88,5 +88,4 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.idCheck(id) > 0;
     }
 
-    // 회원등록 비밀번호 암호화
 }

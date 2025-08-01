@@ -2,16 +2,193 @@
 import { useLayout } from '@/layout/composables/layout';
 import { onMounted, ref, watch } from 'vue';
 import StandartTable from '@/components/kimbap/table/StandardTable.vue'
-
+import { dashboardTopData, dashboardPieData, dashboardBarData, dashboardOrderData } from '@/api/dashboard';
+import { useCommonStore } from '@/stores/commonStore'
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
+const { commonCodes } = storeToRefs(common);
+
+// 공통코드 가져오기
+const common = useCommonStore()
+// 공통코드 형변환
+
+// 월 변환
+const currentMonthLabel = ref('');
+const now = new Date();
+currentMonthLabel.value = `${now.getMonth() + 1}월`;
+
+// 파이차트 데이터
 const pieData = ref(null);
-const barData = ref(null);
 const pieOptions = ref(null);
+
+// 바 차트 데이터
+const barData = ref(null);
 const barOptions = ref(null);
 
-onMounted(() => {
+// 대쉬보드 상단 데이터
+const prodInboCount = ref(0);     // 생산완료
+const prodReturnCount = ref(0);   // 반품접수
+const releaseOrdCount = ref(0);   // 출고대기
+const prodRelCount = ref(0);      // 출고완료
+
+// 금일 요청주문 데이터
+const condProdPlanList = ref([]);
+
+onMounted(async () => {
     setColorOptions();
+    await fetchDashboardCounts(); // 상단 데이터
+    await fetchDashboardPieData(); // 파이차트 데이터
+    await fetchDashboardBarData(); // 바 차트 데이터
+    await fetchDashboardOrderData(); // 금일 요청주문 데이터
 });
+
+// 대시보드 상단 함수
+async function fetchDashboardCounts() {
+    try {
+        const res = await dashboardTopData();
+        console.log('📦 dashboardTopData 응답:', res.data);
+
+        const data = res.data;
+
+        prodInboCount.value = data.prodInbo ?? 0;
+        prodReturnCount.value = data.prodReturn ?? 0;
+        releaseOrdCount.value = data.releaseOrd ?? 0;
+        prodRelCount.value = data.prodRel ?? 0;
+    } catch (err) {
+        console.error('대시보드 건수 조회 실패:', err);
+    }
+}
+
+// 파이차트 함수
+async function fetchDashboardPieData() {
+    try {
+        const res = await dashboardPieData();
+        console.log('🥧 dashboardPieData 응답:', res.data);
+
+        const raw = res.data;
+
+        // 값이 없을 경우 초기화
+        if (!Array.isArray(raw) || raw.length === 0) {
+            pieData.value = {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [],
+                    hoverBackgroundColor: []
+                }]
+            };
+            return;
+        }
+
+        // 데이터 변환
+        const productNameMap = {
+            'PROD-1001': '아삭아삭야채김밥',
+            'PROD-1002': '듬뿍꾸덕참치마요김밥',
+            'PROD-1003': '탱글소세지김밥',
+            'PROD-1007': '매콤참치볶음김치김밥',
+            'PROD-1008': '진미채김밥',
+            'PROD-1009': '치즈돈까스김밥',
+            'PROD-1010': '연어아보카도김밥'
+        };
+        const labels = raw.map(item => productNameMap[item.pcode] || item.pcode);
+        const data = raw.map(item => item.pieTotalQty);
+
+        const documentStyle = getComputedStyle(document.documentElement);
+        const baseColors = [
+            documentStyle.getPropertyValue('--p-indigo-500'),
+            documentStyle.getPropertyValue('--p-purple-500'),
+            documentStyle.getPropertyValue('--p-teal-500'),
+            documentStyle.getPropertyValue('--p-orange-500'),
+            documentStyle.getPropertyValue('--p-cyan-500'),
+            documentStyle.getPropertyValue('--p-pink-500'),
+        ];
+        const hoverColors = [
+            documentStyle.getPropertyValue('--p-indigo-400'),
+            documentStyle.getPropertyValue('--p-purple-400'),
+            documentStyle.getPropertyValue('--p-teal-400'),
+            documentStyle.getPropertyValue('--p-orange-400'),
+            documentStyle.getPropertyValue('--p-cyan-400'),
+            documentStyle.getPropertyValue('--p-pink-400'),
+        ];
+
+        pieData.value = {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: baseColors.slice(0, data.length),
+                hoverBackgroundColor: hoverColors.slice(0, data.length)
+            }]
+        };
+
+    } catch (err) {
+        console.error('파이차트 데이터 조회 실패:', err);
+    }
+}
+
+// 바 차트 데이터
+async function fetchDashboardBarData() {
+    try {
+        const res = await dashboardBarData();
+        console.log('dashboardBarData 응답:', res.data);
+
+        const raw = res.data;
+
+        const parsed = raw.map(item => {
+            const monthNum = parseInt(item.month?.split('-')[1]); // '2025-07' → 7
+            return {
+                ...item,
+                month: `${monthNum}월`
+            };
+        });
+
+        const monthLabels = Array.from({ length: 12 }, (_, i) => `${i + 1}월`);
+        const salesMap = new Map(parsed.map(item => [item.month, item.totalSales]));
+        const data = monthLabels.map(month => salesMap.get(month) ?? 0);
+
+        const documentStyle = getComputedStyle(document.documentElement);
+        const barColor = documentStyle.getPropertyValue('--p-primary-500');
+
+        barData.value = {
+            labels: monthLabels,
+            datasets: [{
+                label: '매출현황',
+                backgroundColor: barColor,
+                borderColor: barColor,
+                data
+            }]
+        };
+    } catch (err) {
+        console.error('바차트 데이터 조회 실패:', err);
+    }
+}
+
+// 금일 요청주문 데이터
+async function fetchDashboardOrderData() {
+    try {
+        const res = await dashboardOrderData();
+        console.log('dashboardOrderData 응답:', res.data);
+
+        let rawList = Array.isArray(res.data) ? res.data.map((item, index) => ({
+            ...item,
+            index: index + 1
+        })) : [];
+
+        // 공통코드 매핑
+        const unitCodes = common.getCodes('0A');
+        rawList = rawList.map(item => {
+            const matched = unitCodes.find(code => code.dcd === item.ordDStatus);
+            return {
+                ...item,
+                ordDStatus: matched ? matched.cdInfo : item.ordDStatus
+            };
+        });
+
+        condProdPlanList.value = rawList;
+    } catch (err) {
+        console.error('금일 요청주문 데이터 조회 실패:', err);
+    }
+}
+
+
 
 function setColorOptions() {
     const documentStyle = getComputedStyle(document.documentElement);
@@ -19,23 +196,10 @@ function setColorOptions() {
     const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
     const surfaceBorder = documentStyle.getPropertyValue('--surface-border');
 
-    barData.value = {
-        labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-        datasets: [
-            {
-                label: '매출현황',
-                backgroundColor: documentStyle.getPropertyValue('--p-primary-500'),
-                borderColor: documentStyle.getPropertyValue('--p-primary-500'),
-                data: [6, 59, 80, 81, 56, 55, 40]
-            },
-        ]
-    };
     barOptions.value = {
         plugins: {
             legend: {
-                labels: {
-                    fontColor: textColor
-                }
+                display: false
             }
         },
         scales: {
@@ -63,16 +227,6 @@ function setColorOptions() {
         }
     };
 
-    pieData.value = {
-        labels: ['A', 'B', 'C'],
-        datasets: [
-            {
-                data: [540, 325, 702],
-                backgroundColor: [documentStyle.getPropertyValue('--p-indigo-500'), documentStyle.getPropertyValue('--p-purple-500'), documentStyle.getPropertyValue('--p-teal-500')],
-                hoverBackgroundColor: [documentStyle.getPropertyValue('--p-indigo-400'), documentStyle.getPropertyValue('--p-purple-400'), documentStyle.getPropertyValue('--p-teal-400')]
-            }
-        ]
-    };
 
     pieOptions.value = {
         plugins: {
@@ -85,13 +239,14 @@ function setColorOptions() {
         }
     };
 }
+
 const prodPlanColumns = [
-    { field: '', header: '순번' },
-    { field: '', header: '거래처명' },
-    { field: '', header: '주문수량' },
-    { field: '', header: '주문일자' },
-    { field: '', header: '납기가능일자' },
-    { field: '', header: '주문상세상태' }
+    { field: 'index', header: '순번' },
+    { field: 'cpName', header: '거래처명' },
+    { field: 'ordTotalQty', header: '주문수량' },
+    { field: 'ordDt', header: '주문일자' },
+    { field: 'deliAvailDt', header: '납기가능일자' },
+    { field: 'ordDStatus', header: '주문상세상태' }
 ]
 watch(
     [getPrimary, getSurface, isDarkTheme],
@@ -108,7 +263,7 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">생산완료</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152건</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodInboCount }}건</div>
                     </div>
                 </div><span class="text-primary font-medium">24 new </span>
                 <span class="text-muted-color">since last visit</span>
@@ -118,7 +273,8 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">출고대기</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152건</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodReturnCount }}건
+                        </div>
                     </div>
                 </div><span class="text-primary font-medium">24 new </span>
                 <span class="text-muted-color">since last visit</span>
@@ -128,7 +284,8 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">출고완료</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152건</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ releaseOrdCount }}건
+                        </div>
                     </div>
                 </div><span class="text-primary font-medium">24 new </span>
                 <span class="text-muted-color">since last visit</span>
@@ -138,39 +295,33 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">반품접수</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152건</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodRelCount }}건</div>
                     </div>
                 </div><span class="text-primary font-medium">24 new </span>
                 <span class="text-muted-color">since last visit</span>
             </div>
         </div>
     </div>
-
-
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[50%]">
             <div class="col-span-12 xl:col-span-6 mb-3">
                 <div class="card flex flex-col items-center min-h-[430px]">
-                    <div class="font-semibold text-xl mb-4">8월 판매현황</div>
+                    <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 판매현황</div>
                     <Chart type="pie" :data="pieData" :options="pieOptions"></Chart>
                 </div>
             </div>
         </div>
         <div class="w-full md:basis-[50%]">
-        <div class="col-span-12 xl:col-span-6 mb-3">
-            <div class="card flex flex-col items-center min-h-[430px]">
-                <div class="font-semibold text-xl mb-4">8월 매출현황</div>
-                <Chart type="bar" :data="barData" :options="barOptions" style="width: 100%; height: 250px"></Chart>
+            <div class="col-span-12 xl:col-span-6 mb-3">
+                <div class="card flex flex-col items-center min-h-[430px]">
+                    <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 매출현황</div>
+                    <Chart type="bar" :data="barData" :options="barOptions" style="width: 100%; height: 250px"></Chart>
+                </div>
             </div>
         </div>
-        </div>
     </div>
-
-
-
     <div class="w-full">
-        <StandartTable :title="'금일 주문목록'" :data="condProdPlanList" :columns="prodPlanColumns"
-            dataKey="produPlanCd" scrollHeight="55vh" :selectable="false" :showHistoryButton="false"
-            :hoverable="true" @row-click="row => openDetailModal(row.produPlanCd)" />
+        <StandartTable :title="'금일 요청주문'" :data="condProdPlanList" :columns="prodPlanColumns" dataKey="index"
+            scrollHeight="45vh" :selectable="false" :showHistoryButton="false" />
     </div>
 </template>
