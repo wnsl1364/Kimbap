@@ -56,5 +56,10 @@ export default [
         path: '/material/MaterialOutbound',
         name: 'materialOutbound',
         component: () => import('@/views/material/MaterialOutbound.vue'),
+    },
+    {
+        path: '/material/testStore',
+        name: 'testStore',
+        component: () => import('@/views/material/TestStore.vue'),
     }
 ];

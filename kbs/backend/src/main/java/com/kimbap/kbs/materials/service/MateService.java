@@ -77,4 +77,6 @@ public interface MateService {
     void sendStatusChangeNotification(String purcDCd, String newStatus, String approver);
 
     List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria);
+
+    List<PurchaseOrderViewVO> getSupplierMateRelList(SearchCriteria criteria);
 }

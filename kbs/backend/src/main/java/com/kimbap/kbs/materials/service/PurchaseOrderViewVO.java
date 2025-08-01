@@ -36,6 +36,8 @@ public class PurchaseOrderViewVO {
     private String unit;                 // 단위
     private BigDecimal unitPrice;        // 단가
     private Date exDeliDt;              // 예상납기일
+    private Integer currQty;             // 현재수량
+    private Integer leftQty;             // 남은수량
     private String purcDStatus;          // 발주상세상태
     private String note;                 // 비고
     

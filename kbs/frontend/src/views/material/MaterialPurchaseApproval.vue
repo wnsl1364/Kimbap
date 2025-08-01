@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useMaterialStore } from '@/stores/materialStore';
@@ -273,6 +273,18 @@ const loadOrderDetails = async (orderCode) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+// 발주 기본정보 초기화
+const resetOrderHeader = () => {
+  materialStore.setApprovalOrderHeader({
+    purcCd: '',
+    ordDt: '',
+    regi: '',
+    purcStatus: '',
+    ordTotalAmount: '0원',
+    approver: ''
+  });
 };
 
 // 샘플 데이터 로드
@@ -564,6 +576,19 @@ watch(() => route.query.purcCd, (newPurcCd) => {
     loadOrderDetails(newPurcCd);
   }
 });
+
+onUnmounted(async () => {
+  console.log('👋 MaterialPurchaseApproval 언마운트됨!');
+  
+  // 컴포넌트 언마운트 시 선택 상태 초기화
+  resetOrderHeader();
+  materialStore.setApprovalOrderDetails([]);
+  localSelectedItems.value = [];
+  materialStore.setSelectedApprovalItems([]);
+  
+  // 임시 상태 초기화
+  pendingChanges.value = [];
+});
 </script>
 
 <template>
@@ -605,6 +630,7 @@ watch(() => route.query.purcCd, (newPurcCd) => {
       <LeftAlignTable
         :data="approvalOrderHeader"
         :fields="basicInfoFields"
+        @reset="resetOrderHeader"
         title="발주 기본정보"
       />
     </div>

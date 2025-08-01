@@ -127,4 +127,6 @@ public interface MateMapper {
     MaterialsVO getPurchaseOrderDetailWithHistory(String purcDCd);
 
     List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria);
+
+    List<PurchaseOrderViewVO> getSupplierMateRelList(SearchCriteria criteria);
 }

@@ -52,11 +52,11 @@
         LEFT JOIN purc_ord po ON pod.purc_cd = po.purc_cd
         LEFT JOIN company c ON mi.cp_cd = c.cp_cd
         LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
-        LEFT JOIN employee e ON po.regi = e.emp_cd  <!-- ✅ employee 테이블 조인 추가! -->
+        LEFT JOIN employee e ON po.regi = e.emp_cd
         ORDER BY mi.inbo_dt DESC
     </select>
     
-    <!-- 자재입고 단건 조회 (employee 조인 임시 제거) -->
+    <!-- 자재입고 단건 조회 -->
     <select id="getMateInboById" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
             mi.mate_inbo_cd,
@@ -105,7 +105,7 @@
         WHERE mi.mate_inbo_cd = #{mateInboCd}
     </select>
     
-    <!-- 자재입고 등록 (INSERT 수정) -->
+    <!-- 자재입고 등록 -->
     <insert id="insertMateInbo" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         INSERT INTO mate_inbo (
             mate_inbo_cd,
@@ -131,8 +131,8 @@
             #{mateVerCd},
             #{wcode},
             #{wareVerCd},
-            #{fcode},          <!-- 수정됨 -->
-            #{facVerCd},       <!-- 수정됨 -->
+            #{fcode},
+            #{facVerCd},
             #{purcDCd},
             #{lotNo},
             #{supplierLotNo},
@@ -181,11 +181,11 @@
         SELECT mate_type
         FROM material 
         WHERE mcode = #{mcode}
-        AND is_used = 'f1'  <!-- 사용중인 자재만 -->
-        AND ROWNUM = 1      <!-- 첫 번째 결과만 -->
+        AND is_used = 'f1'
+        AND ROWNUM = 1
     </select>
 
-    <!-- 운영중인 공장 목록 조회 (드롭다운용) -->
+    <!-- 운영중인 공장 목록 조회 -->
     <select id="getActiveFactoryList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
             f.fcode,
@@ -197,50 +197,51 @@
             f.op_status,
             f.note
         FROM factory f
-        WHERE f.op_status = 'r1'  <!-- 운영중인 공장만 조회 (is_used → op_status) -->
+        WHERE f.op_status = 'r1'
         ORDER BY f.fac_name ASC
     </select>
     
     <!-- 발주 목록 조회 -->
     <select id="getPurcOrdList" parameterType="map" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
-    SELECT 
-    <choose>
-        <when test="memtype == 'p3'">
-            po.purc_cd,
-            pod.purc_d_cd,
-            pod.mcode,
-            mat.mate_name,
-            pod.purc_qty,
-            pod.unit,
-            pod.unit_price,
-            pod.ex_deli_dt,
-            mati.deli_dt,
-            pod.purc_d_status,
-            (pod.purc_qty * pod.unit_price) AS total_amount,
-            pod.note
-        </when>
-        <when test="memtype == 'p3'">
-            <!-- 공급업체용도 동일하게 보강 -->
-            po.purc_cd,
-            pod.purc_d_cd,
-            pod.mcode,
-            mat.mate_name,
-            pod.purc_qty,
-            pod.unit,
-            pod.unit_price,                                    -- 🔥 추가!
-            pod.ex_deli_dt,
-            pod.purc_d_status,
-            (pod.purc_qty * pod.unit_price) AS total_amount,   -- 🔥 추가!
-            po.regi,                                           -- 🔥 추가!
-            e.emp_name AS regi_name,                          -- 🔥 추가!
-            pod.note
-        </when>
-        <otherwise>
-            po.purc_cd,
-            mat.mate_name,
-            pod.purc_qty,
-            po.ord_dt
-        </otherwise>
+        SELECT 
+        <choose>
+            <when test="memtype == 'p1'">
+                po.purc_cd,
+                pod.purc_d_cd,
+                pod.mcode,
+                mat.mate_name,
+                pod.purc_qty,
+                pod.unit,
+                pod.unit_price,
+                pod.ex_deli_dt,
+                mati.deli_dt,
+                pod.purc_d_status,
+                (pod.purc_qty * pod.unit_price) AS total_amount,
+                po.regi,
+                e.emp_name AS regi_name,
+                pod.note
+            </when>
+            <when test="memtype == 'p3'">
+                po.purc_cd,
+                pod.purc_d_cd,
+                pod.mcode,
+                mat.mate_name,
+                pod.purc_qty,
+                pod.unit,
+                pod.unit_price,
+                pod.ex_deli_dt,
+                pod.purc_d_status,
+                (pod.purc_qty * pod.unit_price) AS total_amount,
+                po.regi,
+                e.emp_name AS regi_name,
+                pod.note
+            </when>
+            <otherwise>
+                po.purc_cd,
+                mat.mate_name,
+                pod.purc_qty,
+                po.ord_dt
+            </otherwise>
         </choose>
         FROM purc_ord po
         LEFT JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
@@ -287,7 +288,6 @@
         </where>
         ORDER BY po.ord_dt DESC
     </select>
-
 
     <!-- 발주서 목록 조회 (모달용) -->
     <select id="getPurcOrderList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
@@ -380,7 +380,7 @@
             m.safe_stock,
             ms.unit_price,
             ms.ltime,
-            ms.mate_cp_cd,  -- 🔥 중간테이블 PK 추가!
+            ms.mate_cp_cd,
             -- 거래처 정보
             c.cp_cd,
             c.cp_name,
@@ -390,7 +390,7 @@
             c.address as cp_address
         FROM material m
         INNER JOIN mate_supplier ms ON m.mcode = ms.mcode AND m.mate_ver_cd = ms.mate_ver_cd
-        INNER JOIN company c ON ms.cp_cd = c.cp_cd  -- 🔥 mate_supplier 거쳐서 조인!
+        INNER JOIN company c ON ms.cp_cd = c.cp_cd
         WHERE m.is_used = 'f1' 
         AND c.is_used = 'f1'
         <if test="mcode != null and mcode != ''">
@@ -488,7 +488,7 @@
     </select>
 
     <!-- 발주서 헤더 수정 -->
-    <update id="updatePurcOrder" parameterType="MaterialsVO">
+    <update id="updatePurcOrder" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         UPDATE purc_ord SET
             ord_dt = #{ordDt},
             regi = #{regi},
@@ -546,11 +546,11 @@
         INNER JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
         INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
         INNER JOIN company c ON ms.cp_cd = c.cp_cd
-        WHERE po.purc_status IN ('c1', 'c2')  -- 승인 대기 중인 것들만
+        WHERE po.purc_status IN ('c1', 'c2')
         ORDER BY po.ord_dt DESC, pod.purc_d_cd
     </select>
 
-    <!-- 🔄 발주 상세 상태 업데이트 (승인/반려용) -->
+    <!-- 발주 상세 상태 업데이트 -->
     <update id="updatePurcOrderDetailStatus" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         UPDATE purc_ord_d 
         SET purc_d_status = #{purcDStatus}
@@ -560,14 +560,14 @@
         WHERE purc_d_cd = #{purcDCd}
     </update>
 
-    <!-- 🔄 발주 헤더 상태 업데이트 -->
+    <!-- 발주 헤더 상태 업데이트 -->
     <update id="updatePurcOrderHeaderStatus" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         UPDATE purc_ord 
         SET purc_status = #{purcStatus}
         WHERE purc_cd = #{purcCd}
     </update>
 
-    <!-- 📋 승인 대기 발주 목록 조회 (상세 정보 포함) -->
+    <!-- 승인 대기 발주 목록 조회 -->
     <select id="getPendingApprovalOrdersDetailed" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
             po.purc_cd,
@@ -611,7 +611,7 @@
         INNER JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
         INNER JOIN company c ON ms.cp_cd = c.cp_cd
         LEFT JOIN employee e ON po.regi = e.emp_cd
-        WHERE pod.purc_d_status = 'c1'  -- 승인 대기 상태만
+        WHERE pod.purc_d_status = 'c1'
         <if test="purcCd != null and purcCd != ''">
             AND UPPER(po.purc_cd) LIKE UPPER('%' || #{purcCd} || '%')
         </if>
@@ -630,7 +630,7 @@
         ORDER BY po.ord_dt DESC, pod.purc_d_cd ASC
     </select>
 
-    <!-- 📊 발주 상태별 통계 조회 -->
+    <!-- 발주 상태별 통계 조회 -->
     <select id="getPurchaseOrderStatusStatistics" resultType="java.util.Map">
         SELECT 
             purc_d_status as status,
@@ -649,8 +649,8 @@
         ORDER BY purc_d_status
     </select>
 
-    <!-- 📊 월별 발주 통계 조회 -->
-        <select id="getMonthlyPurchaseStatistics" resultType="java.util.Map">
+    <!-- 월별 발주 통계 조회 -->
+    <select id="getMonthlyPurchaseStatistics" resultType="java.util.Map">
         SELECT 
             TO_CHAR(po.ord_dt, 'YYYY-MM') as order_month,
             COUNT(*) as order_count,
@@ -671,7 +671,7 @@
         ORDER BY order_month DESC
     </select>
 
-    <!-- 📊 공급업체별 발주 통계 조회 -->
+    <!-- 공급업체별 발주 통계 조회 -->
     <select id="getSupplierPurchaseStatistics" resultType="java.util.Map">
         SELECT 
             c.cp_name as supplier_name,
@@ -695,7 +695,7 @@
         FETCH FIRST 10 ROWS ONLY
     </select>
 
-    <!-- 🔍 발주 상세 정보 조회 (승인 이력 포함) -->
+    <!-- 발주 상세 정보 조회 -->
     <select id="getPurchaseOrderDetailWithHistory" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
             pod.purc_d_cd,
@@ -730,7 +730,7 @@
         WHERE pod.purc_d_cd = #{purcDCd}
     </select>
 
-    <!-- 발주 조회 전용 쿼리 - Oracle 호환성 수정! -->
+    <!-- 🎯 발주 조회 전용 쿼리 - Oracle 호환성 완벽 버전! -->
     <select id="getPurchaseOrdersForView" resultType="com.kimbap.kbs.materials.service.PurchaseOrderViewVO">
         SELECT DISTINCT 
             (po.purc_cd || '-' || pod.purc_d_cd) as id,
@@ -753,22 +753,21 @@
             pod.purc_d_status,
             pod.note,
             
-            -- 자재 정보 (material) - 필수만!
+            -- 자재 정보 (material)
             m.mate_name,
             m.mate_type,
             
-            -- 거래처 정보 (company) - 필수만!
+            -- 거래처 정보 (company)
             c.cp_cd,
             c.cp_name,
             
             -- 계산된 필드
             (pod.purc_qty * pod.unit_price) as total_amount,
             
-            -- 등록자명 (employee) - 선택적!
+            -- 등록자명 (employee)
             e.emp_name as regi_name,
-            po.regi,
             
-            -- 모든 경우에 deli_dt 포함 (NULL 처리로 안전하게!)
+            -- 실제납기일 (mate_inbo에서)
             mi.deli_dt
             
         FROM purc_ord po
@@ -781,6 +780,9 @@
         
         <where>
             1=1
+            <if test="cpCd != null and cpCd != ''">
+                AND c.cp_cd = #{cpCd}
+            </if>
             <if test="purcCd != null and purcCd != ''">
                 AND UPPER(po.purc_cd) LIKE UPPER('%' || #{purcCd} || '%')
             </if>
@@ -818,7 +820,28 @@
         
         ORDER BY po.ord_dt DESC, pod.purc_d_cd ASC
     </select>
-    
+
+    <!-- 🔥 공급업체의 자재출고 처리를 위한 목록 조회 및 검색 (복구!) -->
+    <select id="getSupplierMateRelList" resultType="com.kimbap.kbs.materials.service.PurchaseOrderViewVO">
+        SELECT DISTINCT
+            m.mate_name,
+            m.mcode,
+            pd.purc_d_cd,
+            pd.purc_qty,
+            pd.curr_qty,
+            (pd.purc_qty - pd.curr_qty) AS left_qty,
+            pd.unit,
+            pd.unit_price,
+            (pd.purc_qty * pd.unit_price) AS total_price,
+            pd.ex_deli_dt,
+            pd.deli_dt,
+            pd.note
+        FROM material m 
+        JOIN purc_ord_d pd ON m.mcode = pd.mcode
+        WHERE pd.purc_cd = 'PURC-007'
+        AND pd.purc_qty &lt; 0
+    </select>
+
     <!-- 자재출고 목록 조회 -->
     <select id="getMateRelList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
@@ -916,7 +939,7 @@
         ORDER BY c.cp_name
     </select>
 
-    <!-- 🔥 특정 자재의 공급업체들 조회 -->
+    <!-- 특정 자재의 공급업체들 조회 -->
     <select id="getSuppliersByMaterial" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
             c.cp_cd,
@@ -933,7 +956,7 @@
         ORDER BY c.cp_name
     </select>
 
-    <!-- 🔥 특정 거래처의 자재들 조회 -->
+    <!-- 특정 거래처의 자재들 조회 -->
     <select id="getMaterialsBySupplier" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
             m.mcode,

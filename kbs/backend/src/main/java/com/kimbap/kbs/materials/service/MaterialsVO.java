@@ -97,6 +97,18 @@ public class MaterialsVO {
     private Integer currentStock;   // 현재 재고량
     private Double totalProcessedAmount; // 총 처리 금액
 
+    // 🚨 MaterialsVO에 없는 것들:
+    private String wareAreaCd;       // 창고구역코드 ← 핵심!
+    private String wareName;         // 창고명
+    private String wareType;         // 창고타입
+    private BigDecimal areaRow;      // 구역 행
+    private BigDecimal areaCol;      // 구역 열  
+    private BigDecimal areaFloor;    // 구역 층 
+    private BigDecimal vol;          // 용량
+    private BigDecimal maxRow;       // 최대행
+    private BigDecimal maxCol;       // 최대열
+    private BigDecimal maxFloor;     // 최대층
+
     // ========== 편의 메서드들 ==========
     /**
      * 현재 재고량 자동 계산해주는 메서드
