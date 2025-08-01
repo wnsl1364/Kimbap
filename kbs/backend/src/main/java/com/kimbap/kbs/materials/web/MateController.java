@@ -23,6 +23,8 @@ import com.kimbap.kbs.materials.service.MaterialsVO;
 import com.kimbap.kbs.materials.service.PurchaseOrderViewVO;
 import com.kimbap.kbs.materials.service.SearchCriteria;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/api/materials")
 @CrossOrigin(origins = "*")
@@ -570,4 +572,51 @@ public class MateController {
         }
     }
 
+    /**
+     * 🔥 자재-거래처 연결 목록 조회
+     */
+    @GetMapping("/supplier-mate-relations")
+    public ResponseEntity<List<PurchaseOrderViewVO>> getSupplierMateRelList(
+            @RequestParam(required = false) String purcCd,
+            @RequestParam(required = false) String mcode,
+            @RequestParam(required = false) String mateType,
+            @RequestParam(required = false) String exDeliStartDate,
+            @RequestParam(required = false) String exDeliEndDate,
+            @RequestParam(required = false) String deliStartDate,
+            @RequestParam(required = false) String deliEndDate,
+            HttpServletRequest request) {
+        
+        String loggedInCpCd = getCurrentUserCpCd(request);
+        try {
+            SearchCriteria criteria = SearchCriteria.builder()
+                    .cpCd(loggedInCpCd)
+                    .purcCd(purcCd)
+                    .mcode(mcode)
+                    .mateType(mateType)
+                    .exDeliStartDate(exDeliStartDate)
+                    .exDeliEndDate(exDeliEndDate)
+                    .deliStartDate(deliStartDate)
+                    .deliEndDate(deliEndDate)
+                    .build();
+
+            List<PurchaseOrderViewVO> list = mateService.getSupplierMateRelList(criteria);
+            System.out.println("자재-거래처 연결 목록 조회 결과: " + list.size() + "건");
+
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            System.out.println("자재-거래처 연결 목록 조회 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // getCurrentUserCpCd
+    private String getCurrentUserCpCd(HttpServletRequest request) {
+        // 현재 로그인한 사용자의 회사코드를 가져오는 로직
+        // 예시로 세션에서 cpCd를 가져온다고 가정
+        String cpCd = (String) request.getSession().getAttribute("cpCd");
+        if (cpCd == null || cpCd.isEmpty()) {
+            throw new IllegalStateException("로그인된 사용자의 회사코드가 없습니다.");
+        }
+        return cpCd;
+    }
 }

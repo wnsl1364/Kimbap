@@ -878,4 +878,24 @@ public class MateServiceImpl implements MateService {
         System.err.println("예상치 못한 타입: " + obj.getClass().getSimpleName() + " → 기본값 0 사용");
         return BigDecimal.ZERO;
     }
+
+    // getSupplierMateRelList
+
+    @Override
+    public List<PurchaseOrderViewVO> getSupplierMateRelList(SearchCriteria criteria) {
+        try {
+            System.out.println("=== 거래처 자재 관계 목록 조회 시작 ===");
+            System.out.println("cpCd: " + criteria.getCpCd());
+            System.out.println("mcode: " + criteria.getMcode());
+
+            List<PurchaseOrderViewVO> list = mateMapper.getSupplierMateRelList(criteria);
+            System.out.println("조회 결과: " + list.size() + "건");
+
+            return list;
+        } catch (Exception e) {
+            System.err.println("거래처 자재 관계 목록 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("거래처 자재 관계 목록 조회 실패: " + e.getMessage(), e);
+        }
+    }
 }

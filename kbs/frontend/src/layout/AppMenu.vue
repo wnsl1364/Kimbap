@@ -114,6 +114,10 @@ const model = ref([
                 label: '자재 출고',
                 to: '/material/materialOutbound'
             },
+            {
+                label: '창고 테스트',
+                to: '/material/testStore'
+            }
         ]
     },
     {
