@@ -77,7 +77,7 @@ public class ProdRequestServiceImpl implements ProdRequestService {
       }
     }
   }
-  // 생산계획과 관련 상세 삭제
+  // 생산요청과 관련 상세 삭제
   @Transactional
   @Override
   public void deleteProdReq(String produReqCd) {

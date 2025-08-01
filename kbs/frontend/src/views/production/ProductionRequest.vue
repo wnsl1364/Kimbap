@@ -192,7 +192,7 @@ const handleReset = () => {
 }
 // 생산요청과 관련 상세 삭제
 const handleDelete = async (data) => {
-    const reqCd = formData.value.produReqCd
+  const reqCd = formData.value.produReqCd
   if (!reqCd) {
     toast.add({
       severity: 'warn',
