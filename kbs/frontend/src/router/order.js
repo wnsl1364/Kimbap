@@ -36,4 +36,10 @@ export default [
         name: 'ordRefund',
         component: () => import('@/views/order/OrderRefund.vue'),
     },
+    /**반품요청 */
+    {
+        path: '/order/returnRequest/:ordCd',
+        name: 'ordReturnRequest',
+        component: () => import('@/views/order/ReturnRequest.vue'),
+    }
 ];

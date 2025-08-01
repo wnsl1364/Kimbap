@@ -79,15 +79,16 @@ public class OrderController {
         @RequestParam(required = false) String deliReqDtStart,
         @RequestParam(required = false) String deliReqDtEnd,
         @RequestParam(required = false) String cpName,
-        @RequestParam(required = false) String ordStatus
+        @RequestParam(required = false) String ordStatus,
+        @RequestParam(required = false) String cpCd
     ) {
         Map<String, Object> response = new HashMap<>();
         try {
             Map<String, Object> params = new HashMap<>();
 
             // 회원 유형 분기 처리
-            if ("p2".equals(memType)) {
-                params.put("cpCd", id); // 매출업체
+            if ("p2".equals(memType) && cpCd != null && !cpCd.isEmpty()) {
+                params.put("cpCd", cpCd);
             }
 
             // 검색 조건 추가

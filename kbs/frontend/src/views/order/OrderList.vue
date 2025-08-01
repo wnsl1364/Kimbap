@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { getOrderList } from '@/api/order';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
@@ -50,6 +50,9 @@ const ordStatusCodes = (list) => {
     };
   });
 };
+
+// 선택된 행
+const selectedRows = ref([]);
 
 // 버튼 설정
 const infoFormButtons = computed(() => {
@@ -102,10 +105,17 @@ onMounted(async () => {
       common.fetchCommonCodes('0A')
     ]);
 
-    const res = await getOrderList({
+    // 조건 분기: p2만 cpCd를 함께 보냄
+    const params = {
       id: user.value.id,
       memType: user.value.memType
-    });
+    };
+
+    if (user.value.memType === 'p2') {
+      params.cpCd = user.value.cpCd;
+    }
+
+    const res = await getOrderList(params);
 
     orders.value = ordStatusCodes(res.data.data);
     console.log('실제 응답 내용:', res.data);
@@ -176,20 +186,31 @@ const searchColumns = computed(() => {
 
 // 검색 이벤트 핸들러
 const handleSearch = (searchData) => {
-    console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
-    // 여기에 검색 로직 구현
-    props.searchColumns.forEach(column => {
-        column.value = searchData[column.key] || '';
+  console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
+
+  const params = {
+    id: user.value.id,
+    memType: user.value.memType,
+    ...searchData, // 전달받은 검색 조건 포함
+  };
+
+  if (user.value.memType === 'p2') {
+    params.cpCd = user.value.cpCd;
+  }
+
+  getOrderList(params)
+    .then(res => {
+      orders.value = ordStatusCodes(res.data.data);
+    })
+    .catch(err => {
+      console.error('검색 실패:', err);
     });
 };
 
 // 리셋 이벤트 핸들러
 const handleReset = () => {
     console.log('검색 조건이 리셋되었습니다');
-    // 여기에 리셋 로직 구현
-    props.searchColumns.forEach(column => {
-        column.value = '';
-    });
+    handleSearch({});
 };
 
 const handleRowClick = (rowData) => {
@@ -209,6 +230,26 @@ const handleRowClick = (rowData) => {
     console.warn('지원되지 않는 사용자 유형입니다:', memType)
   }
 }
+
+const handleRefundRequest = () => {
+  const selected = selectedRows.value;
+
+  if (!selected || Object.keys(selected).length === 0) {
+    alert('주문을 선택하세요.');
+    return;
+  }
+
+  if (selected.ordStatus !== '출고완료') {
+    alert('출고완료 상태인 주문만 반품 요청이 가능합니다.');
+    return;
+  }
+
+  router.push(`/order/returnRequest/${selected.ordCd}`);
+};
+
+watch(selectedRows, (newVal) => {
+  console.log('선택된 주문:', newVal)
+})
 </script>
 <template>
   <!-- 검색 폼 컴포넌트 -->
@@ -219,6 +260,7 @@ const handleRowClick = (rowData) => {
   <div class="space-y-4 mt-8">
     <InputTable
       v-model:data="orders"
+      v-model:selection="selectedRows"
       :dataKey="'ordCd'"
       :columns="orderColumns"
       :enableRowActions="false"
@@ -229,7 +271,8 @@ const handleRowClick = (rowData) => {
       :buttons="infoFormButtons"
       :dateFields="['ordDt', 'deliReqDt']"
       :enableRowClick="true"
-       @rowClick="handleRowClick"
+      @rowClick="handleRowClick"
+      @refund="handleRefundRequest"
     />
   </div>
 </template>
