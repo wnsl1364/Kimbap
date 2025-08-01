@@ -4,11 +4,12 @@ import { onMounted, ref, watch } from 'vue';
 import StandartTable from '@/components/kimbap/table/StandardTable.vue'
 import { dashboardTopData, dashboardPieData, dashboardBarData, dashboardOrderData } from '@/api/dashboard';
 import { useCommonStore } from '@/stores/commonStore'
+import { storeToRefs } from 'pinia';
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
-const { commonCodes } = storeToRefs(common);
 
 // 공통코드 가져오기
 const common = useCommonStore()
+const { commonCodes } = storeToRefs(common);
 // 공통코드 형변환
 
 // 월 변환
