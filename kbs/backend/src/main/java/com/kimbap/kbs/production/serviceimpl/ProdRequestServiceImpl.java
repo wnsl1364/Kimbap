@@ -1,5 +1,8 @@
 package com.kimbap.kbs.production.serviceimpl;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -10,10 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.production.mapper.ProdRequestMapper;
+import com.kimbap.kbs.production.service.BomDetailVO;
+import com.kimbap.kbs.production.service.MateReleaseVO;
+import com.kimbap.kbs.production.service.ProdInboundVO;
 import com.kimbap.kbs.production.service.ProdRequestDetailVO;
 import com.kimbap.kbs.production.service.ProdRequestFullVO;
 import com.kimbap.kbs.production.service.ProdRequestService;
 import com.kimbap.kbs.production.service.ProdRequestVO;
+import com.kimbap.kbs.production.service.WaStockVO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -75,6 +82,56 @@ public class ProdRequestServiceImpl implements ProdRequestService {
       } else {
           mapper.updateProdReqDetail(detail);
       }
+        // 자재출고 처리
+        String produProdCd = detail.getProduProdCd();
+        String pcode = detail.getPcode();
+        String prodVerCd = detail.getProdVerCd();
+        Integer reqQty = detail.getReqQty();
+
+        List<BomDetailVO> materials = mapper.selectBomMaterials(pcode, prodVerCd);
+        for (BomDetailVO material : materials) {
+            BigDecimal totalNeedQty =  BigDecimal.valueOf(reqQty.intValue()).multiply(material.getNeedQty());
+            List<WaStockVO> stocks = mapper.selectAvailableStocks(material.getMcode(), material.getMateVerCd());
+
+            for (WaStockVO stock : stocks) {
+                if (totalNeedQty.compareTo(BigDecimal.ZERO) <= 0) break;
+
+                BigDecimal useQty = stock.getQty().min(totalNeedQty);
+                MateReleaseVO rel = new MateReleaseVO();
+                rel.setMateRelCd(mapper.getNewMateRelCd());
+                rel.setProduProdCd(produProdCd);
+                rel.setMcode(material.getMcode());
+                rel.setMateVerCd(material.getMateVerCd());
+                rel.setWslcode(stock.getWslcode());
+                rel.setLotNo(stock.getLotNo());
+                rel.setRelQty(useQty);
+                rel.setUnit(material.getUnit());
+                rel.setRelDt(LocalDate.now());
+                rel.setRelType("h1");
+                rel.setCreDt(LocalDate.now());
+                mapper.insertMateRel(rel);
+
+                mapper.decreaseWareStock(stock.getWslcode(), useQty);
+                totalNeedQty = totalNeedQty.subtract(useQty);
+            }
+
+            if (totalNeedQty.compareTo(BigDecimal.ZERO) > 0) {
+                throw new RuntimeException("자재 재고 부족: " + material.getMcode());
+            }
+        }
+
+        // 제품입고 처리
+        ProdInboundVO inbo = new ProdInboundVO();
+        inbo.setProdInboCd(mapper.getNewProdInboCd());
+        inbo.setLotNo(mapper.getNewLotNo300());
+        inbo.setPcode(pcode);
+        inbo.setProdVerCd(prodVerCd);
+        inbo.setInboQty(reqQty);
+        inbo.setProduProdCd(produProdCd);
+        inbo.setInboStatus("c3");
+        inbo.setInboDt(LocalDate.now());
+        mapper.insertProdInbo(inbo);
+
     }
   }
   // 생산요청과 관련 상세 삭제

@@ -1,5 +1,6 @@
 package com.kimbap.kbs.production.service;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -22,6 +23,8 @@ public class WaStockVO {
   @JsonFormat(pattern = "yyyy-MM-dd")
   private Date inboDt;          // 입고일
   private String regi;          // 등록자
-  private Integer qty;          // 수량
+  private BigDecimal  qty;      // 수량
   private String unit;          // 단위
+
+  private String lotNo;         // 자재입고 LOT번호(JOIN)
 }
