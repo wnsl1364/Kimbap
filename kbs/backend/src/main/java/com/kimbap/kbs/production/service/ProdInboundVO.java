@@ -1,8 +1,6 @@
 package com.kimbap.kbs.production.service;
 
-import java.util.Date;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +19,5 @@ public class ProdInboundVO {
   private String inboStatus;    // 입고상태
   private Integer inboQty;      // 입고수량
   private String produProdCd;   // 생산제품코드
-  @JsonFormat(pattern = "yyyy-MM-dd")
-  private Date inboDt;          // 입고일시
+  private LocalDate inboDt;     // 입고일시
 }
