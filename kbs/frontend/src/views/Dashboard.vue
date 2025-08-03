@@ -46,7 +46,7 @@ onMounted(async () => {
 async function fetchDashboardCounts() {
     try {
         const res = await dashboardTopData();
-        console.log('📦 dashboardTopData 응답:', res.data);
+        console.log('dashboardTopData 응답:', res.data);
 
         const data = res.data;
 
@@ -63,7 +63,7 @@ async function fetchDashboardCounts() {
 async function fetchDashboardPieData() {
     try {
         const res = await dashboardPieData();
-        console.log('🥧 dashboardPieData 응답:', res.data);
+        console.log('dashboardPieData 응답:', res.data);
 
         const raw = res.data;
 

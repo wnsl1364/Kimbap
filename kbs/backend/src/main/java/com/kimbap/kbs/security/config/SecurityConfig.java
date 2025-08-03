@@ -22,6 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.kimbap.kbs.security.filter.JwtAuthenticationFilter;
 import com.kimbap.kbs.security.util.JwtUtil;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -52,16 +53,23 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                    // .requestMatchers("/api/standard/**","/std/**","/standard","/std","/api/std","/api/standard").hasRole("ADMIN")
-                    // .requestMatchers("/login", "/login/**", "/api/login").permitAll() // 로그인, 회원가입은 모두 허용
-                    // .anyRequest().authenticated() // 나머지는 인증만 되어 있으면 허용
-                    .anyRequest().permitAll() // 모든 요청 허용
+                        // .requestMatchers("/api/standard/**","/std/**","/standard","/std","/api/std","/api/standard").hasRole("ADMIN")
+                        // .requestMatchers("/login", "/login/**", "/api/login").permitAll() // 로그인,
+                        // 회원가입은 모두 허용
+                        // .anyRequest().authenticated() // 나머지는 인증만 되어 있으면 허용
+                        // .requestMatchers("/api/logout").permitAll()
+                        .anyRequest().permitAll() // 모든 요청 허용
                 )
+                .logout(logout -> logout
+                        .logoutUrl("/api/logout")
+                        .logoutSuccessHandler((request, response, auth) -> {
+                            // 클라이언트에게 200 OK 만 응답
+                            response.setStatus(HttpServletResponse.SC_OK);
+                        }))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
-
 
     // 4. CORS 설정 (Vue 등 프론트 허용)
     @Bean
