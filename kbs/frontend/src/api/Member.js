@@ -14,3 +14,10 @@ export const cpListCheck= () => {
 export const empListCheck = () => {
   return axios.get('/api/empList')
 };
+
+// 로그아웃
+export const logout = () => {
+  return axios.post('/api/logout', null, {
+    withCredentials: true
+  });
+};

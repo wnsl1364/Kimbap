@@ -7,7 +7,11 @@ export const useMemberStore = defineStore('member', {
   }),
   actions: {
     saveUser(userData) {
-      this.user = userData;
+      this.user = userData
+    },
+    logout() {
+      this.user = null;
+      localStorage.removeItem('accessToken');
     }
   },
   getters: {
