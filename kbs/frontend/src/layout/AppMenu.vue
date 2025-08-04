@@ -162,7 +162,7 @@ const model = ref([
                 to: '/payment/cashflow'
             },
             {
-                label: '미수금 분배',
+                label: '미수금 정산',
                 to: '/payment/unpaidallocation'
             },
         ]
