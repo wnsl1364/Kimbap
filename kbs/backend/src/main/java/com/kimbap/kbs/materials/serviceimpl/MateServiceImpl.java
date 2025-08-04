@@ -116,6 +116,26 @@ public class MateServiceImpl implements MateService {
         }
     }
 
+    @Override
+    public MaterialsVO getPurcOrderDetailByCode(String purcDCd) {
+        try {
+            System.out.println("🔍 발주상세 조회: " + purcDCd);
+            MaterialsVO result = mateMapper.getPurcOrderDetailByCode(purcDCd);
+
+            if (result != null) {
+                System.out.println("✅ 발주상세 조회 성공: " + purcDCd
+                        + " (자재: " + result.getMcode() + " ver:" + result.getMateVerCd() + ")");
+            } else {
+                System.out.println("⚠️ 발주상세를 찾을 수 없음: " + purcDCd);
+            }
+
+            return result;
+        } catch (Exception e) {
+            System.err.println("❌ 발주상세 조회 실패: " + e.getMessage());
+            throw new RuntimeException("발주상세 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
     /**
      * 자재 코드로 품목 유형 조회
      */
@@ -257,12 +277,12 @@ public class MateServiceImpl implements MateService {
     public List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria) {
         try {
             System.out.println("🎯 발주 조회 전용 서비스 시작 - 사용자 타입: " + criteria.getMemtype());
-            
+
             List<PurchaseOrderViewVO> list = mateMapper.getPurchaseOrdersForView(criteria);
-            
+
             System.out.println("✅ 발주 조회 완료: " + list.size() + "건");
             return list;
-            
+
         } catch (Exception e) {
             System.err.println("❌ 발주 조회 실패: " + e.getMessage());
             e.printStackTrace();
@@ -880,7 +900,6 @@ public class MateServiceImpl implements MateService {
     }
 
     // getSupplierMateRelList
-
     @Override
     public List<PurchaseOrderViewVO> getSupplierMateRelList(SearchCriteria criteria) {
         try {
@@ -896,6 +915,104 @@ public class MateServiceImpl implements MateService {
             System.err.println("공급업체의 출고 처리를 위한 목록 조회 실패: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("공급업체의 출고 처리를 위한 목록 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String getLastMateInboCode(String yearMonth) {
+        try {
+            System.out.println("=== ServiceImpl: 마지막 입고코드 조회 시작 ===");
+            System.out.println("조회 대상 년월: " + yearMonth);
+            System.out.println("검색 패턴: MATI-" + yearMonth + "-%");
+
+            String lastCode = mateMapper.getLastMateInboCode(yearMonth);
+            
+            if (lastCode != null && !lastCode.trim().isEmpty()) {
+                System.out.println("✅ 조회 성공 - 마지막 입고코드: " + lastCode);
+            } else {
+                System.out.println("📝 조회 결과 없음 (첫 번째 코드 생성 예정)");
+            }
+
+            return lastCode;
+        } catch (Exception e) {
+            System.err.println("❌ ServiceImpl: 마지막 입고코드 조회 실패");
+            System.err.println("에러 메시지: " + e.getMessage());
+            System.err.println("에러 타입: " + e.getClass().getSimpleName());
+            e.printStackTrace();
+            return null; // 조회 실패 시 null 반환
+        }
+    }
+
+    @Override
+    public void updatePurchaseOrderCurrQty(MaterialsVO updateData) {
+        try {
+            System.out.println("=== ServiceImpl: 발주상세 curr_qty 업데이트 시작 ===");
+            System.out.println("발주상세코드: " + updateData.getPurcDCd());
+            System.out.println("새로운 curr_qty: " + updateData.getCurrQty());
+
+            mateMapper.updatePurchaseOrderCurrQty(updateData);
+            
+            System.out.println("✅ curr_qty 업데이트 완료");
+        } catch (Exception e) {
+            System.err.println("❌ ServiceImpl: curr_qty 업데이트 실패");
+            System.err.println("에러 메시지: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("curr_qty 업데이트 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public String generateNextMateInboCode(String yearMonth) {
+        try {
+            System.out.println("=== ServiceImpl: DB 원자적 입고코드 생성 시작 ===");
+            System.out.println("대상 년월: " + yearMonth);
+
+            // 🔍 현재 마지막 번호 조회 및 잠금
+            String lastCode = mateMapper.getLastMateInboCodeForUpdate(yearMonth);
+            
+            int nextSequence = 1; // 기본값
+            
+            if (lastCode != null && !lastCode.trim().isEmpty()) {
+                System.out.println("📋 마지막 코드: " + lastCode);
+                String[] parts = lastCode.split("-");
+                if (parts.length >= 3) {
+                    try {
+                        String numberPart = parts[2];
+                        if (!numberPart.startsWith("T") && !numberPart.startsWith("E")) {
+                            int lastNumber = Integer.parseInt(numberPart);
+                            nextSequence = lastNumber + 1;
+                            System.out.println("✅ 다음 시퀀스: " + nextSequence);
+                        }
+                    } catch (NumberFormatException e) {
+                        System.err.println("⚠️ 번호 파싱 실패, 기본값 사용: " + e.getMessage());
+                    }
+                }
+            } else {
+                System.out.println("📝 첫 번째 코드 생성");
+            }
+            
+            String nextCode = String.format("MATI-%s-%04d", yearMonth, nextSequence);
+            System.out.println("🎯 생성된 코드: " + nextCode);
+            
+            // 🔒 임시로 해당 코드 예약 (동시성 방지)
+            MaterialsVO tempRecord = MaterialsVO.builder()
+                .mateInboCd(nextCode)
+                .purcDCd("TEMP-RESERVED")
+                .totalQty(0)
+                .inboStatus("RESERVED")
+                .build();
+                
+            mateMapper.insertTempMateInboReservation(tempRecord);
+            System.out.println("🔒 코드 예약 완료: " + nextCode);
+            
+            return nextCode;
+            
+        } catch (Exception e) {
+            System.err.println("❌ ServiceImpl: DB 원자적 코드 생성 실패");
+            System.err.println("에러 메시지: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("DB 원자적 코드 생성 실패: " + e.getMessage(), e);
         }
     }
 }

@@ -74,3 +74,18 @@ export const login = async(loginData) => {
     navigate('/dashboard');
   }
 }
+// export const login = async (loginData) => {
+//   try {
+//     const response = await axios.post('/api/login', loginData);
+    
+//     if (response.data && response.data.token) {
+//       localStorage.setItem('token', response.data.token);
+//       console.log('✅ JWT 토큰 저장 완료');
+//       return response.data;
+//     }
+    
+//   } catch (error) {
+//     console.error('❌ 로그인 실패:', error);
+//     throw error;
+//   }
+// };

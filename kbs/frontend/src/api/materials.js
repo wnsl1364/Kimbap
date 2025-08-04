@@ -243,6 +243,10 @@ export const getSuppliersMateRel = (searchParams = {}) => {
   return axios.get('/api/materials/supplier-mate-relations', { params });
 };
 
+export const insertMaterialInbound = (data) => {
+  return axios.post('/api/materials/inbound', data);
+};
+
 // 자재출고 완료 처리 (단건)
 export const processMaterialOutboundSingle = (outboundData) => {
   return axios.post('/api/materials/outbound/process-single', outboundData);

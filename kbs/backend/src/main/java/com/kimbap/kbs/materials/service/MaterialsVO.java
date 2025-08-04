@@ -85,6 +85,10 @@ public class MaterialsVO {
     private Timestamp creDt;        // 생성일시
     private Timestamp modDt;        // 수정일시
 
+    // ========== 발주상세 curr_qty 관련 ==========
+    private Integer outQty;         // 공급업체 출고수량 (프론트엔드에서 전달)
+    private Integer currQty;        // 현재 출고 누적수량 (purc_ord_d.curr_qty)
+
     // ========== 자재반품 (MateReturnVO) ==========
     private String mateReturnCd;    // 자재반품코드
     private Date returnDt;          // 반품일자

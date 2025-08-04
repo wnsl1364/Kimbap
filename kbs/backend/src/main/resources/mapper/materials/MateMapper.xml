@@ -821,6 +821,23 @@
         ORDER BY po.ord_dt DESC, pod.purc_d_cd ASC
     </select>
 
+    <select id="getPurcOrderDetailByCode" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            purc_d_cd,
+            purc_cd,
+            mcode,
+            mate_ver_cd,
+            mate_cp_cd,
+            purc_qty,
+            unit,
+            unit_price,
+            ex_deli_dt,
+            note,
+            purc_d_status
+        FROM purc_ord_d 
+        WHERE purc_d_cd = #{purcDCd}
+    </select>
+
     <!-- 공급업체의 자재출고 처리를 위한 목록 조회 및 검색 -->
     <select id="getSupplierMateRelList" resultType="com.kimbap.kbs.materials.service.PurchaseOrderViewVO">
         SELECT DISTINCT
@@ -1017,5 +1034,54 @@
         AND m.is_used = 'f1'
         ORDER BY m.mate_name
     </select>
+    
+    <!-- 🔢 mate_inbo 테이블에서 가장 마지막 입고코드 조회 -->
+    <select id="getLastMateInboCode" resultType="String">
+        SELECT mate_inbo_cd
+        FROM (
+            SELECT mate_inbo_cd
+            FROM mate_inbo
+            WHERE mate_inbo_cd LIKE 'MATI-${yearMonth}-%'
+            ORDER BY mate_inbo_cd DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
+    
+    <!-- 🔄 발주상세의 curr_qty 업데이트 (누적) -->
+    <update id="updatePurchaseOrderCurrQty">
+        UPDATE purc_ord_d
+        SET curr_qty = #{currQty}
+        WHERE purc_d_cd = #{purcDCd}
+    </update>
+    
+    <!-- 🔒 동시성 제어를 위한 마지막 입고코드 조회 (FOR UPDATE) -->
+    <select id="getLastMateInboCodeForUpdate" resultType="String">
+        SELECT mate_inbo_cd
+        FROM (
+            SELECT mate_inbo_cd
+            FROM mate_inbo
+            WHERE mate_inbo_cd LIKE 'MATI-${yearMonth}-%'
+            ORDER BY mate_inbo_cd DESC
+        )
+        WHERE ROWNUM = 1
+        FOR UPDATE
+    </select>
+    
+    <!-- 🔒 임시 입고코드 예약 (동시성 방지) -->
+    <insert id="insertTempMateInboReservation">
+        INSERT INTO mate_inbo (
+            mate_inbo_cd,
+            purc_d_cd,
+            total_qty,
+            inbo_status,
+            inbo_dt
+        ) VALUES (
+            #{mateInboCd},
+            #{purcDCd},
+            #{totalQty},
+            #{inboStatus},
+            SYSDATE
+        )
+    </insert>
     
 </mapper>
