@@ -5,59 +5,125 @@
 
 <mapper namespace="com.kimbap.kbs.order.mapper.ReturnMapper">
 
-  <!-- 1. 반품 등록 -->
+  <!-- 반품 등록 -->
   <insert id="insertReturnItem" parameterType="com.kimbap.kbs.order.service.ReturnItemVO">
     INSERT INTO prod_return (
       prod_return_cd,
-      ord_cd,
+      ord_d_cd,
       lot_no,
       return_dt,
       return_qty,
       return_amount,
-      return_rea
+      return_rea,
+      return_status_customer
     )
     VALUES (
       #{prodReturnCd},
-      #{ordCd},
+      #{ordDCd},
       #{lotNo},
       #{returnDt},
       #{returnQty},
       #{returnAmount},
-      #{returnRea}
+      #{returnRea},
+      #{returnStatusCustomer}
     )
   </insert>
 
-  <!-- 2. 반품코드 시퀀스 조회 -->
-  <select id="getNextReturnCodeSeq" resultType="string">
-    SELECT LPAD(SEQ_PROD_RETURN.NEXTVAL, 6, '0') FROM dual
+  <!-- 반품코드 시퀀스 조회 -->
+  <select id="getNextReturnCodeSeq" resultType="int">
+      SELECT SEQ_PROD_RETURN.NEXTVAL FROM dual
   </select>
 
-  <!-- 3. 주문 상세 상태 변경 → 't4' (반품요청) -->
+  <!-- 주문 상세 상태 변경 → 't4' (반품요청) -->
   <update id="updateOrderDetailStatus" parameterType="string">
     UPDATE order_d
     SET ord_d_status = 't4'
     WHERE ord_d_cd = #{ordDCd}
   </update>
 
-  <!-- 4. 주문 마스터 상태 변경 → 's4' (반품요청) -->
-  <update id="updateOrderStatusCustomer" parameterType="string">
-    UPDATE order_list
-    SET ord_status_customer = 's4'
-    WHERE ord_cd = #{ordCd}
-  </update>
-
-  <!-- 5. 반품 이력 조회 -->
+  <!-- 반품 이력 조회 -->
   <select id="getReturnHistoryByOrdCd" resultType="com.kimbap.kbs.order.service.ReturnItemVO">
     SELECT
-      prod_return_cd AS prodReturnCd,
-      ord_cd AS ordCd,
-      lot_no AS lotNo,
-      return_dt AS returnDt,
-      return_qty AS returnQty,
-      return_amount AS returnAmount,
-      return_rea AS returnRea
-    FROM prod_return
-    WHERE ord_cd = #{ordCd}
+      pr.prod_return_cd AS prodReturnCd,
+      pr.ord_d_cd AS ordDCd,
+      pr.lot_no AS lotNo,
+      pr.return_dt AS returnDt,
+      pr.return_qty AS returnQty,
+      pr.return_amount AS returnAmount,
+      pr.return_rea AS returnRea,
+      pr.return_status_customer AS returnStatusCustomer
+    FROM prod_return pr
+    JOIN order_d od ON pr.ord_d_cd = od.ord_d_cd
+    WHERE od.ord_cd = #{ordCd}
   </select>
 
+  <!-- 주문 상세 전체 건수 조회 -->
+  <select id="getOrderDetailCount" parameterType="string" resultType="int">
+      SELECT COUNT(*) FROM order_d WHERE ord_cd = #{ordCd} AND is_used = 'f1'
+  </select>
+
+  <!-- 주문 상세 중 특정 상태 건수 조회 -->
+  <select id="getOrderDetailStatusCount" parameterType="map" resultType="int">
+      SELECT COUNT(*) FROM order_d
+      WHERE ord_cd = #{ordCd} AND ord_d_status = #{status} AND is_used = 'f1'
+  </select>
+
+  <!-- 주문 마스터 상태 업데이트 (동적 상태 적용) -->
+  <update id="updateOrderStatusCustomer" parameterType="map">
+      UPDATE order_list
+      SET ord_status_customer = #{status}
+      WHERE ord_cd = #{ordCd}
+  </update>
+
+  <!-- 반품목록조회 -->
+  <resultMap id="ReturnListMap" type="com.kimbap.kbs.order.service.ReturnItemVO">
+    <result column="PRODRETURNCD" property="prodReturnCd"/>
+    <result column="RETURNDT" property="returnDt"/>
+    <result column="CPNAME" property="cpName"/>
+    <result column="PRODNAME" property="prodName"/>
+    <result column="RETURNQTY" property="returnQty"/>
+    <result column="RETURNREA" property="returnRea"/>
+    <result column="RETURNSTATUSINTERNAL" property="returnStatusInternal"/>
+    <result column="RETURNENDDT" property="returnEndDt"/>
+    <result column="MANAGERNAME" property="managerName"/>
+  </resultMap>
+  <select id="getReturnList" parameterType="map" resultMap="ReturnListMap">
+    SELECT *
+    FROM vw_return_list
+    WHERE 1=1
+      <if test="cpName != null and cpName != ''">
+        AND cp_name LIKE '%' || #{cpName} || '%'
+      </if>
+      <if test="status != null and status != ''">
+        AND return_status_internal = #{returnStatusInternal}
+      </if>
+      <if test="prodName != null and prodName != ''">
+        AND prod_name LIKE '%' || #{prodName} || '%'
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND TRUNC(return_dt) &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND TRUNC(return_dt) &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+      </if>
+
+      ORDER BY prodReturnCd
+  </select>
+
+
+  <!-- 반품 상태 업데이트 -->
+  <update id="updateReturnStatus" parameterType="map">
+    UPDATE prod_return
+    SET return_status_internal = #{returnStatusInternal},
+        return_end_dt = SYSDATE,
+        manager = #{manager}
+    WHERE prod_return_cd = #{prodReturnCd}
+  </update>
+
+  <!-- 주문상세 상태 변경 -->
+  <update id="updateOrderDetailStatusToT5" parameterType="string">
+    UPDATE order_d
+    SET ord_d_status = 't5'
+    WHERE ord_d_cd = #{ordDCd}
+  </update>
 </mapper>
