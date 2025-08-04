@@ -61,13 +61,16 @@ export const logout = () => {
 };
 
 // 로그인 성공 후 응답 처리
-const response = await axios.post('/api/login', loginData);
 
-if (response.data && response.data.token) {
-  // ✅ 로컬스토리지에 토큰 저장
-  localStorage.setItem('token', response.data.token);
-  console.log('✅ JWT 토큰 저장 완료');
-  
-  // 대시보드로 이동
-  navigate('/dashboard');
+export const login = async(loginData) => {
+  const response = await axios.post('/api/login', loginData);
+
+  if (response.data && response.data.token) {
+    // ✅ 로컬스토리지에 토큰 저장
+    localStorage.setItem('token', response.data.token);
+    console.log('✅ JWT 토큰 저장 완료');
+    
+    // 대시보드로 이동
+    navigate('/dashboard');
+  }
 }
