@@ -189,6 +189,12 @@
     <select id="getNewProdInboCd" resultType="string">
         SELECT fn_create_prod_inbo_cd() FROM dual
     </select>
+    <!-- 완제품 입고코드 최근 값 가져오기 -->
+    <select id="selectTodayProdInboSeq" resultType="int">
+        SELECT NVL(MAX(TO_NUMBER(SUBSTR(prod_inbo_cd, 14))), 0)
+        FROM prod_inbo
+        WHERE SUBSTR(prod_inbo_cd, 4, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+    </select>
     <!-- 완제품 LOT 번호 (LOT-300-YYYYMMDD-n) -->
     <select id="getNewLotNo300" resultType="string">
         SELECT fn_create_lot_no_300() FROM dual
@@ -225,10 +231,10 @@
     <insert id="insertMateRel" parameterType="MateReleaseVO">
         INSERT INTO mate_rel (
             mate_rel_cd, produ_prod_cd, mcode, mate_ver_cd, wslcode, lot_no,
-            rel_qty, unit, rel_dt, rel_type, cre_dt
+            rel_qty, unit, rel_dt, rel_type, mname, cre_dt
         ) VALUES (
             #{mateRelCd}, #{produProdCd}, #{mcode}, #{mateVerCd}, #{wslcode}, #{lotNo},
-            #{relQty}, #{unit}, #{relDt}, #{relType}, #{creDt}
+            #{relQty}, #{unit}, #{relDt}, #{relType}, #{mname}, #{creDt}
         )
     </insert>
     <!-- 완제품 입고 INSERT -->

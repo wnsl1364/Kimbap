@@ -65,7 +65,11 @@ const handleSearch = async (searchData) => {
 // 생산계획 행 클릭 시 해당 정보 전달
 const handleRowClick = async (row) => {
   if (props.mode === 'basic') {
-    emit('select', { basicInfo: row });
+    await fetchProdPlanDetailList(row.produPlanCd);
+    emit('select', { 
+      basicInfo: row,
+      detailList: convertDetailUnitCodes(prodPlanDetailList.value)
+    });
   } else {
     await fetchProdPlanDetailList(row.produPlanCd);
     emit('select', {
