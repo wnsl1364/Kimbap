@@ -152,6 +152,18 @@ const model = ref([
                 label: '자재 재고 조회',
                 to: '/material/materialStockView'
             },
+            {
+                label: '완제품 입출고 조회',
+                to: '/distribution/distributionCheck'
+            },
+            {
+                label: '출고 지시서 등록',
+                to: '/distribution/distributionCheck'
+            },
+            {
+                label: '출고 처리',
+                to: '/distribution/distributionCheck'
+            },
         ]
     },
     {

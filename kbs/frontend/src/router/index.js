@@ -10,6 +10,7 @@ import productionRoutes from './production';
 import logisticsRoutes from './logistics';
 import paymentRoutes from './payment';
 import loginRoutes from './login';
+import distributionRoutes from './distribution';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -171,6 +172,7 @@ const router = createRouter({
                 ...logisticsRoutes,
                 ...paymentRoutes,
                 ...loginRoutes,
+                ...distributionRoutes,
             ]
         },
         {
