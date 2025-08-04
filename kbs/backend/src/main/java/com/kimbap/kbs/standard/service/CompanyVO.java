@@ -29,4 +29,5 @@ public class CompanyVO {
     private String modi;     // 수정자
     private Timestamp regDt; // 등록일자
     private String note; //비고
+    private int unsettledAmount; // 미정산 금액
 }

@@ -34,6 +34,11 @@ public class CompanyController {
     public List<CompanyVO> getSupplierList(){
         return companyService.getSupplierList();
     }
+    // 매출업체 목록 조회
+    @GetMapping("/sal/list")
+    public List<CompanyVO> getSalesList(){
+        return companyService.getSalesList();
+    }
 
     // 거래처 기준정보 등록
     @PostMapping("/insert")

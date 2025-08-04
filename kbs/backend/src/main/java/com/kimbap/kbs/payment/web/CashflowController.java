@@ -33,6 +33,12 @@ public class CashflowController {
     public List<CashflowVO> getCashflows(@RequestParam Map<String, Object> params) {
         return cashflowService.getCashflowList(params);
     }
+
+    // 입금 내역 조회
+    @GetMapping("/income")
+    public List<CashflowVO> getOnlyIncome() {
+        return cashflowService.getOnlyIncomeList();
+    }
     
     // 입출금 내역 등록
     @PostMapping("/insert")

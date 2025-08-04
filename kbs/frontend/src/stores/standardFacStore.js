@@ -1,20 +1,7 @@
-import {
-    defineStore
-} from 'pinia';
-import {
-    ref
-} from 'vue';
-import {
-    format
-} from 'date-fns';
-import {
-    getFactoryList,
-    getProductList,
-    insertFactory,
-    updateFactory,
-    getFactoryDetail,
-    FacChangeHistory
-} from '@/api/standard';
+import {defineStore} from 'pinia';
+import {ref} from 'vue';
+import {format} from 'date-fns';
+import {getFactoryList,getProductList,insertFactory,updateFactory,getFactoryDetail,FacChangeHistory} from '@/api/standard';
 
 export const useStandardFacStore = defineStore('standardFac', () => {
     // 전역 데이터 상태

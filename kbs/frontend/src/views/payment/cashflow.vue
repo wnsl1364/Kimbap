@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
 import { useCashflowStore } from '@/stores/cashflowStore';
 import { storeToRefs } from 'pinia';
+import { useMemberStore } from '@/stores/memberStore'
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -12,6 +13,12 @@ import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 const store = useCashflowStore();
 const { cashflowList, formData } = storeToRefs(store);
 const { fetchCashflows, saveCashflow, fetchCashflowDetail } = store;
+const memberStore = useMemberStore();
+const { user } = storeToRefs(memberStore);
+
+const isEmployee = computed(() => user.value?.memType === 'p1');
+const isManager = computed(() => user.value?.memType === 'p4');
+const isAdmin = computed(() => user.value?.memType === 'p5');
 
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
@@ -23,13 +30,16 @@ const { commonCodes } = storeToRefs(common);
 // 공통코드 형변환
 const convertUnitCodes = (list) => {
   const transTypeCodes = common.getCodes('0U'); // 거래유형
+  const calStatusCodes = common.getCodes('0X'); // 거래유형
   return list.map((item) => {
     const matchedtransType = transTypeCodes.find((code) => code.dcd === item.transType);
+    const matchedcalStatusType = calStatusCodes.find((code) => code.dcd === item.calStatus);
     const formattedRegDt = item.regDt ? format(new Date(item.regDt), 'yyyy-MM-dd') : '';
 
     return {
       ...item,
       transType: matchedtransType ? matchedtransType.cdInfo : item.transType,
+      calStatus: matchedcalStatusType ? matchedcalStatusType.cdInfo : item.calStatus,
       regDt: formattedRegDt,
       depositAmount: item.depositAmount?.toLocaleString() // 💥 여기!
     };
@@ -52,9 +62,14 @@ onBeforeMount(() => {
             { label: '입금', value: 'u1' },
             { label: '출금', value: 'u2' }
         ] 
-    },
-    { key: 'depo', label: '입금자명', type: 'text', placeholder: '입금자명 입력하세요' },
-    { key: 'regDt', label: '입금자명', type: 'dateRange'},
+        },
+        { key: 'calStatus', label: '정산상태', type: 'dropdown',
+        options: [
+            { label: '미정산', value: 'x1' },
+            { label: '정산 완료', value: 'x2' }
+        ] 
+        },
+        { key: 'regDt', label: '입금자명', type: 'dateRange'},
     ]
     inputColumns.value = [
         { key: 'statementCd', label: '입출금코드', type: 'readonly' },
@@ -79,9 +94,9 @@ onBeforeMount(() => {
     cashflowColumns.value = [
         { field: 'statementCd', header: '입출금코드' },
         { field: 'transType', header: '거래유형' },
-        { field: 'depo', header: '입금자명' },
         { field: 'depositAmount', header: '금액(원)' },
         { field: 'regDt', header: '등록일자' },
+        { field: 'calStatus', header: '정산 상태' },
     ],
     inputFormButtons.value = {
         save: { show: true, label: '저장', severity: 'success' }
@@ -90,12 +105,23 @@ onBeforeMount(() => {
 
 onMounted(async () => {
     await common.fetchCommonCodes('0U'); // 거래처 유형
+    await common.fetchCommonCodes('0X'); // 거래처 유형
     await fetchCashflows();
 
 });
 
 // 거래처기준정보 등록 처리
 const handleSaveCashflow = async () => {
+    if (!user.value?.empCd) {
+        alert('로그인 정보가 없습니다.');
+        return;
+    }
+    // 신규 등록이면 regi, 수정이면 modi 설정
+    if (!formData.value.statementCd) {
+        formData.value.regi = user.value.empCd;
+    } else {
+        formData.value.modi = user.value.empCd;
+    }
     const result = await saveCashflow();
     alert(result === '등록 성공' ? '등록 성공' : result);
 };
@@ -118,15 +144,16 @@ const handleSearch = async (searchData) => {
   const params = {
     statementCd: searchData.statementCd,
     transType: searchData.transType,
-    depo: searchData.depo,
+    calStatus: searchData.calStatus, // ✅ 추가!
     regDtStart: searchData.regDt?.start
-      ? format(new Date(searchData.regDt.start), 'yyyy-MM-dd') // ✅ 날짜 포맷 맞춤
+      ? format(new Date(searchData.regDt.start), 'yyyy-MM-dd')
       : null,
     regDtEnd: searchData.regDt?.end
       ? format(new Date(searchData.regDt.end), 'yyyy-MM-dd')
       : null,
   };
 
+  console.log('📤 검색 파라미터:', params); // 디버깅용
   await fetchCashflows(params);
 };
 

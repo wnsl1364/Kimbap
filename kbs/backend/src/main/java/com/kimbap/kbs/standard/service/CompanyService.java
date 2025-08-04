@@ -9,4 +9,5 @@ public interface CompanyService {
     void updateCp(CompanyVO cp); // 거래처 수정
     Map<String, Object> getCompanyDetail(String cpCd); // 거래처 단건 조회
     List<CompanyVO> getSupplierList(); // 공급업체 목록조회
+    List<CompanyVO> getSalesList(); // 공급업체 목록조회
 }

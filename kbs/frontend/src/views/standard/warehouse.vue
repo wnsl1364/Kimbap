@@ -2,8 +2,9 @@
 import { ref, onBeforeMount, onMounted, computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
-import { useStandardWhStore} from '@/stores/standardWhStore';
+import { useStandardWhStore } from '@/stores/standardWhStore';
 import { storeToRefs } from 'pinia';
+import { useMemberStore } from '@/stores/memberStore';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -13,6 +14,12 @@ import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 const store = useStandardWhStore();
 const { warehouseList, factoryList, formData, changeHistory } = storeToRefs(store);
 const { fetchWarehouses, saveWarehouse, fetchWarehouseDetail, fetchChangeHistory, fetchFactoryList } = store;
+const memberStore = useMemberStore();
+const { user } = storeToRefs(memberStore);
+
+const isEmployee = computed(() => user.value?.memType === 'p1');
+const isManager = computed(() => user.value?.memType === 'p4');
+const isAdmin = computed(() => user.value?.memType === 'p5');
 
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
@@ -37,7 +44,7 @@ const convertedwarehouseList = computed(() => convertUnitCodes(warehouseList.val
 // UI 상태 정의
 const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
-const warehouseColumns  = ref([]); // 거래처목록 테이블 컬럼
+const warehouseColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
 
 // 이력조회 모달 관련
@@ -79,44 +86,50 @@ onBeforeMount(() => {
     searchColumns.value = [
         { key: 'wcode', label: '창고코드', type: 'text', placeholder: '창고코드를 입력하세요' },
         { key: 'wareName', label: '창고명', type: 'text', placeholder: '창고명 입력하세요' },
-        { key: 'wareType', label: '창고유형', type: 'dropdown', options: [
+        {
+            key: 'wareType',
+            label: '창고유형',
+            type: 'dropdown',
+            options: [
                 { label: '상온 창고', value: 'q1' },
                 { label: '냉장 창고', value: 'q2' },
-                { label: '냉동 창고', value: 'q3' },
-            ] 
+                { label: '냉동 창고', value: 'q3' }
+            ]
         }
     ];
-    warehouseColumns .value = [
+    warehouseColumns.value = [
         { field: 'wcode', header: '창고코드' },
         { field: 'wareName', header: '창고명' },
         { field: 'wareType', header: '유형' },
-        { field: 'address', header: '주소' },
-    ]
+        { field: 'address', header: '주소' }
+    ];
     inputFormButtons.value = {
-        save: { show: true, label: '저장', severity: 'success' }
+        save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
-})
+});
 
 onMounted(async () => {
     await common.fetchCommonCodes('0Q'); // 창고 유형
     await fetchFactoryList();
     await fetchWarehouses();
     inputColumns.value = [
-        { key: 'wcode', label: '창고코드', type: 'readonly'},
-        { key: 'wareName', label: '창고명', type: 'text'},
-        { key: 'wareType', label: '창고유형', type: 'dropdown', options: [
+        { key: 'wcode', label: '창고코드', type: 'readonly' },
+        { key: 'wareName', label: '창고명', type: 'text' },
+        {
+            key: 'wareType',
+            label: '창고유형',
+            type: 'dropdown',
+            options: [
                 { label: '상온 창고', value: 'q1' },
                 { label: '냉장 창고', value: 'q2' },
-                { label: '냉동 창고', value: 'q3' },
-            ] 
+                { label: '냉동 창고', value: 'q3' }
+            ]
         },
         { key: 'address', label: '주소', type: 'text' },
-        { key: 'maxRow', label: '최대 행', type: 'number',disabled: (row) => !!row.wcode },
-        { key: 'maxCol', label: '최대 열', type: 'number',disabled: (row) => !!row.wcode },
-        { key: 'maxFloor', label: '최대 층', type: 'number' ,disabled: (row) => !!row.wcode},
-        { key: 'fcode', label: '공장명', type: 'dropdown',
-            options: factoryOptions.value
-         },
+        { key: 'maxRow', label: '최대 행', type: 'number', disabled: (row) => !!row.wcode },
+        { key: 'maxCol', label: '최대 열', type: 'number', disabled: (row) => !!row.wcode },
+        { key: 'maxFloor', label: '최대 층', type: 'number', disabled: (row) => !!row.wcode },
+        { key: 'fcode', label: '공장명', type: 'dropdown', options: factoryOptions.value },
         {
             key: 'isUsed',
             label: '사용여부',
@@ -134,12 +147,26 @@ onMounted(async () => {
         },
         { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
         { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
-    ]
-     console.log('[DEBUG] warehouseList:', warehouseList.value);
+    ];
+    console.log('[DEBUG] warehouseList:', warehouseList.value);
 });
 
 // 창고기준정보 등록 처리
 const handleSaveWarehouse = async () => {
+    if (!isAdmin.value && !isManager.value) {
+        alert('등록 권한이 없습니다.');
+        return;
+    }
+    if (!user.value?.empCd) {
+        alert('로그인 정보가 없습니다.');
+        return;
+    }
+    // 신규 등록이면 regi, 수정이면 modi 설정
+    if (!formData.value.wcode) {
+        formData.value.regi = user.value.empCd;
+    } else {
+        formData.value.modi = user.value.empCd;
+    }
     const result = await saveWarehouse();
     alert(result === '등록 성공' ? '등록 성공' : result);
 };
@@ -149,8 +176,7 @@ const handleSelectWarehouse = async (selectedRow) => {
     await fetchWarehouseDetail(selectedRow.wcode);
 };
 
-
-// 초기화 
+// 초기화
 const clearForm = () => {
     formData.value = {}; // 또는 필요한 초기화 방식으로
 };
@@ -159,7 +185,7 @@ const handleReset = async () => {
     await fetchWarehouses(); // 전체 목록 다시 조회
 };
 
-// 검색 
+// 검색
 const handleSearch = async (searchData) => {
     await fetchWarehouses(); // 최신 데이터
 
@@ -174,24 +200,26 @@ const handleSearch = async (searchData) => {
 
 // 공장 옵션 (label: 공장명, value: 공장코드)
 const factoryOptions = computed(() =>
-  factoryList.value.map(f => ({
-    label: f.facName,
-    value: f.fcode
-  }))
+    factoryList.value.map((f) => ({
+        label: f.facName,
+        value: f.fcode
+    }))
 );
 
 // fcode 변경 시 facVerCd 자동 세팅
-watch(() => formData.value.fcode, (newFcode) => {
-  const selected = factoryList.value.find(f => f.fcode === newFcode);
-  if (selected) {
-    formData.value.facVerCd = selected.facVerCd;
-  }
-});
-
+watch(
+    () => formData.value.fcode,
+    (newFcode) => {
+        const selected = factoryList.value.find((f) => f.fcode === newFcode);
+        if (selected) {
+            formData.value.facVerCd = selected.facVerCd;
+        }
+    }
+);
 </script>
 <template>
     <!-- 검색 영역 -->
-    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3"/>
+    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3" />
 
     <!-- 메인 영역 -->
     <div class="flex flex-col md:flex-row gap-4 mt-6">
@@ -200,7 +228,7 @@ watch(() => formData.value.fcode, (newFcode) => {
                 title="창고 기준정보 목록"
                 :data="convertedwarehouseList"
                 dataKey="wcode"
-                :columns="warehouseColumns "
+                :columns="warehouseColumns"
                 @view-history="handleViewHistory"
                 @row-select="handleSelectWarehouse"
                 @clear-selection="clearForm"

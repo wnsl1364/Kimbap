@@ -3,6 +3,7 @@ import { ref, onBeforeMount, onMounted, computed } from 'vue';
 import { format } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
 import { useStandardCpStore } from '@/stores/standardCpStore';
+import { useMemberStore } from '@/stores/memberStore';
 import { storeToRefs } from 'pinia';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
@@ -12,6 +13,14 @@ import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 const store = useStandardCpStore();
 const { companyList, formData, changeHistory } = storeToRefs(store);
 const { fetchCompanys, saveCompany, fetchCompanyDetail } = store;
+const memberStore = useMemberStore();
+const { user } = storeToRefs(memberStore);
+
+const isEmployee = computed(() => user.value?.memType === 'p1');
+const isManager = computed(() => user.value?.memType === 'p4');
+const isAdmin = computed(() => user.value?.memType === 'p5');
+
+console.log('현재 사용자 권한:', user.value);
 
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
@@ -38,7 +47,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const productColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
-  
+
 // UI 구성 정의
 onBeforeMount(() => {
     searchColumns.value = [
@@ -103,7 +112,7 @@ onBeforeMount(() => {
     ];
 
     inputFormButtons.value = {
-        save: { show: true, label: '저장', severity: 'success' }
+        save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
 });
 
@@ -115,6 +124,20 @@ onMounted(async () => {
 
 // 거래처기준정보 등록 처리
 const handleSaveCompany = async () => {
+    if (!isAdmin.value && !isManager.value) {
+    alert('등록 권한이 없습니다.');
+    return;
+    }
+    if (!user.value?.empCd) {
+        alert('로그인 정보가 없습니다.');
+        return;
+    }
+    // 신규 등록이면 regi, 수정이면 modi 설정
+    if (!formData.value.cpCd) {
+        formData.value.regi = user.value.empCd;
+    } else {
+        formData.value.modi = user.value.empCd;
+    }
     const result = await saveCompany();
     alert(result === '등록 성공' ? '등록 성공' : result);
 };

@@ -19,9 +19,34 @@
                 reg_dt,
                 regi,
                 modi,
-                note
+                note,
+                unsettled_amount
         FROM    company
         WHERE cp_type = 'j1'
+    </select>
+
+    <!-- 공급업체 목록 조회 -->
+    <select id="getSalesList" resultType="com.kimbap.kbs.standard.service.CompanyVO">
+        SELECT  cp_cd,
+                cp_name,
+                cp_type,
+                repname,
+                crnumber,
+                tel,
+                cp_email,
+                fax_num,
+                loan_term,
+                mname,
+                address,
+                is_used,
+                cha_rea,
+                reg_dt,
+                regi,
+                modi,
+                note,
+                unsettled_amount
+        FROM    company
+        WHERE cp_type = 'j2'
     </select>
 
 
@@ -43,7 +68,8 @@
                 reg_dt,
                 regi,
                 modi,
-                note
+                note,
+                unsettled_amount
         FROM    company
         WHERE   is_used = 'f1'
         ORDER BY cp_cd

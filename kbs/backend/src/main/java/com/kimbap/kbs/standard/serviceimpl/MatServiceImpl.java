@@ -63,6 +63,11 @@ public class MatServiceImpl implements MatService {
         if (mat.getMateVerCd() == null || mat.getMateVerCd().isEmpty()) {
             mat.setMateVerCd("V001");
         }
+        
+        // 4. 등록자 정보
+        if (mat.getRegi() == null || mat.getRegi().isEmpty()) {
+            mat.setRegi("admin");
+        }
 
         // ✅ 자재 등록
         matMapper.insertMat(mat);
@@ -119,7 +124,7 @@ public class MatServiceImpl implements MatService {
         // 4. 필수 필드 세팅
         newMat.setIsUsed("f1");
         newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newMat.setModi("admin"); // 실제 로그인 사용자로 변경 필요
+        newMat.setModi(newMat.getModi()); // 실제 로그인 사용자로 변경 필요
 
         // 5. 새 자재 insert
         matMapper.insertMat(newMat);

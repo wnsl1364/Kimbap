@@ -9,4 +9,5 @@ public interface CashflowService {
     void insertCf(CashflowVO cf); // 입출금 내역 등록
     void updateCf(CashflowVO cf); // 입출금 내역 수정
     Map<String, Object> getCfDetail(String statementCd); // 입출금 내역 단건 조회
+    public List<CashflowVO> getOnlyIncomeList(); // 입금 내역 조회
 }

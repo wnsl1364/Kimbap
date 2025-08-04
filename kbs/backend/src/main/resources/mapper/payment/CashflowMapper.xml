@@ -12,7 +12,8 @@
             regi,
             modi,
             reg_dt,
-            note
+            note,
+            cal_status
         FROM statement
         WHERE 1=1
         <if test="statementCd != null and statementCd != ''">
@@ -21,8 +22,8 @@
         <if test="transType != null and transType != ''">
             AND trans_type = #{transType}
         </if>
-        <if test="depo != null and depo != ''">
-            AND depo LIKE '%' || #{depo} || '%'
+        <if test="calStatus != null and calStatus != ''">
+            AND cal_status =  #{calStatus}
         </if>
         
         <!-- 등록일자 범위 조건 -->
@@ -34,6 +35,23 @@
         </if>
 
         ORDER BY statement_cd
+    </select>
+
+    <!-- 입금 내역 조회 -->
+    <select id="selectOnlyIncomeList" resultType="com.kimbap.kbs.payment.service.CashflowVO">
+    SELECT  statement_cd,
+            trans_type,
+            depo,
+            deposit_amount,
+            bank_name,
+            regi,
+            modi,
+            reg_dt,
+            note,
+            cal_status
+    FROM    statement
+    WHERE   trans_type = 'u1'
+    AND   cal_status = 'x1'
     </select>
     
     <!-- 입출금 내역 등록 -->
@@ -47,7 +65,8 @@
                     regi,
                     modi,
                     reg_dt,
-                    note
+                    note,
+                    cal_status
                     )
         VALUES      (
                     #{statementCd},
@@ -58,7 +77,8 @@
                     #{regi},
                     #{modi},
                     SYSDATE,
-                    #{note}
+                    #{note},
+                    #{calStatus}
                     )
     </insert>
 
@@ -87,7 +107,8 @@
                 regi,
                 modi,
                 reg_dt,
-                note
+                note,
+                cal_status
         FROM    statement
         WHERE   statement_cd = #{statementCd}
     </select>

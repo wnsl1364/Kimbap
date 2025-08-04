@@ -194,7 +194,7 @@ public class WhServiceImpl implements WhService{
         // 4. 필수 필드 세팅
         newWh.setIsUsed("f1");
         newWh.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newWh.setModi("admin");
+        newWh.setModi(newWh.getModi()); 
         newWh.setRegi(newWh.getRegi());
 
         // 5. 창고 등록

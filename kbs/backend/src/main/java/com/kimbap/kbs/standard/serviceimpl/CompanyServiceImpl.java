@@ -34,6 +34,11 @@ public class CompanyServiceImpl implements CompanyService {
     public List<CompanyVO> getSupplierList(){
         return companyMapper.getSupplierList();
     }
+    // 매출업체 목록 조회
+    @Override
+    public List<CompanyVO> getSalesList(){
+        return companyMapper.getSalesList();
+    }
     
     @Transactional
     @Override
