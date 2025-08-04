@@ -32,9 +32,9 @@ export default [
     },
     /**반품관리 */
     {
-        path: '/order/orderRefund',
-        name: 'ordRefund',
-        component: () => import('@/views/order/OrderRefund.vue'),
+        path: '/order/returnManage',
+        name: 'returnManage',
+        component: () => import('@/views/order/ReturnManage.vue'),
     },
     /**반품요청 */
     {

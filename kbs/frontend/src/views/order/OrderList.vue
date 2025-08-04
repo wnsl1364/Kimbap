@@ -58,7 +58,7 @@ const selectedRows = ref([]);
 const infoFormButtons = computed(() => {
   if (user.value?.memType === 'p2') { // 매출업체
     return {
-      refund: { show: true, label: '반품요청', severity: 'help' }
+      refund: { show: true, label: '반품관리', severity: 'help' }
     }
   } else {
     return {} // 버튼 없음
