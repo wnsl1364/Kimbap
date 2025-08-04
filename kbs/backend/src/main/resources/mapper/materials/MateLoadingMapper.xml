@@ -4,7 +4,7 @@
 
 <mapper namespace="com.kimbap.kbs.materials.mapper.MateLoadingMapper">
 
-    <!-- 자재 적재 대기 목록 전체 조회 -->
+    <!-- 자재 적재 대기 목록 전체 조회 (적재처리되지 않은 자재만) -->
     <select id="getAllMateLoadingWaitList" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
         SELECT 
             mi.mate_inbo_cd,
@@ -19,7 +19,12 @@
             mi.supplier_lot_no,
             mi.inbo_dt,
             mi.inbo_status,
-            mi.total_qty,
+            -- 부분 적재를 고려한 남은 수량 계산
+            (mi.total_qty - COALESCE(
+                (SELECT SUM(ws.qty) 
+                 FROM ware_stock ws 
+                 WHERE ws.mate_inbo_cd = mi.mate_inbo_cd), 0
+            )) as total_qty,
             mi.mname,
             mi.note,
             mi.cp_cd,
@@ -50,6 +55,12 @@
         WHERE mi.inbo_status = 'c5'  -- 입고완료 상태만 (적재 대기)
         AND f.op_status = 'r1'       -- 활성화된 공장만
         AND m.is_used = 'f1'         -- 활성화된 자재만
+        -- 완전히 적재처리되지 않은 자재만 (부분 적재 포함)
+        AND (mi.total_qty - COALESCE(
+            (SELECT SUM(ws.qty) 
+             FROM ware_stock ws 
+             WHERE ws.mate_inbo_cd = mi.mate_inbo_cd), 0
+        )) > 0
         ORDER BY mi.inbo_dt DESC, mi.mate_inbo_cd DESC
     </select>
 
@@ -104,6 +115,7 @@
 
     <!-- 자재 적재 처리 (ware_stock 테이블에 INSERT) -->
     <insert id="insertWareStock" parameterType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        <!-- 디버그: 실행 전 파라미터 확인 -->
         INSERT INTO ware_stock (
             wslcode,
             ware_area_cd,
@@ -119,7 +131,7 @@
             #{wareAreaCd},
             #{mateInboCd},
             NULL,                    -- 제품입고코드는 NULL (자재이므로)
-            'h1',                    -- 품목유형: 자재 (원자재/부자재 구분은 추후)
+            #{itemType},             -- 자재타입에 따라 동적 설정
             #{inboDt},
             #{regi},
             #{qty},
@@ -155,5 +167,142 @@
                 CONCAT('WARE-', REPLACE(#{wareAreaCd}, 'FAC', ''), '-001')
             ) AS wslcode
     </select>
-
+    
+        <!-- 특정 공장의 창고 목록 조회 -->
+    <select id="getWarehousesByFactory" parameterType="string" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            w.wcode,
+            w.ware_ver_cd,
+            w.ware_name,
+            w.ware_type,
+            w.address,
+            w.max_row,
+            w.max_col,
+            w.max_floor,
+            w.is_used,
+            w.fcode,
+            w.fac_ver_cd,
+            w.note
+        FROM warehouse w
+        WHERE w.fcode = #{fcode}
+        AND w.is_used = 'f1'    -- 활성화된 창고만
+        ORDER BY w.ware_type ASC, w.ware_name ASC
+    </select>
+    
+    <!-- 특정 창고의 구역 정보 조회 (층별) -->
+    <select id="getWarehouseAreasByFloor" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            wd.ware_area_cd,
+            wd.area_row,
+            wd.area_col,
+            wd.area_floor,
+            wd.vol,
+            wd.is_used,
+            wd.wcode,
+            wd.ware_ver_cd
+        FROM ware_d wd
+        WHERE wd.wcode = #{wcode}
+        AND wd.area_floor = #{floor}
+        AND wd.is_used = 'f1'    -- 활성화된 구역만
+        ORDER BY wd.area_row ASC, wd.area_col ASC
+    </select>
+    
+    <!-- 구역별 현재 적재 상황 조회 -->
+    <select id="getWarehouseAreaStock" parameterType="string" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            ws.wslcode,
+            ws.ware_area_cd,
+            ws.mate_inbo_cd,
+            ws.item_type,
+            ws.inbo_dt,
+            ws.regi,
+            ws.qty,
+            ws.unit,
+            mi.mcode,
+            m.mate_name
+        FROM ware_stock ws
+        LEFT JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+        LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+        WHERE ws.ware_area_cd = #{wareAreaCd}
+        ORDER BY ws.inbo_dt DESC
+    </select>
+    
+    <!-- 창고구역코드 조회 -->
+    <select id="getWareAreaCode" resultType="string">
+        SELECT ware_area_cd
+        FROM ware_d
+        WHERE wcode = #{wcode}
+        AND area_row = #{areaRow}
+        AND area_col = #{areaCol}
+        AND area_floor = #{areaFloor}
+        AND is_used = 'f1'
+    </select>
+    
+    <!-- 창고재고목록코드 마지막 순번 조회 -->
+    <select id="getLastWareStockSequence" parameterType="string" resultType="int">
+        SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(wslcode, -3))), 0) as last_seq
+        FROM ware_stock
+        WHERE wslcode LIKE CONCAT('WStock-', #{datePattern}, '-%')
+    </select>
+    
+    <!-- 구역별 현재 적재량 합계 조회 -->
+    <select id="getCurrentVolumeByArea" parameterType="string" resultType="int">
+        SELECT COALESCE(SUM(qty), 0) as current_volume
+        FROM ware_stock
+        WHERE ware_area_cd = #{wareAreaCd}
+    </select>
+    
+    <!-- 구역에 적재된 자재코드 조회 -->
+    <select id="getCurrentMaterialByArea" parameterType="string" resultType="string">
+        SELECT DISTINCT mi.mcode
+        FROM ware_stock ws
+        INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+        WHERE ws.ware_area_cd = #{wareAreaCd}
+        AND ROWNUM = 1  -- 첫 번째 자재코드만 반환
+    </select>
+    
+    <!-- 동일한 자재가 적재된 다른 구역들 조회 -->
+    <select id="getSameMaterialAreas" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT DISTINCT
+            ws.ware_area_cd,
+            wd.area_row,
+            wd.area_col,
+            wd.area_floor,
+            wd.vol,
+            NVL(area_stock.current_volume, 0) as current_volume,
+            (wd.vol - NVL(area_stock.current_volume, 0)) as available_volume
+        FROM ware_stock ws
+        INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+        INNER JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+        INNER JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
+        LEFT JOIN (
+            SELECT ware_area_cd, SUM(qty) as current_volume
+            FROM ware_stock
+            GROUP BY ware_area_cd
+        ) area_stock ON ws.ware_area_cd = area_stock.ware_area_cd
+        WHERE mi.mcode = #{mcode}
+        AND w.fcode = #{fcode}
+        AND ws.ware_area_cd != #{excludeAreaCd}
+        AND (wd.vol - NVL(area_stock.current_volume, 0)) > 0  -- 잔여 용량이 있는 곳만
+        ORDER BY available_volume DESC
+    </select>
+    
+    <!-- 🔥 material 테이블에서 자재 정보 조회 -->
+    <select id="getMaterialInfo" parameterType="string" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
+        SELECT 
+            mcode,
+            mate_name,
+            mate_type,
+            sto_con,
+            unit,
+            std,
+            piece_unit,
+            conver_qty,
+            moqty,
+            safe_stock,
+            is_used
+        FROM material
+        WHERE mcode = #{mcode}
+        AND is_used = 'Y'
+    </select>
 </mapper>

@@ -325,3 +325,54 @@ export const getWslCodeByArea = (wareAreaCd) => {
     params: { wareAreaCd }
   });
 };
+
+// ========== 창고 구역 선택 관련 API 함수들 ==========
+
+// 특정 공장의 창고 목록 조회 (창고 유형별)
+
+export const getWarehousesByFactory = (fcode) => {
+  return axios.get('/api/materials/mateLoading/warehouses', {
+    params: { fcode }
+  });
+};
+
+
+// 특정 창고의 구역 정보 조회 (층별, 현재 적재 상황 포함)
+
+export const getWarehouseAreasWithStock = (wcode, floor) => {
+  return axios.get('/api/materials/mateLoading/warehouse-areas', {
+    params: { wcode, floor }
+  });
+};
+
+
+//  창고구역코드 조회
+
+export const getWareAreaCode = (wcode, areaRow, areaCol, areaFloor) => {
+  return axios.get('/api/materials/mateLoading/warehouse-area-code', {
+    params: { wcode, areaRow, areaCol, areaFloor }
+  });
+};
+
+
+//  구역 적재 가능 여부 검증
+
+export const validateAreaAllocation = (wareAreaCd, mcode, allocateQty) => {
+  return axios.get('/api/materials/mateLoading/validate-area', {
+    params: { wareAreaCd, mcode, allocateQty }
+  });
+};
+
+
+//  동일한 자재가 적재된 다른 구역들 조회 (분할 적재용)
+
+export const getSameMaterialAreas = (mcode, fcode, excludeAreaCd = '') => {
+  const params = { mcode, fcode };
+  if (excludeAreaCd) {
+    params.excludeAreaCd = excludeAreaCd;
+  }
+  
+  return axios.get('/api/materials/mateLoading/same-material-areas', {
+    params
+  });
+};
