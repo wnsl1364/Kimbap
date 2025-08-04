@@ -884,7 +884,7 @@ public class MateServiceImpl implements MateService {
     @Override
     public List<PurchaseOrderViewVO> getSupplierMateRelList(SearchCriteria criteria) {
         try {
-            System.out.println("=== 거래처 자재 관계 목록 조회 시작 ===");
+            System.out.println("=== 공급업체의 출고 처리를 위한 목록 조회 시작 ===");
             System.out.println("cpCd: " + criteria.getCpCd());
             System.out.println("mcode: " + criteria.getMcode());
 
@@ -893,9 +893,9 @@ public class MateServiceImpl implements MateService {
 
             return list;
         } catch (Exception e) {
-            System.err.println("거래처 자재 관계 목록 조회 실패: " + e.getMessage());
+            System.err.println("공급업체의 출고 처리를 위한 목록 조회 실패: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("거래처 자재 관계 목록 조회 실패: " + e.getMessage(), e);
+            throw new RuntimeException("공급업체의 출고 처리를 위한 목록 조회 실패: " + e.getMessage(), e);
         }
     }
 }

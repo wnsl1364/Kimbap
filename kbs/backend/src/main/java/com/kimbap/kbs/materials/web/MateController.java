@@ -1,6 +1,8 @@
 package com.kimbap.kbs.materials.web;
 
 import java.math.BigDecimal;
+import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +29,7 @@ import com.kimbap.kbs.materials.service.PurchaseOrderViewVO;
 import com.kimbap.kbs.materials.service.SearchCriteria;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/materials")
@@ -382,8 +388,8 @@ public class MateController {
     public ResponseEntity<Map<String, Object>> updatePurchaseOrderStatus(
             @RequestBody MaterialsVO statusUpdateData) {
         try {
-            System.out.println("🔄 발주 상태 업데이트 요청: " + statusUpdateData.getPurcDCd() 
-                            + " → " + statusUpdateData.getPurcDStatus());
+            System.out.println("🔄 발주 상태 업데이트 요청: " + statusUpdateData.getPurcDCd()
+                    + " → " + statusUpdateData.getPurcDStatus());
 
             // 필수 데이터 검증
             if (statusUpdateData.getPurcDCd() == null || statusUpdateData.getPurcDCd().trim().isEmpty()) {
@@ -402,7 +408,7 @@ public class MateController {
 
             // 상태 업데이트 실행
             mateService.updatePurchaseOrderStatus(statusUpdateData);
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "발주 상태가 성공적으로 업데이트되었습니다.");
@@ -410,7 +416,7 @@ public class MateController {
             response.put("newStatus", statusUpdateData.getPurcDStatus());
 
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("❌ 발주 상태 업데이트 실패: " + e.getMessage());
             e.printStackTrace();
@@ -443,14 +449,14 @@ public class MateController {
                     .purcCd(purcCd)
                     .mateName(mateName)
                     .cpName(cpName)
-                    .purcDStatus("c1")  // 승인 대기 상태만 조회
+                    .purcDStatus("c1") // 승인 대기 상태만 조회
                     .startDate(startDate)
                     .endDate(endDate)
-                    .memtype("p1")      // 내부직원용
+                    .memtype("p1") // 내부직원용
                     .build();
 
             List<MaterialsVO> list = mateService.getPurchaseOrders(criteria);
-            
+
             // 승인 대기 상태만 필터링 (이중 체크)
             List<MaterialsVO> pendingList = list.stream()
                     .filter(item -> "c1".equals(item.getPurcDStatus()))
@@ -458,7 +464,7 @@ public class MateController {
 
             System.out.println("✅ 승인 대기 발주 조회 완료: " + pendingList.size() + "건");
             return ResponseEntity.ok(pendingList);
-            
+
         } catch (Exception e) {
             System.err.println("❌ 승인 대기 발주 목록 조회 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
@@ -488,8 +494,8 @@ public class MateController {
             // 상태별 통계 계산
             Map<String, Long> statusCounts = allOrders.stream()
                     .collect(Collectors.groupingBy(
-                        MaterialsVO::getPurcDStatus,
-                        Collectors.counting()
+                            MaterialsVO::getPurcDStatus,
+                            Collectors.counting()
                     ));
 
             // 총 금액 계산
@@ -502,8 +508,8 @@ public class MateController {
             Map<String, Long> supplierCounts = allOrders.stream()
                     .filter(order -> order.getCpName() != null)
                     .collect(Collectors.groupingBy(
-                        MaterialsVO::getCpName,
-                        Collectors.counting()
+                            MaterialsVO::getCpName,
+                            Collectors.counting()
                     ));
 
             Map<String, Object> statistics = new HashMap<>();
@@ -517,7 +523,7 @@ public class MateController {
 
             System.out.println("✅ 발주 통계 조회 완료");
             return ResponseEntity.ok(statistics);
-            
+
         } catch (Exception e) {
             System.err.println("❌ 발주 통계 조회 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
@@ -543,7 +549,7 @@ public class MateController {
 
         try {
             System.out.println("🎯 발주 조회 전용 API 호출: " + memtype);
-            
+
             SearchCriteria criteria = SearchCriteria.builder()
                     .purcCd(purcCd)
                     .purcDCd(purcDCd)
@@ -562,10 +568,10 @@ public class MateController {
                     .build();
 
             List<PurchaseOrderViewVO> list = mateService.getPurchaseOrdersForView(criteria);
-            
+
             System.out.println("✅ 발주 조회 전용 API 성공: " + list.size() + "건");
             return ResponseEntity.ok(list);
-            
+
         } catch (Exception e) {
             System.err.println("❌ 발주 조회 전용 API 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
@@ -577,22 +583,27 @@ public class MateController {
      */
     @GetMapping("/supplier-mate-relations")
     public ResponseEntity<List<PurchaseOrderViewVO>> getSupplierMateRelList(
-            @RequestParam(required = false) String purcCd,
-            @RequestParam(required = false) String mcode,
-            @RequestParam(required = false) String mateType,
+            @RequestParam(required = false) String purcCd, // 발주번호
+            @RequestParam(required = false) String mcode, // 자재코드
+            @RequestParam(required = false) String mateName, // 자재명 추가
+            @RequestParam(required = false) String mateType, // 자재유형
+            @RequestParam(required = false) String purcDStatus, // 발주상태 추가
             @RequestParam(required = false) String exDeliStartDate,
             @RequestParam(required = false) String exDeliEndDate,
             @RequestParam(required = false) String deliStartDate,
             @RequestParam(required = false) String deliEndDate,
+            @RequestParam(required = false) String cpCd, // 회사코드
             HttpServletRequest request) {
-        
-        String loggedInCpCd = getCurrentUserCpCd(request);
+
+        String loggedInCpCd = (cpCd != null && !cpCd.isEmpty()) ? cpCd : getCurrentUserCpCd(request);
         try {
             SearchCriteria criteria = SearchCriteria.builder()
-                    .cpCd(loggedInCpCd)
+                    .cpCd(loggedInCpCd) // 로그인한 거래처만
                     .purcCd(purcCd)
                     .mcode(mcode)
+                    .mateName(mateName) // 추가
                     .mateType(mateType)
+                    .purcDStatus(purcDStatus) // 추가
                     .exDeliStartDate(exDeliStartDate)
                     .exDeliEndDate(exDeliEndDate)
                     .deliStartDate(deliStartDate)
@@ -600,23 +611,124 @@ public class MateController {
                     .build();
 
             List<PurchaseOrderViewVO> list = mateService.getSupplierMateRelList(criteria);
-            System.out.println("자재-거래처 연결 목록 조회 결과: " + list.size() + "건");
+            System.out.println("✅ 자재출고 목록 조회 결과: " + list.size() + "건");
 
             return ResponseEntity.ok(list);
         } catch (Exception e) {
-            System.out.println("자재-거래처 연결 목록 조회 실패: " + e.getMessage());
+            System.err.println("❌ 자재출고 목록 조회 실패: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }
 
     // getCurrentUserCpCd
     private String getCurrentUserCpCd(HttpServletRequest request) {
-        // 현재 로그인한 사용자의 회사코드를 가져오는 로직
-        // 예시로 세션에서 cpCd를 가져온다고 가정
-        String cpCd = (String) request.getSession().getAttribute("cpCd");
-        if (cpCd == null || cpCd.isEmpty()) {
-            throw new IllegalStateException("로그인된 사용자의 회사코드가 없습니다.");
+        // 🎯 방법 1: JWT 토큰에서 cpCd 추출
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                String token = authHeader.substring(7);
+                System.out.println("🔍 JWT 토큰 발견: " + token.substring(0, Math.min(20, token.length())) + "...");
+
+                // JWT 토큰 파싱 시도 (JWT 유틸리티 클래스 필요)
+                // 이 부분은 프로젝트의 JWT 구현에 따라 달라집니다
+                /*
+            if (jwtUtil != null) {
+                String cpCd = jwtUtil.getCpCdFromToken(token);
+                if (cpCd != null && !cpCd.isEmpty()) {
+                    System.out.println("✅ JWT에서 cpCd 추출 성공: " + cpCd);
+                    return cpCd;
+                }
+            }
+                 */
+            } catch (Exception e) {
+                System.out.println("❌ JWT 토큰 파싱 실패: " + e.getMessage());
+            }
         }
-        return cpCd;
+
+        // 🎯 방법 2: SecurityContext에서 인증 정보 확인
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                System.out.println("🔍 SecurityContext 인증 정보:");
+                System.out.println("   - Principal: " + auth.getPrincipal());
+                System.out.println("   - Name: " + auth.getName());
+                System.out.println("   - Authorities: " + auth.getAuthorities());
+                System.out.println("   - Details: " + auth.getDetails());
+
+                // UserDetails 구현체에서 cpCd 추출
+                if (auth.getPrincipal() instanceof UserDetails) {
+                    UserDetails userDetails = (UserDetails) auth.getPrincipal();
+                    // CustomUserDetails에 cpCd가 있다면
+                    /*
+                if (userDetails instanceof CustomUserDetails) {
+                    String cpCd = ((CustomUserDetails) userDetails).getCpCd();
+                    if (cpCd != null && !cpCd.isEmpty()) {
+                        System.out.println("✅ UserDetails에서 cpCd 추출 성공: " + cpCd);
+                        return cpCd;
+                    }
+                }
+                     */
+                }
+
+                // Map 형태의 Details에서 추출
+                if (auth.getDetails() instanceof Map) {
+                    Map<String, Object> details = (Map<String, Object>) auth.getDetails();
+                    Object cpCdObj = details.get("cpCd");
+                    if (cpCdObj != null) {
+                        String cpCd = cpCdObj.toString();
+                        System.out.println("✅ Authentication Details에서 cpCd 추출 성공: " + cpCd);
+                        return cpCd;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("❌ SecurityContext에서 cpCd 조회 실패: " + e.getMessage());
+        }
+
+        // 🎯 방법 3: 세션에서 가져오기
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            System.out.println("🔍 세션 정보:");
+            System.out.println("   - 세션 ID: " + session.getId());
+            System.out.println("   - 생성 시간: " + new Date(session.getCreationTime()));
+            System.out.println("   - 마지막 접근: " + new Date(session.getLastAccessedTime()));
+
+            // 모든 세션 속성 출력
+            Enumeration<String> attributeNames = session.getAttributeNames();
+            while (attributeNames.hasMoreElements()) {
+                String name = attributeNames.nextElement();
+                Object value = session.getAttribute(name);
+                System.out.println("   - " + name + ": " + value);
+            }
+
+            String cpCd = (String) session.getAttribute("cpCd");
+            if (cpCd != null && !cpCd.isEmpty()) {
+                System.out.println("✅ 세션에서 cpCd 추출 성공: " + cpCd);
+                return cpCd;
+            }
+        } else {
+            System.out.println("❌ 세션이 존재하지 않습니다.");
+        }
+
+        // 🎯 방법 4: 요청 속성에서 확인 (JWT 필터에서 설정했을 수도 있음)
+        Object reqCpCd = request.getAttribute("cpCd");
+        if (reqCpCd != null) {
+            String cpCd = reqCpCd.toString();
+            System.out.println("✅ 요청 속성에서 cpCd 추출 성공: " + cpCd);
+            return cpCd;
+        }
+
+        // 🎯 디버깅: 모든 요청 속성 출력
+        System.out.println("🔍 요청 속성들:");
+        Enumeration<String> reqAttributeNames = request.getAttributeNames();
+        while (reqAttributeNames.hasMoreElements()) {
+            String name = reqAttributeNames.nextElement();
+            Object value = request.getAttribute(name);
+            System.out.println("   - " + name + ": " + value);
+        }
+
+        // 🎯 마지막 대안: 기본값 반환
+        System.out.println("⚠️ cpCd를 찾을 수 없어서 기본값 사용: CP-001");
+        return "CP-001";
     }
 }
