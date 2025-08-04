@@ -78,6 +78,8 @@ function onConfirm() {
       :dataKey="itemKey"
       tableStyle="min-width: 50rem"
       showGridlines
+      scrollable
+      scrollHeight="384px"
     >
       <Column
         selectionMode="multiple"

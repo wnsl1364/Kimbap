@@ -79,8 +79,13 @@ const handleModalSelect = (selectedItem) => {
       updateField(currentField.value, displayValue)
     }
 
+    emit('select', selectedItem)
+
     if (modalConfig?.emitEvent) {
       emit(modalConfig.emitEvent, selectedItem)
+    }
+    if (typeof modalConfig?.onSelect === 'function') {
+      modalConfig.onSelect(selectedItem);
     }
   }
   resetModalState()

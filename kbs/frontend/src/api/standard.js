@@ -14,6 +14,10 @@ export const insertMaterial = (data) => {
 export const getSupplierList = () => {
   return axios.get('/api/std/cp/sup/list');
 };
+// 공급사 목록 조회 API
+export const getSalesList = () => {
+  return axios.get('/api/std/cp/sal/list');
+};
 // 자재기준정보  단건 조회 API
 export function getMaterialDetail(mcode) {
   return axios.get(`/api/std/mat/detail/${mcode}`);

@@ -20,5 +20,6 @@ public class CashflowVO {
     private String regi;           // 등록자
     private String modi;           // 수정자
     private Timestamp regDt;       // 등록일자
-    private String note;           //비고
+    private String note;           // 비고
+    private String calStatus;       // 정산 상태
 }

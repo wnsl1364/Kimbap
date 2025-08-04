@@ -17,3 +17,12 @@ export function getCashflowDetail(statementCd) {
 export const updateCashflow = (data) => {
   return axios.put('/api/pay/update', data);
 }
+// 입금 내역 조회
+export const getInComeList = () => {
+  return axios.get('/api/pay/income');
+};
+
+// 미정산 정산 처리 API (입금 내역 상태 x2 + 미정산금액 차감)
+export const settleUnpaid = (data) => {
+  return axios.post('/api/unpaid/update', data);
+};

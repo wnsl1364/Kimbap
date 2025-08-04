@@ -76,7 +76,7 @@ public class ProdServiceImpl implements ProdService{
         // 4. 필수 필드 세팅
         newProd.setIsUsed("f1");
         newProd.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newProd.setModi("admin"); // TODO: 현재 로그인 사용자로 대체
+        newProd.setModi(newProd.getModi()); // TODO: 현재 로그인 사용자로 대체
         newProd.setRegi(oldProd.getRegi()); // 기존 등록자 그대로 유지
 
         // 5. 제품 등록 (insert = 버전 신규 생성)

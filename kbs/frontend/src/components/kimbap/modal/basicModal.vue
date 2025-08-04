@@ -22,12 +22,12 @@ const filteredItems = ref([]);
 
 // 모달 열릴 때 fetchItems() 실행
 watch(
-  () => props.items,
-  (newItems) => {
-    filteredItems.value = JSON.parse(JSON.stringify(newItems)) || []
-  },
-  { immediate: true }
-)
+    () => props.items,
+    (newItems) => {
+        filteredItems.value = JSON.parse(JSON.stringify(newItems)) || [];
+    },
+    { immediate: true }
+);
 
 watch(
     () => props.items,
@@ -40,13 +40,12 @@ watch(
 function onClose() {
     emit('update:visible', false);
 }
-
 </script>
 
 <template>
     <Dialog :visible="visible" @update:visible="emit('update:visible', $event)" modal header="이력 목록" :style="{ width: '60rem' }" :closable="false">
         <!-- 테이블 -->
-        <DataTable :value="filteredItems" dataKey="version" tableStyle="min-width: 50rem" showGridlines>
+        <DataTable :value="filteredItems" dataKey="version" tableStyle="min-width: 50rem" showGridlines scrollable scrollHeight="384px">
             <Column v-for="col in columns" :key="String(col.field)" :field="String(col.field)" :header="col.header">
                 <template #body="slotProps">
                     {{ slotProps.data?.[String(col.field)] ?? '-' }}

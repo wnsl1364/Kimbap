@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.payment.mapper.UnpaidSettleMapper">
+    <!-- 1. 입금내역 상태 업데이트 -->
+    <update id="updateCashflowStatus">
+        UPDATE statement
+        SET cal_status = 'x2'
+        WHERE statement_cd = #{statementCd}
+    </update>
+
+    <!-- 2. 거래처 미정산금액 차감 -->
+    <update id="deductUnpaidAmount">
+        UPDATE company
+        SET unsettled_amount = unsettled_amount - #{depositAmount}
+        WHERE cp_cd = #{cpCd}
+    </update>
+    
+</mapper>

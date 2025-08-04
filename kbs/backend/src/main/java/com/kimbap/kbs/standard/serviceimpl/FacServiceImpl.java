@@ -51,6 +51,11 @@ public class FacServiceImpl  implements FacService{
             fac.setFacVerCd("V001");
         }
 
+        // 4. 등록자 정보
+        if (fac.getRegi() == null || fac.getRegi().isEmpty()) {
+            fac.setRegi("admin");
+        }
+
         // 공장 등록
         facMapper.insertFac(fac);
         System.out.println("등록되는 VO: " + fac);
@@ -96,7 +101,7 @@ public class FacServiceImpl  implements FacService{
         // 필수 필드 세팅
         newFac.setOpStatus("r1");
         newFac.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newFac.setModi("admin");
+        newFac.setModi(newFac.getModi());
 
         // 새 공장 insert
         facMapper.insertFac(newFac);

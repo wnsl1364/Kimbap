@@ -13,4 +13,5 @@ public interface CashflowMapper {
     int existsCfcode(String statementCd); // 입출금내역코드 존재 여부확인
     int getNextInCashflowCode(); // 시퀀스
     int getNextOutCashflowCode(); // 시퀀스
+    List<CashflowVO> selectOnlyIncomeList(); // 입금만 조회
 }

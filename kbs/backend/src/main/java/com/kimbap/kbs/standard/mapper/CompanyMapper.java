@@ -12,4 +12,5 @@ public interface CompanyMapper {
     int existsCpcode(String cpCd);  // 거래처코드 존재 여부 확인
     int getNextRawCompanyCodeBySeq(); // 시퀀스 
     List<CompanyVO> getSupplierList(); // 공급업체 목록 조회
+    List<CompanyVO> getSalesList(); // 매출업체 목록 조회
 }

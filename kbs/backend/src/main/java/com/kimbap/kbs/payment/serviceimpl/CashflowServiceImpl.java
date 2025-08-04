@@ -23,6 +23,12 @@ public class CashflowServiceImpl implements CashflowService{
     public List<CashflowVO> getCashflowList(Map<String, Object> params) {
         return cashflowMapper.getCashflowList(params);  // 👈 Mapper로 그대로 전달
     }
+    
+    // 입금 내역 목록 조회
+    @Override
+    public List<CashflowVO> getOnlyIncomeList() {
+        return cashflowMapper.selectOnlyIncomeList(); // mapper 메서드 호출
+    }
 
     // 입출금 내역 등록
     @Transactional
@@ -52,6 +58,9 @@ public class CashflowServiceImpl implements CashflowService{
         if (cashflowMapper.existsCfcode(statementCd) > 0) {
             throw new RuntimeException("이미 존재하는 입출금 내역 코드: " + statementCd);
         }
+
+        // 상태 값 기본 
+        cf.setCalStatus("x1");
 
         cf.setStatementCd(statementCd);
         if (cf.getRegi() == null || cf.getRegi().isEmpty()) {

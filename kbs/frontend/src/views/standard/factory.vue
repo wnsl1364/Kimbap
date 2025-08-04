@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { storeToRefs } from 'pinia';
 import { useCommonStore } from '@/stores/commonStore';
 import { useStandardFacStore } from '@/stores/standardFacStore';
+import { useMemberStore } from '@/stores/memberStore';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
@@ -15,6 +16,12 @@ import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 const store = useStandardFacStore();
 const { factoryList, facMaxList, formData, changeHistory, facMaxData } = storeToRefs(store);
 const { fetchFactorys, fetchFacMax, saveFactory, fetchFactoryDetail, fetchChangeHistory } = store;
+const memberStore = useMemberStore();
+const { user } = storeToRefs(memberStore);
+
+const isEmployee = computed(() => user.value?.memType === 'p1');
+const isManager = computed(() => user.value?.memType === 'p4');
+const isAdmin = computed(() => user.value?.memType === 'p5');
 
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
@@ -127,7 +134,7 @@ onBeforeMount(() => {
         { field: 'mpqty', header: '최대생산량(EA)',  type: 'input',width: "100px" ,align: "right", inputType: 'number', placeholder: '최대생산량을 입력하세요' },
     ]
     inputFormButtons.value = {
-        save: { show: true, label: '저장', severity: 'success' }
+        save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
 })
 
@@ -139,6 +146,20 @@ onMounted(async () => {
 
 // 공장기준정보 등록 처리
 const handleSaveFactory = async () => {
+    if (!isAdmin.value && !isManager.value) {
+    alert('등록 권한이 없습니다.');
+    return;
+    }
+    if (!user.value?.empCd) {
+        alert('로그인 정보가 없습니다.');
+        return;
+    }
+    // 신규 등록이면 regi, 수정이면 modi 설정
+    if (!formData.value.pcode) {
+        formData.value.regi = user.value.empCd;
+    } else {
+        formData.value.modi = user.value.empCd;
+    }
     const result = await saveFactory();
     alert(result === '등록 성공' ? '등록 성공' : result);
 };
