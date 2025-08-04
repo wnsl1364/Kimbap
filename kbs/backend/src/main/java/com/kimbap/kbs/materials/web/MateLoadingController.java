@@ -26,10 +26,9 @@ public class MateLoadingController {
     @Autowired
     private MateLoadingService mateLoadingService;
 
-    /**
-     * 자재 적재 대기 목록 전체 조회
-     * @return 적재 대기 자재 목록
-     */
+
+// 자재 적재 대기 목록 전체 조회
+
     @GetMapping("/waitList")
     public ResponseEntity<List<MateLoadingVO>> getAllMateLoadingWaitList() {
         try {
@@ -43,11 +42,9 @@ public class MateLoadingController {
         }
     }
 
-    /**
-     * 특정 입고번호의 적재 대기 자재 단건 조회
-     * @param mateInboCd 자재입고코드
-     * @return 적재 대기 자재 정보
-     */
+
+// 특정 입고번호의 적재 대기 자재 단건 조회
+
     @GetMapping("/detail/{mateInboCd}")
     public ResponseEntity<MateLoadingVO> getMateLoadingByInboCd(@PathVariable String mateInboCd) {
         try {
@@ -66,11 +63,9 @@ public class MateLoadingController {
         }
     }
 
-    /**
-     * 단건 자재 적재 처리
-     * @param mateLoading 적재할 자재 정보
-     * @return 처리 결과 메시지
-     */
+
+// 단건 자재 적재 처리
+
     @PostMapping("/processSingle")
     public ResponseEntity<Map<String, Object>> processMateLoading(@RequestBody MateLoadingVO mateLoading) {
         try {
@@ -98,15 +93,20 @@ public class MateLoadingController {
         }
     }
 
-    /**
-     * 다중 자재 적재 처리 (선택된 여러 자재 한번에 처리)
-     * @param mateLoadingList 적재할 자재 목록
-     * @return 처리 결과 메시지
-     */
+// 다중 자재 적재 처리 (선택된 여러 자재 한번에 처리)
+
     @PostMapping("/processBatch")
     public ResponseEntity<Map<String, Object>> processMateLoadingBatch(@RequestBody List<MateLoadingVO> mateLoadingList) {
         try {
-            System.out.println("다중 자재 적재 처리 요청: " + mateLoadingList.size() + "건");
+            System.out.println("=== 다중 자재 적재 처리 요청 ===");
+            System.out.println("요청 건수: " + mateLoadingList.size());
+            
+            // 각 항목의 상세 정보 로그
+            for (int i = 0; i < mateLoadingList.size(); i++) {
+                MateLoadingVO item = mateLoadingList.get(i);
+                System.out.println(String.format("[%d] mateInboCd: %s, mcode: %s, qty: %s, wareAreaCd: %s, unit: %s", 
+                    i+1, item.getMateInboCd(), item.getMcode(), item.getQty(), item.getWareAreaCd(), item.getUnit()));
+            }
             
             if (mateLoadingList.isEmpty()) {
                 Map<String, Object> response = new HashMap<>();
@@ -138,10 +138,9 @@ public class MateLoadingController {
         }
     }
 
-    /**
-     * 활성화된 공장 목록 조회 (검색조건 드롭다운용)
-     * @return 활성화된 공장 목록
-     */
+
+// 활성화된 공장 목록 조회 (검색조건 드롭다운용)
+
     @GetMapping("/factories")
     public ResponseEntity<List<MateLoadingVO>> getActiveFactoryList() {
         try {
@@ -155,11 +154,134 @@ public class MateLoadingController {
         }
     }
 
-    /**
-     * 창고 구역별 wslcode 조회 (위치선택 시 사용)
-     * @param wareAreaCd 창고구역코드
-     * @return wslcode
-     */
+
+// 특정 공장의 창고 목록 조회 (창고 유형별)
+
+    @GetMapping("/warehouses")
+    public ResponseEntity<List<MateLoadingVO>> getWarehousesByFactory(@RequestParam String fcode) {
+        try {
+            System.out.println("공장별 창고 목록 조회 요청: " + fcode);
+            
+            List<MateLoadingVO> warehouseList = mateLoadingService.getWarehousesByFactory(fcode);
+            
+            System.out.println("공장별 창고 목록 조회 완료: " + fcode + " - " + warehouseList.size() + "개");
+            return ResponseEntity.ok(warehouseList);
+            
+        } catch (Exception e) {
+            System.err.println("공장별 창고 목록 조회 실패: " + fcode + " - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+
+// 특정 창고의 구역 정보 조회 (층별, 현재 적재 상황 포함)
+
+    @GetMapping("/warehouse-areas")
+    public ResponseEntity<List<Map<String, Object>>> getWarehouseAreasWithStock(
+            @RequestParam String wcode, 
+            @RequestParam Integer floor) {
+        try {
+            System.out.println("창고 구역별 적재 현황 조회 요청: " + wcode + " " + floor + "층");
+            
+            List<Map<String, Object>> areaList = mateLoadingService.getWarehouseAreasWithStock(wcode, floor);
+            
+            System.out.println("창고 구역별 적재 현황 조회 완료: " + wcode + " " + floor + "층 - " + areaList.size() + "개 구역");
+            return ResponseEntity.ok(areaList);
+            
+        } catch (Exception e) {
+            System.err.println("창고 구역별 적재 현황 조회 실패: " + wcode + " " + floor + "층 - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+
+// 창고구역코드 조회
+
+    @GetMapping("/warehouse-area-code")
+    public ResponseEntity<Map<String, String>> getWareAreaCode(
+            @RequestParam String wcode,
+            @RequestParam String areaRow,
+            @RequestParam Integer areaCol,
+            @RequestParam Integer areaFloor) {
+        try {
+            System.out.println("창고구역코드 조회 요청: " + wcode + "-" + areaRow + areaCol + "-" + areaFloor);
+            
+            String wareAreaCode = mateLoadingService.getWareAreaCode(wcode, areaRow, areaCol, areaFloor);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("wareAreaCd", wareAreaCode);
+            response.put("wcode", wcode);
+            response.put("areaRow", areaRow);
+            response.put("areaCol", areaCol.toString());
+            response.put("areaFloor", areaFloor.toString());
+            
+            System.out.println("창고구역코드 조회 완료: " + wareAreaCode);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("창고구역코드 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+
+// 구역 적재 가능 여부 검증
+
+    @GetMapping("/validate-area")
+    public ResponseEntity<Map<String, Object>> validateAreaAllocation(
+            @RequestParam String wareAreaCd,
+            @RequestParam String mcode,
+            @RequestParam Integer allocateQty) {
+        try {
+            System.out.println("구역 적재 검증 요청: " + wareAreaCd + " - " + mcode + " - " + allocateQty);
+            
+            Map<String, Object> validationResult = mateLoadingService.validateAreaAllocation(wareAreaCd, mcode, allocateQty);
+            
+            System.out.println("구역 적재 검증 완료: " + validationResult.get("message"));
+            return ResponseEntity.ok(validationResult);
+            
+        } catch (Exception e) {
+            System.err.println("구역 적재 검증 실패: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("isValid", false);
+            errorResponse.put("message", "구역 적재 검증 중 오류가 발생했습니다: " + e.getMessage());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+    
+
+// 동일한 자재가 적재된 다른 구역들 조회 (분할 적재용)
+
+    @GetMapping("/same-material-areas")
+    public ResponseEntity<List<MateLoadingVO>> getSameMaterialAreas(
+            @RequestParam String mcode,
+            @RequestParam String fcode,
+            @RequestParam(required = false) String excludeAreaCd) {
+        try {
+            System.out.println("동일 자재 적재 구역 조회 요청: " + mcode + " - " + fcode);
+            
+            if (excludeAreaCd == null) excludeAreaCd = "";
+            
+            List<MateLoadingVO> sameMaterialAreas = mateLoadingService.getSameMaterialAreas(mcode, fcode, excludeAreaCd);
+            
+            System.out.println("동일 자재 적재 구역 조회 완료: " + mcode + " - " + sameMaterialAreas.size() + "개 구역");
+            return ResponseEntity.ok(sameMaterialAreas);
+            
+        } catch (Exception e) {
+            System.err.println("동일 자재 적재 구역 조회 실패: " + mcode + " - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+
+//  창고 구역별 wslcode 조회 (기존 메서드 - 호환성 유지)
     @GetMapping("/wslcode")
     public ResponseEntity<Map<String, String>> getWslCodeByArea(@RequestParam String wareAreaCd) {
         try {
