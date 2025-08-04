@@ -40,13 +40,13 @@ public interface ProdRequestMapper {
     List<WaStockVO> selectAvailableStocks(@Param("mcode") String mcode, @Param("mateVerCd") String mateVerCd);
     // 재고 차감
     void decreaseWareStock(@Param("wslcode") String wslcode, @Param("useQty") BigDecimal useQty);
-    // 자재출고 코드 생성 및 저장
-    String getNewMateRelCd();
-    void insertMateRel(MateReleaseVO vo);
-    // 완제품 입고 코드 및 LOT 번호 생성
-    String getNewProdInboCd();
-    String getNewLotNo300();
-    void insertProdInbo(ProdInboundVO vo);
+
+    String getNewMateRelCd();                   // 자재 출고 코드 생성
+    void insertMateRel(MateReleaseVO vo);       // 자재 출고 테이블 입력
+    String getNewProdInboCd();                  // 제품 입고 코드 생성
+    String getNewLotNo300();                    // 제품 입고 LOT 생성
+    void insertProdInbo(ProdInboundVO vo);      // 제품 입고 테이블 입력
+    int selectTodayProdInboSeq();               // 제품 입고 코드 가장 최근 값 가져오기
     // ===================================================
 
 }

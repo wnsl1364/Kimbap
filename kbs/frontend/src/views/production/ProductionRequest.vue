@@ -45,7 +45,7 @@ const { commonCodes } = storeToRefs(common)
 
 
 // 모달에서 선택된 생산계획 데이터 처리
-const handlePlanSelect = ({ basicInfo }) => {
+const handlePlanSelect = ({ basicInfo, detailList }) => {
   formData.value = {
     produPlanCd: basicInfo.produPlanCd,
     factory: {
@@ -58,6 +58,8 @@ const handlePlanSelect = ({ basicInfo }) => {
   }
   // 오늘 날짜를 기본값으로 설정
   formData.value.reqDt = new Date()
+
+  prodDetailList.value = detailList
 }
 
 // 모달에서 선택된 생산요청 데이터 처리
@@ -176,11 +178,12 @@ const handleSave = async (data) => {
       detail: isNew ? '생산요청이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
       life: 3000
     });
-  } catch (err) {
+  } catch (error) {
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.response?.data || '저장 중 오류가 발생했습니다.';
     toast.add({
       severity: 'error',
       summary: '저장 실패',
-      detail: '저장 실패했습니다.',
+      detail: errorMessage,
       life: 3000
     });
   }

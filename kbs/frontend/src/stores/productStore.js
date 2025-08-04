@@ -113,7 +113,6 @@ export const useProductStore = defineStore('product', () => {
       const res = await postSaveProdReq(requestData);
       return res.data;
     } catch (err) {
-      console.error('생산요청 저장 실패:', err);
       throw err;
     }
   }
