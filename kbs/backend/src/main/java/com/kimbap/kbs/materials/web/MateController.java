@@ -1,6 +1,8 @@
 package com.kimbap.kbs.materials.web;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -730,5 +732,270 @@ public class MateController {
         // 🎯 마지막 대안: 기본값 반환
         System.out.println("⚠️ cpCd를 찾을 수 없어서 기본값 사용: CP-001");
         return "CP-001";
+    }
+
+    // ========== 공급업체 자재출고 관련 API 추가 ==========
+    /**
+     * 공급업체 자재출고 다중(배치) 처리
+     */
+    @PostMapping("/outbound/process-batch")
+    public ResponseEntity<Map<String, Object>> processBatchOutbound(@RequestBody List<MaterialsVO> outboundDataList,
+            HttpServletRequest request) {
+        try {
+            System.out.println("공급업체 자재출고 배치 처리 요청: " + outboundDataList.size() + "건");
+
+            int totalProcessed = 0;
+
+            for (MaterialsVO outboundData : outboundDataList) {
+                String mateInboCd = generateMateInboCode();
+
+                // 🔥 purc_ord_d에서 실제 mate_ver_cd 가져오기!
+                String actualMateVerCd = getActualMateVerCdFromPurcOrder(outboundData.getPurcDCd());
+
+                // 🎯 1단계: purc_ord_d의 curr_qty 업데이트 (누적)
+                try {
+                    // 현재 curr_qty 조회
+                    MaterialsVO currentOrder = mateService.getPurcOrderDetailByCode(outboundData.getPurcDCd());
+                    int currentCurrQty = currentOrder != null && currentOrder.getCurrQty() != null ? 
+                                        currentOrder.getCurrQty() : 0;
+                    
+                    // 새로운 curr_qty = 기존 curr_qty + 이번 출고수량
+                    int newCurrQty = currentCurrQty + (outboundData.getPurcQty() != null ? outboundData.getPurcQty() : 0);
+                    
+                    // purc_ord_d 업데이트
+                    MaterialsVO updateCurrQty = MaterialsVO.builder()
+                            .purcDCd(outboundData.getPurcDCd())
+                            .currQty(newCurrQty)
+                            .build();
+                    
+                    mateService.updatePurchaseOrderCurrQty(updateCurrQty);
+                    
+                    System.out.println("🔄 curr_qty 업데이트: " + outboundData.getPurcDCd() 
+                                     + " (" + currentCurrQty + " → " + newCurrQty + ")");
+                } catch (Exception e) {
+                    System.err.println("❌ curr_qty 업데이트 실패: " + e.getMessage());
+                    // curr_qty 업데이트 실패해도 입고 레코드는 생성
+                }
+
+                // 🎯 2단계: mate_inbo 레코드 생성
+                MaterialsVO mateInboVO = MaterialsVO.builder()
+                        .mateInboCd(mateInboCd)
+                        .mcode(outboundData.getMcode())
+                        .mateVerCd(actualMateVerCd) // 🔥 실제 버전코드 사용!
+                        .purcDCd(outboundData.getPurcDCd())
+                        .supplierLotNo("SUP-LOT-" + System.currentTimeMillis())
+                        .inboStatus("c3")
+                        .totalQty(outboundData.getPurcQty()) // 이번 출고수량
+                        .mname("공급업체출고")
+                        .note(outboundData.getNote() != null ? outboundData.getNote()
+                                : outboundData.getMateName() + " 공급업체 출고완료")
+                        .cpCd(getCurrentUserCpCd(request))
+                        .deliDt(new Date())
+                        .inboDt(new Date())
+                        .build();
+
+                mateService.insertMateInbo(mateInboVO);
+                totalProcessed++;
+
+                System.out.println("자재입고 대기 레코드 생성: " + mateInboCd
+                        + " (발주: " + outboundData.getPurcDCd()
+                        + ", 자재: " + outboundData.getMcode() + " ver:" + actualMateVerCd
+                        + ", 수량: " + outboundData.getPurcQty() + ")");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "공급업체 출고완료 처리가 완료되었습니다! "
+                    + totalProcessed + "건의 자재가 입고대기 상태로 등록되었습니다.");
+            response.put("processedCount", totalProcessed);
+            response.put("timestamp", new Date());
+
+            System.out.println("공급업체 출고완료 배치 처리 완료: " + totalProcessed + "건");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("공급업체 출고완료 처리 실패: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "공급업체 출고완료 처리 중 오류가 발생했습니다: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    private String getActualMateVerCdFromPurcOrder(String purcDCd) {
+        try {
+            // 🔥 purc_ord_d에서 실제 mate_ver_cd 조회!
+            MaterialsVO purcOrderDetail = mateService.getPurcOrderDetailByCode(purcDCd);
+
+            if (purcOrderDetail != null && purcOrderDetail.getMateVerCd() != null) {
+                System.out.println("✅ 실제 mate_ver_cd 조회 성공: " + purcOrderDetail.getMateVerCd()
+                        + " (발주상세: " + purcDCd + ")");
+                return purcOrderDetail.getMateVerCd();
+            } else {
+                System.out.println("⚠️ mate_ver_cd 조회 실패, 기본값 V1 사용 (발주상세: " + purcDCd + ")");
+                return "V1"; // 기본값
+            }
+        } catch (Exception e) {
+            System.err.println("❌ mate_ver_cd 조회 중 오류, 기본값 V1 사용: " + e.getMessage());
+            return "V1"; // 오류 시 기본값
+        }
+    }
+
+    /**
+     * 공급업체 자재출고 개별 처리 - PK 중복 시 재시도
+     */
+    @PutMapping("/outbound/status")
+    public ResponseEntity<Map<String, Object>> updateOutboundStatus(@RequestBody MaterialsVO updateData,
+            HttpServletRequest request) {
+        
+        int maxRetries = 3;
+        Exception lastException = null;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                System.out.println("🔄 공급업체 개별 출고 처리 시도 " + attempt + "/" + maxRetries + ": " + updateData.getPurcDCd());
+
+                String mateInboCd = generateMateInboCode();
+                String actualMateVerCd = getActualMateVerCdFromPurcOrder(updateData.getPurcDCd());
+
+                MaterialsVO mateInboVO = MaterialsVO.builder()
+                        .mateInboCd(mateInboCd)
+                        .mcode(updateData.getMcode())
+                        .mateVerCd(actualMateVerCd)
+                        .purcDCd(updateData.getPurcDCd())
+                        .supplierLotNo("SUP-LOT-" + System.currentTimeMillis())
+                        .inboStatus("c3")
+                        .totalQty(updateData.getPurcQty())
+                        .mname("공급업체출고")
+                        .note(updateData.getNote() != null ? updateData.getNote()
+                                : updateData.getMateName() + " 개별 출고완료")
+                        .cpCd(getCurrentUserCpCd(request))
+                        .deliDt(new Date())
+                        .inboDt(new Date())
+                        .build();
+
+                mateService.insertMateInbo(mateInboVO);
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("message", "개별 출고완료 처리되었습니다! 자재가 입고대기 상태로 등록되었습니다.");
+                response.put("mateInboCd", mateInboCd);
+                response.put("purcDCd", updateData.getPurcDCd());
+                response.put("outbQty", updateData.getPurcQty());
+                response.put("attempt", attempt);
+
+                System.out.println("✅ 개별 출고완료 처리 성공 (시도 " + attempt + "): " + mateInboCd);
+                return ResponseEntity.ok(response);
+
+            } catch (Exception e) {
+                lastException = e;
+                System.err.println("❌ 개별 출고완료 처리 시도 " + attempt + " 실패: " + e.getMessage());
+                
+                // PK 중복 에러인지 확인
+                if (e.getMessage() != null && e.getMessage().contains("unique constraint")) {
+                    System.out.println("🔄 PK 중복 감지, 재시도합니다...");
+                    if (attempt < maxRetries) {
+                        continue; // 재시도
+                    }
+                } else {
+                    // PK 중복이 아닌 다른 에러는 즉시 실패
+                    break;
+                }
+            }
+        }
+        
+        // 모든 재시도 실패
+        System.err.println("💥 모든 재시도 실패 - 최종 에러: " + (lastException != null ? lastException.getMessage() : "알 수 없는 오류"));
+        if (lastException != null) {
+            lastException.printStackTrace();
+        }
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", "개별 출고완료 처리 중 오류가 발생했습니다: " + (lastException != null ? lastException.getMessage() : "알 수 없는 오류"));
+
+        return ResponseEntity.internalServerError().body(errorResponse);
+    }
+
+    /**
+     * 자재입고코드 자동생성 (MATI-연월-순번)
+     */
+    /**
+     * 자재입고코드 자동생성 (MATI-연월-순번) - 진짜 순차 번호
+     */
+    private synchronized String generateMateInboCode() {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            String yearMonth = now.format(DateTimeFormatter.ofPattern("yyyyMM"));
+            
+            // DB에서 해당 년월의 마지막 입고코드 조회
+            String lastCode = mateService.getLastMateInboCode(yearMonth);
+            System.out.println("🔍 DB 조회 결과 - 마지막 코드: " + lastCode);
+            
+            int nextSequence = 1; // 기본값: 0001
+            
+            if (lastCode != null && !lastCode.trim().isEmpty()) {
+                // 마지막 코드에서 번호 추출: MATI-202508-0005 → 0005
+                String[] parts = lastCode.split("-");
+                if (parts.length >= 3) {
+                    try {
+                        String numberPart = parts[2];
+                        int lastNumber = Integer.parseInt(numberPart);
+                        nextSequence = lastNumber + 1;
+                        System.out.println("✅ 다음 시퀀스: " + nextSequence);
+                    } catch (NumberFormatException e) {
+                        System.err.println("❌ 번호 파싱 실패, 기본값 사용: " + e.getMessage());
+                    }
+                }
+            }
+            
+            String mateInboCd = String.format("MATI-%s-%04d", yearMonth, nextSequence);
+            System.out.println("🎯 생성된 순차 코드: " + mateInboCd);
+            
+            return mateInboCd;
+            
+        } catch (Exception e) {
+            System.err.println("❌ 입고코드 생성 실패: " + e.getMessage());
+            // 폴백: 타임스탬프 기반
+            String yearMonth = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
+            long timestamp = System.currentTimeMillis();
+            int fallbackNumber = (int) (timestamp % 9999) + 1;
+            String fallbackCode = String.format("MATI-%s-T%04d", yearMonth, fallbackNumber);
+            System.err.println("🆘 폴백 코드: " + fallbackCode);
+            return fallbackCode;
+        }
+    }
+
+    /**
+     * 🔍 디버그용: 현재 DB의 입고코드 현황 조회
+     */
+    @GetMapping("/debug/mate-inbo-codes")
+    public ResponseEntity<Map<String, Object>> debugMateInboCodes() {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            String yearMonth = now.format(DateTimeFormatter.ofPattern("yyyyMM"));
+            
+            // 현재 월의 마지막 코드 조회
+            String lastCode = mateService.getLastMateInboCode(yearMonth);
+            
+            // 다음 코드 미리보기
+            String nextCode = generateMateInboCode();
+            
+            Map<String, Object> debugInfo = new HashMap<>();
+            debugInfo.put("currentYearMonth", yearMonth);
+            debugInfo.put("lastCodeInDB", lastCode);
+            debugInfo.put("nextCodeToGenerate", nextCode);
+            debugInfo.put("timestamp", new Date());
+            
+            return ResponseEntity.ok(debugInfo);
+        } catch (Exception e) {
+            Map<String, Object> errorInfo = new HashMap<>();
+            errorInfo.put("error", e.getMessage());
+            errorInfo.put("timestamp", new Date());
+            return ResponseEntity.internalServerError().body(errorInfo);
+        }
     }
 }

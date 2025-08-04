@@ -79,4 +79,30 @@ public interface MateService {
     List<PurchaseOrderViewVO> getPurchaseOrdersForView(SearchCriteria criteria);
 
     List<PurchaseOrderViewVO> getSupplierMateRelList(SearchCriteria criteria);
+
+    MaterialsVO getPurcOrderDetailByCode(String purcDCd);
+
+    /**
+     * 🔢 mate_inbo 테이블에서 가장 마지막 입고코드 조회
+     * MATI-202508-XXXX 형태에서 마지막 번호를 찾기 위함
+     * 
+     * @param yearMonth YYYYMM 형태 (예: 202508)
+     * @return 해당 년월의 마지막 입고코드
+     */
+    String getLastMateInboCode(String yearMonth);
+
+    /**
+     * 🔄 발주상세의 curr_qty 업데이트 (누적)
+     * 
+     * @param updateData purcDCd와 새로운 currQty 포함
+     */
+    void updatePurchaseOrderCurrQty(MaterialsVO updateData);
+
+    /**
+     * 🎯 DB에서 원자적으로 다음 입고코드 생성 (동시성 안전)
+     * 
+     * @param yearMonth YYYYMM 형태
+     * @return 다음 입고코드 (MATI-YYYYMM-XXXX)
+     */
+    String generateNextMateInboCode(String yearMonth);
 }
