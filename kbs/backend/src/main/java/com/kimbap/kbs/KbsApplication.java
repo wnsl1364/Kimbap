@@ -12,7 +12,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 			 "com.kimbap.kbs.product.mapper",
 			 "com.kimbap.kbs.common.mapper",
 			 "com.kimbap.kbs.payment.mapper",
-			"com.kimbap.kbs.dashboard.mapper"})
+			 "com.kimbap.kbs.dashboard.mapper",
+		   "com.kimbap.kbs.distribution.mapper"})
 @SpringBootApplication
 public class KbsApplication {
 
