@@ -27,6 +27,8 @@ public class SearchCriteria {
     private String endDate;
     private String exDeliStartDate;
     private String exDeliEndDate;
+    private String ordDtStart;
+    private String ordDtEnd;
     private String deliStartDate;
     private String deliEndDate;
     

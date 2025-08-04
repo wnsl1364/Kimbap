@@ -223,6 +223,71 @@ export const getPurchaseOrdersForView = (searchParams = {}, userType = 'p1') => 
   return axios.get('/api/materials/purchase-orders-view', { params });
 };
 
+// 자재출고 목록 조회 (공급업체용)
+export const getSuppliersMateRel = (searchParams = {}) => {
+  const params = {
+    purcCd: searchParams.purcCd,              // 발주번호
+    purcDStatus: searchParams.purcDStatus,    // 발주상태
+    ordDtStart: searchParams.ordDtStart,      // 발주일자 시작
+    ordDtEnd: searchParams.ordDtEnd,          // 발주일자 종료
+    // 추가 검색 조건들
+    mateName: searchParams.mateName,          // 자재명
+    mcode: searchParams.mcode,                // 자재코드
+    cpCd: searchParams.cpCd                   // 거래처코드
+  };
+  
+  Object.keys(params).forEach(key =>
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  return axios.get('/api/materials/supplier-mate-relations', { params });
+};
+
+// 자재출고 완료 처리 (단건)
+export const processMaterialOutboundSingle = (outboundData) => {
+  return axios.post('/api/materials/outbound/process-single', outboundData);
+};
+
+// 자재출고 완료 처리 (다중)
+export const processMaterialOutboundBatch = (outboundDataList) => {
+  return axios.post('/api/materials/outbound/process-batch', outboundDataList);
+};
+
+// 자재출고 상태 업데이트
+export const updateMaterialOutboundStatus = (updateData) => {
+  return axios.put('/api/materials/outbound/status', updateData);
+};
+
+// 자재출고 이력 조회
+export const getMaterialOutboundHistory = (searchParams = {}) => {
+  const params = {
+    purcCd: searchParams.purcCd,
+    mcode: searchParams.mcode,
+    startDate: searchParams.startDate,
+    endDate: searchParams.endDate
+  };
+  
+  Object.keys(params).forEach(key =>
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  return axios.get('/api/materials/outbound/history', { params });
+};
+
+// 자재출고 통계 조회
+export const getMaterialOutboundStatistics = (dateRange = {}) => {
+  const params = {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate
+  };
+  
+  Object.keys(params).forEach(key =>
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  return axios.get('/api/materials/outbound/statistics', { params });
+};
+
 // ========== 자재 적재 관련 API 함수들 (materials.js에 추가) ==========
 
 // 자재 적재 대기 목록 전체 조회

@@ -313,6 +313,73 @@ export const useMaterialStore = defineStore('material', () => {
     }
   }));
 
+  // 출고 데이터 설정
+  const outboundData = ref({
+    completedMaterials: [],
+    processedAt: null,
+    processedBy: '',
+    totalProcessedCount: 0
+  });
+
+  const selectedOutboundMaterials = ref([]);
+  const processedOutboundMaterials = ref([]);
+  const outboundStatistics = ref({
+    totalRequests: 0,
+    completedRequests: 0,
+    pendingRequests: 0,
+    todayProcessed: 0
+  });
+
+  const setOutboundData = (data) => {
+    outboundData.value = { ...outboundData.value, ...data };
+    console.log('🚚 출고 데이터 설정됨:', outboundData.value);
+  };
+
+  const setSelectedOutboundMaterials = (materials) => {
+    selectedOutboundMaterials.value = [...materials];
+    console.log('📦 선택된 출고 자재 설정됨:', materials.length, '개');
+  };
+
+  const addProcessedOutboundMaterials = (materials) => {
+    const processed = materials.map(material => ({
+      ...material,
+      processedAt: new Date(),
+      processedBy: outboundData.value.processedBy || '시스템'
+    }));
+    
+    processedOutboundMaterials.value.unshift(...processed);
+    outboundStatistics.value.completedRequests += materials.length;
+    outboundStatistics.value.todayProcessed += materials.length;
+    
+    console.log('✅ 처리된 출고 자재 히스토리 추가:', materials.length, '개');
+  };
+
+  const updateOutboundStatistics = (stats) => {
+    outboundStatistics.value = { ...outboundStatistics.value, ...stats };
+    console.log('📊 출고 통계 업데이트됨:', outboundStatistics.value);
+  };
+
+  const resetOutboundData = () => {
+    outboundData.value = {
+      completedMaterials: [],
+      processedAt: null,
+      processedBy: '',
+      totalProcessedCount: 0
+    };
+    selectedOutboundMaterials.value = [];
+    console.log('🔄 출고 데이터 초기화됨');
+  };
+
+  const getOutboundProcessStatus = () => {
+    return {
+      hasSelectedMaterials: selectedOutboundMaterials.value.length > 0,
+      totalSelected: selectedOutboundMaterials.value.length,
+      isProcessing: outboundData.value.processedAt !== null,
+      lastProcessedBy: outboundData.value.processedBy,
+      statistics: { ...outboundStatistics.value }
+    };
+  };
+
   return {
     materials,
     setMaterials,
@@ -351,6 +418,16 @@ export const useMaterialStore = defineStore('material', () => {
     setApprovalOrderDetails,
     setSelectedApprovalItems,
     clearSelectedApprovalItems,
-    clearApprovalData
+    clearApprovalData,
+    outboundData,
+    selectedOutboundMaterials,
+    processedOutboundMaterials,
+    outboundStatistics,
+    setOutboundData,
+    setSelectedOutboundMaterials,
+    addProcessedOutboundMaterials,
+    updateOutboundStatistics,
+    resetOutboundData,
+    getOutboundProcessStatus,
   };
 });
