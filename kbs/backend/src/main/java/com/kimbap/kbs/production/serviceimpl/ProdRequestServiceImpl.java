@@ -1,7 +1,9 @@
 package com.kimbap.kbs.production.serviceimpl;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
@@ -142,7 +144,7 @@ public class ProdRequestServiceImpl implements ProdRequestService {
       inbo.setInboQty(reqQty);
       inbo.setProduProdCd(produProdCd);
       inbo.setInboStatus("b4");
-      inbo.setInboDt(LocalDate.now());
+      inbo.setInboDt(Timestamp.valueOf(LocalDateTime.now()));
       inbo.setFcode(fcode);
       inbo.setFacVerCd(facVerCd);
       mapper.insertProdInbo(inbo);

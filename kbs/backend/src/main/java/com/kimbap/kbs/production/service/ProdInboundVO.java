@@ -1,7 +1,7 @@
 package com.kimbap.kbs.production.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.sql.Timestamp;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +20,7 @@ public class ProdInboundVO {
   private String inboStatus;    // 입고상태
   private Integer inboQty;      // 입고수량
   private String produProdCd;   // 생산제품코드
-  private LocalDate inboDt;     // 입고일시
+  private Timestamp inboDt;     // 입고일시
 
   // 제품 입고 등록 시 필요
   private String fcode;         // 공장마스터코드
