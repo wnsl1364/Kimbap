@@ -28,7 +28,7 @@ export default [
     {
         path: '/order/orderLedger',
         name: 'ordLedger',
-        component: () => import('@/views/order/OrderLedger.vue'),
+        component: () => import('@/views/order/CustomerOutstanding.vue'),
     },
     /**반품관리 */
     {

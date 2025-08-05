@@ -78,4 +78,11 @@ public class CompanyController {
             );
         }
     }
+
+    // 거래처별 미수금 목록 조회
+    @GetMapping("/outstanding")
+    public List<CompanyVO> getCustomerOutstanding() {
+        return companyService.getCustomerOutstanding();
+    }
+    
 }

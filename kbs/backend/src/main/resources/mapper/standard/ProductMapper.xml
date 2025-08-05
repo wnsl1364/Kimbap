@@ -136,6 +136,7 @@
                     note
             FROM    product
             WHERE   pcode = #{pcode}
+            AND     is_used = 'f1' 
             ORDER BY prod_ver_cd DESC
             )
         WHERE ROWNUM = 1

@@ -179,6 +179,7 @@
                     note
             FROM    material
             WHERE   mcode = #{mcode}
+            AND     is_used = 'f1' 
             ORDER BY mate_ver_cd DESC
             )
         WHERE ROWNUM = 1

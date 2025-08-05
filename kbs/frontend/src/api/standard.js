@@ -74,6 +74,10 @@ export const updateCompany = (data) => {
 export function CpChangeHistory(cpCd) {
   return axios.get(`/api/std/cp/change-history/${cpCd}`);
 }
+// 거래처별 미수금 목록 조회
+export function getCustomerList() {
+  return axios.get(`/api/std/cp/outstanding`);
+}
 
 
 // 공장 기준정보

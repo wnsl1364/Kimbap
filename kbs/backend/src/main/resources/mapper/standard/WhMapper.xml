@@ -78,7 +78,7 @@
                 w.note,
                 w.cha_rea,
                 w.fcode,
-                f.fac_name AS facName,  <!-- 공장명 조인 -->
+                f.fac_name AS facName,
                 w.fac_ver_cd,
                 w.regi,
                 w.modi
@@ -86,7 +86,8 @@
             SELECT  w.*
             FROM    warehouse w
             WHERE   w.wcode = #{wcode}
-            ORDER BY w.ware_ver_cd DESC
+            AND   w.is_used = 'f1'         -- ✅ 사용중인 것만
+            ORDER BY TO_NUMBER(SUBSTR(w.ware_ver_cd, 2)) DESC
         ) w
         LEFT JOIN factory f ON w.fcode = f.fcode
         WHERE ROWNUM = 1

@@ -113,4 +113,11 @@ public class CompanyServiceImpl implements CompanyService {
 
         return result;
     }
+
+
+    // 미수금 내역 조회
+    @Override
+    public List<CompanyVO> getCustomerOutstanding() {
+        return companyMapper.selectCustomerOutstanding();
+    }
 }
