@@ -19,4 +19,10 @@ public interface ProdLoadingMapper {
   List<ProdInboundVO> getSameProductAreas(@Param("pcode") String pcode,
                                           @Param("fcode") String fcode,
                                           @Param("excludeAreaCd") String excludeAreaCd);
+  ProdInboundVO getProductInfo(String pcode);
+
+  void insertWareStock(ProdInboundVO prodLoading);
+  
+  int getLastWareStockSequence(String datePattern);
+
 }

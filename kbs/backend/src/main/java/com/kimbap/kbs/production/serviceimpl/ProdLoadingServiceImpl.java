@@ -1,5 +1,8 @@
 package com.kimbap.kbs.production.serviceimpl;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,52 +109,49 @@ public class ProdLoadingServiceImpl implements ProdLoadingService {
     System.out.println("입력데이터: " + prodLoading.toString());
     
     // product 테이블에서 자재 정보 조회
-    ProdInboundVO materialInfo = null;
+    ProdInboundVO productInfo = null;
     try {
-        materialInfo = prodLoadingMapper.getMaterialInfo(prodLoading.getMcode());
+        productInfo = prodLoadingMapper.getProductInfo(prodLoading.getPcode());
     } catch (Exception e) {
-        System.err.println("자재 정보 조회 실패: " + prodLoading.getMcode() + " - " + e.getMessage());
+        System.err.println("제품 정보 조회 실패: " + prodLoading.getPcode() + " - " + e.getMessage());
         e.printStackTrace();
     }
     
-    if (materialInfo == null) {
-        System.err.println("자재 정보를 찾을 수 없습니다: " + prodLoading.getMcode());
+    if (productInfo == null) {
+        System.err.println("제품 정보를 찾을 수 없습니다: " + prodLoading.getPcode());
         // 기본값으로 처리 계속 진행
-        mateLoading.setItemType("h1"); // 기본값: 원자재 (품목유형 코드)
+        prodLoading.setItemType("h3"); // 기본값: 제품 (품목유형 코드)
         // unit은 기존 값 유지
-    } else {
-        // tem_type을 material 테이블의 mate_type으로 설정
-        mateLoading.setItemType(materialInfo.getMateType());
-        
+    } else {  
         // unit을 material 테이블의 unit(공통코드)으로 설정
-        mateLoading.setUnit(materialInfo.getUnit());
+        prodLoading.setUnit(productInfo.getUnit());
     }
     
     // 현재 시간 설정
-    mateLoading.setInboDt(Timestamp.valueOf(LocalDateTime.now()));
+    prodLoading.setInboDt(Timestamp.valueOf(LocalDateTime.now()));
     
     // 창고재고목록코드 생성
     String wslcode = generateWareStockCode();
-    mateLoading.setWslcode(wslcode);
+    prodLoading.setWslcode(wslcode);
     
     // 🔥 등록자 설정 - 프론트엔드에서 전달된 empCd 사용
-    if (mateLoading.getRegi() == null || mateLoading.getRegi().trim().isEmpty()) {
-        mateLoading.setRegi("system"); // 기본값
+    if (prodLoading.getRegi() == null || prodLoading.getRegi().trim().isEmpty()) {
+        prodLoading.setRegi("system"); // 기본값
     }
     
     System.out.println("처리 전 최종 데이터:");
-    System.out.println("  wslcode: " + mateLoading.getWslcode());
-    System.out.println("  wareAreaCd: " + mateLoading.getWareAreaCd());
-    System.out.println("  mateInboCd: " + mateLoading.getMateInboCd());
-    System.out.println("  qty: " + mateLoading.getQty());
-    System.out.println("  unit: " + mateLoading.getUnit() + " (material 테이블에서 조회)");
-    System.out.println("  regi: " + mateLoading.getRegi());
-    System.out.println("  itemType: " + mateLoading.getItemType() + " (material 테이블에서 조회)");
-    System.out.println("  inboDt: " + mateLoading.getInboDt());
+    System.out.println("  wslcode: " + prodLoading.getWslcode());
+    System.out.println("  wareAreaCd: " + prodLoading.getWareAreaCd());
+    System.out.println("  mateInboCd: " + prodLoading.getProdInboCd());
+    System.out.println("  qty: " + prodLoading.getQty());
+    System.out.println("  unit: " + prodLoading.getUnit() + " (product 테이블에서 조회)");
+    System.out.println("  regi: " + prodLoading.getRegi());
+    System.out.println("  itemType: " + prodLoading.getItemType() + " (product 테이블에서 조회)");
+    System.out.println("  inboDt: " + prodLoading.getInboDt());
     
     // ware_stock 테이블에 적재 정보 저장
     try {
-        mateLoadingMapper.insertWareStock(mateLoading);
+        prodLoadingMapper.insertWareStock(prodLoading);
         System.out.println("=== ware_stock INSERT 성공 ===");
     } catch (Exception e) {
         System.err.println("=== ware_stock INSERT 실패 ===");
@@ -164,70 +164,67 @@ public class ProdLoadingServiceImpl implements ProdLoadingService {
   }
     
     @Override
-    public String processProdLoadingBatch(List<MateLoadingVO> mateLoadingList) {
+    public String processProdLoadingBatch(List<ProdInboundVO> prodLoadingList) {
         System.out.println("=== 다중 적재 처리 시작 ===");
-        System.out.println("처리할 항목 수: " + mateLoadingList.size());
+        System.out.println("처리할 항목 수: " + prodLoadingList.size());
         
         int successCount = 0;
         int failCount = 0;
         
-        for (int i = 0; i < mateLoadingList.size(); i++) {
-            MateLoadingVO mateLoading = mateLoadingList.get(i);
-            System.out.println(String.format("=== [%d/%d] 처리 중 ===", i+1, mateLoadingList.size()));
+        for (int i = 0; i < prodLoadingList.size(); i++) {
+            ProdInboundVO prodLoading = prodLoadingList.get(i);
+            System.out.println(String.format("=== [%d/%d] 처리 중 ===", i+1, prodLoadingList.size()));
             
             try {
                 // 🔥 material 테이블에서 자재 정보 조회
-                MateLoadingVO materialInfo = null;
+                ProdInboundVO productInfo = null;
                 try {
-                    materialInfo = mateLoadingMapper.getMaterialInfo(mateLoading.getMcode());
+                    productInfo = prodLoadingMapper.getProductInfo(prodLoading.getPcode());
                 } catch (Exception e) {
-                    System.err.println("자재 정보 조회 실패: " + mateLoading.getMcode() + " - " + e.getMessage());
+                    System.err.println("제품 정보 조회 실패: " + prodLoading.getPcode() + " - " + e.getMessage());
                 }
                 
                 // 현재 시간 설정
-                mateLoading.setInboDt(Timestamp.valueOf(LocalDateTime.now()));
+                prodLoading.setInboDt(Timestamp.valueOf(LocalDateTime.now()));
                 
                 // 창고재고목록코드 생성
                 String wslcode = generateWareStockCode();
-                mateLoading.setWslcode(wslcode);
+                prodLoading.setWslcode(wslcode);
                 
                 // 등록자 설정 - 프론트엔드에서 전달된 empCd 사용
-                if (mateLoading.getRegi() == null || mateLoading.getRegi().trim().isEmpty()) {
-                    mateLoading.setRegi("system"); // 기본값
+                if (prodLoading.getRegi() == null || prodLoading.getRegi().trim().isEmpty()) {
+                    prodLoading.setRegi("system"); // 기본값
                 }
                 
-                if (materialInfo == null) {
-                    System.err.println("자재 정보를 찾을 수 없습니다: " + mateLoading.getMcode());
+                if (productInfo == null) {
+                    System.err.println("제품 정보를 찾을 수 없습니다: " + prodLoading.getPcode());
                     // 기본값으로 처리 계속 진행
-                    mateLoading.setItemType("h1"); // 기본값: 원자재 (품목유형 코드)
+                    prodLoading.setItemType("h3"); // 기본값: 원자재 (품목유형 코드)
                     // unit은 기존 값 유지
                 } else {
-                    // 🔥 item_type을 material 테이블의 mate_type으로 설정
-                    mateLoading.setItemType(materialInfo.getMateType());
-                    
                     // 🔥 unit을 material 테이블의 unit(공통코드)으로 설정
-                    mateLoading.setUnit(materialInfo.getUnit());
+                    prodLoading.setUnit(prodLoading.getUnit());
                 }
                 
                 System.out.println("처리 데이터:");
-                System.out.println("  mateInboCd: " + mateLoading.getMateInboCd());
-                System.out.println("  mcode: " + mateLoading.getMcode());
-                System.out.println("  wareAreaCd: " + mateLoading.getWareAreaCd());
-                System.out.println("  qty: " + mateLoading.getQty());
-                System.out.println("  unit: " + mateLoading.getUnit() + " (material 테이블에서 조회)");
-                System.out.println("  regi: " + mateLoading.getRegi());
-                System.out.println("  itemType: " + mateLoading.getItemType() + " (material 테이블에서 조회)");
+                System.out.println("  prodInboCd: " + prodLoading.getProdInboCd());
+                System.out.println("  pcode: " + prodLoading.getPcode());
+                System.out.println("  wareAreaCd: " + prodLoading.getWareAreaCd());
+                System.out.println("  qty: " + prodLoading.getQty());
+                System.out.println("  unit: " + prodLoading.getUnit() + " (product 테이블에서 조회)");
+                System.out.println("  regi: " + prodLoading.getRegi());
+                System.out.println("  itemType: " + prodLoading.getItemType() + " (product 테이블에서 조회)");
                 System.out.println("  wslcode: " + wslcode);
                 
                 // ware_stock 테이블에 적재 정보 저장
-                mateLoadingMapper.insertWareStock(mateLoading);
+                prodLoadingMapper.insertWareStock(prodLoading);
                 
                 successCount++;
-                System.out.println("적재 처리 성공: " + mateLoading.getMateInboCd() + " -> " + wslcode);
+                System.out.println("적재 처리 성공: " + prodLoading.getProdInboCd() + " -> " + wslcode);
                 
             } catch (Exception e) {
                 failCount++;
-                System.err.println("적재 처리 실패: " + mateLoading.getMateInboCd() + " - " + e.getMessage());
+                System.err.println("적재 처리 실패: " + prodLoading.getProdInboCd() + " - " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -240,4 +237,34 @@ public class ProdLoadingServiceImpl implements ProdLoadingService {
         
         return result;
     }
+  @Override
+  public String generateWareStockCode() {
+    try {
+      // 현재 날짜 (yyMMdd 형식)
+      String datePattern = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+      
+      // 해당 날짜의 마지막 순번 조회
+      int lastSequence = prodLoadingMapper.getLastWareStockSequence(datePattern);
+      
+      // 다음 순번 계산 (1부터 시작)
+      int nextSequence = lastSequence + 1;
+      
+      // WStock-yyMMdd-순번 형식으로 생성
+      String wslCode = String.format("WStock-%s-%03d", datePattern, nextSequence);
+      
+      System.out.println("창고재고목록코드 생성: " + wslCode);
+      return wslCode;
+        
+    } catch (Exception e) {
+      System.err.println("창고재고목록코드 생성 실패: " + e.getMessage());
+      
+      // 실패 시 임시 코드 생성
+      String datePattern = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+      long timestamp = System.currentTimeMillis() % 1000;
+      String fallbackCode = String.format("WStock-%s-%03d", datePattern, (int) timestamp);
+      
+      System.out.println("임시 창고재고목록코드 생성: " + fallbackCode);
+      return fallbackCode;
+    }
+  }
 }

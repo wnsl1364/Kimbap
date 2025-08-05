@@ -17,5 +17,7 @@ public interface ProdLoadingService {
   String processProdLoading(ProdInboundVO prodLoading);
   // 제품 다중 적재 처리
   String processProdLoadingBatch(List<ProdInboundVO> prodLoadingList);
+  
+  String generateWareStockCode();
 
 }
