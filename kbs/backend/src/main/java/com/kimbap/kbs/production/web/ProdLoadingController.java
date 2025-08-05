@@ -8,11 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.kimbap.kbs.materials.service.MateLoadingVO;
 import com.kimbap.kbs.production.service.ProdInboundVO;
 import com.kimbap.kbs.production.service.ProdLoadingService;
 
@@ -36,6 +37,78 @@ public class ProdLoadingController {
           return ResponseEntity.internalServerError().build();
       }
   }
+  // 단건 자재 적재 처리
+  @PostMapping("/processSingle")
+  public ResponseEntity<Map<String, Object>> processProdLoading(@RequestBody ProdInboundVO prodLoading) {
+      try {
+          System.out.println("단건 제품 적재 처리 요청: " + prodLoading.getProdInboCd());
+          
+          String result = prodLoadingService.processProdLoading(prodLoading);
+          
+          Map<String, Object> response = new HashMap<>();
+          response.put("success", true);
+          response.put("message", result);
+          response.put("mateInboCd", prodLoading.getProdInboCd());
+          
+          System.out.println("단건 제품 적재 처리 완료: " + prodLoading.getProdInboCd());
+          return ResponseEntity.ok(response);
+          
+      } catch (Exception e) {
+          System.err.println("단건 제품 적재 처리 실패: " + e.getMessage());
+          e.printStackTrace();
+          
+          Map<String, Object> errorResponse = new HashMap<>();
+          errorResponse.put("success", false);
+          errorResponse.put("message", "제품 적재 처리 중 오류가 발생했습니다: " + e.getMessage());
+          
+          return ResponseEntity.internalServerError().body(errorResponse);
+      }
+  }
+
+  // 다중 자재 적재 처리 (선택된 여러 자재 한번에 처리)
+  @PostMapping("/processBatch")
+  public ResponseEntity<Map<String, Object>> processProdLoadingBatch(@RequestBody List<ProdInboundVO> prodLoadingList) {
+      try {
+          System.out.println("=== 다중 제품 적재 처리 요청 ===");
+          System.out.println("요청 건수: " + prodLoadingList.size());
+          
+          // 각 항목의 상세 정보 로그
+          for (int i = 0; i < prodLoadingList.size(); i++) {
+              ProdInboundVO item = prodLoadingList.get(i);
+              System.out.println(String.format("[%d] prodInboCd: %s, pcode: %s, qty: %s, wareAreaCd: %s, unit: %s", 
+                  i+1, item.getProdInboCd(), item.getPcode(), item.getQty(), item.getWareAreaCd(), item.getUnit()));
+          }
+          
+          if (prodLoadingList.isEmpty()) {
+              Map<String, Object> response = new HashMap<>();
+              response.put("success", false);
+              response.put("message", "처리할 제품을 선택해주세요.");
+              
+              return ResponseEntity.badRequest().body(response);
+          }
+          
+          String result = prodLoadingService.processProdLoadingBatch(prodLoadingList);
+          
+          Map<String, Object> response = new HashMap<>();
+          response.put("success", true);
+          response.put("message", result);
+          response.put("processedCount", prodLoadingList.size());
+          
+          System.out.println("다중 제품 적재 처리 완료: " + prodLoadingList.size() + "건");
+          return ResponseEntity.ok(response);
+          
+      } catch (Exception e) {
+          System.err.println("다중 제품 적재 처리 실패: " + e.getMessage());
+          e.printStackTrace();
+          
+          Map<String, Object> errorResponse = new HashMap<>();
+          errorResponse.put("success", false);
+          errorResponse.put("message", "다중 제품 적재 처리 중 오류가 발생했습니다: " + e.getMessage());
+          
+          return ResponseEntity.internalServerError().body(errorResponse);
+      }
+  }
+
   // 구역 적재 가능 여부 검증
   @GetMapping("/validate-area")
   public ResponseEntity<Map<String, Object>> validateAreaAllocation(

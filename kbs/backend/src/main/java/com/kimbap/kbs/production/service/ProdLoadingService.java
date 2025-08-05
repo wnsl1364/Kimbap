@@ -13,4 +13,9 @@ public interface ProdLoadingService {
 
   // 동일한 제품이 적재된 다른 구역들 조회 (분할 적재용)
   List<ProdInboundVO> getSameProductAreas(String pcode, String fcode, String excludeAreaCd);
+  // 제품 단건 적재 처리
+  String processProdLoading(ProdInboundVO prodLoading);
+  // 제품 다중 적재 처리
+  String processProdLoadingBatch(List<ProdInboundVO> prodLoadingList);
+
 }
