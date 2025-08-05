@@ -88,6 +88,7 @@ public class MaterialsVO {
     // ========== 발주상세 curr_qty 관련 ==========
     private Integer outQty;         // 공급업체 출고수량 (프론트엔드에서 전달)
     private Integer currQty;        // 현재 출고 누적수량 (purc_ord_d.curr_qty)
+    private Integer outboundQty;
 
     // ========== 자재반품 (MateReturnVO) ==========
     private String mateReturnCd;    // 자재반품코드

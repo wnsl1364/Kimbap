@@ -926,7 +926,7 @@ public class MateServiceImpl implements MateService {
             System.out.println("검색 패턴: MATI-" + yearMonth + "-%");
 
             String lastCode = mateMapper.getLastMateInboCode(yearMonth);
-            
+
             if (lastCode != null && !lastCode.trim().isEmpty()) {
                 System.out.println("✅ 조회 성공 - 마지막 입고코드: " + lastCode);
             } else {
@@ -951,7 +951,7 @@ public class MateServiceImpl implements MateService {
             System.out.println("새로운 curr_qty: " + updateData.getCurrQty());
 
             mateMapper.updatePurchaseOrderCurrQty(updateData);
-            
+
             System.out.println("✅ curr_qty 업데이트 완료");
         } catch (Exception e) {
             System.err.println("❌ ServiceImpl: curr_qty 업데이트 실패");
@@ -970,9 +970,9 @@ public class MateServiceImpl implements MateService {
 
             // 🔍 현재 마지막 번호 조회 및 잠금
             String lastCode = mateMapper.getLastMateInboCodeForUpdate(yearMonth);
-            
+
             int nextSequence = 1; // 기본값
-            
+
             if (lastCode != null && !lastCode.trim().isEmpty()) {
                 System.out.println("📋 마지막 코드: " + lastCode);
                 String[] parts = lastCode.split("-");
@@ -991,28 +991,92 @@ public class MateServiceImpl implements MateService {
             } else {
                 System.out.println("📝 첫 번째 코드 생성");
             }
-            
+
             String nextCode = String.format("MATI-%s-%04d", yearMonth, nextSequence);
             System.out.println("🎯 생성된 코드: " + nextCode);
-            
+
             // 🔒 임시로 해당 코드 예약 (동시성 방지)
             MaterialsVO tempRecord = MaterialsVO.builder()
-                .mateInboCd(nextCode)
-                .purcDCd("TEMP-RESERVED")
-                .totalQty(0)
-                .inboStatus("RESERVED")
-                .build();
-                
+                    .mateInboCd(nextCode)
+                    .purcDCd("TEMP-RESERVED")
+                    .totalQty(0)
+                    .inboStatus("RESERVED")
+                    .build();
+
             mateMapper.insertTempMateInboReservation(tempRecord);
             System.out.println("🔒 코드 예약 완료: " + nextCode);
-            
+
             return nextCode;
-            
+
         } catch (Exception e) {
             System.err.println("❌ ServiceImpl: DB 원자적 코드 생성 실패");
             System.err.println("에러 메시지: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("DB 원자적 코드 생성 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void updatePurchaseOrderCurrQtyAndStatus(MaterialsVO updateData) {
+        try {
+            System.out.println("=== ServiceImpl: curr_qty 및 상태 업데이트 시작 ===");
+            System.out.println("발주상세코드: " + updateData.getPurcDCd());
+            System.out.println("기존 curr_qty: " + updateData.getCurrQty());
+            System.out.println("출고 수량: " + updateData.getOutboundQty());
+
+            // 🔥 중요! 현재 curr_qty를 먼저 조회해서 누적 계산
+            MaterialsVO currentData = mateMapper.getPurcOrderDetailByCode(updateData.getPurcDCd());
+            if (currentData == null) {
+                System.err.println("❌ 발주상세를 찾을 수 없음: " + updateData.getPurcDCd());
+                throw new RuntimeException("발주상세를 찾을 수 없습니다: " + updateData.getPurcDCd());
+            }
+
+            // 현재 curr_qty 가져오기 (null이면 0으로 처리)
+            Integer currentCurrQty = currentData.getCurrQty() != null ? currentData.getCurrQty() : 0;
+            Integer outboundQty = updateData.getOutboundQty() != null ? updateData.getOutboundQty() : 0;
+
+            // 🎯 누적 계산: 기존값 + 출고량
+            Integer newCurrQty = currentCurrQty + outboundQty;
+
+            System.out.println("📊 계산 상세:");
+            System.out.println("  현재 curr_qty: " + currentCurrQty);
+            System.out.println("  출고 수량: " + outboundQty);
+            System.out.println("  새로운 curr_qty: " + newCurrQty + " (= " + currentCurrQty + " + " + outboundQty + ")");
+
+            // 업데이트할 데이터 설정
+            updateData.setCurrQty(newCurrQty);
+
+            // 발주 수량 가져와서 상태 계산
+            Integer purcQty = currentData.getPurcQty() != null ? currentData.getPurcQty() : 0;
+            String newStatus = "";
+
+            if (newCurrQty >= purcQty) {
+                newStatus = "c5"; // 입고완료
+                System.out.println("✅ 상태: 입고완료 (curr_qty " + newCurrQty + " >= purc_qty " + purcQty + ")");
+            } else if (newCurrQty > 0) {
+                newStatus = "c4"; // 부분입고
+                System.out.println("🔄 상태: 부분입고 (curr_qty " + newCurrQty + " < purc_qty " + purcQty + ")");
+            } else {
+                newStatus = "c3"; // 입고대기
+                System.out.println("⏳ 상태: 입고대기 (curr_qty = 0)");
+            }
+
+            updateData.setPurcDStatus(newStatus);
+
+            // 🎯 Mapper 호출
+            System.out.println("📤 Mapper.updatePurchaseOrderCurrQtyAndStatus 호출");
+            mateMapper.updatePurchaseOrderCurrQtyAndStatus(updateData);
+
+            System.out.println("✅ ServiceImpl: curr_qty 및 상태 업데이트 완료!");
+            System.out.println("  최종 curr_qty: " + newCurrQty);
+            System.out.println("  최종 상태: " + newStatus);
+
+        } catch (Exception e) {
+            System.err.println("❌ ServiceImpl: curr_qty 및 상태 업데이트 실패");
+            System.err.println("에러 메시지: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("curr_qty 및 상태 업데이트 실패: " + e.getMessage(), e);
         }
     }
 }

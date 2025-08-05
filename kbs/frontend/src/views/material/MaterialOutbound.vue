@@ -65,12 +65,13 @@ const outboundColumns = [
   { field: 'status', header: '상태', type: 'readonly', align: 'center' },
   { field: 'ordDt', header: '발주일자', type: 'readonly', align: 'center' },
   { field: 'mateName', header: '자재명', type: 'readonly' },
-  { field: 'purcQty', header: '요청수량', type: 'readonly', align: 'right' },
+  { field: 'purcQty', header: '요청수량', type: 'readonly', align: 'center' },
   { field: 'unit', header: '단위', type: 'readonly', align: 'center' },
-  { field: 'currQty', header: '출고수량', type: 'input', inputType: 'number', align: 'right' },
-  { field: 'leftQty', header: '남은수량', type: 'readonly', align: 'right' },
+  { field: 'currQty', header: '누적출고', type: 'readonly', align: 'center' }, // ✅ 읽기전용
+  { field: 'outboundQty', header: '출고수량', type: 'input', inputType: 'number', align: 'center', width: '100px' }, // ✅ 새 필드
+  { field: 'leftQty', header: '남은수량', type: 'readonly', align: 'center' },
   { field: 'exDeliDt', header: '납기예정일', type: 'readonly', align: 'center' },
-  { field: 'deliDt', header: '납기일', type: 'calendar', align: 'center' },
+  { field: 'deliDt', header: '납기일', type: 'calendar', align: 'left', width: '200px' },
   { field: 'note', header: '비고', type: 'input', inputType: 'text', placeholder: '반려사유 등 입력' }
 ]
 
@@ -110,10 +111,10 @@ const getOutboundStatusText = (statusCode) => {
     'c5': '입고완료',
     'c6': '반려',
     'c7': '반품',
-    
+
     // ⚠️ 자재 이동 상태 코드 (0D) - 사용하지 않아야 함
     'd1': '이동요청',
-    'd2': '이동승인', 
+    'd2': '이동승인',
     'd3': '이동거절'
   }
   return statusMapping[statusCode] || statusCode
@@ -190,19 +191,25 @@ const fetchOutboundData = async () => {
     // 🎨 실제 DB 데이터를 테이블용으로 변환
     outboundData.value = response.data.map((item, index) => ({
       id: index + 1,
-      // 실제 DB 필드들 매핑
+      // 기본 정보
       purcCd: item.purcCd,
       status: getOutboundStatusText(item.purcDStatus),
       ordDt: item.ordDt ? formatDateForTable(item.ordDt) : '',
       mateName: item.mateName,
       purcQty: item.purcQty || 0,
       unit: getUnitText(item.unit),
-      currQty: item.currQty || 0,
-      leftQty: item.leftQty || ((item.purcQty || 0) - (item.currQty || 0)), // DB 계산값 또는 직접 계산
+
+      // ✅ 수정된 수량 필드들
+      currQty: item.currQty || 0,        // DB의 누적 출고량 (읽기전용)
+      outboundQty: 0,                    // 이번에 출고할 수량 (입력용) ⭐ 새로 추가!
+      leftQty: (item.purcQty || 0) - (item.currQty || 0), // 남은수량
+
+      // 나머지 필드들
       exDeliDt: item.exDeliDt ? formatDateForTable(item.exDeliDt) : '',
       deliDt: item.deliDt ? formatDateForTable(item.deliDt) : null,
       note: item.note || '',
-      // 원본 데이터 보관 (처리 시 필요)
+
+      // 원본 데이터 보관
       _originalData: {
         purcCd: item.purcCd,
         purcDCd: item.purcDCd,
@@ -210,7 +217,7 @@ const fetchOutboundData = async () => {
         mateVerCd: item.mateVerCd,
         cpCd: item.cpCd,
         purcQty: item.purcQty,
-        currQty: item.currQty,
+        currQty: item.currQty,      // ✅ 원본 currQty 보관
         unit: item.unit,
         unitPrice: item.unitPrice,
         purcDStatus: item.purcDStatus
@@ -320,57 +327,54 @@ const handleOutboundComplete = async () => {
 
     // 🚨 출고수량 유효성 검증
     const invalidItems = selectedMaterials.value.filter(material => {
-      const currQty = material.currQty || 0
-      const purcQty = material.purcQty || material._originalData?.purcQty || 0
-      return currQty <= 0 || currQty > purcQty
+      const outboundQty = material.outboundQty || 0        // 새로 출고할 수량
+      const currentCurrQty = material._originalData?.currQty || 0
+      const totalPurcQty = material._originalData?.purcQty || 0
+      const newCurrQty = currentCurrQty + outboundQty
+
+      return outboundQty <= 0 || newCurrQty > totalPurcQty // 출고수량 0이하 또는 총량 초과
     })
 
-    if (invalidItems.length > 0) {
-      toast.add({
-        severity: 'warn',
-        summary: '출고수량 오류',
-        detail: `출고수량이 0보다 크고 요청수량 이하여야 합니다. 확인 후 다시 시도해주세요! (${invalidItems.length}건 오류)`,
-        life: 5000
-      })
-      return
-    }
-
-    // 🎯 실제 출고수량이 있는 항목만 필터링
+    // ✅ 실제 출고수량 필터링 수정  
     const validMaterials = selectedMaterials.value.filter(material => {
-      const currQty = material.currQty || 0
-      return currQty > 0
+      const outboundQty = material.outboundQty || 0        // 새로 출고할 수량
+      return outboundQty > 0
     })
 
-    if (validMaterials.length === 0) {
-      toast.add({
-        severity: 'warn',
-        summary: '출고수량 없음',
-        detail: '출고수량이 입력된 항목이 없습니다. 출고수량을 입력해주세요!',
-        life: 3000
-      })
-      return
-    }
+    // ✅ 발주상세 업데이트 데이터 생성
+    const purcOrderUpdates = validMaterials.map((material) => {
+      // 🔥 핵심! 숫자 변환을 명시적으로 해야 함!
+      const currentCurrQty = parseInt(material._originalData?.currQty || 0)  // ✅ parseInt 추가
+      const outboundQty = parseInt(material.outboundQty || 0)                // ✅ parseInt 추가
+      const totalPurcQty = parseInt(material._originalData?.purcQty || 0)    // ✅ parseInt 추가
 
-    // 🎯 1단계: purc_ord_d 상태 업데이트 (입고대기)
-    const purcOrderUpdates = validMaterials.map((material) => ({
-      purcDCd: material._originalData?.purcDCd || material.purcDCd,
-      purcCd: material._originalData?.purcCd || material.purcCd,
-      purcDStatus: 'c3', // 🔥 승인(c2) → 입고대기(c3)로 변경!
-      note: `${material.mateName} 공급업체 출고완료 - ${memberStore.user?.empName || '공급업체'}`
-    }))
+      const newCurrQty = currentCurrQty + outboundQty              // ✅ 이제 숫자끼리 더해짐!
 
-    // 🎯 2단계: mate_inbo 테이블에 입고대기 데이터 생성
+      // 🔥 조건부 상태 결정!
+      const newStatus = (newCurrQty >= totalPurcQty) ? 'c3' : 'c2'
+
+      console.log(`🔄 ${material.mateName} 출고수량: ${outboundQty}, 직전: ${currentCurrQty}, 누적: ${newCurrQty}/${totalPurcQty}, 상태: ${newStatus}`)
+
+      return {
+        purcDCd: material._originalData?.purcDCd || material.purcDCd,
+        purcCd: material._originalData?.purcCd || material.purcCd,
+        currQty: newCurrQty,      // ✅ 숫자로 계산된 값
+        purcDStatus: newStatus,   // ✅ 조건부 상태
+        note: `${material.mateName} 출고 ${outboundQty}${material.unit || '개'} (누적: ${newCurrQty}/${totalPurcQty})`
+      }
+    })
+
+    // ✅ 자재입고 데이터 생성
     const mateInboInserts = validMaterials.map((material) => {
       return {
-        // 🔥 백엔드가 기대하는 MaterialsVO 필드명!
         mcode: material._originalData?.mcode || material.mcode,
         mateVerCd: material._originalData?.mateVerCd || material.mateVerCd || 'V1',
         purcDCd: material._originalData?.purcDCd || material.purcDCd,
-        purcQty: material.currQty || material._originalData?.currQty || 0, // 🔥 실제 출고수량(currQty)을 입고수량으로!
+        purcQty: parseInt(material.outboundQty || 0), // ✅ parseInt 추가: 이번 출고수량만 입고처리
         mateName: material.mateName || material._originalData?.mateName,
-        note: material.note || `${material.mateName} 공급업체 출고완료 - 실제출고: ${material.currQty || 0}${material.unit || '개'}`,
+        note: material.note || `${material.mateName} 공급업체 출고완료 - 실제출고: ${parseInt(material.outboundQty || 0)}${material.unit || '개'}`, // ✅ parseInt 추가
 
-        // 🎯 기타 필수 정보들
+        // 기타 필수 정보들
         cpCd: material._originalData?.cpCd,
         unit: material._originalData?.unit,
         unitPrice: material._originalData?.unitPrice,
@@ -487,7 +491,7 @@ const selectableItemsCount = computed(() => {
   <div class="material-outbound-container">
     <!-- � Toast 컴포넌트 추가 -->
     <Toast />
-    
+
     <!-- �🔍 검색 폼 -->
     <SearchForm :columns="searchColumns" v-model:searchData="searchData" :formButtons="searchFormButtons"
       :gridColumns="3" @search="handleSearch" @reset="handleReset" />
@@ -518,9 +522,13 @@ const selectableItemsCount = computed(() => {
       :enableRowActions="false" :enableSelection="true" selectionMode="multiple" v-model:selection="selectedMaterials"
       dataKey="id" :autoCalculation="{
         enabled: true,
-        quantityField: 'currQty',
+        quantityField: 'outboundQty',     // ✅ 새로운 출고수량 필드
         totalField: 'leftQty',
-        calculation: (item) => (item.purcQty || 0) - (item.currQty || 0)
+        calculation: (item) => {
+          const currentLeft = (item.purcQty || 0) - (item.currQty || 0)  // 현재 남은수량
+          const outbound = item.outboundQty || 0                         // 이번 출고수량
+          return currentLeft - outbound                                  // 출고 후 남은수량
+        }
       }">
       <!-- 🎯 상단 버튼들 -->
       <template #top-buttons>

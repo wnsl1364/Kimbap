@@ -105,4 +105,6 @@ public interface MateService {
      * @return 다음 입고코드 (MATI-YYYYMM-XXXX)
      */
     String generateNextMateInboCode(String yearMonth);
+
+    void updatePurchaseOrderCurrQtyAndStatus(MaterialsVO updateData);
 }

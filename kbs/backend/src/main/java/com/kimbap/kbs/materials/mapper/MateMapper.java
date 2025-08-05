@@ -162,4 +162,6 @@ public interface MateMapper {
      * @param tempRecord 임시 예약 데이터
      */
     void insertTempMateInboReservation(MaterialsVO tempRecord);
+
+    void updatePurchaseOrderCurrQtyAndStatus(MaterialsVO updateData);
 }
