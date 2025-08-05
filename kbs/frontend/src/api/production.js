@@ -46,3 +46,45 @@ export const postSaveProdReq = (data) => {
 export const deleteProductionReq = async (produReqCd) => {
   return axios.delete(`/api/prod/request/${produReqCd}`)
 }
+
+// 제품 적재 관련 =========================================
+// 자재 적재 대기 목록 전체 조회
+export const getProdLoadingWaitList = () => {
+  return axios.get('/api/prod/prodLoading/waitList');
+};
+
+// ========== 창고 구역 선택 관련 제품용 API 함수들 ==========
+
+// 제품 구역 적재 가능 여부 검증
+export const validateAreaAllocation = (wareAreaCd, pcode, allocateQty) => {
+  return axios.get('/api/prod/prodLoading/validate-area', {
+    params: { wareAreaCd, pcode, allocateQty }
+  });
+};
+
+// 동일한 제품이 적재된 다른 구역들 조회 (분할 적재용)
+export const getSameProductAreas = (pcode, fcode, excludeAreaCd = '') => {
+  const params = { pcode, fcode };
+  if (excludeAreaCd) {
+    params.excludeAreaCd = excludeAreaCd;
+  }
+  
+  return axios.get('/api/prod/prodLoading/same-product-areas', {
+    params
+  });
+};
+
+// 특정 입고번호의 적재 대기 자재 단건 조회
+export const getProdLoadingByInboCd = (prodInboCd) => {
+  return axios.get(`/api/prod/prodLoading/detail/${prodInboCd}`);
+};
+
+// 단건 제품 적재 처리
+export const processProdLoadingSingle = (prodLoadingData) => {
+  return axios.post('/api/prod/prodLoading/processSingle', prodLoadingData);
+};
+
+// 다중 제품 적재 처리 (선택된 여러 자재 한번에 처리)
+export const processProdLoadingBatch = (prodLoadingList) => {
+  return axios.post('/api/prod/prodLoading/processBatch', prodLoadingList);
+};

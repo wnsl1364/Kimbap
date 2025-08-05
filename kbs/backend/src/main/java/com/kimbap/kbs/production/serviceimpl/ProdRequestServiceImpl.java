@@ -89,6 +89,9 @@ public class ProdRequestServiceImpl implements ProdRequestService {
         String pcode = detail.getPcode();
         String prodVerCd = detail.getProdVerCd();
         Integer reqQty = detail.getReqQty();
+        // 제품입고 처리 시 필요값
+        String fcode = request.getFcode();
+        String facVerCd = request.getFacVerCd();
 
         List<BomDetailVO> materials = mapper.selectBomMaterials(pcode, prodVerCd);
         for (BomDetailVO material : materials) {
@@ -138,8 +141,10 @@ public class ProdRequestServiceImpl implements ProdRequestService {
       inbo.setProdVerCd(prodVerCd);
       inbo.setInboQty(reqQty);
       inbo.setProduProdCd(produProdCd);
-      inbo.setInboStatus("c3");
+      inbo.setInboStatus("b4");
       inbo.setInboDt(LocalDate.now());
+      inbo.setFcode(fcode);
+      inbo.setFacVerCd(facVerCd);
       mapper.insertProdInbo(inbo);
 
     }

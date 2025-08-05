@@ -241,10 +241,10 @@
     <insert id="insertProdInbo" parameterType="ProdInboundVO">
         INSERT INTO prod_inbo (
             prod_inbo_cd, pcode, prod_ver_cd, lot_no, inbo_status,
-            inbo_qty, produ_prod_cd, inbo_dt
+            inbo_qty, produ_prod_cd, inbo_dt, fcode, fac_ver_cd
         ) VALUES (
             #{prodInboCd}, #{pcode}, #{prodVerCd}, #{lotNo}, #{inboStatus},
-            #{inboQty}, #{produProdCd}, #{inboDt}
+            #{inboQty}, #{produProdCd}, #{inboDt}, #{fcode}, #{facVerCd}
         )
     </insert>
     <!-- ====================================================== -->
