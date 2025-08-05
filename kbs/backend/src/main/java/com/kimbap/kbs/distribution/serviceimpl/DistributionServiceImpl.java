@@ -25,7 +25,7 @@ public class DistributionServiceImpl implements DistributionService {
 
     // 출고 지시서 조회
     @Override
-    public List<RelOrderAndResultVO> getRelOrdList() {
-        return distributionMapper.getRelOrdList();
+    public List<RelOrderAndResultVO> getRelOrdList(RelOrderAndResultVO filter) {
+        return distributionMapper.getRelOrdList(filter);
     }
 }

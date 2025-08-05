@@ -45,12 +45,13 @@ const searchColumns = ref([
     type: 'text',
     placeholder: '제품코드를 입력하세요'
   },
-  { 
-    key: 'relDt', 
-    label: '일자', 
-    type: 'dateRange', 
-    startPlaceholder: '시작일', 
-    endPlaceholder: '종료일' },
+  {
+    key: 'relDt',
+    label: '일자',
+    type: 'dateRange',
+    startPlaceholder: '시작일',
+    endPlaceholder: '종료일'
+  },
   {
     key: 'type',
     label: '구분',
@@ -59,9 +60,9 @@ const searchColumns = ref([
     gridColumns: 4,
     options: [
       { label: '전체', value: '전체' },
-      { label: '요청', value: '요청' },
-      { label: '부분출고', value: '부분출고' },
-      { label: '출고완료', value: '출고완료' }
+      { label: '요청', value: 'm1' },
+      { label: '부분출고', value: 'm3' },
+      { label: '출고완료', value: 'm2' }
     ]
   },
 ]);
@@ -71,27 +72,32 @@ const onSearch = async (searchValues) => {
     const {
       cpName,
       relOrdCd,
-      relDtStart,   // ← 요걸
-      relDtEnd,     // ← 요걸
+      relDtStart,
+      relDtEnd,
       type
     } = searchValues;
+
+    const startDate = relDtStart || null;
+    const endDate = relDtEnd || null;
 
     const filter = {
       cpName,
       relOrdCd,
       type,
-      startDate: relDtStart ?? null,  // ← 이렇게 백엔드용 필드명으로 매핑
-      endDate: relDtEnd ?? null
+      startDate,
+      endDate
     };
 
     console.log('🔍 필터 조건:', filter);
 
-    const result = await getRelOrdList(filter); // ← 이 부분도 확인
+    const result = await getRelOrdList(filter);
+    console.log('🎯 응답 데이터:', result.data);
     rawData.value = result.data;
   } catch (e) {
     console.error('검색 실패:', e);
   }
 };
+
 
 
 
@@ -159,11 +165,13 @@ const inputTableColumns = computed(() => {
     <div class="col-12">
       <div class="card">
         <h5>출고지시서 조회</h5>
-        <SearchForm :columns="searchColumns"  v-model="searchValues" @search="onSearch" :gridColumns="3" @reset="onReset" />
+        <SearchForm :columns="searchColumns" v-model="searchValues" @search="onSearch" :gridColumns="3"
+          @reset="onReset" />
 
         <!-- 매핑된 InputTable -->
-        <InputTable :columns="inputTableColumns" :data="cleanConvertedData" :scroll-height="'50vh'" :height="'60vh'"
-          :title="`입출고 리스트`" :buttons="materialTableButtons" :enableRowActions="false" :enableSelection="false" />
+        <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relOrdCd" :scroll-height="'50vh'"
+          :height="'60vh'" :title="`입출고 리스트`" :buttons="materialTableButtons" :enableRowActions="false"
+          :enableSelection="false" />
       </div>
     </div>
   </div>

@@ -22,7 +22,7 @@ const props = defineProps({
 });
 
 // Emits 정의
-const emit = defineEmits(['search', 'reset']);
+const emit = defineEmits(['search', 'reset', 'update:modelValue']);
 
 // 검색 컬럼 상태 관리
 const searchColumns = ref([]);

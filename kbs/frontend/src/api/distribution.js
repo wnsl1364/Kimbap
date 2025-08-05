@@ -7,5 +7,5 @@ export const distributionInOutCheck = (filter) => {
 
 // 출고 지시서 조회
 export const getRelOrdList = (filter) => {
-  return axios.get('/api/distribution/relOrdList', filter);
+  return axios.post('/api/distribution/relOrdList', filter);
 };

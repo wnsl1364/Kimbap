@@ -274,7 +274,7 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">출고대기</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodReturnCount }}건
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodRelCount }}건
                         </div>
                     </div>
                 </div><span class="text-primary font-medium">24 new </span>
@@ -296,7 +296,7 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">반품접수</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodRelCount }}건</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodReturnCount }}건</div>
                     </div>
                 </div><span class="text-primary font-medium">24 new </span>
                 <span class="text-muted-color">since last visit</span>
