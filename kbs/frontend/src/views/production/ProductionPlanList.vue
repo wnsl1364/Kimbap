@@ -165,6 +165,7 @@ const handleReset = async () => {
       :selectable="false"
       :showHistoryButton="false"
       :hoverable="true"
+      :showRowCount="true"
       @row-click="row => openDetailModal(row.produPlanCd)"
     />
     <!-- 상세정보 모달 -->

@@ -152,6 +152,7 @@ const convertDetailUnitCodes = (list) => {
       :selectable="false"
       :showHistoryButton="false"
       :hoverable="true"
+      :showRowCount="true"
       @row-click="handleRowClick"
     />
   </Dialog>

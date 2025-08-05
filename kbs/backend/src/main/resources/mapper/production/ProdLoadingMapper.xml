@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kimbap.kbs.production.mapper.ProdLoadingMapper">
+  <!-- 제품 적재 대기 목록 전체 조회 (적재처리되지 않은 제품만) -->
+  <select id="getAllProdLoadingWaitList" resultType="com.kimbap.kbs.production.service.ProdInboundVO">  
+    SELECT 
+      pi.prod_inbo_cd,
+      pi.pcode,
+      pi.prod_ver_cd,
+      pi.lot_no,
+      pi.inbo_status,
+      pi.inbo_qty,
+      pi.produ_prod_cd,
+      pi.inbo_dt,
+      pi.fcode,
+      pi.fac_ver_cd,
+      -- 부분 적재 고려한 남은 수량
+      (pi.inbo_qty - COALESCE(
+          (SELECT SUM(ws.qty) 
+            FROM ware_stock ws 
+            WHERE ws.prod_inbo_cd = pi.prod_inbo_cd), 0
+      )) AS total_qty,
+      p.prod_name,
+      p.sto_temp,
+      p.unit,
+      p.is_used,
+      p.reg_dt,
+      f.fac_name,
+      f.op_status,
+      f.address
+    FROM prod_inbo pi
+    INNER JOIN product p ON pi.pcode = p.pcode AND pi.prod_ver_cd = p.prod_ver_cd
+    INNER JOIN factory f ON pi.fcode = f.fcode AND pi.fac_ver_cd = f.fac_ver_cd
+    WHERE pi.inbo_status = 'b4'        -- 입고완료 상태
+      AND f.op_status = 'r1'           -- 활성 공장
+      AND p.is_used = 'f1'             -- 활성 제품
+      AND (pi.inbo_qty - COALESCE(
+            (SELECT SUM(ws.qty) 
+              FROM ware_stock ws 
+              WHERE ws.prod_inbo_cd = pi.prod_inbo_cd), 0
+        )) > 0
+    ORDER BY pi.inbo_dt DESC, pi.prod_inbo_cd DESC
+  </select>
+  <!-- 구역별 현재 적재 상황 조회 -->
+  <select id="getWarehouseAreaStock" parameterType="string" resultType="com.kimbap.kbs.production.service.ProdInboundVO">
+    SELECT 
+      ws.wslcode,
+      ws.ware_area_cd,
+      ws.prod_inbo_cd,
+      ws.item_type,
+      ws.inbo_dt,
+      ws.regi,
+      ws.qty,
+      ws.unit,
+      pi.pcode,
+      p.prod_name
+    FROM ware_stock ws
+    LEFT JOIN prod_inbo pi ON ws.prod_inbo_cd = pi.prod_inbo_cd
+    LEFT JOIN product p ON pi.pcode = p.pcode AND pi.prod_ver_cd = p.prod_ver_cd
+    WHERE ws.ware_area_cd = #{wareAreaCd}
+    ORDER BY ws.inbo_dt DESC
+  </select>
+  <!-- 구역별 현재 적재량 합계 조회 -->
+  <select id="getCurrentVolumeByArea" parameterType="string" resultType="int">
+    SELECT COALESCE(SUM(qty), 0) as current_volume
+    FROM ware_stock
+    WHERE ware_area_cd = #{wareAreaCd}
+  </select>
+  <!-- 구역에 적재된 제품코드 조회 -->
+  <select id="getCurrentProductByArea" parameterType="string" resultType="string">
+    SELECT DISTINCT pi.pcode
+    FROM ware_stock ws
+    INNER JOIN prod_inbo pi ON ws.prod_inbo_cd = pi.prod_inbo_cd
+    WHERE ws.ware_area_cd = #{wareAreaCd}
+    AND ROWNUM = 1  -- 첫 번째 제품코드만 반환
+  </select>
+  <!-- 동일한 자재가 적재된 다른 구역들 조회 -->
+  <select id="getSameProductAreas" resultType="com.kimbap.kbs.production.service.ProdInboundVO">
+      SELECT DISTINCT
+          ws.ware_area_cd,
+          wd.area_row,
+          wd.area_col,
+          wd.area_floor,
+          wd.vol,
+          NVL(area_stock.current_volume, 0) as current_volume,
+          (wd.vol - NVL(area_stock.current_volume, 0)) as available_volume
+      FROM ware_stock ws
+      INNER JOIN prod_inbo pi ON ws.prod_inbo_cd = pi.prod_inbo_cd
+      INNER JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+      INNER JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
+      LEFT JOIN (
+          SELECT ware_area_cd, SUM(qty) as current_volume
+          FROM ware_stock
+          GROUP BY ware_area_cd
+      ) area_stock ON ws.ware_area_cd = area_stock.ware_area_cd
+      WHERE pi.pcode = #{pcode}
+      AND w.fcode = #{fcode}
+      AND ws.ware_area_cd != #{excludeAreaCd}
+      AND (wd.vol - NVL(area_stock.current_volume, 0)) > 0  -- 잔여 용량이 있는 곳만
+      ORDER BY available_volume DESC
+  </select>
+</mapper>
