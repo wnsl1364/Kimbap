@@ -13,4 +13,5 @@ public interface ProdMapper {
     ProdVO selectLatestVersion(String pcode); // 최신 버전 조회
     int disableOldVersion(String pcode); // 기존 버전 비활성화
     int getNextRawProductCodeBySeq(); // 시퀀스 
+    void updateIsUsedOnly(String pcode, String prodVerCd, String isUsed, String modi); // 사용여부만 업데이트
 }

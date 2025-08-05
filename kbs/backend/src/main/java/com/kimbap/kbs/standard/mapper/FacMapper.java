@@ -18,4 +18,5 @@ public interface FacMapper {
     int getFacMaxCountByfcode(String fcode); // 공장별 최대 생산량 코드 시퀀스
     boolean existsFcode(String fcode);
     List<FacMaxVO> selectAllFacMaxByFcode(String fcode); //
+    void updateOpStatusOnly(String fcode, String facVerCd, String opStatus, String modi); // 사용여부만 업데이트
 }

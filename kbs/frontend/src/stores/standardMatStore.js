@@ -117,8 +117,8 @@ export const useStandardMatStore = defineStore('standardMat', () => {
       }
 
       if (res?.status === 200 && res.data?.success) {
-        supplierData.value = [];
-
+        supplierData.value = [];  
+        formData.value = {};
         // ✅ 목록 자동 갱신
         await fetchMaterials();
 

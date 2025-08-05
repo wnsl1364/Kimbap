@@ -14,8 +14,8 @@ public interface WhMapper {
     WhVO selectLatestVersion(String wcode); // 최신 버전 조회
     int disableOldVersion(String wcode); // 기존 버전 비활성화
     int getNextRawWarehouseCodeBySeq(); // 시퀀스 
-
     void insertWhDetail(WhDetailVO detail); // 창고 상세 등록 
     void updateWh(WhVO wh); // 안 써도 정의만 하면 됨
+    void updateIsUsedOnly(String wcode, String wareVerCd, String isUsed, String modi);
 }
     

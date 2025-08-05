@@ -109,40 +109,57 @@ public class MatServiceImpl implements MatService {
         return matMapper.selectMatHistory(mcode);
     }
 
+    @Transactional
     @Override
     public void updateMaterial(MatVO newMat) {
         // 1. 기존 최신 버전 조회
         MatVO oldMat = matMapper.selectLatestVersion(newMat.getMcode());
+        if (oldMat == null) {
+            throw new RuntimeException("존재하지 않는 자재코드: " + newMat.getMcode());
+        }
 
-        // 2. 기존 버전 비활성화 처리
-        matMapper.disableOldVersion(newMat.getMcode());
+        // 2. 내용 변경 여부 판단 (is_used는 제외)
+        boolean isChanged =
+                !Objects.equals(oldMat.getMateName(), newMat.getMateName()) ||
+                !Objects.equals(oldMat.getUnit(), newMat.getUnit()) ||
+                !Objects.equals(oldMat.getMoqty(), newMat.getMoqty()) ||
+                !Objects.equals(oldMat.getSafeStock(), newMat.getSafeStock()) ||
+                !Objects.equals(oldMat.getStd(), newMat.getStd()) ||
+                !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit());
 
-        // 3. 버전 증가
-        String nextVer = getNextVersion(oldMat.getMateVerCd());
-        newMat.setMateVerCd(nextVer);
+        if (isChanged) {
+            // ✅ 내용 변경 → 버전 증가
+            matMapper.disableOldVersion(newMat.getMcode());
 
-        // 4. 필수 필드 세팅
-        newMat.setIsUsed("f1");
-        newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newMat.setModi(newMat.getModi()); // 실제 로그인 사용자로 변경 필요
+            String nextVer = getNextVersion(oldMat.getMateVerCd());
+            newMat.setMateVerCd(nextVer);
+            newMat.setIsUsed("f1");
+            newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+            newMat.setModi(newMat.getModi());
 
-        // 5. 새 자재 insert
-        matMapper.insertMat(newMat);
+            matMapper.insertMat(newMat);
 
-        // 6. 공급처 정보 insert (버전은 유지됨)
-        if (newMat.getSuppliers() != null) {
-            int index = 1;
-            for (MatSupplierVO supplier : newMat.getSuppliers()) {
-                supplier.setMcode(newMat.getMcode());
-                supplier.setMateVerCd(newMat.getMateVerCd());
+            // ✅ 공급처도 insert (버전은 동일하게 유지)
+            if (newMat.getSuppliers() != null) {
+                int index = 1;
+                for (MatSupplierVO supplier : newMat.getSuppliers()) {
+                    supplier.setMcode(newMat.getMcode());
+                    supplier.setMateVerCd(newMat.getMateVerCd());
 
-                // 버전 포함한 고유 코드
-                String mateCpCd = String.format("%s-%s-SUP-%02d", newMat.getMcode(), newMat.getMateVerCd(), index);
-                supplier.setMateCpCd(mateCpCd);
+                    String mateCpCd = String.format("%s-%s-SUP-%02d", newMat.getMcode(), newMat.getMateVerCd(), index);
+                    supplier.setMateCpCd(mateCpCd);
 
-                matMapper.insertMatSupplier(supplier);
-                index++;
+                    matMapper.insertMatSupplier(supplier);
+                    index++;
+                }
             }
+
+        } else if (!Objects.equals(oldMat.getIsUsed(), newMat.getIsUsed())) {
+            // ✅ 사용여부만 변경됨 → update만
+            matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), newMat.getIsUsed(), newMat.getModi());
+        } else {
+            // ❌ 아무것도 안 바뀐 경우
+            System.out.println("⚠️ 자재 정보 변경 없음, 처리 생략");
         }
     }
 

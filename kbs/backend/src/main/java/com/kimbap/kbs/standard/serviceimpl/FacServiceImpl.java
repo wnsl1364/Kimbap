@@ -90,36 +90,48 @@ public class FacServiceImpl  implements FacService{
     public void updateFactory(FacVO newFac) {
         // 기존 최신 버전 조회
         FacVO oldFac = facMapper.selectLatestVersion(newFac.getFcode());
+        if (oldFac == null) {
+            throw new RuntimeException("존재하지 않는 공장코드: " + newFac.getFcode());
+        }
 
-        // 기존 버전 비활성화 처리
-        facMapper.disableOldVersion(newFac.getFcode());
+        // ✅ 내용 변경 여부 (opStatus는 제외)
+        boolean isChanged =
+                !Objects.equals(oldFac.getFacName(), newFac.getFacName()) ||
+                !Objects.equals(oldFac.getAddress(), newFac.getAddress()) ||
+                !Objects.equals(oldFac.getTel(), newFac.getTel());
 
-        // 버전 증가
-        String nextVer = getNextVersion(oldFac.getFacVerCd());
-        newFac.setFacVerCd(nextVer);
+        if (isChanged) {
+            // ✅ 실제 내용 변경 → 버전 증가
+            facMapper.disableOldVersion(newFac.getFcode());
 
-        // 필수 필드 세팅
-        newFac.setOpStatus("r1");
-        newFac.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newFac.setModi(newFac.getModi());
+            String nextVer = getNextVersion(oldFac.getFacVerCd());
+            newFac.setFacVerCd(nextVer);
+            newFac.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+            newFac.setModi(newFac.getModi());
 
-        // 새 공장 insert
-        facMapper.insertFac(newFac);
+            facMapper.insertFac(newFac);
 
-        // 최대 생산량 정보 insert
-        if(newFac.getFacMaxList() != null) {
-            int index = 1;
-            for (FacMaxVO facmax : newFac.getFacMaxList()) {
-                facmax.setFcode(newFac.getFcode());
-                facmax.setFacVerCd(newFac.getFacVerCd());
+            // 최대 생산량 정보 insert
+            if (newFac.getFacMaxList() != null) {
+                int index = 1;
+                for (FacMaxVO facmax : newFac.getFacMaxList()) {
+                    facmax.setFcode(newFac.getFcode());
+                    facmax.setFacVerCd(newFac.getFacVerCd());
 
-                // 최대 생산량 코드 생성
-                String maxProduCd = String.format("%s-%s-FAC-%02d", newFac.getFcode(), newFac.getFacVerCd(), index);
-                facmax.setMaxProduCd(maxProduCd); // ✅ 올바른 필드에 값 설정
+                    String maxProduCd = String.format("%s-%s-FAC-%02d", newFac.getFcode(), newFac.getFacVerCd(), index);
+                    facmax.setMaxProduCd(maxProduCd);
 
-                facMapper.insertFacMax(facmax);
-                index++;
+                    facMapper.insertFacMax(facmax);
+                    index++;
+                }
             }
+
+        } else if (!Objects.equals(oldFac.getOpStatus(), newFac.getOpStatus())) {
+            // ✅ 내용 동일, 가동여부(opStatus)만 변경 → update만 수행
+            facMapper.updateOpStatusOnly(oldFac.getFcode(), oldFac.getFacVerCd(), newFac.getOpStatus(), newFac.getModi());
+        } else {
+            // ❌ 아무것도 바뀐 게 없음
+            System.out.println("⚠️ 공장 정보 변경 없음, 처리 생략");
         }
     }
 

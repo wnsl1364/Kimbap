@@ -50,6 +50,7 @@ export const useStandardCpStore = defineStore('standardCp', () => {
         }
 
         if (res?.status === 200 && res.data?.success) {
+            formData.value = {};
             await fetchCompanys(); // 목록 갱신
             return !sanitized.cpCd ? '등록 성공' : '수정 성공';
         } else {

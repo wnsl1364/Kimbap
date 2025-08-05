@@ -205,4 +205,12 @@
         UPDATE warehouse SET ware_name = ware_name WHERE 1 = 0
     </update>
 
+    <update id="updateIsUsedOnly">
+        UPDATE warehouse
+        SET is_used = #{isUsed},
+            modi = #{modi},
+            reg_dt = SYSDATE
+        WHERE wcode = #{wcode}
+        AND ware_ver_cd = #{wareVerCd}
+    </update>
 </mapper>

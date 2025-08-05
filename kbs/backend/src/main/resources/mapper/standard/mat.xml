@@ -259,4 +259,13 @@
         SELECT COUNT(*) FROM MATE_SUPPLIER WHERE mcode = #{mcode}
     </select>
 
+    
+    <update id="updateIsUsedOnly">
+        UPDATE material
+        SET is_used = #{isUsed},
+            modi = #{modi},
+            reg_dt = SYSDATE
+        WHERE mcode = #{mcode}
+        AND mate_ver_cd = #{mateVerCd}
+    </update>
 </mapper>

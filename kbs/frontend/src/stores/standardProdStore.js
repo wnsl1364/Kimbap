@@ -9,6 +9,28 @@ export const useStandardProdStore = defineStore('standardProd', () => {
     const searchFilter     = ref({});    // 검색 필터
     const formData = ref({});          // 단건 조회
     const changeHistory = ref([]);    // 변경 이력 조회
+    const today = format(new Date(), 'yyyy-MM-dd');  // 오늘 날짜 포맷 (등록일자 default 값에 사용)
+    const defaultProdForm = {
+        pcode: '',
+        prodName: '',
+        unit: '',
+        wei: '',
+        edate: '',
+        stoTemp: '',
+        safeStock: '',
+        pacUnit: '',
+        primeCost: '',
+        prodUnitPrice: '',
+        isUsed: 'f1',
+        chaRea: '',
+        note: '',
+        regDt: today,
+    }
+
+    const resetForm = () => {
+    formData.value = { ...defaultProdForm };
+    };
+
   
   
     // 빈문자열 처리함수
@@ -52,6 +74,7 @@ export const useStandardProdStore = defineStore('standardProd', () => {
 
         if (res?.status === 200 && res.data?.success) {
             await fetchProducts(); // 목록 갱신
+            formData.value = {} // 초기화
             return !sanitized.pcode ? '등록 성공' : '수정 성공';
         } else {
             return !sanitized.pcode ? '등록 실패' : '수정 실패';
@@ -61,6 +84,7 @@ export const useStandardProdStore = defineStore('standardProd', () => {
         return '예외 발생';
         }
     }
+
     // 제품기준정보 단건조회
     const fetchProductDetail = async (pcode) => {
         try {
@@ -98,6 +122,7 @@ export const useStandardProdStore = defineStore('standardProd', () => {
         fetchProducts,
         saveProduct,
         fetchProductDetail,
-        fetchChangeHistory
+        fetchChangeHistory,
+        resetForm
     }
 })
