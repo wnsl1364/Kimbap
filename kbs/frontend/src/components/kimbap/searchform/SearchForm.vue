@@ -31,7 +31,7 @@ const searchColumns = ref([]);
 const handleMinChange = (column) => {
     const minVal = parseFloat(column.value.min);
     const maxVal = parseFloat(column.value.max);
-    
+
     // min이 숫자이고, max가 있고, min이 max보다 크면
     if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
         // max를 min과 같게 만들기
@@ -46,7 +46,7 @@ const gridClass = computed(() => {
 const handleMaxChange = (column) => {
     const minVal = parseFloat(column.value.min);
     const maxVal = parseFloat(column.value.max);
-    
+
     // max가 숫자이고, min이 있고, max가 min보다 작으면
     if (!isNaN(maxVal) && !isNaN(minVal) && maxVal < minVal) {
         // min을 max와 같게 만들기
@@ -57,7 +57,7 @@ const handleMaxChange = (column) => {
 const validateRange = (column) => {
     const minVal = parseFloat(column.value.min);
     const maxVal = parseFloat(column.value.max);
-    
+
     // 둘 다 숫자이고 min이 max보다 크면
     if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
         // max를 min과 같게 조정
@@ -76,6 +76,9 @@ const initializeColumns = () => {
         } else if (column.type === 'numberRange') {
             // 숫자 범위는 기본값 0으로 설정! ✨
             initialValue = { min: 0, max: 0 };
+        } else if (column.type === 'radio') {
+            // 부모에서 넘긴 값이 있다면 사용, 없으면 첫 번째 옵션 사용
+            initialValue = column.value ?? column.options?.[0]?.value ?? '';
         }
 
         return {
@@ -121,38 +124,38 @@ const handleReset = () => {
 
 // 날짜 필드 평탄화 함수
 const flattenSearchData = (columns) => {
-  const flatData = {};
+    const flatData = {};
 
-  columns.forEach(column => {
-    if (column.type === 'dateRange' && column.value) {
-      const key = column.key;
-      const start = column.value.start;
-      const end = column.value.end;
+    columns.forEach(column => {
+        if (column.type === 'dateRange' && column.value) {
+            const key = column.key;
+            const start = column.value.start;
+            const end = column.value.end;
 
-      if (start) {
-        flatData[`${key}Start`] =
-          typeof start === 'string'
-            ? start.slice(0, 10)
-            : format(start, 'yyyy-MM-dd');
-      }
+            if (start) {
+                flatData[`${key}Start`] =
+                    typeof start === 'string'
+                        ? start.slice(0, 10)
+                        : format(start, 'yyyy-MM-dd');
+            }
 
-      if (end) {
-        flatData[`${key}End`] =
-          typeof end === 'string'
-            ? end.slice(0, 10)
-            : format(end, 'yyyy-MM-dd');
-      }
-    } else {
-      flatData[column.key] = column.value;
-    }
-  });
+            if (end) {
+                flatData[`${key}End`] =
+                    typeof end === 'string'
+                        ? end.slice(0, 10)
+                        : format(end, 'yyyy-MM-dd');
+            }
+        } else {
+            flatData[column.key] = column.value;
+        }
+    });
 
-  return flatData;
+    return flatData;
 };
 </script>
 
 <template>
-    <Fluid >
+    <Fluid>
         <div class="flex flex-col border-2 border-black-600 gap-8">
             <!-- 검색 폼 영역 -->
             <div class="card flex flex-col gap-4 !p-5 !rounded-none">
@@ -172,7 +175,7 @@ const flattenSearchData = (columns) => {
                             <Calendar v-else-if="column.type === 'calendar'" :id="`search_${column.key}`"
                                 v-model="column.value" :placeholder="column.placeholder" dateFormat="yy-mm-dd"
                                 class="w-full" showIcon />
-                            
+
                             <!-- 읽기 전용 -->
                             <InputText v-else-if="column.type === 'readonly'" :id="`search_${column.key}`"
                                 v-model="column.value" :placeholder="column.placeholder" class="w-full" readonly />
@@ -194,22 +197,20 @@ const flattenSearchData = (columns) => {
                             <!-- 숫자 범위 -->
                             <div v-else-if="column.type === 'numberRange'" class="flex gap-2 items-center w-full">
                                 <InputText v-model="column.value.min" :min="0" :step="column.step"
-                                    :placeholder="column.minPlaceholder || '최소값'" type="number"
-                                    class="flex-1" @input="handleMinChange(column)"
-                                    @blur="validateRange(column)" />
+                                    :placeholder="column.minPlaceholder || '최소값'" type="number" class="flex-1"
+                                    @input="handleMinChange(column)" @blur="validateRange(column)" />
                                 <span class="text-gray-500 font-medium px-2">~</span>
                                 <InputText v-model="column.value.max" :min="0" :step="column.step"
-                                    :placeholder="column.maxPlaceholder || '최대값'" type="number"
-                                    class="flex-1" @input="handleMaxChange(column)"
-                                    @blur="validateRange(column)" />
+                                    :placeholder="column.maxPlaceholder || '최대값'" type="number" class="flex-1"
+                                    @input="handleMaxChange(column)" @blur="validateRange(column)" />
                             </div>
 
                             <!-- 라디오 버튼 -->
-                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-3 gap-2 w-full">
+                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-4 gap-2 w-full">
                                 <div v-for="option in column.options" :key="option.value"
                                     class="mt-1.5 flex items-center">
                                     <RadioButton :id="`${column.key}_${option.value}`" v-model="column.value"
-                                        :value="option.value" :name="column.key" />
+                                        :value="option.value" :name="column.key" @change="handleSearch"/>
                                     <label :for="`${column.key}_${option.value}`" class="ml-2 text-lg">
                                         {{ option.label }}
                                     </label>

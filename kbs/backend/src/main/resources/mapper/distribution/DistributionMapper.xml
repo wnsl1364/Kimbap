@@ -2,57 +2,102 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.kimbap.kbs.distribution.mapper.DistributionMapper">
 
-<select id="getInOutCheck" resultType="com.kimbap.kbs.distribution.service.DistributionVO">
-  SELECT
-  temp.regDt,
-  temp.type,
-  temp.pCode,
-  temp.prodName,
-  temp.qty,
-  temp.wareAreaCd,
-  temp.stockQty,
-  temp.note
-  FROM (
+  <!-- 입출고 조회 페이지 -->
+  <select id="getInOutCheck" resultType="com.kimbap.kbs.distribution.service.DistributionVO" parameterType="com.kimbap.kbs.distribution.service.DistributionVO">
+    SELECT
+      temp.regDt,
+      temp.type,
+      temp.pCode,
+      temp.prodName,
+      temp.qty,
+      temp.wareAreaCd,
+      temp.stockQty,
+      temp.note
+    FROM (
+      SELECT 
+        a.inbo_dt AS regDt,
+        '입고' AS type,
+        a.pcode,
+        b.prod_name AS prodName,
+        a.inbo_qty AS qty,
+        '' AS note,
+        c.ware_area_cd AS wareAreaCd,
+        c.qty AS stockQty
+      FROM prod_inbo a
+      JOIN product b ON a.pcode = b.pcode
+      JOIN ware_stock c ON a.prod_inbo_cd = c.prod_inbo_cd
 
-    SELECT 
-      a.inbo_dt AS regDt,
-      '입고' AS type,
-      a.pcode,
-      b.prod_name AS prodName,
-      a.inbo_qty AS qty,
-      '' AS note,
-      c.ware_area_cd AS wareAreaCd ,
-      c.qty AS stockQty
-    FROM prod_inbo a
-    JOIN product b ON a.pcode = b.pcode
-    JOIN ware_stock c ON a.prod_inbo_cd = c.prod_inbo_cd
+      UNION ALL
 
-    UNION ALL
+      SELECT 
+        a.rel_dt AS regDt,
+        '출고' AS type,
+        b.pcode,
+        b.prod_name AS prodName,
+        a.rel_qty AS qty,
+        d.note,
+        e.ware_area_cd AS wareAreaCd,
+        e.qty AS stockQty
+      FROM prod_rel a
+      JOIN product b ON a.pcode = b.pcode
+      JOIN release_ord d ON a.rel_ord_cd = d.rel_ord_cd
+      JOIN prod_inbo f ON a.lot_no = f.lot_no
+      JOIN ware_stock e ON f.prod_inbo_cd = e.prod_inbo_cd
+    ) temp
 
-    SELECT 
-      a.rel_dt AS regDt,
-      '출고' AS type,
-      b.pcode,
-      b.prod_name AS prodName,
-      a.rel_qty AS qty,
-      d.note,
-      e.ware_area_cd AS wareAreaCd ,
-      e.qty AS stockQty
-    FROM prod_rel a
-    JOIN product b ON a.pcode = b.pcode
-    JOIN release_ord d ON a.rel_ord_cd = d.rel_ord_cd
-    JOIN prod_inbo f ON a.lot_no = f.lot_no
-    JOIN ware_stock e ON f.prod_inbo_cd = e.prod_inbo_cd
-  ) temp
-  ORDER BY temp.regDt DESC
+<where>
+  <if test="prodName != null and prodName != ''">
+    AND temp.prodName LIKE '%' || #{prodName} || '%'
+  </if>
+  <if test="pCode != null and pCode != ''">
+  AND temp.pCode LIKE '%' || #{pCode} || '%'
+</if>
+<if test="wareAreaCd != null and wareAreaCd != ''">
+  AND temp.wareAreaCd LIKE '%' || #{wareAreaCd} || '%'
+</if>
+
+  <if test="type != null and type != '전체'">
+    AND temp.type = #{type}
+  </if>
+  <if test="startDate != null and endDate != null">
+    AND temp.regDt BETWEEN #{startDate} AND #{endDate}
+  </if>
+</where>
+
+
+    ORDER BY temp.regDt DESC
+  </select>
+
+  <!-- 출고지시서 조회 -->
+  <select id="getRelOrdList" resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO" parameterType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
+  SELECT 
+    a.rel_ord_cd,
+    a.rel_dt,
+    d.cp_name,
+    e.prod_name,
+    a.rel_ord_qty,
+    c.deli_add,
+    a.rel_ord_status,
+    a.note
+  FROM release_ord a
+  JOIN order_d b ON a.ord_d_cd = b.ord_d_cd
+  JOIN order_list c ON c.ord_cd = b.ord_cd
+  JOIN company d ON d.cp_cd = c.cp_cd
+  JOIN product e ON e.pcode = b.pcode
+  <where>
+    <if test="cpName != null and cpName != ''">
+      AND d.cp_name LIKE CONCAT('%', #{cpName}, '%')
+    </if>
+    <if test="relOrdCd != null and relOrdCd != ''">
+      AND a.rel_ord_cd LIKE CONCAT('%', #{relOrdCd}, '%')
+    </if>
+    <if test="type != null and type != '전체'">
+      AND a.rel_ord_status = #{type}
+    </if>
+    <if test="startDate != null and endDate != null">
+      AND a.rel_dt BETWEEN #{startDate} AND #{endDate}
+    </if>
+  </where>
 </select>
+
 </mapper>
-
-
-<!-- 제품명 검색 -->
-
-<!-- 창고 검색 -->
-
-<!-- 제품코드 검색 -->
-
-<!-- 입출고일자 검색 -->

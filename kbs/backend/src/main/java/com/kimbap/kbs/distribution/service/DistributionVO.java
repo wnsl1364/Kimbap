@@ -20,4 +20,6 @@ public class DistributionVO {
     private String wareAreaCd;  // 창고
     private int stockQty;        // 잔여재고
     private String note;          // 비고
+    private Date startDate;       // 시작일
+    private Date endDate;         // 종료일
 }
