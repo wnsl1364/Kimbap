@@ -23,9 +23,9 @@ export default [
         component: () => import('@/views/material/MateLoading.vue'),
     },
     {
-        path: '/material/transferRequestForm',
-        name: 'transferRequestForm',
-        component: () => import('@/views/material/TransferRequestForm.vue'),
+        path: '/material/stockMovementRegister',
+        name: 'stockMovementRegister',
+        component: () => import('@/views/material/StockMovementRegister.vue'),
     },
     {
         path: '/material/transferRequestList',

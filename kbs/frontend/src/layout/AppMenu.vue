@@ -80,15 +80,11 @@ const model = ref([
             },
             {
                 label: '자재 적재 대기 목록',
-                to: '/material/materialLoadingWaitingList'
-            },
-            {
-                label: '자재 적재 대기 목록2',
                 to: '/material/mateLoading'
             },
             {
                 label: '자재 이동 요청 등록',
-                to: '/material/transferRequestForm'
+                to: '/material/stockMovementRegister'
             },
             {
                 label: '자재 이동 요청 목록',
