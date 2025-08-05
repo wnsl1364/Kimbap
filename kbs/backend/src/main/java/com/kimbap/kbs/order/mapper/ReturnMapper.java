@@ -42,4 +42,6 @@ public interface ReturnMapper {
 
   // 12. prod_return_cd를 통해 주문코드(ord_cd) 조회
   String getOrdCdByReturnCd(String prodReturnCd);
+
+  String getLotNoByOrdDCd(String ordDCd);
 }

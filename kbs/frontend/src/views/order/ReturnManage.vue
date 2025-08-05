@@ -152,6 +152,20 @@ const handleReject = async () => {
   }
 };
 
+const handleSelectionChange = (selection) => {
+  if (!selection) return;
+
+  const selectedItem = Array.isArray(selection) ? selection[0] : selection;
+
+  if (selectedItem.returnStatusInternal === 'w2' || selectedItem.returnStatusInternal === 'w3') {
+    alert('이미 승인(완료/반려)된 건은 선택할 수 없습니다.');
+    selectedRows.value = null;  // 선택 해제 (single일 때는 null)
+  } else {
+    selectedRows.value = selectedItem;
+  }
+};
+
+
 onMounted(async () => {
   try {
     // 공통코드 '0W' 가져오기 (반품상태코드)
@@ -188,6 +202,7 @@ watch(selectedRows, (newVal) => {
       :dateFields="['returnDt', 'returnEndDt']"
       @save="handleApprove"
       @delete="handleReject"
+      @selectionChange="handleSelectionChange"
     />
   </div>
 </template>

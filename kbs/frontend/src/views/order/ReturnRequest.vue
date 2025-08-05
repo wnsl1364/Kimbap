@@ -63,10 +63,11 @@ const handleSave = async () => {
     ordCd: formData.value.ordCd,
     returnItems: selected.map(p => ({
       ordDCd: p.ordDCd,
+      lotNo: p.lotNo,
       returnQty: p.returnQty,
       returnRea: p.returnRea,
       returnAmount: p.returnAmount,
-      returnStatus: 'v1'
+      returnStatusCustomer: 'v1'
     }))
   }
 
