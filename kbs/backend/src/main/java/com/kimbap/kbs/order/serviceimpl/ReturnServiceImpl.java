@@ -30,6 +30,10 @@ public class ReturnServiceImpl implements ReturnService {
         String ordCd = request.getOrdCd();
 
         for (ReturnItemVO item : request.getReturnItems()) {
+            // 출고 테이블에서 LOT 번호 조회
+            String lotNo = returnMapper.getLotNoByOrdDCd(item.getOrdDCd());
+            item.setLotNo(lotNo);
+
             // 시퀀스 번호 조회 (정수형)
             int seq = returnMapper.getNextReturnCodeSeq();
             // 현재 연도

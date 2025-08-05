@@ -143,4 +143,11 @@
     WHERE pr.prod_return_cd = #{prodReturnCd}
   </select>
 
+  <select id="getLotNoByOrdDCd" parameterType="string" resultType="string">
+      SELECT pr.lot_no
+      FROM prod_rel pr
+      JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+      WHERE ro.ord_d_cd = #{ordDCd}
+  </select>
+
 </mapper>
