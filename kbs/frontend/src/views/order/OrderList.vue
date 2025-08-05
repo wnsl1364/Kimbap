@@ -7,9 +7,11 @@ import { useMemberStore } from '@/stores/memberStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
 // 라우터 설정
 const router = useRouter();
+const route = useRoute();
 
 // 로그인 정보 가져오기
 const memberStore = useMemberStore()
@@ -29,7 +31,10 @@ const { commonCodes } = storeToRefs(common)
 
 // 공통코드 형변환
 const ordStatusCodes = (list) => {
-  const custCodes = common.getCodes('0S');
+  const custCodes = [
+    ...common.getCodes('0S'),  // 주문상태
+    ...common.getCodes('0V')   // 반품상태 (v1, v2)
+  ];
   const internalCodes = common.getCodes('0A');
 
   return list.map(item => {
@@ -102,7 +107,8 @@ onMounted(async () => {
   try {
     await Promise.all([
       common.fetchCommonCodes('0S'),
-      common.fetchCommonCodes('0A')
+      common.fetchCommonCodes('0A'),
+      common.fetchCommonCodes('0V')
     ]);
 
     // 조건 분기: p2만 cpCd를 함께 보냄
@@ -149,10 +155,16 @@ const searchColumns = computed(() => {
         key: 'ordStatus',
         label: '상태',
         type: 'dropdown',
-        options: common.getCodes('0S').map(code => ({
-          label: code.cdInfo,
-          value: code.dcd
-        }))
+        options: [
+          ...common.getCodes('0S').map(code => ({
+            label: code.cdInfo,
+            value: code.dcd
+          })),
+          ...common.getCodes('0V').map(code => ({
+            label: code.cdInfo,
+            value: code.dcd
+          }))
+        ]
       }
     ];
   } else {
@@ -234,13 +246,13 @@ const handleRowClick = (rowData) => {
 const handleRefundRequest = () => {
   const selected = selectedRows.value;
 
-  if (!selected || Object.keys(selected).length === 0) {
+  if (!selected || !selected.ordCd) {
     alert('주문을 선택하세요.');
     return;
   }
 
-  if (selected.ordStatus !== '출고완료') {
-    alert('출고완료 상태인 주문만 반품 요청이 가능합니다.');
+  if (selected.ordStatus !== '출고완료' && selected.ordStatus !== '부분반품') {
+    alert('출고완료, 부분반품 상태인 주문만 반품 요청이 가능합니다.');
     return;
   }
 
@@ -249,7 +261,20 @@ const handleRefundRequest = () => {
 
 watch(selectedRows, (newVal) => {
   console.log('선택된 주문:', newVal)
-})
+  if (newVal && newVal.ordStatusCustomer) {
+    console.log('원본 상태코드:', newVal.ordStatusCustomer)
+  }
+  if (newVal && newVal.ordStatus) {
+    console.log('화면 표시 상태:', newVal.ordStatus)
+  }
+});
+
+watch(() => route.query.refresh, (newVal) => {
+  if (newVal) {
+    console.log('목록 재조회');
+    handleSearch({});
+  }
+});
 </script>
 <template>
   <!-- 검색 폼 컴포넌트 -->

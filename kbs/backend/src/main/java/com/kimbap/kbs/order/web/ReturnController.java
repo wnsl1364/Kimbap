@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kimbap.kbs.order.service.ReturnItemVO;
@@ -74,10 +75,20 @@ public class ReturnController {
 
     // 반품 목록 조회
     @GetMapping("/list")
-    public ResponseEntity<Map<String, Object>> getReturnList() {
+    public ResponseEntity<Map<String, Object>> getReturnList(@RequestParam Map<String, String> paramMap) {
+        Map<String, Object> params = new HashMap<>();
+
+        params.put("cpName", paramMap.getOrDefault("cpName", ""));
+        params.put("prodName", paramMap.getOrDefault("prodName", ""));
+        params.put("returnStatusInternal", paramMap.getOrDefault("returnStatusInternal", ""));
+        params.put("startDate", paramMap.getOrDefault("startDate", ""));
+        params.put("endDate", paramMap.getOrDefault("endDate", ""));
+
+        log.info("검색 파라미터: {}", params);
+
         Map<String, Object> response = new HashMap<>();
         try {
-            List<ReturnItemVO> returnList = returnService.getReturnList(new HashMap<>()); // 파라미터 없으면 전체 조회
+            List<ReturnItemVO> returnList = returnService.getReturnList(params);
             response.put("result_code", "SUCCESS");
             response.put("message", "반품 목록 조회 성공");
             response.put("data", returnList);
@@ -91,12 +102,13 @@ public class ReturnController {
         }
     }
 
+
     // 반품 승인 처리
     @PutMapping("/approve")
-    public ResponseEntity<Map<String, Object>> approveReturn(@RequestBody List<String> prodReturnCds) {
+    public ResponseEntity<Map<String, Object>> approveReturn(@RequestBody ReturnItemVO request) {
         Map<String, Object> response = new HashMap<>();
         try {
-            returnService.approveReturn(prodReturnCds);
+            returnService.approveReturn(request);
             response.put("result_code", "SUCCESS");
             response.put("message", "반품 승인 성공");
             return ResponseEntity.ok(response);
@@ -109,19 +121,19 @@ public class ReturnController {
         }
     }
 
-    // 반품 반려 처리
+    // 반품 거절 처리
     @PutMapping("/reject")
-    public ResponseEntity<Map<String, Object>> rejectReturn(@RequestBody List<String> prodReturnCds) {
+    public ResponseEntity<Map<String, Object>> rejectReturn(@RequestBody ReturnItemVO request) {
         Map<String, Object> response = new HashMap<>();
         try {
-            returnService.rejectReturn(prodReturnCds);
+            returnService.rejectReturn(request);
             response.put("result_code", "SUCCESS");
-            response.put("message", "반품 반려 성공");
+            response.put("message", "반품 거절 성공");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("반품 반려 실패", e);
+            log.error("반품 거절 실패", e);
             response.put("result_code", "FAIL");
-            response.put("message", "반품 반려 실패");
+            response.put("message", "반품 거절 실패");
             response.put("data", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

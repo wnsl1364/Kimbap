@@ -31,5 +31,6 @@ public class ReturnItemVO {
     private String cpName;
     private String prodName;
     private Date returnEndDt;
+    private String manager;
     private String managerName;
 }
