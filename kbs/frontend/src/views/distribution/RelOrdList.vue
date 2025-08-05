@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
-import { distributionInOutCheck } from '@/api/distribution';
+import { getRelOrdList } from '@/api/distribution';
 
 // api 데이터
 const rawData = ref([]);
@@ -16,7 +16,7 @@ const onReset = () => { searchValues.value = { type: '전체' } };
 // ✅ onMounted 시 API 호출
 onMounted(async () => {
   try {
-    const result = await distributionInOutCheck({});
+    const result = await getRelOrdList({});
     console.log('✅ 응답 데이터:', result.data); // ← 실제 테이블용 데이터 확인
     rawData.value = result.data; // ✅ 핵심 수정
   } catch (e) {
@@ -34,25 +34,19 @@ const materialTableButtons = ref({
 
 const searchColumns = ref([
   {
-    key: 'prodName',
-    label: '제품명',
+    key: 'cpName',
+    label: '거래처명',
     type: 'text',
     placeholder: '제품명을 입력하세요'
   },
   {
-    key: 'pcode',
-    label: '제품코드',
+    key: 'relOrdCd',
+    label: '출고지시번호',
     type: 'text',
     placeholder: '제품코드를 입력하세요'
   },
-  {
-    key: 'wareAreaCd',
-    label: '창고',
-    type: 'text',
-    placeholder: '창고를 입력하세요'
-  },
   { 
-    key: 'inOutDtRange', 
+    key: 'relDt', 
     label: '일자', 
     type: 'dateRange', 
     startPlaceholder: '시작일', 
@@ -62,66 +56,64 @@ const searchColumns = ref([
     label: '구분',
     value: '전체',
     type: 'radio',
+    gridColumns: 4,
     options: [
       { label: '전체', value: '전체' },
-      { label: '입고', value: '입고' },
-      { label: '출고', value: '출고' }
+      { label: '요청', value: '요청' },
+      { label: '부분출고', value: '부분출고' },
+      { label: '출고완료', value: '출고완료' }
     ]
   },
 ]);
 
 const onSearch = async (searchValues) => {
   try {
-    // 조건 분해
     const {
-      type,
-      inOutDtRange,
-      prodName,
-      pcode,
-      wareAreaCd
+      cpName,
+      relOrdCd,
+      relDtStart,   // ← 요걸
+      relDtEnd,     // ← 요걸
+      type
     } = searchValues;
 
-    // 날짜 처리
-    const startDate = inOutDtRange?.[0] ?? null;
-    const endDate = inOutDtRange?.[1] ?? null;
-
-    // 조건 백엔드 전달
     const filter = {
+      cpName,
+      relOrdCd,
       type,
-      startDate,
-      endDate,
-      prodName,
-      pcode,
-      wareAreaCd
+      startDate: relDtStart ?? null,  // ← 이렇게 백엔드용 필드명으로 매핑
+      endDate: relDtEnd ?? null
     };
-console.log('🔍 필터 조건:', filter);
-    // POST 요청
-    const result = await distributionInOutCheck(filter);
-    rawData.value = result.data;
 
+    console.log('🔍 필터 조건:', filter);
+
+    const result = await getRelOrdList(filter); // ← 이 부분도 확인
+    rawData.value = result.data;
   } catch (e) {
     console.error('검색 실패:', e);
   }
 };
 
+
+
+
 // InputTable용 컬럼 정의 (실제 데이터 필드와 매치)
 const inputTableColumns = computed(() => {
   const baseColumns = [
     {
-      field: 'regDt',
-      header: '입출고일자',
+      field: 'relDt',
+      header: '출고지시일자',
       type: 'readonly',
       align: 'center'
     },
     {
-      field: 'type',
-      header: '구분',
+      field: 'relOrdCd',
+      header: '출고지시번호',
       type: 'readonly',
       align: 'center'
     },
     {
-      field: 'pcode',
-      header: '제품코드',
+      field: 'cpName',
+      header: '거래처명',
       type: 'readonly',
       align: 'left'
     },
@@ -132,20 +124,20 @@ const inputTableColumns = computed(() => {
       align: 'left'
     },
     {
-      field: 'qty',
-      header: '수량',
+      field: 'relOrdQty',
+      header: '총수량',
       type: 'readonly',
       align: 'right'
     },
     {
-      field: 'wareAreaCd',
-      header: '창고',
+      field: 'deliAdd',
+      header: '배송지주소',
       type: 'readonly',
       align: 'center'
     },
     {
-      field: 'stockQty',
-      header: '잔여재고',
+      field: 'relOrdStatus',
+      header: '출고지시상태',
       type: 'readonly',
       align: 'right'
     },
@@ -166,7 +158,7 @@ const inputTableColumns = computed(() => {
   <div class="grid">
     <div class="col-12">
       <div class="card">
-        <h5>완제품 입출고 조회</h5>
+        <h5>출고지시서 조회</h5>
         <SearchForm :columns="searchColumns"  v-model="searchValues" @search="onSearch" :gridColumns="3" @reset="onReset" />
 
         <!-- 매핑된 InputTable -->

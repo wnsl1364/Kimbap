@@ -148,20 +148,20 @@ const model = ref([
     {
         label: '물류',
         items: [
+            // {
+            //     label: '자재 재고 조회',
+            //     to: '/material/materialStockView'
+            // },
             {
-                label: '자재 재고 조회',
-                to: '/material/materialStockView'
-            },
-            {
-                label: '완제품 입출고 조회',
-                to: '/distribution/distributionCheck'
+                label: '출고지시서 조회/처리',
+                to: '/distribution/relOrdList'
             },
             {
                 label: '출고 지시서 등록',
-                to: '/distribution/distributionCheck'
+                to: '/distribution/relOrdAndResult'
             },
             {
-                label: '출고 처리',
+                label: '완제품 입출고 조회',
                 to: '/distribution/distributionCheck'
             },
         ]
