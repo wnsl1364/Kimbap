@@ -86,10 +86,10 @@
   JOIN product e ON e.pcode = b.pcode
   <where>
     <if test="cpName != null and cpName != ''">
-      AND d.cp_name LIKE CONCAT('%', #{cpName}, '%')
+      AND d.cp_name LIKE '%' || #{cpName} || '%'
     </if>
     <if test="relOrdCd != null and relOrdCd != ''">
-      AND a.rel_ord_cd LIKE CONCAT('%', #{relOrdCd}, '%')
+      AND a.rel_ord_cd LIKE '%' || #{relOrdCd} || '%'
     </if>
     <if test="type != null and type != '전체'">
       AND a.rel_ord_status = #{type}

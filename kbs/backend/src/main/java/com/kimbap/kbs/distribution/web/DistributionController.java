@@ -25,8 +25,9 @@ public class DistributionController {
         return distributionService.getInOutCheck(filter);
     }
 
-    @GetMapping("/relOrdList")
-    public List<RelOrderAndResultVO> getRelOrdList() {
-        return distributionService.getRelOrdList();
+    @PostMapping("/relOrdList")
+    public List<RelOrderAndResultVO> getRelOrdList(@RequestBody RelOrderAndResultVO filter) {
+        return distributionService.getRelOrdList(filter);
     }
+
 }

@@ -8,6 +8,6 @@ public interface DistributionService {
   List<DistributionVO> getInOutCheck(DistributionVO filter);
 
   // 출고 지시서 조회
-  List<RelOrderAndResultVO> getRelOrdList();
+  List<RelOrderAndResultVO> getRelOrdList(RelOrderAndResultVO filter);
 
 }
