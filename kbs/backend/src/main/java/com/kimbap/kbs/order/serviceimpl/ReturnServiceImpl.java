@@ -50,23 +50,18 @@ public class ReturnServiceImpl implements ReturnService {
             log.info("주문상세 상태 변경 → t4 (ord_d_cd: {})", item.getOrdDCd());
         }
 
-        // 주문 마스터 상태 체크 및 업데이트 (부분반품(s5) / 반품완료(s6))
-        int totalDetails = returnMapper.getOrderDetailCount(ordCd);
-        int returnCompletedCount = returnMapper.getOrderDetailStatusCount(ordCd, "t5");
-
         Map<String, String> params = new HashMap<>();
         params.put("ordCd", ordCd);
+        params.put("status", "v1");
+        int updatedRows = returnMapper.updateOrderStatusCustomer(params);
 
-        if (returnCompletedCount == totalDetails) {
-            // 전체 반품완료
-            params.put("status", "s6");
-            returnMapper.updateOrderStatusCustomer(params);
-            log.info("주문 마스터 상태 변경 → s6 (반품완료)");
+        // 업데이트된 Row 수를 로그로 출력 (0이면 update 실패)
+        log.info("주문마스터 상태 v1 업데이트 결과 → 업데이트된 건수: {}", updatedRows);
+
+        if (updatedRows == 0) {
+            log.error("주문마스터 상태 업데이트 실패! (ordCd: {})", ordCd);
         } else {
-            // 부분반품
-            params.put("status", "s5");
-            returnMapper.updateOrderStatusCustomer(params);
-            log.info("주문 마스터 상태 변경 → s5 (부분반품)");
+            log.info("주문 마스터 상태 변경 성공 → v1 (반품요청)");
         }
     }
 
@@ -82,27 +77,79 @@ public class ReturnServiceImpl implements ReturnService {
 
     @Override
     @Transactional
-    public void approveReturn(List<String> prodReturnCds) {
-        for (String prodReturnCd : prodReturnCds) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("returnStatusInternal", "w1");  // SQL에서 쓰는 이름과 맞춰야 함
-            params.put("prodReturnCd", prodReturnCd);
+    public void approveReturn(ReturnItemVO request) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("returnStatusInternal", "w1");  // 내부 승인(w1)
+        params.put("prodReturnCd", request.getProdReturnCd());
+        params.put("manager", request.getManager());
 
-            returnMapper.updateReturnStatus(params);
-            returnMapper.updateOrderDetailStatusToT5(prodReturnCd); // 이건 그대로 두면 됨
-        }
+        // 반품 상태 업데이트 (내부 승인)
+        returnMapper.updateReturnStatus(params);
+        log.info("반품 승인 완료 → prodReturnCd: {}", request.getProdReturnCd());
+
+        // 주문 상세 상태 t5(반품완료)로 변경
+        returnMapper.updateOrderDetailStatusToT5(request.getProdReturnCd());
+        log.info("주문상세 상태 변경 → t5 (prodReturnCd: {})", request.getProdReturnCd());
+
+        // 주문 마스터 상태 갱신
+        String ordCd = returnMapper.getOrdCdByReturnCd(request.getProdReturnCd());
+        log.info("반품 승인 후 마스터 상태 갱신 시작 → ordCd: {}", ordCd);
+
+        updateOrderMasterStatus(ordCd);
     }
-
 
     @Override
     @Transactional
-    public void rejectReturn(List<String> prodReturnCds) {
-        for (String prodReturnCd : prodReturnCds) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("returnStatusInternal", "w2");  // 상태: 반려
-            params.put("prodReturnCd", prodReturnCd);
+    public void rejectReturn(ReturnItemVO request) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("returnStatusInternal", "w2");  // 거절
+        params.put("prodReturnCd", request.getProdReturnCd());
+        params.put("manager", request.getManager());
 
-            returnMapper.updateReturnStatus(params);
+        // 반품 상태 거절로 변경
+        returnMapper.updateReturnStatus(params);
+
+        // 주문 상세 상태 t1(주문접수)로 복구
+        returnMapper.updateOrderDetailStatusToT1(request.getProdReturnCd());
+
+        // 주문 마스터 상태 갱신
+        String ordCd = returnMapper.getOrdCdByReturnCd(request.getProdReturnCd());
+        updateOrderMasterStatus(ordCd);
+    }
+
+    @Transactional
+    public void updateOrderMasterStatus(String ordCd) {
+        int totalDetails = returnMapper.getOrderDetailCount(ordCd);
+        int returnCompletedCount = returnMapper.getOrderDetailStatusCount(ordCd, "t5");
+        int pendingReturnCount = returnMapper.getOrderDetailStatusCount(ordCd, "t4");
+
+        log.info("=== 상태 점검 ===");
+        log.info("ordCd: {}", ordCd);
+        log.info("주문상세 총 건수: {}", totalDetails);
+        log.info("반품완료(t5) 건수: {}", returnCompletedCount);
+        log.info("반품요청(t4) 건수: {}", pendingReturnCount);
+
+        Map<String, String> updateParams = new HashMap<>();
+        updateParams.put("ordCd", ordCd);
+
+        if (returnCompletedCount == totalDetails) {
+            // 전체 반품 완료
+            updateParams.put("status", "s6");  // 반품완료
+            log.info("주문 마스터 상태 변경 → s6 (반품완료)");
+        } else if (pendingReturnCount > 0) {
+            // 남아있는 반품요청 있음
+            updateParams.put("status", "v1");  // 반품요청 유지
+            log.info("주문 마스터 상태 유지 → v1 (반품요청)");
+        } else if (returnCompletedCount > 0) {
+            // 일부 반품 완료
+            updateParams.put("status", "s5");  // 부분반품
+            log.info("주문 마스터 상태 변경 → s5 (부분반품)");
+        } else {
+            // 반품이 모두 거절된 경우
+            updateParams.put("status", "s3");  // 출고완료 복귀
+            log.info("모든 반품 거절 → 주문 마스터 상태 s3(출고완료)로 복구");
         }
+
+        returnMapper.updateOrderStatusCustomer(updateParams);
     }
 }

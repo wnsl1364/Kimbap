@@ -74,7 +74,7 @@ const handleSave = async () => {
     const res = await registerReturn(payload)
     if (res.data.result_code === 'SUCCESS') {
       alert('반품 요청이 등록되었습니다.')
-      router.push('/order/orderList')
+      router.push({ path: '/order/orderList', query: { refresh: true } });
     } else {
       alert('저장 실패: ' + res.data.message)
     }

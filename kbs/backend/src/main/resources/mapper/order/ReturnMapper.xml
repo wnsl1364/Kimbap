@@ -73,6 +73,7 @@
       UPDATE order_list
       SET ord_status_customer = #{status}
       WHERE ord_cd = #{ordCd}
+        AND is_used = 'f1'
   </update>
 
   <!-- 반품목록조회 -->
@@ -92,24 +93,22 @@
     FROM vw_return_list
     WHERE 1=1
       <if test="cpName != null and cpName != ''">
-        AND cp_name LIKE '%' || #{cpName} || '%'
+        AND CPNAME LIKE '%' || #{cpName} || '%'
       </if>
-      <if test="status != null and status != ''">
-        AND return_status_internal = #{returnStatusInternal}
+      <if test="returnStatusInternal != null and returnStatusInternal != ''">
+        AND RETURNSTATUSINTERNAL = #{returnStatusInternal}
       </if>
       <if test="prodName != null and prodName != ''">
-        AND prod_name LIKE '%' || #{prodName} || '%'
+        AND PRODNAME LIKE '%' || #{prodName} || '%'
       </if>
       <if test="startDate != null and startDate != ''">
-        AND TRUNC(return_dt) &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+        AND TRUNC(RETURNDT) &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
       </if>
       <if test="endDate != null and endDate != ''">
-        AND TRUNC(return_dt) &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+        AND TRUNC(RETURNDT) &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
       </if>
-
-      ORDER BY prodReturnCd
+    ORDER BY PRODRETURNCD
   </select>
-
 
   <!-- 반품 상태 업데이트 -->
   <update id="updateReturnStatus" parameterType="map">
@@ -124,6 +123,24 @@
   <update id="updateOrderDetailStatusToT5" parameterType="string">
     UPDATE order_d
     SET ord_d_status = 't5'
-    WHERE ord_d_cd = #{ordDCd}
+    WHERE ord_d_cd = (SELECT ord_d_cd FROM prod_return WHERE prod_return_cd = #{prodReturnCd})
   </update>
+
+  <!-- 주문상세 상태를 t1(주문접수)로 복구 -->
+  <update id="updateOrderDetailStatusToT1" parameterType="string">
+    UPDATE order_d
+    SET ord_d_status = 't1'
+    WHERE ord_d_cd = (
+      SELECT ord_d_cd FROM prod_return WHERE prod_return_cd = #{prodReturnCd}
+    )
+  </update>
+
+  <!-- prod_return_cd를 통해 ord_cd 조회 -->
+  <select id="getOrdCdByReturnCd" parameterType="string" resultType="string">
+    SELECT od.ord_cd
+    FROM order_d od
+    JOIN prod_return pr ON od.ord_d_cd = pr.ord_d_cd
+    WHERE pr.prod_return_cd = #{prodReturnCd}
+  </select>
+
 </mapper>

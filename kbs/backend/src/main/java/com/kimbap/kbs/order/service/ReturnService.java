@@ -15,8 +15,8 @@ public interface ReturnService {
     List<ReturnItemVO> getReturnList(Map<String, Object> params);
 
     // 반품 승인
-    void approveReturn(List<String> prodReturnCds);
+    void approveReturn(ReturnItemVO request);
 
-    // 반품 반려
-    void rejectReturn(List<String> prodReturnCds);
+    // 반품 거절
+    void rejectReturn(ReturnItemVO request);
 }

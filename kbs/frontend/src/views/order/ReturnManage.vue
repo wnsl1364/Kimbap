@@ -51,9 +51,9 @@ const statusOptions = computed(() => {
 });
 
 const searchColumns = [
-  { key: 'dateRange', label: '일자', type: 'dateRange' },
+  { key: 'returnDt', label: '요청일자', type: 'dateRange' },
   { key: 'cpName', label: '거래처', type: 'text', placeholder: '거래처명' },
-  { key: 'status', label: '상태', type: 'dropdown', options: statusOptions },
+  { key: 'returnStatus', label: '상태', type: 'dropdown', options: statusOptions },
   { key: 'prodName', label: '제품명', type: 'text', placeholder: '제품명' }
 ];
 
@@ -72,7 +72,7 @@ const returnColumns = [
 // 버튼 설정
 const tableButtons = computed(() => {
   return {
-    delete: { show: true, label: '반품반려', severity: 'danger' },
+    delete: { show: true, label: '반품거절', severity: 'danger' },
     save: { show: true, label: '반품승인', severity: 'success' }
   }
 })
@@ -87,16 +87,25 @@ const fetchReturnList = async (params = {}) => {
 };
 
 const handleSearch = (searchData) => {
-  console.log('검색조건:', searchData);
-  fetchReturnList(searchData);
+
+  const params = {
+    cpName: searchData.cpName || '',
+    prodName: searchData.prodName || '',
+    returnStatusInternal: searchData.returnStatus || '',
+    startDate: searchData.returnDtStart || '',
+    endDate: searchData.returnDtEnd || ''
+  };
+
+  fetchReturnList(params);
 };
 
 const handleReset = () => {
-  fetchReturnList();
+  console.log('검색 조건이 리셋되었습니다');
+  handleSearch({});
 };
 
 const handleApprove = async () => {
-  if (selectedRows.value.length === 0) {
+  if (!selectedRows.value) {
     alert('처리할 반품 건을 선택하세요.');
     return;
   }
@@ -105,11 +114,14 @@ const handleApprove = async () => {
   if (!confirmed) return;
 
   try {
-    const payload = [selectedRows.value.prodReturnCd];
+    const payload = {
+      prodReturnCd: selectedRows.value.prodReturnCd,
+      manager: user.value.memCd
+    };
     
     await approveReturn(payload);
     alert('승인 처리되었습니다.');
-    fetchReturnList();
+    router.push({ path: '/order/orderList', query: { refresh: true } });
   } catch (err) {
     console.error('승인 처리 실패:', err);
     alert('승인 처리 중 오류 발생');
@@ -117,21 +129,26 @@ const handleApprove = async () => {
 };
 
 const handleReject = async () => {
-  if (selectedRows.value.length === 0) {
+  if (!selectedRows.value) {
     alert('처리할 반품 건을 선택하세요.');
     return;
   }
 
-  const confirmed = confirm('선택한 반품건을 반려 처리하시겠습니까?');
+  const confirmed = confirm('선택한 반품건을 거절 처리하시겠습니까?');
   if (!confirmed) return;
 
   try {
-    await rejectReturn(selectedRows.value.map(row => row.prodReturnCd));
-    alert('반려 처리되었습니다.');
-    fetchReturnList();
+    const payload = {
+      prodReturnCd: selectedRows.value.prodReturnCd,
+      manager: user.value.memCd
+    };
+
+    await rejectReturn(payload);
+    alert('거절 처리되었습니다.');
+    router.push({ path: '/order/orderList', query: { refresh: true } });
   } catch (err) {
-    console.error('반려 처리 실패:', err);
-    alert('반려 처리 중 오류 발생');
+    console.error('거절 처리 실패:', err);
+    alert('거절 처리 중 오류 발생');
   }
 };
 

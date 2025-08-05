@@ -25,7 +25,7 @@ export const approveReturn = (returnCdList) => {
   return axios.put('/api/return/approve', returnCdList);
 };
 
-// 반품 반려 처리
+// 반품 거절 처리
 export const rejectReturn = (returnCdList) => {
   return axios.put('/api/return/reject', returnCdList);
 };
