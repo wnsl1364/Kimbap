@@ -303,7 +303,7 @@
 
     <!-- 발주서 단건 조회 (헤더 + 상세) -->
     <select id="getPurcOrderWithDetails" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
-        SELECT 
+        SELECT DISTINCT
             po.purc_cd,
             po.ord_dt,
             po.regi,
@@ -338,7 +338,8 @@
             
         FROM purc_ord po
         LEFT JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
-        LEFT JOIN material m ON pod.mcode = m.mcode
+        -- 복합키 mcode와 mate_ver_cd를 사용하여 material 테이블과 조인
+        LEFT JOIN material m ON pod.mcode = m.mcode AND pod.mate_ver_cd = m.mate_ver_cd
         LEFT JOIN mate_supplier ms ON pod.mate_cp_cd = ms.mate_cp_cd
         LEFT JOIN company c ON ms.cp_cd = c.cp_cd
         WHERE po.purc_cd = #{purcCd}
@@ -980,6 +981,14 @@
         </if>
         ORDER BY m.mate_name
     </select>
+
+    <!-- curr_qty와 상태를 동시에 업데이트 -->
+    <update id="updatePurchaseOrderCurrQtyAndStatus" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
+        UPDATE purc_ord_d 
+        SET curr_qty = #{currQty},
+            purc_d_status = #{purcDStatus}
+        WHERE purc_d_cd = #{purcDCd}
+    </update>
 
     <!-- 거래처 마스터만 조회 -->
     <select id="getSuppliers" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
