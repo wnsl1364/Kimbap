@@ -176,6 +176,7 @@ public class WhServiceImpl implements WhService{
     }
 
     // 창고 수정
+    @Transactional
     @Override
     public void updateWh(WhVO newWh) {
         // 1. 기존 최신 버전 조회
@@ -184,20 +185,32 @@ public class WhServiceImpl implements WhService{
             throw new RuntimeException("존재하지 않는 창고코드: " + newWh.getWcode());
         }
 
-        // 2. 기존 버전 비활성화 처리
-        whMapper.disableOldVersion(newWh.getWcode());
+        // 2. 내용 변경 여부 판단 (isUsed는 제외)
+        boolean isChanged =
+                !Objects.equals(oldWh.getWareName(), newWh.getWareName()) ||
+                !Objects.equals(oldWh.getWareType(), newWh.getWareType()) ||
+                !Objects.equals(oldWh.getAddress(), newWh.getAddress()) ||
+                !Objects.equals(oldWh.getFcode(), newWh.getFcode());
 
-        // 3. 버전 증가
-        String nextVer = getNextVersion(oldWh.getWareVerCd());
-        newWh.setWareVerCd(nextVer);
+        if (isChanged) {
+            // ✅ 내용 변경 → 버전 증가 + insert
+            whMapper.disableOldVersion(newWh.getWcode());
 
-        // 4. 필수 필드 세팅
-        newWh.setIsUsed("f1");
-        newWh.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newWh.setModi(newWh.getModi()); 
-        newWh.setRegi(newWh.getRegi());
+            String nextVer = getNextVersion(oldWh.getWareVerCd());
+            newWh.setWareVerCd(nextVer);
+            newWh.setIsUsed("f1");
+            newWh.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+            newWh.setModi(newWh.getModi());
+            newWh.setRegi(oldWh.getRegi()); // 등록자는 유지
 
-        // 5. 창고 등록
-        whMapper.insertWh(newWh);
+            whMapper.insertWh(newWh);
+
+        } else if (!Objects.equals(oldWh.getIsUsed(), newWh.getIsUsed())) {
+            // ✅ 사용여부만 변경 → update만 수행
+            whMapper.updateIsUsedOnly(oldWh.getWcode(), oldWh.getWareVerCd(), newWh.getIsUsed(), newWh.getModi());
+        } else {
+            // ❌ 변경 없음
+            System.out.println("⚠️ 창고 정보 변경 없음, 처리 생략");
+        }
     }
 }

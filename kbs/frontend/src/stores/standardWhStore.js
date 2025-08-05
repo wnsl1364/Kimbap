@@ -11,7 +11,6 @@ export const useStandardWhStore = defineStore('standardWh', () => {
     const formData = ref({});          // 단건 조회
     const changeHistory = ref([]);    // 변경 이력 조회
 
-
     // 빈문자열 처리함수
     function sanitizeFormData(obj) {
         const result = { ...obj };
@@ -48,7 +47,7 @@ export const useStandardWhStore = defineStore('standardWh', () => {
 
         if (res?.status === 200 && res.data?.success) {
             await fetchWarehouses(); // 목록 갱신
-            formData.value = {}; // 저장 후 폼 초기화
+            formData.value = {} ; // 초기화
             return !sanitized.wcode ? '등록 성공' : '수정 성공';
         } else {
             return !sanitized.wcode ? '등록 실패' : '수정 실패';

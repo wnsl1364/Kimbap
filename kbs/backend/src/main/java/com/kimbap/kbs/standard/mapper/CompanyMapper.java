@@ -13,4 +13,5 @@ public interface CompanyMapper {
     int getNextRawCompanyCodeBySeq(); // 시퀀스 
     List<CompanyVO> getSupplierList(); // 공급업체 목록 조회
     List<CompanyVO> getSalesList(); // 매출업체 목록 조회
+    List<CompanyVO> selectCustomerOutstanding(); // 거래처 미수금 내역 조회
 }

@@ -100,6 +100,7 @@
                     modi
             FROM    factory
             WHERE   fcode = #{fcode}
+            AND     is_used = 'f1' 
             ORDER BY fac_ver_cd DESC
             )
         WHERE ROWNUM = 1
@@ -207,4 +208,14 @@
         WHERE fcode = #{fcode}
         ORDER BY fac_ver_cd DESC
     </select>
+
+    <!-- 사용여부로 비활성화 업데이트 -->
+    <update id="updateOpStatusOnly">
+        UPDATE  factory
+        SET     op_status = #{opStatus},
+                modi = #{modi},
+                reg_dt = SYSDATE
+        WHERE   fcode = #{fcode}
+        AND     fac_ver_cd = #{facVerCd}
+    </update>
 </mapper>

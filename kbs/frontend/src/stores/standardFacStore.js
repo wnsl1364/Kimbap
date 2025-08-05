@@ -80,7 +80,7 @@ export const useStandardFacStore = defineStore('standardFac', () => {
             // ✅ optional chaining 올바르게 사용
             if (res ?.status === 200 && res.data ?.success) {
                 facMaxData.value = [];
-
+                formData.value = {};
                 await fetchFactorys();
                 return !sanitized.fcode ? '등록 성공' : '수정 성공';
             } else {

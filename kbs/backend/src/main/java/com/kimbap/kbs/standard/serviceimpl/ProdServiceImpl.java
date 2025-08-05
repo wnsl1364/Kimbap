@@ -66,23 +66,38 @@ public class ProdServiceImpl implements ProdService{
             throw new RuntimeException("존재하지 않는 제품코드: " + newProd.getPcode());
         }
 
-        // 2. 기존 버전 비활성화 처리
-        prodMapper.disableOldVersion(newProd.getPcode());
+        // 2. 내용 변경 여부 확인 (isUsed는 비교 대상에서 제외)
+        boolean isChanged =
+                !Objects.equals(oldProd.getProdName(), newProd.getProdName()) ||
+                !Objects.equals(oldProd.getWei(), newProd.getWei()) ||
+                !Objects.equals(oldProd.getEdate(), newProd.getEdate()) ||
+                !Objects.equals(oldProd.getStoTemp(), newProd.getStoTemp()) ||
+                !Objects.equals(oldProd.getPacUnit(), newProd.getPacUnit()) ||
+                !Objects.equals(oldProd.getPrimeCost(), newProd.getPrimeCost()) ||
+                !Objects.equals(oldProd.getProdUnitPrice(), newProd.getProdUnitPrice());
 
-        // 3. 버전 증가
-        String nextVer = getNextVersion(oldProd.getProdVerCd());
-        newProd.setProdVerCd(nextVer);
+        if (isChanged) {
+            // ✅ 내용이 바뀐 경우 - 버전 증가 + 기존 비활성화
+            prodMapper.disableOldVersion(newProd.getPcode());
 
-        // 4. 필수 필드 세팅
-        newProd.setIsUsed("f1");
-        newProd.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newProd.setModi(newProd.getModi()); // TODO: 현재 로그인 사용자로 대체
-        newProd.setRegi(oldProd.getRegi()); // 기존 등록자 그대로 유지
+            String nextVer = getNextVersion(oldProd.getProdVerCd());
+            newProd.setProdVerCd(nextVer);
+            newProd.setIsUsed("f1"); // 신규는 항상 사용
+            newProd.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+            newProd.setModi(newProd.getModi());
+            newProd.setRegi(oldProd.getRegi()); // 등록자는 유지
 
-        // 5. 제품 등록 (insert = 버전 신규 생성)
-        prodMapper.insertProd(newProd);
+            prodMapper.insertProd(newProd);
+            System.out.println("🆕 내용 변경 → 버전 증가: " + newProd);
 
-        System.out.println("🔁 버전 증가된 제품 등록: " + newProd);
+        } else if (!Objects.equals(oldProd.getIsUsed(), newProd.getIsUsed())) {
+            // ✅ 내용은 동일하고 사용여부만 바뀐 경우 - update만
+            prodMapper.updateIsUsedOnly(oldProd.getPcode(), oldProd.getProdVerCd(), newProd.getIsUsed(), newProd.getModi());
+            System.out.println("🛠 사용여부만 변경됨 → update: " + newProd.getIsUsed());
+        } else {
+            // ❌ 변경 없음
+            System.out.println("❎ 변경 없음 → 아무것도 안함");
+        }
     }
 
     @Override

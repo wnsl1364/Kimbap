@@ -136,6 +136,7 @@
                     note
             FROM    product
             WHERE   pcode = #{pcode}
+            AND     is_used = 'f1' 
             ORDER BY prod_ver_cd DESC
             )
         WHERE ROWNUM = 1
@@ -175,4 +176,14 @@
     <select id="existsPcode" parameterType="string" resultType="int">
         SELECT COUNT(*) FROM product WHERE pcode = #{pcode}
     </select>
+
+    <!-- 사용여부로 비활성화 업데이트 -->
+    <update id="updateIsUsedOnly">
+        UPDATE product
+        SET is_used = #{isUsed},
+            modi = #{modi},
+            reg_dt = SYSDATE
+        WHERE pcode = #{pcode}
+        AND prod_ver_cd = #{prodVerCd}
+    </update>
 </mapper>
