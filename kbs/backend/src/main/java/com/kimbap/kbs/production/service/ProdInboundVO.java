@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProdInboundVO {
+  // 제품 입고 테이블
   private String prodInboCd;    // 제품입고코드
   private String pcode;         // 제품마스터코드
   private String prodVerCd;     // 제품버전코드
@@ -21,6 +22,18 @@ public class ProdInboundVO {
   private Integer inboQty;      // 입고수량
   private String produProdCd;   // 생산제품코드
   private Timestamp inboDt;     // 입고일시
+
+  // 제품 기준정보
+  private BigDecimal prodUnitPrice;   // 제품단가
+  private String wei;                 // 중량
+  private Integer edate;              // 소비기한
+  private Integer safeStock;          // 안전재고
+  private String pacUnit;             // 포장단위
+  private String chaRea;              // 수정사유
+  private String isUsed;              // 사용여부
+  private Timestamp regDt;            // 등록일자
+  private BigDecimal primeCost;       // 원가
+  private String modi;                // 수정자
 
   // 제품 입고 등록 시 필요
   private String fcode;         // 공장마스터코드
@@ -46,7 +59,8 @@ public class ProdInboundVO {
   private BigDecimal areaFloor;   // 구역층 (1, 2, 3...)
   private BigDecimal vol;         // 용량
   
-  
+
+
   /**
    * 현재 적재량 (계산 필드)
    * 해당 구역에 현재 적재된 총 수량

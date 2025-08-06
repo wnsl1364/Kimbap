@@ -220,9 +220,9 @@ export const useProductLoadingStore  = defineStore('mateLoading', () => {
     }
   };
 
-  /**
- * 다중 제품 적재 처리 (적재처리 버튼)
- */
+/**
+* 다중 제품 적재 처리 (적재처리 버튼)
+*/
 const processBatchLoading = async () => {
       if (selectedProdLoadings.value.length === 0) {
         throw new Error('적재할 제품를 선택해주세요.');
