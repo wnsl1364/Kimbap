@@ -130,6 +130,7 @@ const loadAvailableItems = async () => {
           itemType: item.mateType || 'h1',
           itemCode: item.mcode,
           itemName: item.mateName,
+          mateVerCd: item.mateVerCd || item.mate_ver_cd || '001', // 백엔드에서 가져온 mate_ver_cd 사용
           areaLocation: item.wareAreaCd || `${item.areaRow || ''}${item.areaCol || ''}` || '미지정'
         }));
         
@@ -540,24 +541,33 @@ const handleSave = async () => {
     };
     
     // 상세 데이터 구성
-    const details = itemTableData.value.map(item => ({
-      mcode: item.mcode || null,
-      mateVerCd: item.mateVerCd || null,
-      pcode: item.pcode || null,
-      prodVerCd: item.prodVerCd || null,
-      itemType: item.itemType,
-      lotNo: item.lotNo,
-      moveQty: item.moveQty,
-      unit: item.unit,
-      depaAreaCd: item.depaAreaCd,
-      arrAreaCd: item.arrAreaCd,
-      // 창고 코드 추가
-      depaWareCd: item.depaWareCd || null,
-      arrWareCd: item.arrWcode || null,
-      // 추가 정보
-      itemCode: item.itemCode,
-      itemName: item.itemName
-    }));
+    const details = itemTableData.value.map(item => {
+      console.log('원본 아이템 데이터:', item); // 디버그 로그
+      console.log('mateVerCd 값:', item.mateVerCd);
+      console.log('mate_ver_cd 값:', item.mate_ver_cd);
+      
+      const detailItem = {
+        mcode: item.mcode || null,
+        mateVerCd: item.mateVerCd || item.mate_ver_cd || '001', // 기본값 추가
+        pcode: item.pcode || null,
+        prodVerCd: item.prodVerCd || null,
+        itemType: item.itemType,
+        lotNo: item.lotNo,
+        moveQty: item.moveQty,
+        unit: item.unit,
+        depaAreaCd: item.depaAreaCd,
+        arrAreaCd: item.arrAreaCd,
+        // 창고 코드 추가
+        depaWareCd: item.depaWareCd || null,
+        arrWareCd: item.arrWcode || null,
+        // 추가 정보
+        itemCode: item.itemCode,
+        itemName: item.itemName
+      };
+      
+      console.log('전송할 데이터 아이템:', detailItem);
+      return detailItem;
+    });
     
     const requestData = {
       header: header,

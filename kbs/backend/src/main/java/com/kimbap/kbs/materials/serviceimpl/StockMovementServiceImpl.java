@@ -59,6 +59,12 @@ public class StockMovementServiceImpl implements StockMovementService {
             int successCount = 0;
             
             for (StockMovementVO detail : detailList) {
+                // 상세 정보 로그 출력
+                System.out.println("상세 데이터: mcode=" + detail.getMcode() + 
+                                 ", mateVerCd=" + detail.getMateVerCd() + 
+                                 ", itemType=" + detail.getItemType() + 
+                                 ", lotNo=" + detail.getLotNo());
+                
                 // 이동요청상세코드 생성
                 String mrdCode = generateMoveReqDetailCode();
                 detail.setMrdcode(mrdCode);
