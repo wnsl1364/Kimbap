@@ -185,6 +185,7 @@
             od.is_used AS isUsed
         FROM order_d od
         JOIN product p ON od.pcode = p.pcode
+         AND od.prod_ver_cd = p.prod_ver_cd
         WHERE od.ord_cd = #{ordCd}
     </select>
 
