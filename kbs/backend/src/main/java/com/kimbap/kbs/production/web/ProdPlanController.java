@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kimbap.kbs.production.service.ProdPlanDetailVO;
@@ -55,5 +56,11 @@ public class ProdPlanController {
     public ResponseEntity<Void> deleteProdPlan(@PathVariable String produPlanCd) {
         service.deleteProdPlan(produPlanCd);
         return ResponseEntity.noContent().build();
+    }
+    // MRP 등록
+    @PostMapping("/runMrp")
+    public ResponseEntity<?> runMrp(@RequestParam String produPlanCd) {
+        service.runMrpByProdPlan(produPlanCd);
+        return ResponseEntity.ok("MRP 완료");
     }
 }

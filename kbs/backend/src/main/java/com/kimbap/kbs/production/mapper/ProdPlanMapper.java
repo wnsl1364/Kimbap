@@ -1,7 +1,13 @@
 package com.kimbap.kbs.production.mapper;
 
+import java.math.BigDecimal;
 import java.util.List;
 
+import org.apache.ibatis.annotations.Param;
+
+import com.kimbap.kbs.production.service.BomDetailVO;
+import com.kimbap.kbs.production.service.MrpDetailVO;
+import com.kimbap.kbs.production.service.MrpVO;
 import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdPlanVO;
 import com.kimbap.kbs.production.service.ProdsVO;
@@ -25,4 +31,13 @@ public interface ProdPlanMapper {
     // 삭제 기능 ========================================
     void deleteProdPlanDetailByPlanCd(String produPlanCd);               // 생산계획코드 조건으로 상세 삭제
     void deleteProdPlan(String produPlanCd);                             // 생산계획 삭제
+
+    // MRP 기능 =========================================
+    String getNewMrpCd();                                                // MRP PK코드 생성
+    void insertMrp(MrpVO vo);                                            // MRP 등록
+    void insertMrpDetail(MrpDetailVO vo);                                // MRP 상세 등록
+    // 제품별 필요 자재 조회
+    List<BomDetailVO> selectBomMaterials(@Param("pcode") String pcode, @Param("prodVerCd") String prodVerCd);
+    // 필요한 자재수량 조회
+    BigDecimal selectTotalStockByMate(@Param("mcode") String mcode, @Param("mateVerCd") String mateVerCd);
 }

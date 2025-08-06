@@ -1,5 +1,7 @@
 package com.kimbap.kbs.production.serviceimpl;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -10,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.production.mapper.ProdPlanMapper;
+import com.kimbap.kbs.production.service.BomDetailVO;
+import com.kimbap.kbs.production.service.MrpDetailVO;
+import com.kimbap.kbs.production.service.MrpVO;
 import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdPlanFullVO;
 import com.kimbap.kbs.production.service.ProdPlanService;
@@ -95,4 +100,45 @@ public class ProdPlanServiceImpl implements ProdPlanService {
         mapper.deleteProdPlanDetailByPlanCd(produPlanCd);
         mapper.deleteProdPlan(produPlanCd);
     }
+
+    // MRP ================================================================================
+    @Transactional
+    @Override
+    public void runMrpByProdPlan(String produPlanCd) {
+        String mrpCd = mapper.getNewMrpCd(); // MRP 코드 생성
+
+        // MRP 마스터 저장
+        MrpVO mrp = new MrpVO();
+        mrp.setMrpCd(mrpCd);
+        mrp.setProduPlanCd(produPlanCd);
+        mrp.setPlanGeneDt(LocalDate.now());
+        mrp.setProduStartDt(LocalDate.now());
+        mrp.setNote("자동생성");
+        mrp.setRegi("시스템");
+        mapper.insertMrp(mrp);
+
+        // 생산계획 상세 조회
+        List<ProdPlanDetailVO> planDetails = mapper.selectDetailsByPlanCd(produPlanCd);
+
+        for (ProdPlanDetailVO detail : planDetails) {
+            List<BomDetailVO> bomList = mapper.selectBomMaterials(detail.getPcode(), detail.getProdVerCd());
+
+            for (BomDetailVO bom : bomList) {
+                BigDecimal requiredQty = bom.getNeedQty().multiply(new BigDecimal(detail.getPlanQty()));
+                BigDecimal stockQty = mapper.selectTotalStockByMate(bom.getMcode(), bom.getMateVerCd());
+                BigDecimal lackQty = requiredQty.subtract(stockQty).max(BigDecimal.ZERO);
+
+                MrpDetailVO mrpD = new MrpDetailVO();
+                mrpD.setMrpCd(mrpCd);
+                mrpD.setMcode(bom.getMcode());
+                mrpD.setMateVerCd(bom.getMateVerCd());
+                mrpD.setRequiredQty(lackQty);
+                mrpD.setUnit(bom.getUnit());
+                mrpD.setField("생산계획");
+
+                mapper.insertMrpDetail(mrpD);
+            }
+        }
+    }
+
 }
