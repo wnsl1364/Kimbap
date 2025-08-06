@@ -487,13 +487,13 @@ watch(() => props.loadingQuantity, (newQty) => {
                                     ]"
                                     @click="area.isAvailable && area.availableVolume > 0 ? selectArea(area) : null"
                                     :title="`구역: ${area.wareAreaCd}
-실제용량: ${area.realMaxVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
-현재적재: ${area.currentVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
-가용용량: ${area.availableVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
-${area.currentMaterial ? '기존자재: ' + area.currentMaterial : ''}
-${!area.isAvailable ? '[선택불가] 다른 자재가 적재된 구역' : ''}
-${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
-                                >
+                                    실제용량: ${area.realMaxVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
+                                    현재적재: ${area.currentVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
+                                    가용용량: ${area.availableVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
+                                    ${area.currentMaterial ? '기존자재: ' + area.currentMaterial : ''}
+                                    ${!area.isAvailable ? '[선택불가] 다른 자재가 적재된 구역' : ''}
+                                    ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
+                                                                    >
                                     <div class="text-center">
                                         <div class="font-bold text-sm">{{ area.displayName }}</div>
                                         <div class="text-xs mt-1">
