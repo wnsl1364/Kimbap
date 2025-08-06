@@ -6,6 +6,9 @@ import { useCommonStore } from '@/stores/commonStore';
 import { getReturnList, approveReturn, rejectReturn } from '@/api/return';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
+import Dialog from 'primevue/dialog';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
 import { storeToRefs } from 'pinia';
 
 // 라우터 설정
@@ -63,10 +66,16 @@ const returnColumns = [
   { field: 'cpName', header: '거래처', type: 'readonly' },
   { field: 'prodName', header: '품목명', type: 'readonly' },
   { field: 'returnQty', header: '수량(ea)', type: 'readonly', align: 'right' },
-  { field: 'returnRea', header: '요청사유', type: 'readonly' },
   { field: 'returnStatus', header: '상태', type: 'readonly' },
   { field: 'returnEndDt', header: '처리일자', type: 'readonly' },
-  { field: 'managerName', header: '담당자', type: 'readonly' }
+  { field: 'managerName', header: '담당자', type: 'readonly' },
+  { field: 'returnRea', header: '요청사유', type: 'readonly' },
+  {
+    field: 'rejectRea',
+    header: '거절사유',
+    type: 'readonly',
+    formatter: (row) => row.returnStatusInternal === 'w2' ? row.rejectRea : ''
+  },
 ];
 
 // 버튼 설정
@@ -116,7 +125,8 @@ const handleApprove = async () => {
   try {
     const payload = {
       prodReturnCd: selectedRows.value.prodReturnCd,
-      manager: user.value.memCd
+      manager: user.value.memCd,
+      rejectRea: rejectReason.value
     };
     
     await approveReturn(payload);
@@ -128,43 +138,60 @@ const handleApprove = async () => {
   }
 };
 
-const handleReject = async () => {
-  if (!selectedRows.value) {
-    alert('처리할 반품 건을 선택하세요.');
-    return;
-  }
-
-  const confirmed = confirm('선택한 반품건을 거절 처리하시겠습니까?');
-  if (!confirmed) return;
-
-  try {
-    const payload = {
-      prodReturnCd: selectedRows.value.prodReturnCd,
-      manager: user.value.memCd
-    };
-
-    await rejectReturn(payload);
-    alert('거절 처리되었습니다.');
-    router.push({ path: '/order/orderList', query: { refresh: true } });
-  } catch (err) {
-    console.error('거절 처리 실패:', err);
-    alert('거절 처리 중 오류 발생');
-  }
-};
-
 const handleSelectionChange = (selection) => {
   if (!selection) return;
 
   const selectedItem = Array.isArray(selection) ? selection[0] : selection;
 
-  if (selectedItem.returnStatusInternal === 'w2' || selectedItem.returnStatusInternal === 'w3') {
-    alert('이미 승인(완료/반려)된 건은 선택할 수 없습니다.');
+  if (['w1', 'w2', 'w3'].includes(selectedItem.returnStatusInternal)) {
+    alert('이미 승인(완료/거절)된 건은 선택할 수 없습니다.');
     selectedRows.value = null;  // 선택 해제 (single일 때는 null)
   } else {
     selectedRows.value = selectedItem;
   }
 };
 
+// 거절사유 모달
+const rejectModalVisible = ref(false);
+const rejectReason = ref('');
+
+const openRejectModal = () => {
+  if (!selectedRows.value) {
+    alert('처리할 반품 건을 선택하세요.');
+    return;
+  }
+  rejectReason.value = '';
+  rejectModalVisible.value = true;
+};
+
+const handleRejectWithReason = async () => {
+  if (!rejectReason.value.trim()) {
+    alert('거절 사유를 입력하세요.');
+    return;
+  }
+
+  try {
+    const payload = {
+      prodReturnCd: selectedRows.value.prodReturnCd,
+      manager: user.value.memCd,
+      rejectRea: rejectReason.value
+    };
+
+    console.log('reject payload:', payload);
+
+    await rejectReturn(payload);
+    alert('거절 처리되었습니다.');
+    rejectModalVisible.value = false;
+    fetchReturnList();  // 목록 새로고침
+  } catch (err) {
+    console.error('거절 처리 실패:', err);
+    alert('거절 처리 중 오류 발생');
+  }
+};
+
+const handleReject = () => {
+  openRejectModal();
+};
 
 onMounted(async () => {
   try {
@@ -205,4 +232,46 @@ watch(selectedRows, (newVal) => {
       @selectionChange="handleSelectionChange"
     />
   </div>
+
+  <Dialog 
+    v-model:visible="rejectModalVisible"
+    modal
+    header="거절 사유 입력"
+    :style="{ width: '500px' }"
+    :closable="false"
+  >
+    <div class="mb-4">
+      <h4 class="mb-2">거절할 반품건</h4>
+      <div class="bg-gray-50 p-3 rounded">
+        {{ selectedRows?.prodReturnCd }} - {{ selectedRows?.prodName }}
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label for="rejectReason" class="block text-sm font-medium mb-2">
+        거절 사유 <span class="text-red-500">*</span>
+      </label>
+      <Textarea 
+        id="rejectReason"
+        v-model="rejectReason"
+        rows="4"
+        placeholder="거절 사유를 입력하세요..."
+        class="w-full"
+      />
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <Button 
+        label="취소" 
+        severity="secondary" 
+        @click="rejectModalVisible = false"
+      />
+      <Button 
+        label="거절 처리" 
+        severity="danger" 
+        @click="handleRejectWithReason"
+        :disabled="!rejectReason.trim()"
+      />
+    </div>
+  </Dialog>
 </template>

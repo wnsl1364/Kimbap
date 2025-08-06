@@ -26,6 +26,11 @@ export const approveReturn = (returnCdList) => {
 };
 
 // 반품 거절 처리
-export const rejectReturn = (returnCdList) => {
-  return axios.put('/api/return/reject', returnCdList);
+export const rejectReturn = (payload) => {
+  return axios.put('/api/return/reject', payload);
+};
+
+// 반품 취소 요청
+export const cancelReturn = (prodReturnCd ) => {
+  return axios.put('/api/return/cancel', { prodReturnCd  });
 };
