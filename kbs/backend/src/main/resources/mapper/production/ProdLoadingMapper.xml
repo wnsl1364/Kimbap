@@ -33,7 +33,6 @@
     INNER JOIN factory f ON pi.fcode = f.fcode AND pi.fac_ver_cd = f.fac_ver_cd
     WHERE pi.inbo_status = 'b4'        -- 입고완료 상태
       AND f.op_status = 'r1'           -- 활성 공장
-      AND p.is_used = 'f1'             -- 활성 제품
       AND (pi.inbo_qty - COALESCE(
             (SELECT SUM(ws.qty) 
               FROM ware_stock ws 

@@ -11,4 +11,8 @@ public interface ProdPlanService {
   List<ProdsVO> getAllProducts();                                 // 제품기준정보 ALL 검색
   void saveProdPlan(ProdPlanFullVO fullVO);                       // 생산계획 및 상세 저장
   void deleteProdPlan(String produPlanCd);                        // 생산계획과 관련 상세 삭제
+
+  // MRP 기능 service ==========================================
+  void runMrpByProdPlan(String produPlanCd);                      // MRP 등록
+
 }

@@ -177,4 +177,43 @@
         WHERE produ_plan_cd = #{produPlanCd}
     </delete>
     <!-- ====================================================== -->
+
+    <!-- MRP 등록 영역 ===================================== -->
+    <!-- MRP 코드 생성 (예: MRP-YYYYMMDD-001) -->
+    <select id="getNewMrpCd" resultType="String">
+        SELECT 'MRP-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' || LPAD(NVL(MAX(SUBSTR(mrp_cd, 13)), 0) + 1, 3, '0')
+        FROM mrp
+        WHERE TO_CHAR(plan_gene_dt, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+    </select>
+
+    <insert id="insertMrp" parameterType="MrpVO">
+        INSERT INTO mrp (mrp_cd, plan_gene_dt, produ_start_dt, note, regi, produ_plan_cd)
+        VALUES (#{mrpCd}, #{planGeneDt}, #{produStartDt}, #{note}, #{regi}, #{produPlanCd})
+    </insert>
+
+    <insert id="insertMrpDetail" parameterType="MrpDetailVO">
+        INSERT INTO mrp_d (mrp_d_cd, mcode, mate_ver_cd, mrp_cd, unit, required_qty, field)
+        VALUES (sys_guid(), #{mcode}, #{mateVerCd}, #{mrpCd}, #{unit}, #{requiredQty}, #{field})
+    </insert>
+
+    <!-- 기존 BOM 자재 조회 그대로 재사용 -->
+    <select id="selectBomMaterials" resultType="BomDetailVO">
+        SELECT bd.mcode, bd.mate_ver_cd, bd.need_qty, bd.unit
+        FROM bom b
+        JOIN bom_d bd ON b.bcode = bd.bcode AND b.bom_ver_cd = bd.bom_ver_cd
+        WHERE b.pcode = #{pcode}
+        AND b.prod_ver_cd = #{prodVerCd}
+        AND b.is_used = 'f1'
+        AND bd.is_used = 'f1'
+    </select>
+
+    <!-- 현재고 총합 -->
+    <select id="selectTotalStockByMate" resultType="java.math.BigDecimal">
+        SELECT NVL(SUM(ws.qty), 0)
+        FROM ware_stock ws
+        JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+        WHERE mi.mcode = #{mcode}
+        AND mi.mate_ver_cd = #{mateVerCd}
+    </select>
+    <!-- ====================================================== -->
 </mapper>

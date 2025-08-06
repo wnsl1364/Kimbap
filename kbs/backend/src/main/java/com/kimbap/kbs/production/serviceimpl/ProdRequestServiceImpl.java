@@ -108,8 +108,8 @@ public class ProdRequestServiceImpl implements ProdRequestService {
             String relType = "";
             if (mcode != null && mcode.length() >= 7) {
               String typeDigit = mcode.substring(4, 5);
-              if ("1".equals(typeDigit)) relType = "h1";
-              else if ("2".equals(typeDigit)) relType = "h2";
+              if ("1".equals(typeDigit)) relType = "y1";
+              else if ("2".equals(typeDigit)) relType = "y1";
             }
             MateReleaseVO rel = new MateReleaseVO();
             rel.setMateRelCd(mapper.getNewMateRelCd());
