@@ -251,8 +251,8 @@ const handleRefundRequest = () => {
     return;
   }
 
-  if (selected.ordStatus !== '출고완료' && selected.ordStatus !== '부분반품') {
-    alert('출고완료, 부분반품 상태인 주문만 반품 요청이 가능합니다.');
+  if (selected.ordStatus !== '출고완료' && selected.ordStatus !== '부분반품' && selected.ordStatus !== '반품요청') {
+    alert('출고완료, 부분반품, 반품요청 상태인 주문만 반품 관리가 가능합니다.');
     return;
   }
 

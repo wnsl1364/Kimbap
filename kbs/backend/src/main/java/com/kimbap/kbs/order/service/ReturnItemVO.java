@@ -21,7 +21,8 @@ public class ReturnItemVO {
 
     // 반품 정보
     private Integer  returnQty;        // 반품 수량
-    private String returnRea;     // 반품 사유
+    private String returnRea;     // 반품 요청 사유
+    private String rejectRea; // 반품 거절 사유
     private Date returnDt;      // 반품 일자
     private Integer  returnAmount;     // 반품 금액
     private String lotNo;         // LOT 번호

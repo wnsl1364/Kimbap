@@ -109,6 +109,7 @@ public class ReturnServiceImpl implements ReturnService {
         params.put("returnStatusInternal", "w2");  // 거절
         params.put("prodReturnCd", request.getProdReturnCd());
         params.put("manager", request.getManager());
+        params.put("rejectRea", request.getRejectRea());
 
         // 반품 상태 거절로 변경
         returnMapper.updateReturnStatus(params);

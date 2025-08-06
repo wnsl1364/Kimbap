@@ -84,6 +84,7 @@
     <result column="PRODNAME" property="prodName"/>
     <result column="RETURNQTY" property="returnQty"/>
     <result column="RETURNREA" property="returnRea"/>
+    <result column="REJECTREA" property="rejectRea"/>
     <result column="RETURNSTATUSINTERNAL" property="returnStatusInternal"/>
     <result column="RETURNENDDT" property="returnEndDt"/>
     <result column="MANAGERNAME" property="managerName"/>
@@ -111,13 +112,18 @@
   </select>
 
   <!-- 반품 상태 업데이트 -->
-  <update id="updateReturnStatus" parameterType="map">
-    UPDATE prod_return
-    SET return_status_internal = #{returnStatusInternal},
-        return_end_dt = SYSDATE,
-        manager = #{manager}
-    WHERE prod_return_cd = #{prodReturnCd}
+  <update id="updateReturnStatus">
+      UPDATE prod_return
+      SET 
+          return_status_internal = #{returnStatusInternal},
+          manager = #{manager},
+          return_end_dt = SYSDATE,
+          reject_rea = 
+              CASE WHEN #{returnStatusInternal} = 'w2' THEN #{rejectRea} 
+                  ELSE reject_rea END
+      WHERE prod_return_cd = #{prodReturnCd}
   </update>
+
 
   <!-- 주문상세 상태 변경 -->
   <update id="updateOrderDetailStatusToT5" parameterType="string">
@@ -143,11 +149,11 @@
     WHERE pr.prod_return_cd = #{prodReturnCd}
   </select>
 
+  <!-- lot번호 -->
   <select id="getLotNoByOrdDCd" parameterType="string" resultType="string">
       SELECT pr.lot_no
       FROM prod_rel pr
       JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
       WHERE ro.ord_d_cd = #{ordDCd}
   </select>
-
 </mapper>
