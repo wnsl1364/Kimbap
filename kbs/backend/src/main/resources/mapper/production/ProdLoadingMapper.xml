@@ -99,4 +99,28 @@
       AND (wd.vol - NVL(area_stock.current_volume, 0)) > 0  -- 잔여 용량이 있는 곳만
       ORDER BY available_volume DESC
   </select>
+  <!-- product 테이블에서 자재 정보 조회 -->
+  <select id="getProductInfo" parameterType="string" resultType="com.kimbap.kbs.production.service.ProdInboundVO">
+    SELECT 
+      pcode,
+      prod_ver_cd,
+      prod_name,
+      prod_unit_price,
+      wei,
+      unit,
+      edate,
+      sto_temp,
+      safe_stock,
+      pac_unit,
+      cha_rea,
+      is_used,
+      reg_dt,
+      prime_cost,
+      note,
+      regi,
+      modi
+    FROM product
+    WHERE pcode = #{pcode}
+    AND is_used = 'f1'
+  </select>
 </mapper>

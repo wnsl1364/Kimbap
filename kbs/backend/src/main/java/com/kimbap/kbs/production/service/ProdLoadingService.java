@@ -18,6 +18,7 @@ public interface ProdLoadingService {
   // 제품 다중 적재 처리
   String processProdLoadingBatch(List<ProdInboundVO> prodLoadingList);
   
+  // 창고재고목록코드 생성
   String generateWareStockCode();
 
 }

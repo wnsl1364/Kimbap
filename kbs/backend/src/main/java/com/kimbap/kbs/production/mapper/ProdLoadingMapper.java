@@ -19,6 +19,7 @@ public interface ProdLoadingMapper {
   List<ProdInboundVO> getSameProductAreas(@Param("pcode") String pcode,
                                           @Param("fcode") String fcode,
                                           @Param("excludeAreaCd") String excludeAreaCd);
+  // 제품 기준정보를 가져옴                                        
   ProdInboundVO getProductInfo(String pcode);
 
   void insertWareStock(ProdInboundVO prodLoading);
