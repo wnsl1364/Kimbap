@@ -439,13 +439,17 @@ public class StockMovementController {
         
         // 상세 필드들 매핑
         if (map.get("mcode") != null) vo.setMcode((String) map.get("mcode"));
+        if (map.get("mateVerCd") != null) vo.setMateVerCd((String) map.get("mateVerCd"));
         if (map.get("pcode") != null) vo.setPcode((String) map.get("pcode"));
+        if (map.get("prodVerCd") != null) vo.setProdVerCd((String) map.get("prodVerCd"));
         if (map.get("itemType") != null) vo.setItemType((String) map.get("itemType"));
         if (map.get("lotNo") != null) vo.setLotNo((String) map.get("lotNo"));
         if (map.get("moveQty") != null) vo.setMoveQty(new java.math.BigDecimal(map.get("moveQty").toString()));
         if (map.get("unit") != null) vo.setUnit((String) map.get("unit"));
         if (map.get("depaAreaCd") != null) vo.setDepaAreaCd((String) map.get("depaAreaCd"));
         if (map.get("arrAreaCd") != null) vo.setArrAreaCd((String) map.get("arrAreaCd"));
+        if (map.get("depaWareCd") != null) vo.setDepaWareCd((String) map.get("depaWareCd"));
+        if (map.get("arrWareCd") != null) vo.setArrWareCd((String) map.get("arrWareCd"));
         
         return vo;
     }
