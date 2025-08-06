@@ -150,6 +150,7 @@
             o.ord_cd AS ordCd,
             o.cp_cd AS cpCd,
             c.cp_name AS cpName,
+            c.unsettled_amount AS unsettledAmount,
             o.ord_dt AS ordDt,
             o.note,
             o.deli_req_dt AS deliReqDt,

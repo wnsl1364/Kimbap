@@ -31,6 +31,13 @@ export const rejectReturn = (payload) => {
 };
 
 // 반품 취소 요청
-export const cancelReturn = (prodReturnCd ) => {
-  return axios.put('/api/return/cancel', { prodReturnCd  });
+// export const cancelReturn = (ordDCdList) => {
+//   return axios.put('/api/return/cancel', { ordDCdList });
+// };
+export const cancelReturn = (ordDCdList) => {
+  return axios({
+    method: 'put',
+    url: '/api/return/cancel',
+    data: ordDCdList  // 배열 자체를 그대로 전달
+  });
 };

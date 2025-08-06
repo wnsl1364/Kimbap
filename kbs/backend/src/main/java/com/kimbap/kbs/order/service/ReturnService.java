@@ -19,4 +19,8 @@ public interface ReturnService {
 
     // 반품 거절
     void rejectReturn(ReturnItemVO request);
+
+    // 반품 취소 (주문상세 기준으로 처리)
+    void cancelReturnItems(List<String> ordDCdList);
+
 }

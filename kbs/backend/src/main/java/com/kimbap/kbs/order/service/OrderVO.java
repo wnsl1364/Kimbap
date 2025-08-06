@@ -44,4 +44,7 @@ public class OrderVO {
 
     // 수정 시 삭제된 상세 목록
     private List<String> deletedOrdDCdList;
+
+    // 미수금
+    private BigDecimal  unsettledAmount;
 }
