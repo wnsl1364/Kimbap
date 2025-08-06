@@ -58,6 +58,8 @@ export const useMaterialStore = defineStore('material', () => {
     { field: 'note', header: '비고', sortable: false }
   ]);
 
+  
+
   // 공급업체직원용 구매/발주 컬럼 설정 (수정!)
   const supplierPurchaseColumns = ref([
     { field: 'purcCd', header: '발주번호', sortable: true },
@@ -78,6 +80,13 @@ export const useMaterialStore = defineStore('material', () => {
     { label: '제작중', value: 'c2' },
     { label: '배송완료', value: 'c3' },
     { label: '취소', value: 'c4' }
+  ]);
+
+  const materialSearchColumns = ref([
+    { key: 'mcode', label: '자재코드', type: 'text', placeholder: '자재코드 검색' },
+    { key: 'mateName', label: '자재명', type: 'text', placeholder: '자재명 검색' },
+    { key: 'wareName', label: '창고명', type: 'text', placeholder: '창고명 검색' },
+    { key: 'mateType', label: '자재유형', type: 'dropdown', options: [], placeholder: '자재유형 검색' }
   ]);
 
   // 내부직원용 구매/발주 검색 컬럼 설정 (수정!)
@@ -429,5 +438,6 @@ export const useMaterialStore = defineStore('material', () => {
     updateOutboundStatistics,
     resetOutboundData,
     getOutboundProcessStatus,
+    materialSearchColumns
   };
 });

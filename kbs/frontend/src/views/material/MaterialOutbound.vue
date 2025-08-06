@@ -325,60 +325,113 @@ const handleOutboundComplete = async () => {
 
     console.log('📦 선택된 자재들:', selectedMaterials.value)
 
-    // 🚨 출고수량 유효성 검증
-    const invalidItems = selectedMaterials.value.filter(material => {
-      const outboundQty = material.outboundQty || 0        // 새로 출고할 수량
-      const currentCurrQty = material._originalData?.currQty || 0
-      const totalPurcQty = material._originalData?.purcQty || 0
-      const newCurrQty = currentCurrQty + outboundQty
-
-      return outboundQty <= 0 || newCurrQty > totalPurcQty // 출고수량 0이하 또는 총량 초과
-    })
-
     // ✅ 실제 출고수량 필터링 수정  
     const validMaterials = selectedMaterials.value.filter(material => {
-      const outboundQty = material.outboundQty || 0        // 새로 출고할 수량
-      return outboundQty > 0
+      const outboundQty = Number(material.outboundQty || 0)        // 새로 출고할 수량
+      const currentCurrQty = Number(material._originalData?.currQty || 0)
+      const totalPurcQty = Number(material._originalData?.purcQty || 0)
+      const newCurrQty = currentCurrQty + outboundQty
+
+      // 출고수량 유효성 체크
+      if (outboundQty <= 0) {
+        console.warn(`⚠️ ${material.mateName}: 출고수량이 0이하입니다`)
+        return false
+      }
+
+      if (newCurrQty > totalPurcQty) {
+        console.warn(`⚠️ ${material.mateName}: 출고수량(${outboundQty})이 남은수량을 초과합니다`)
+        return false
+      }
+
+      return true
     })
 
-    // ✅ 발주상세 업데이트 데이터 생성
+    if (validMaterials.length === 0) {
+      toast.add({
+        severity: 'error',
+        summary: '출고 가능한 자재가 없습니다',
+        detail: '출고수량을 올바르게 입력해주세요!',
+        life: 5000
+      })
+      return
+    }
+
+    // ✅ 발주상세 업데이트 데이터 생성 (진짜 수정!)
     const purcOrderUpdates = validMaterials.map((material) => {
-      // 🔥 핵심! 숫자 변환을 명시적으로 해야 함!
-      const currentCurrQty = parseInt(material._originalData?.currQty || 0)  // ✅ parseInt 추가
-      const outboundQty = parseInt(material.outboundQty || 0)                // ✅ parseInt 추가
-      const totalPurcQty = parseInt(material._originalData?.purcQty || 0)    // ✅ parseInt 추가
+      // 🔥 Number로 통일해서 확실히 숫자 변환!
+      const currentCurrQty = Number(material._originalData?.currQty || 0)
+      const outboundQty = Number(material.outboundQty || 0)
+      const totalPurcQty = Number(material._originalData?.purcQty || 0)
 
-      const newCurrQty = currentCurrQty + outboundQty              // ✅ 이제 숫자끼리 더해짐!
+      const newCurrQty = currentCurrQty + outboundQty  // ✅ curr_qty 제대로 업데이트!
 
-      // 🔥 조건부 상태 결정!
-      const newStatus = (newCurrQty >= totalPurcQty) ? 'c3' : 'c2'
+      // 🔥 완전 수정된 상태 판단 로직! (c2 ↔ c3만!)
+      let newStatus
+      if (newCurrQty >= totalPurcQty) {
+        newStatus = 'c3'  // 입고대기 (전체 다 출고됨)
+      } else {
+        newStatus = 'c2'  // 승인 (아직 입고 안 다됨)
+      }
 
-      console.log(`🔄 ${material.mateName} 출고수량: ${outboundQty}, 직전: ${currentCurrQty}, 누적: ${newCurrQty}/${totalPurcQty}, 상태: ${newStatus}`)
+      console.log(`🔄 ${material.mateName}: 현재=${currentCurrQty}, 출고=${outboundQty}, 누적=${newCurrQty}/${totalPurcQty}, 상태=${newStatus}`)
 
       return {
         purcDCd: material._originalData?.purcDCd || material.purcDCd,
         purcCd: material._originalData?.purcCd || material.purcCd,
-        currQty: newCurrQty,      // ✅ 숫자로 계산된 값
-        purcDStatus: newStatus,   // ✅ 조건부 상태
-        note: `${material.mateName} 출고 ${outboundQty}${material.unit || '개'} (누적: ${newCurrQty}/${totalPurcQty})`
+        currQty: newCurrQty,      // ✅ curr_qty 제대로 업데이트!
+        purcDStatus: newStatus,   // ✅ 올바른 상태!
+        note: `출고완료 ${outboundQty}${material.unit || '개'} (총 ${newCurrQty}/${totalPurcQty})`  // ✅ 깔끔한 비고!
       }
     })
 
-    // ✅ 자재입고 데이터 생성
+    // ✅ 자재입고 데이터 생성 (확실한 값 전달!)
     const mateInboInserts = validMaterials.map((material) => {
+      const outboundQty = Number(material.outboundQty || 0)
+
+      // 🔥 디버깅용 로그
+      console.log(`🔍 자재입고 데이터 생성:`, {
+        mateName: material.mateName,
+        outboundQty: outboundQty,
+        originalOutboundQty: material.outboundQty,
+        typeof_outboundQty: typeof outboundQty
+      })
+
       return {
+        // ✅ MaterialsVO 필드명에 정확히 매핑!
         mcode: material._originalData?.mcode || material.mcode,
         mateVerCd: material._originalData?.mateVerCd || material.mateVerCd || 'V1',
         purcDCd: material._originalData?.purcDCd || material.purcDCd,
-        purcQty: parseInt(material.outboundQty || 0), // ✅ parseInt 추가: 이번 출고수량만 입고처리
+
+        // 🔥 핵심! 확실한 수량 전달 (여러 방법으로!)
+        totalQty: outboundQty,      // DB의 total_qty 컬럼
+        purcQty: outboundQty,       // 혹시 purcQty로 매핑될 수도
+        outboundQty: outboundQty,   // 컨트롤러에서 getOutboundQty()로 접근
+
+        // ✅ MaterialsVO에 있는 필드들
         mateName: material.mateName || material._originalData?.mateName,
-        note: material.note || `${material.mateName} 공급업체 출고완료 - 실제출고: ${parseInt(material.outboundQty || 0)}${material.unit || '개'}`, // ✅ parseInt 추가
+        mname: material.mateName || material._originalData?.mateName,  // 혹시 mname으로도
+        note: `공급업체 출고완료 - ${outboundQty}${material.unit || '개'}`,
 
         // 기타 필수 정보들
         cpCd: material._originalData?.cpCd,
         unit: material._originalData?.unit,
         unitPrice: material._originalData?.unitPrice,
-        purcDStatus: material._originalData?.purcDStatus
+
+        // ✅ 입고 관련 필수 필드들
+        inboStatus: 'c3',                          // 입고대기 상태
+        inboDt: new Date(),                        // 입고일시
+        supplierLotNo: `SUP-${Date.now()}`,        // 공급업체 LOT 번호 (임시)
+        // lotNo는 자바에서 자동생성하게 null로 보냄 (generateMaterialLotNumber 함수 사용)
+        lotNo: null,                               // 자바에서 자동생성
+
+        // ✅ 공장/창고 정보 (기본값)
+        fcode: 'FAC001',                          // 공장코드
+        facVerCd: 'V1',                           // 공장버전코드
+        wcode: 'WH001',                           // 창고코드  
+        wareVerCd: 'V1',                          // 창고버전코드
+
+        // ✅ 날짜 정보
+        deliDt: new Date()                        // 납기일자
       }
     })
 
@@ -392,18 +445,21 @@ const handleOutboundComplete = async () => {
       // 🎯 1단계: 발주상세 상태 업데이트
       for (const updateData of purcOrderUpdates) {
         await updatePurchaseOrderStatus(updateData)
-        console.log(`✅ 발주상세 ${updateData.purcDCd} 상태 업데이트 완료!`)
+        console.log(`✅ 발주상세 ${updateData.purcDCd} 상태 업데이트 완료! currQty=${updateData.currQty}, status=${updateData.purcDStatus}`)
       }
 
-      // 🎯 2단계: 자재입고 데이터 생성 (공급업체 배치 API 호출!)
+      // 🎯 2단계: 자재입고 데이터 생성 
       const response = await processMaterialOutboundBatch(mateInboInserts)
       console.log('✅ 자재입고 배치 생성 완료:', response.data)
 
-      // 🎉 성공 처리
+      // 🎉 성공 처리 (메시지도 수정!)
+      const c3Count = purcOrderUpdates.filter(item => item.purcDStatus === 'c3').length
+      const c2Count = purcOrderUpdates.filter(item => item.purcDStatus === 'c2').length
+
       toast.add({
         severity: 'success',
-        summary: '공급업체 출고완료 처리 성공! 🎉',
-        detail: `${validMaterials.length}건의 자재가 실제 출고수량으로 입고대기(c3) 상태로 변경되었습니다!`,
+        summary: '출고완료 처리 성공! 🎉',
+        detail: `${validMaterials.length}건 처리완료! (입고대기: ${c3Count}건, 승인: ${c2Count}건)`,
         life: 5000
       })
 
@@ -417,8 +473,6 @@ const handleOutboundComplete = async () => {
 
     } catch (apiError) {
       console.error('❌ API 호출 실패:', apiError)
-
-      // 🔄 실패 시 롤백 로직 (선택사항)
       throw new Error(`API 호출 실패: ${apiError.message}`)
     }
 
@@ -429,7 +483,7 @@ const handleOutboundComplete = async () => {
   } catch (error) {
     console.error('❌ 출고완료 처리 중 오류 발생:', error)
 
-    let errorMessage = '출고완료 처리 중 오류가 발생했습니다. 😢'
+    let errorMessage = '출고완료 처리 중 오류가 발생했습니다 😢'
 
     if (error.response) {
       errorMessage = `서버 오류: ${error.response.data?.message || '알 수 없는 오류'}`
@@ -444,9 +498,6 @@ const handleOutboundComplete = async () => {
       detail: errorMessage,
       life: 5000
     })
-
-    // 🚨 에러 시에도 사용자가 다시 시도할 수 있도록 선택 유지
-    // selectedMaterials.value = [] // 주석처리
   }
 }
 

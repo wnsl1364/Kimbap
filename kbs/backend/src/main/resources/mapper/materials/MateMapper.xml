@@ -830,6 +830,7 @@
             mate_ver_cd,
             mate_cp_cd,
             purc_qty,
+            curr_qty,
             unit,
             unit_price,
             ex_deli_dt,
