@@ -35,9 +35,6 @@ public interface StockMovementService {
     // 재고가 있는 자재 목록 조회
     List<StockMovementVO> getAvailableMaterialList(String fcode);
     
-    // 재고가 있는 제품 목록 조회
-    List<StockMovementVO> getAvailableProductList(String fcode);
-    
     // 특정 품목의 재고 정보 조회
     StockMovementVO getItemStockInfo(String itemType, String itemCode, String lotNo);
 

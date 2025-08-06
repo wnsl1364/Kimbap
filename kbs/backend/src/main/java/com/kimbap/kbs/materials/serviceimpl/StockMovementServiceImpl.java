@@ -171,18 +171,6 @@ public class StockMovementServiceImpl implements StockMovementService {
     }
 
     @Override
-    public List<StockMovementVO> getAvailableProductList(String fcode) {
-        try {
-            List<StockMovementVO> list = stockMovementMapper.getAvailableProductList(fcode);
-            System.out.println("재고 제품 목록 조회 완료: " + fcode + " - " + list.size() + "건");
-            return list;
-        } catch (Exception e) {
-            System.err.println("재고 제품 목록 조회 실패: " + e.getMessage());
-            throw new RuntimeException("재고 제품 목록 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
-        }
-    }
-
-    @Override
     public StockMovementVO getItemStockInfo(String itemType, String itemCode, String lotNo) {
         try {
             StockMovementVO result = stockMovementMapper.getItemStockInfo(itemType, itemCode, lotNo);

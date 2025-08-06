@@ -62,6 +62,19 @@ public class StockMovementVO {
     private String prodName;         // 제품명
     private String prodType;         // 제품타입
     
+    // 창고구역 정보
+    private String areaRow;          // 구역 행
+    private String areaCol;          // 구역 열
+    private String areaFloor;        // 구역 층
+    
+    // 창고 정보
+    private String wareName;         // 창고명
+    private String wareType;         // 창고타입
+    
+    // 공장 정보
+    private String facName;          // 공장명
+    private String facType;          // 공장타입
+    
     // 요청자 정보
     private String requName;         // 요청자명
     private String requDept;         // 요청자부서
@@ -97,6 +110,7 @@ public class StockMovementVO {
     private String searchType;       // 검색 타입
     
     // ========== 재고 정보 확인용 ==========
+    private BigDecimal qty;          // 재고수량 (조회용)
     private BigDecimal currentStock; // 현재 재고량
     private BigDecimal availableQty; // 이동 가능 수량
     private String stockStatus;      // 재고 상태

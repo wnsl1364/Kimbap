@@ -1,618 +1,640 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
-import { useStockMovementStore } from '@/stores/stockMovementStore';
-import { useToast } from 'primevue/usetoast';
+import { ref, computed, watch } from 'vue';
 import Dialog from 'primevue/dialog';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import InputText from 'primevue/inputtext';
-import Card from 'primevue/card';
+import InputNumber from 'primevue/inputnumber';
+import { useToast } from 'primevue/usetoast';
+import { useCommonStore } from '@/stores/commonStore';
+import { getWarehousesByFactory, getWarehouseAreasWithStock, getMateLoadingFactoryList } from '@/api/materials';
 
-// Props 및 Emits
 const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false
-  },
-  selectedItem: {
-    type: Object,
-    default: () => ({})
-  }
+    visible: { type: Boolean, default: false },
+    selectedMaterial: { type: Object, default: () => ({}) },
+    loadingQuantity: { type: Number, default: 0 }
 });
 
 const emit = defineEmits(['update:visible', 'confirm']);
-
-// Store 및 Toast
-const stockMovementStore = useStockMovementStore();
 const toast = useToast();
+const commonStore = useCommonStore();
 
-// 반응형 상태
-const isVisible = ref(false);
-const selectedFactory = ref('');
-const selectedWarehouse = ref('');
-const selectedArea = ref(null);
-const searchKeyword = ref('');
-const isLoading = ref(false);
+// 상태
+const factories = ref([]);
+const selectedFactory = ref(null);
+const warehouseTypes = ref([]);
+const selectedWarehouseType = ref(null);
+const selectedFloor = ref(null);
+const warehouseAreas = ref([]);
+const selectedAreas = ref([]);
+const placementPlan = ref([]);
+const modalInputQty = ref(0);
 
-// 선택 옵션들
-const factoryOptions = ref([]);
-const warehouseOptions = ref([]);
-const areaList = ref([]);
-
-// Props 변화 감지
-watch(() => props.visible, (newVal) => {
-  isVisible.value = newVal;
-  if (newVal) {
-    initializeModal();
-  }
+// 계산된 값
+const modalVisible = computed({
+    get: () => props.visible,
+    set: (value) => emit('update:visible', value)
 });
 
-// 모달 표시 상태 변화 감지
-watch(isVisible, (newVal) => {
-  if (!newVal) {
-    emit('update:visible', false);
-    resetModal();
-  }
+const remainingQty = computed(() => {
+    const totalAllocated = placementPlan.value.reduce((sum, plan) => sum + plan.allocateQty, 0);
+    return (modalInputQty.value || 0) - totalAllocated;
 });
 
-// 공장 선택 변화 감지
-watch(selectedFactory, async (newFactory) => {
-  if (newFactory) {
-    selectedWarehouse.value = '';
-    selectedArea.value = null;
-    await fetchWarehouses();
-  }
-});
-
-// 창고 선택 변화 감지
-watch(selectedWarehouse, async (newWarehouse) => {
-  if (newWarehouse) {
-    selectedArea.value = null;
-    await fetchAreas();
-  }
-});
-
-// 필터링된 구역 목록
-const filteredAreas = computed(() => {
-  if (!searchKeyword.value) {
-    return areaList.value;
-  }
-  
-  const keyword = searchKeyword.value.toLowerCase();
-  return areaList.value.filter(area => 
-    (area.areaName && area.areaName.toLowerCase().includes(keyword)) ||
-    (area.wareAreaCd && area.wareAreaCd.toLowerCase().includes(keyword)) ||
-    (area.displayName && area.displayName.toLowerCase().includes(keyword))
-  );
-});
-
-// 구역 테이블 컬럼 설정
-const areaTableColumns = [
-  { field: 'displayName', header: '구역명' },
-  { field: 'areaFloor', header: '층' },
-  { field: 'vol', header: '최대용량', align: 'right' },
-  { field: 'currentVolume', header: '현재적재량', align: 'right' },
-  { field: 'availableVolume', header: '잔여용량', align: 'right' },
-  { field: 'statusText', header: '상태' }
-];
-
-// 컴포넌트 마운트 시 초기화
-onMounted(async () => {
-  await loadFactoryList();
-});
-
-// 공장 목록 로드
-const loadFactoryList = async () => {
-  try {
-    await stockMovementStore.fetchLocationData('factory');
-    factoryOptions.value = stockMovementStore.factoryList.map(factory => ({
-      label: factory.facName,
-      value: factory.fcode,
-      data: factory
+const factoryOptions = computed(() => {
+    return factories.value.map(factory => ({
+        label: factory.facName,
+        value: factory.fcode
     }));
-  } catch (error) {
-    console.error('공장 목록 로드 실패:', error);
-    toast.add({
-      severity: 'error',
-      summary: '로드 실패',
-      detail: '공장 목록을 불러오는데 실패했습니다.',
-      life: 3000
-    });
-  }
-};
+});
 
-// 창고 목록 조회
-const fetchWarehouses = async () => {
-  if (!selectedFactory.value) return;
-  
-  try {
-    isLoading.value = true;
-    await stockMovementStore.fetchLocationData('warehouse', selectedFactory.value);
+const warehouseTypeOptions = computed(() => {
+    if (!selectedFactory.value) return [];
     
-    warehouseOptions.value = stockMovementStore.warehouseList.map(warehouse => ({
-      label: `${warehouse.wareName} (${warehouse.wareType})`,
-      value: warehouse.wcode,
-      data: warehouse
+    const stoConMap = { 'o1': 'q1', 'o2': 'q2', 'o3': 'q3' };
+    const allowedType = stoConMap[props.selectedMaterial?.stoCon];
+    
+    return warehouseTypes.value
+        .filter(warehouse => warehouse.wareType === allowedType)
+        .map(warehouse => ({
+            label: warehouse.wareName,
+            value: warehouse.wcode,
+            maxRow: warehouse.maxRow,
+            maxCol: warehouse.maxCol,
+            maxFloor: warehouse.maxFloor
+        }));
+});
+
+const floorOptions = computed(() => {
+    if (!selectedWarehouseType.value) return [];
+    const warehouse = warehouseTypeOptions.value.find(w => w.value === selectedWarehouseType.value);
+    if (!warehouse) return [];
+    
+    return Array.from({ length: warehouse.maxFloor }, (_, i) => ({
+        label: `${i + 1}층`,
+        value: i + 1
     }));
+});
+
+const areaGrid = computed(() => {
+    if (!selectedWarehouseType.value || !selectedFloor.value) return [];
     
-    console.log('창고 목록 조회 완료:', warehouseOptions.value.length, '개');
+    const warehouse = warehouseTypeOptions.value.find(w => w.value === selectedWarehouseType.value);
+    if (!warehouse) return [];
     
-  } catch (error) {
-    console.error('창고 목록 조회 실패:', error);
+    const grid = [];
+    for (let row = 0; row < warehouse.maxRow; row++) {
+        const rowData = [];
+        const rowLetter = String.fromCharCode(65 + row);
+        
+        for (let col = 1; col <= warehouse.maxCol; col++) {
+            const areaCode = `W-${selectedWarehouseType.value.split('-')[1]}-${rowLetter}${col}-${selectedFloor.value}`;
+            const areaInfo = warehouseAreas.value.find(area => area.wareAreaCd === areaCode);
+            
+            // 🔥 단위별 실제 용량 계산
+            const realMaxVolume = getRealCapacity();
+            const currentVolume = areaInfo?.currentVolume || 0;
+            const availableVolume = realMaxVolume - currentVolume;
+            
+            rowData.push({
+                wareAreaCd: areaCode,
+                displayName: `${rowLetter}${col}`,
+                maxVolume: areaInfo?.vol || 100, // DB 원본값
+                realMaxVolume: realMaxVolume,    // 🔥 단위별 실제 용량
+                currentVolume: currentVolume,
+                availableVolume: Math.max(0, availableVolume), // 🔥 실제 가용 용량
+                currentMaterial: areaInfo?.currentMaterial || null,
+                isAvailable: !areaInfo?.currentMaterial || areaInfo?.currentMaterial === props.selectedMaterial?.mcode,
+                isSameMaterial: areaInfo?.currentMaterial === props.selectedMaterial?.mcode
+            });
+        }
+        grid.push(rowData);
+    }
+    return grid;
+});
+
+const isConfirmEnabled = computed(() => {
+    return placementPlan.value.length > 0 && 
+           placementPlan.value.every(plan => plan.allocateQty > 0);
+});
+
+// 공통코드 표시 함수
+const getUnitDisplayName = (unitCode) => {
+    const unitCodes = commonStore.getCodes('0G') || [];
+    const unit = unitCodes.find(code => code.dcd === unitCode);
+    return unit ? unit.cdInfo : unitCode;
+};
+
+const getStorageConditionDisplayName = (stoConCode) => {
+    const stoConCodes = commonStore.getCodes('0O') || [];
+    const stoCon = stoConCodes.find(code => code.dcd === stoConCode);
+    return stoCon ? stoCon.cdInfo : stoConCode;
+};
+
+// 🔥 단위별 기준 용량 설정 (중요!)
+const getUnitCapacityStandard = (unitCode) => {
+    const standards = {
+        'g1': 1000000,     // g(그램)
+        'g2': 1000,        // kg(킬로그램): 1000kg
+        'g3': 1000000,     // ml(밀리리터)
+        'g4': 1000,        // L(리터): 1000L
+        'g5': 5000,        // ea(개): 5000개
+        'g6': 500,         // box(박스): 500박스
+        'g7': 5000000,     // mm(밀리미터)
+    };
+    
+    return standards[unitCode?.toLowerCase()] || 1000; // 기본값: 1000
+};
+
+// 🔥 실제 용량 계산 (단위 기반으로 100을 변환)
+const getRealCapacity = (area) => {
+    const materialUnit = props.selectedMaterial?.unit || 'g5';
+    const standardCapacity = getUnitCapacityStandard(materialUnit);
+    
+    // 기본 100에서 단위별 표준 용량으로 변환
+    return standardCapacity;
+};
+
+// 🔥 용량 표시 (퍼센트 기반)
+const getCapacityDisplay = (area) => {
+    const current = area.currentVolume || 0;
+    const realCapacity = area.realMaxVolume || getRealCapacity();
+    const percentage = Math.round((current / realCapacity) * 100);
+    
+    return `${percentage}%`;
+};
+
+// 🔥 사용률 퍼센트 계산
+const getUsagePercentage = (area) => {
+    const current = area.currentVolume || 0;
+    const realCapacity = area.realMaxVolume || getRealCapacity();
+    return Math.round((current / realCapacity) * 100);
+};
+
+// 🔥 용량 상태 색상
+const getCapacityColor = (area) => {
+    const percentage = getUsagePercentage(area);
+    if (percentage === 0) return 'bg-gray-200';
+    if (percentage <= 30) return 'bg-green-500';
+    if (percentage <= 60) return 'bg-yellow-500';
+    if (percentage <= 85) return 'bg-orange-500';
+    return 'bg-red-500';
+};
+
+// 구역 선택
+const selectArea = (area) => {
+    if (!area.isAvailable) {
+        toast.add({
+            severity: 'warn',
+            summary: '구역 선택 불가',
+            detail: `다른 자재가 적재된 구역입니다.`,
+            life: 3000
+        });
+        return;
+    }
+    
+    // 🔥 실제 가용 용량 체크
+    if (area.availableVolume <= 0) {
+        toast.add({
+            severity: 'warn',
+            summary: '구역 선택 불가',
+            detail: '해당 구역에는 가용 용량이 없습니다.',
+            life: 3000
+        });
+        return;
+    }
+    
+    // 이미 선택된 구역이면 제거
+    const selectedIndex = selectedAreas.value.findIndex(selected => selected.wareAreaCd === area.wareAreaCd);
+    if (selectedIndex !== -1) {
+        selectedAreas.value.splice(selectedIndex, 1);
+        placementPlan.value = placementPlan.value.filter(plan => plan.wareAreaCd !== area.wareAreaCd);
+        toast.add({
+            severity: 'info',
+            summary: '구역 선택 해제',
+            detail: `${area.displayName} 구역이 선택 해제되었습니다.`,
+            life: 2000
+        });
+        return;
+    }
+    
+    // 새 구역 선택
+    selectedAreas.value.push(area);
+    placementPlan.value.push({
+        wareAreaCd: area.wareAreaCd,
+        allocateQty: 0,
+        selectedArea: area,
+        maxAllowedQty: Math.min(remainingQty.value, area.availableVolume) // 🔥 실제 가용 용량 사용
+    });
+    
     toast.add({
-      severity: 'error',
-      summary: '조회 실패',
-      detail: '창고 목록 조회 중 오류가 발생했습니다.',
-      life: 3000
+        severity: 'success',
+        summary: '구역 선택됨',
+        detail: `${area.displayName} 구역이 선택되었습니다. 수량을 입력해주세요.`,
+        life: 2000
     });
-  } finally {
-    isLoading.value = false;
-  }
 };
 
-// 구역 목록 조회
-const fetchAreas = async () => {
-  if (!selectedWarehouse.value) return;
-  
-  try {
-    isLoading.value = true;
-    await stockMovementStore.fetchLocationData('area', selectedWarehouse.value);
+// 수량 업데이트
+const updateAreaQuantity = (planIndex, newQty) => {
+    const plan = placementPlan.value[planIndex];
+    if (!plan) return;
     
-    // 구역 데이터 가공
-    areaList.value = stockMovementStore.areaList.map(area => {
-      const displayName = `${area.areaRow}${area.areaCol}`;
-      const availableVolume = (area.vol || 0) - (area.currentVolume || 0);
-      const isAvailable = availableVolume > 0;
-      
-      return {
-        ...area,
-        id: area.wareAreaCd, // DataTable의 dataKey용
-        displayName: displayName,
-        areaName: displayName,
-        availableVolume: availableVolume,
-        statusText: isAvailable ? '사용가능' : '사용불가',
-        statusClass: isAvailable ? 'text-green-600' : 'text-red-600'
-      };
+    newQty = Math.max(0, newQty || 0);
+    
+    // 🔥 실제 가용 용량으로 제한
+    newQty = Math.min(newQty, plan.selectedArea.availableVolume);
+    
+    const otherTotal = placementPlan.value
+        .filter((_, index) => index !== planIndex)
+        .reduce((sum, p) => sum + p.allocateQty, 0);
+    
+    if (otherTotal + newQty > modalInputQty.value) {
+        newQty = Math.max(0, modalInputQty.value - otherTotal);
+    }
+    
+    plan.allocateQty = newQty;
+    
+    // 🔥 maxAllowedQty 재계산
+    const newTotal = placementPlan.value.reduce((sum, p) => sum + p.allocateQty, 0);
+    placementPlan.value.forEach(p => {
+        const others = newTotal - p.allocateQty;
+        p.maxAllowedQty = Math.min(modalInputQty.value - others, p.selectedArea.availableVolume);
     });
-    
-    console.log('구역 목록 조회 완료:', areaList.value.length, '개');
-    
-  } catch (error) {
-    console.error('구역 목록 조회 실패:', error);
-    toast.add({
-      severity: 'error',
-      summary: '조회 실패',
-      detail: '구역 목록 조회 중 오류가 발생했습니다.',
-      life: 3000
-    });
-  } finally {
-    isLoading.value = false;
-  }
 };
 
-// 모달 초기화
-const initializeModal = async () => {
-  selectedArea.value = null;
-  searchKeyword.value = '';
-  
-  // 기본값 설정
-  if (factoryOptions.value.length > 0 && !selectedFactory.value) {
-    selectedFactory.value = factoryOptions.value[0].value;
-  }
+// 계획 제거
+const removePlan = (index) => {
+    const removedPlan = placementPlan.value[index];
+    placementPlan.value.splice(index, 1);
+    selectedAreas.value = selectedAreas.value.filter(area => area.wareAreaCd !== removedPlan.wareAreaCd);
 };
 
-// 확인 버튼 클릭
+// 구역 스타일
+const getAreaStyle = (area) => {
+    const isSelected = selectedAreas.value.some(selected => selected.wareAreaCd === area.wareAreaCd);
+    
+    if (isSelected) return 'bg-blue-500 text-white border-blue-600';
+    if (!area.isAvailable) return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
+    if (area.isSameMaterial) return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
+    if (area.availableVolume <= 0) return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75'; // 🔥 실제 가용 용량 체크
+    return 'bg-white hover:bg-blue-50 border-gray-300 hover:border-blue-400';
+};
+
+// 확인/취소
 const handleConfirm = () => {
-  if (!selectedArea.value) {
-    toast.add({
-      severity: 'warn',
-      summary: '선택 필요',
-      detail: '도착위치를 선택해주세요.',
-      life: 3000
-    });
-    return;
-  }
-  
-  // 선택된 위치 정보 구성
-  const selectedFactoryData = factoryOptions.value.find(f => f.value === selectedFactory.value);
-  const selectedWarehouseData = warehouseOptions.value.find(w => w.value === selectedWarehouse.value);
-  
-  const locationData = {
-    fcode: selectedFactory.value,
-    facName: selectedFactoryData?.data.facName,
-    wcode: selectedWarehouse.value,
-    wareName: selectedWarehouseData?.data.wareName,
-    wareAreaCd: selectedArea.value.wareAreaCd,
-    areaName: selectedArea.value.displayName,
-    areaRow: selectedArea.value.areaRow,
-    areaCol: selectedArea.value.areaCol,
-    areaFloor: selectedArea.value.areaFloor,
-    availableVolume: selectedArea.value.availableVolume
-  };
-  
-  emit('confirm', locationData);
-  handleClose();
+    if (placementPlan.value.length === 0) {
+        toast.add({
+            severity: 'warn',
+            summary: '구역 선택 필요',
+            detail: '적재할 구역을 선택해주세요.',
+            life: 3000
+        });
+        return;
+    }
+    
+    // 모든 배치 계획에 수량이 입력되었는지 확인
+    const hasInvalidPlan = placementPlan.value.some(plan => !plan.allocateQty || plan.allocateQty <= 0);
+    if (hasInvalidPlan) {
+        toast.add({
+            severity: 'warn',
+            summary: '수량 입력 필요',
+            detail: '모든 선택된 구역에 수량을 입력해주세요.',
+            life: 3000
+        });
+        return;
+    }
+    
+    // 선택된 공장과 창고 정보도 함께 전달
+    const selectedFactoryInfo = factories.value.find(f => f.fcode === selectedFactory.value);
+    const selectedWarehouseInfo = warehouseTypes.value.find(w => w.wcode === selectedWarehouseType.value);
+    
+    const confirmData = {
+        fcode: selectedFactory.value,
+        facName: selectedFactoryInfo?.facName || '',
+        wcode: selectedWarehouseType.value,
+        wareName: selectedWarehouseInfo?.wareName || '',
+        wareAreaCd: placementPlan.value[0]?.wareAreaCd || '',
+        placementPlan: placementPlan.value,
+        totalAllocated: modalInputQty.value - remainingQty.value,
+        remainingQty: remainingQty.value,
+        userInputQty: modalInputQty.value
+    };
+    
+    console.log('LocationSelectModal 확인 데이터:', confirmData);
+    
+    emit('confirm', confirmData);
+    
+    // 모달 닫기 전에 데이터 초기화
+    resetModal();
+    modalVisible.value = false;
 };
 
-// 취소/닫기
-const handleClose = () => {
-  isVisible.value = false;
+const handleCancel = () => {
+    if (placementPlan.value.length > 0) {
+        const shouldReset = window.confirm('적재 계획을 취소하시겠습니까?');
+        if (!shouldReset) return;
+        resetModal();
+    }
+    modalVisible.value = false;
 };
 
-// 모달 리셋
 const resetModal = () => {
-  selectedArea.value = null;
-  selectedWarehouse.value = '';
-  warehouseOptions.value = [];
-  areaList.value = [];
-  searchKeyword.value = '';
+    selectedFactory.value = null;
+    selectedWarehouseType.value = null;
+    selectedFloor.value = null;
+    selectedAreas.value = [];
+    placementPlan.value = [];
+    modalInputQty.value = props.loadingQuantity || 0;
 };
 
-// 구역 선택 처리
-const handleAreaSelect = (area) => {
-  selectedArea.value = area;
+// API 호출
+const loadFactories = async () => {
+    try {
+        const response = await getMateLoadingFactoryList();
+        factories.value = response.data;
+        console.log('공장 목록 로드 완료:', factories.value.length, '개');
+    } catch (error) {
+        console.error('공장 목록 로드 실패:', error);
+        toast.add({
+            severity: 'error',
+            summary: '공장 목록 로드 실패',
+            detail: '공장 목록을 불러오는데 실패했습니다.',
+            life: 3000
+        });
+    }
 };
 
-// 구역 더블클릭 처리 (바로 확인)
-const handleAreaDoubleClick = (event) => {
-  selectedArea.value = event.data;
-  handleConfirm();
+const loadWarehouseTypes = async () => {
+    if (!selectedFactory.value) return;
+    
+    try {
+        const response = await getWarehousesByFactory(selectedFactory.value);
+        warehouseTypes.value = response.data;
+        console.log('창고 목록 로드 완료:', warehouseTypes.value.length, '개');
+    } catch (error) {
+        console.error('창고 유형 로드 실패:', error);
+        toast.add({
+            severity: 'error',
+            summary: '창고 목록 로드 실패',
+            detail: '창고 목록을 불러오는데 실패했습니다.',
+            life: 3000
+        });
+    }
 };
 
-// 현재 선택된 품목 정보 표시용
-const selectedItemInfo = computed(() => {
-  if (!props.selectedItem) return null;
-  
-  return {
-    itemName: props.selectedItem.itemName,
-    itemCode: props.selectedItem.itemCode,
-    lotNo: props.selectedItem.lotNo,
-    moveQty: props.selectedItem.moveQty,
-    unitText: props.selectedItem.unitText,
-    depaLocation: props.selectedItem.depaLocation
-  };
+const loadWarehouseAreas = async () => {
+    if (!selectedWarehouseType.value || !selectedFloor.value) return;
+    
+    try {
+        const response = await getWarehouseAreasWithStock(selectedWarehouseType.value, selectedFloor.value);
+        warehouseAreas.value = response.data;
+        console.log('창고 구역 로드 완료:', warehouseAreas.value.length, '개');
+    } catch (error) {
+        console.error('창고 구역 로드 실패:', error);
+        toast.add({
+            severity: 'error',
+            summary: '구역 정보 로드 실패',
+            detail: '창고 구역 정보를 불러오는데 실패했습니다.',
+            life: 3000
+        });
+    }
+};
+
+// Watch
+watch(selectedFactory, () => {
+    selectedWarehouseType.value = null;
+    selectedFloor.value = null;
+    selectedAreas.value = [];
+    placementPlan.value = [];
+    if (selectedFactory.value) {
+        loadWarehouseTypes();
+    }
 });
 
-// 구역 상태에 따른 스타일 클래스
-const getAreaStatusClass = (area) => {
-  if (area.availableVolume <= 0) {
-    return 'bg-red-50 border-red-200';
-  } else if (area.availableVolume < 10) {
-    return 'bg-yellow-50 border-yellow-200';
-  } else {
-    return 'bg-green-50 border-green-200';
-  }
-};
+watch(selectedWarehouseType, () => {
+    selectedFloor.value = null;
+    selectedAreas.value = [];
+    placementPlan.value = [];
+});
 
-// 선택된 구역 확인
-const isAreaSelected = (area) => {
-  return selectedArea.value && selectedArea.value.wareAreaCd === area.wareAreaCd;
-};
+watch(selectedFloor, () => {
+    selectedAreas.value = [];
+    placementPlan.value = [];
+    loadWarehouseAreas();
+});
+
+watch(() => props.visible, (newVal) => {
+    if (newVal) {
+        modalInputQty.value = props.loadingQuantity || 0;
+        loadFactories();
+    }
+});
+
+watch(() => props.loadingQuantity, (newQty) => {
+    if (newQty > 0) {
+        modalInputQty.value = newQty;
+    }
+});
 </script>
 
 <template>
-  <Dialog
-    v-model:visible="isVisible"
-    modal
-    :closable="true"
-    :style="{ width: '90vw', maxWidth: '1400px' }"
-    class="p-fluid"
-  >
-    <template #header>
-      <div class="flex align-items-center gap-2">
-        <i class="pi pi-map-marker text-primary"></i>
-        <span class="font-bold text-xl">도착위치 선택</span>
-      </div>
-    </template>
+    <Dialog
+        v-model:visible="modalVisible"
+        modal
+        header="창고 구역 선택"
+        :style="{ width: '95vw', maxWidth: '1400px', height: '90vh' }"
+        :closable="true"
+    >
+        <div class="flex h-[calc(90vh-120px)] gap-4">
+            <!-- 왼쪽: 정보 패널 -->
+            <div class="w-80 flex-shrink-0 space-y-4 overflow-y-auto">
+                <!-- 자재 정보 -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h6 class="font-semibold text-blue-800 mb-3">자재 정보</h6>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="font-medium">자재코드:</span>
+                            <span>{{ selectedMaterial?.mcode }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium">자재명:</span>
+                            <span>{{ selectedMaterial?.mateName }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium">보관조건:</span>
+                            <span>{{ getStorageConditionDisplayName(selectedMaterial?.stoCon || 'o1') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium">단위:</span>
+                            <span>{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium">적재수량:</span>
+                            <span class="font-bold text-blue-600">{{ modalInputQty }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium">남은수량:</span>
+                            <span :class="remainingQty > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">
+                                {{ remainingQty }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- 선택된 품목 정보 -->
-    <Card v-if="selectedItemInfo" class="mb-4">
-      <template #title>
-        <div class="flex align-items-center gap-2">
-          <i class="pi pi-box text-primary"></i>
-          <span>선택된 품목 정보</span>
-        </div>
-      </template>
-      <template #content>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <label class="font-medium text-gray-600">품목명:</label>
-            <div class="font-semibold">{{ selectedItemInfo.itemName }}</div>
-          </div>
-          <div>
-            <label class="font-medium text-gray-600">품목코드:</label>
-            <div class="font-semibold">{{ selectedItemInfo.itemCode }}</div>
-          </div>
-          <div>
-            <label class="font-medium text-gray-600">LOT번호:</label>
-            <div class="font-semibold">{{ selectedItemInfo.lotNo }}</div>
-          </div>
-          <div>
-            <label class="font-medium text-gray-600">이동수량:</label>
-            <div class="font-semibold text-blue-600">
-              {{ selectedItemInfo.moveQty }} {{ selectedItemInfo.unitText }}
+                <!-- 적재 계획 -->
+                <div v-if="placementPlan.length > 0" class="bg-green-50 p-4 rounded-lg">
+                    <h6 class="font-semibold text-green-800 mb-3">적재 계획</h6>
+                    <div class="space-y-3 max-h-48 overflow-y-auto">
+                        <div v-for="(plan, index) in placementPlan" :key="index" 
+                             class="bg-white p-3 rounded border">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
+                                    <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
+                                    <div class="text-xs text-blue-600">
+                                        최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
+                                    </div>
+                                </div>
+                                <Button
+                                    size="small"
+                                    severity="danger"
+                                    text
+                                    @click="removePlan(index)"
+                                    class="p-1 h-6 w-6"
+                                >
+                                    ×
+                                </Button>
+                            </div>
+                            
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium min-w-12">수량:</label>
+                                <InputNumber
+                                    :modelValue="plan.allocateQty"
+                                    @update:modelValue="(newValue) => updateAreaQuantity(index, newValue || 0)"
+                                    :min="0"
+                                    :max="plan.selectedArea.availableVolume"
+                                    class="flex-1"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="md:col-span-4">
-            <label class="font-medium text-gray-600">출발위치:</label>
-            <div class="font-semibold text-green-600">{{ selectedItemInfo.depaLocation }}</div>
-          </div>
-        </div>
-      </template>
-    </Card>
 
-    <!-- 위치 선택 영역 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
-      <!-- 공장 선택 -->
-      <div class="flex flex-col gap-2">
-        <label class="font-medium text-gray-700">공장 선택 *</label>
-        <Dropdown
-          v-model="selectedFactory"
-          :options="factoryOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="공장을 선택하세요"
-          class="w-full"
-          :disabled="isLoading"
-        />
-      </div>
+            <!-- 오른쪽: 창고 선택 -->
+            <div class="flex-1 flex flex-col">
+                <!-- 창고/층 선택 -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
+                    <div class="flex items-center gap-4">
+                        <label class="font-medium min-w-20">공장:</label>
+                        <Dropdown
+                            v-model="selectedFactory"
+                            :options="factoryOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="공장을 선택하세요"
+                            class="flex-1"
+                        />
+                    </div>
 
-      <!-- 창고 선택 -->
-      <div class="flex flex-col gap-2">
-        <label class="font-medium text-gray-700">창고 선택 *</label>
-        <Dropdown
-          v-model="selectedWarehouse"
-          :options="warehouseOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="창고를 선택하세요"
-          class="w-full"
-          :disabled="!selectedFactory || isLoading"
-        />
-      </div>
+                    <div class="flex items-center gap-4" v-if="selectedFactory">
+                        <label class="font-medium min-w-20">창고:</label>
+                        <Dropdown
+                            v-model="selectedWarehouseType"
+                            :options="warehouseTypeOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="창고를 선택하세요"
+                            class="flex-1"
+                        />
+                    </div>
 
-      <!-- 구역 검색 -->
-      <div class="flex flex-col gap-2">
-        <label class="font-medium text-gray-700">구역 검색</label>
-        <InputText
-          v-model="searchKeyword"
-          placeholder="구역명으로 검색"
-          class="w-full"
-          :disabled="!selectedWarehouse"
-        />
-      </div>
-    </div>
+                    <div class="flex items-center gap-4" v-if="selectedWarehouseType">
+                        <label class="font-medium min-w-20">층:</label>
+                        <Dropdown
+                            v-model="selectedFloor"
+                            :options="floorOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="층을 선택하세요"
+                            class="flex-1"
+                        />
+                    </div>
+                </div>
 
-    <!-- 구역 목록 -->
-    <div class="mb-4" v-if="selectedWarehouse">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold">
-          구역 목록 ({{ filteredAreas.length }}개)
-        </h3>
-        <div class="text-sm text-gray-600" v-if="selectedArea">
-          선택된 구역: {{ selectedArea.displayName }}
-        </div>
-      </div>
+                <!-- 구역 그리드 -->
+                <div v-if="selectedFloor && areaGrid.length > 0" class="flex-1 flex flex-col">
+                    <h6 class="font-semibold mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
 
-      <DataTable
-        :value="filteredAreas"
-        :selection="selectedArea"
-        @update:selection="handleAreaSelect"
-        dataKey="wareAreaCd"
-        selectionMode="single"
-        :scrollable="true"
-        scrollHeight="350px"
-        :loading="isLoading"
-        showGridlines
-        responsiveLayout="scroll"
-        @rowDblclick="handleAreaDoubleClick"
-        :rowClass="(data) => isAreaSelected(data) ? 'selected-row' : ''"
-      >
-        <!-- 구역 정보 컬럼들 -->
-        <Column
-          v-for="col in areaTableColumns"
-          :key="col.field"
-          :field="col.field"
-          :header="col.header"
-          :headerClass="col.align === 'right' ? 'text-right' : ''"
-          :bodyClass="col.align === 'right' ? 'text-right' : ''"
-        >
-          <template #body="slotProps" v-if="col.field === 'displayName'">
-            <div class="flex align-items-center gap-2">
-              <i class="pi pi-building text-blue-500"></i>
-              <span class="font-semibold">{{ slotProps.data[col.field] }}</span>
+                    <div class="flex-1 overflow-auto border rounded-lg p-4 bg-white">
+                        <div class="grid gap-2" :style="{ gridTemplateColumns: `repeat(${areaGrid[0]?.length || 1}, 1fr)` }">
+                            <template v-for="(row, rowIndex) in areaGrid" :key="rowIndex">
+                                <div
+                                    v-for="(area, colIndex) in row"
+                                    :key="`${rowIndex}-${colIndex}`"
+                                    :class="[
+                                        'border-2 rounded-lg p-3 transition-all duration-200 min-h-20 min-w-16',
+                                        getAreaStyle(area),
+                                        // 🔥 클릭 가능 여부에 따라 커서 스타일 적용
+                                        area.isAvailable && area.availableVolume > 0 ? 'cursor-pointer' : 'cursor-not-allowed'
+                                    ]"
+                                    @click="area.isAvailable && area.availableVolume > 0 ? selectArea(area) : null"
+                                    :title="`구역: ${area.wareAreaCd}
+                                    실제용량: ${area.realMaxVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
+                                    현재적재: ${area.currentVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
+                                    가용용량: ${area.availableVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
+                                    ${area.currentMaterial ? '기존자재: ' + area.currentMaterial : ''}
+                                    ${!area.isAvailable ? '[선택불가] 다른 자재가 적재된 구역' : ''}
+                                    ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
+                                                                    >
+                                    <div class="text-center">
+                                        <div class="font-bold text-sm">{{ area.displayName }}</div>
+                                        <div class="text-xs mt-1">
+                                            {{ getCapacityDisplay(area) }}
+                                        </div>
+                                        <div v-if="area.currentMaterial" class="text-xs mt-1">
+                                            <span v-if="area.isSameMaterial" class="text-green-600 font-semibold">동일자재</span>
+                                            <span v-else class="text-red-600 font-semibold">다른자재</span>
+                                        </div>
+                                        <div v-else class="text-xs mt-1 text-gray-500">빈구역</div>
+                                        
+                                        <!-- 🔥 용량 게이지 바 -->
+                                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                            <div 
+                                                :class="`h-1.5 rounded-full transition-all duration-300 ${getCapacityColor(area)}`"
+                                                :style="{ width: getUsagePercentage(area) + '%' }"
+                                            ></div>
+                                        </div>
+                                        
+                                        <!-- 🔥 실제 용량 정보 -->
+                                        <div class="text-xs text-gray-600 mt-1">
+                                            {{ area.availableVolume }}/{{ area.realMaxVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else class="flex-1 flex items-center justify-center text-gray-500">
+                    공장, 창고, 층을 먼저 선택해주세요.
+                </div>
             </div>
-          </template>
-          <template #body="slotProps" v-else-if="col.field === 'vol' || col.field === 'currentVolume' || col.field === 'availableVolume'">
-            <span :class="col.field === 'availableVolume' && slotProps.data[col.field] <= 0 ? 'text-red-600 font-semibold' : ''">
-              {{ slotProps.data[col.field]?.toLocaleString() }}
-            </span>
-          </template>
-          <template #body="slotProps" v-else-if="col.field === 'statusText'">
-            <span :class="slotProps.data.statusClass + ' font-semibold'">
-              {{ slotProps.data[col.field] }}
-            </span>
-          </template>
-        </Column>
-      </DataTable>
-
-      <!-- 구역 선택 안내 -->
-      <div class="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-700">
-        <div class="flex">
-          <i class="pi pi-info-circle mr-2 mt-1"></i>
-          <div>
-            <p class="font-medium">구역 선택 안내</p>
-            <p class="text-sm mt-1">
-              • 구역을 클릭하여 선택하거나 더블클릭으로 바로 확인할 수 있습니다.<br>
-              • 잔여용량이 0인 구역은 선택할 수 없습니다.<br>
-              • 이동수량: <strong>{{ selectedItemInfo?.moveQty }} {{ selectedItemInfo?.unitText }}</strong>
-            </p>
-          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 구역이 없을 때 안내 메시지 -->
-    <div v-else-if="selectedWarehouse && !isLoading && filteredAreas.length === 0" 
-         class="text-center py-8 text-gray-500">
-      <i class="pi pi-inbox text-4xl mb-3"></i>
-      <p>선택된 창고에 사용 가능한 구역이 없습니다.</p>
-    </div>
-
-    <!-- 버튼 영역 -->
-    <template #footer>
-      <div class="flex justify-between items-center">
-        <!-- 선택 요약 정보 -->
-        <div class="text-sm text-gray-600" v-if="selectedArea">
-          <i class="pi pi-check-circle text-green-500 mr-1"></i>
-          선택된 위치: {{ selectedArea.displayName }} 
-          (잔여용량: {{ selectedArea.availableVolume }})
-        </div>
-        <div v-else></div>
-
-        <!-- 버튼들 -->
-        <div class="flex gap-2">
-          <Button
-            label="취소"
-            icon="pi pi-times"
-            severity="secondary"
-            @click="handleClose"
-          />
-          <Button
-            label="확인"
-            icon="pi pi-check"
-            severity="success"
-            @click="handleConfirm"
-            :disabled="!selectedArea || selectedArea.availableVolume <= 0"
-          />
-        </div>
-      </div>
-    </template>
-  </Dialog>
+        <template #footer>
+            <div class="flex justify-end gap-2">
+                <Button label="취소" severity="secondary" @click="handleCancel" />
+                <Button label="확인" severity="success" @click="handleConfirm" :disabled="!isConfirmEnabled" />
+            </div>
+        </template>
+    </Dialog>
 </template>
 
 <style scoped>
 .grid {
-  display: grid;
-}
-
-.grid-cols-1 {
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-}
-
-.grid-cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.grid-cols-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.grid-cols-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.gap-2 {
-  gap: 0.5rem;
-}
-
-.gap-4 {
-  gap: 1rem;
-}
-
-.mb-3 {
-  margin-bottom: 0.75rem;
-}
-
-.mb-4 {
-  margin-bottom: 1rem;
-}
-
-.mt-1 {
-  margin-top: 0.25rem;
-}
-
-.mt-3 {
-  margin-top: 0.75rem;
-}
-
-.p-3 {
-  padding: 0.75rem;
-}
-
-.p-4 {
-  padding: 1rem;
-}
-
-.py-8 {
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
-
-.bg-gray-50 {
-  background-color: #f9fafb;
-}
-
-.bg-blue-50 {
-  background-color: #eff6ff;
-}
-
-.rounded-lg {
-  border-radius: 0.5rem;
-}
-
-.border-l-4 {
-  border-left-width: 4px;
-}
-
-.border-blue-400 {
-  border-color: #60a5fa;
-}
-
-.text-blue-700 {
-  color: #1d4ed8;
-}
-
-.text-green-600 {
-  color: #16a34a;
-}
-
-.text-red-600 {
-  color: #dc2626;
-}
-
-.text-gray-500 {
-  color: #6b7280;
-}
-
-.text-gray-600 {
-  color: #4b5563;
-}
-
-.text-gray-700 {
-  color: #374151;
-}
-
-:deep(.selected-row) {
-  background-color: #e0f2fe !important;
-  border: 2px solid #0288d1;
-}
-
-:deep(.selected-row:hover) {
-  background-color: #b3e5fc !important;
-}
-
-@media (min-width: 768px) {
-  .md\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .md\:grid-cols-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .md\:col-span-4 {
-    grid-column: span 4 / span 4;
-  }
+    max-width: 100%;
+    overflow-x: auto;
 }
 </style>

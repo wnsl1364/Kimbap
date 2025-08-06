@@ -179,7 +179,9 @@
             wd.area_row,
             wd.area_col,
             wd.area_floor,
+            w.wcode,
             w.ware_name,
+            f.fcode,
             f.fac_name
         FROM ware_stock ws
         INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
@@ -191,34 +193,6 @@
         AND ws.qty > 0
         AND m.is_used = 'f1'
         ORDER BY m.mate_name, mi.lot_no
-    </select>
-
-    <!-- 재고가 있는 제품 목록 조회 -->
-    <select id="getAvailableProductList" parameterType="string" resultType="com.kimbap.kbs.materials.service.StockMovementVO">
-        SELECT DISTINCT
-            pi.pcode,
-            pi.prod_ver_cd,
-            p.prod_name,
-            p.prod_type,
-            pi.lot_no,
-            ws.qty,
-            ws.unit,
-            ws.ware_area_cd,
-            wd.area_row,
-            wd.area_col,
-            wd.area_floor,
-            w.ware_name,
-            f.fac_name
-        FROM ware_stock ws
-        INNER JOIN prod_inbo pi ON ws.prod_inbo_cd = pi.prod_inbo_cd
-        INNER JOIN product p ON pi.pcode = p.pcode AND pi.prod_ver_cd = p.prod_ver_cd
-        INNER JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
-        INNER JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
-        INNER JOIN factory f ON w.fcode = f.fcode AND w.fac_ver_cd = f.fac_ver_cd
-        WHERE f.fcode = #{fcode}
-        AND ws.qty > 0
-        AND p.is_used = 'f1'
-        ORDER BY p.prod_name, pi.lot_no
     </select>
 
     <!-- 특정 품목의 재고 정보 조회 -->

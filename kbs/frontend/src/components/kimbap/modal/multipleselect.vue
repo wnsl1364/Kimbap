@@ -4,6 +4,7 @@ import Dialog from 'primevue/dialog'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 
 const props = defineProps({
@@ -19,6 +20,9 @@ const emit = defineEmits(['update:visible', 'update:modelValue', 'update:items']
 
 const searchText = ref('')
 const selectedItems = ref([...props.modelValue])
+
+// 입력 값들을 추적하는 reactive 객체
+const inputValues = ref({})
 
 watch(
   () => props.modelValue,
@@ -48,8 +52,25 @@ function onClose() {
 }
 
 function onConfirm() {
-  emit('update:modelValue', selectedItems.value)
+  // 선택된 아이템들에 입력값 추가
+  const itemsWithInputs = selectedItems.value.map(item => {
+    const itemId = item[props.itemKey]
+    return {
+      ...item,
+      ...inputValues.value[itemId] // 입력된 값들 병합
+    }
+  })
+  
+  emit('update:modelValue', itemsWithInputs)
   emit('update:visible', false)
+}
+
+// 입력값 업데이트 함수
+function updateInputValue(itemId, field, value) {
+  if (!inputValues.value[itemId]) {
+    inputValues.value[itemId] = {}
+  }
+  inputValues.value[itemId][field] = value
 }
 </script>
 <template>
@@ -93,7 +114,34 @@ function onConfirm() {
         :key="col.field"
         :field="col.field"
         :header="col.header"
-      />
+        :headerClass="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''"
+        :bodyClass="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''"
+      >
+        <template #body="slotProps" v-if="col.type === 'input'">
+          <InputNumber
+            v-if="col.inputType === 'number'"
+            :modelValue="inputValues[slotProps.data[itemKey]]?.[col.field] || ''"
+            @update:modelValue="updateInputValue(slotProps.data[itemKey], col.field, $event)"
+            :placeholder="col.placeholder || ''"
+            :min="0"
+            :max="col.field === 'moveQty' ? slotProps.data.qty : undefined"
+            class="w-full"
+            size="small"
+            :step="1"
+          />
+          <InputText
+            v-else
+            :modelValue="inputValues[slotProps.data[itemKey]]?.[col.field] || ''"
+            @update:modelValue="updateInputValue(slotProps.data[itemKey], col.field, $event)"
+            :placeholder="col.placeholder || ''"
+            class="w-full"
+            size="small"
+          />
+        </template>
+        <template #body="slotProps" v-else>
+          {{ slotProps.data[col.field] }}
+        </template>
+      </Column>
     </DataTable>
 
     <!-- 하단 버튼 -->

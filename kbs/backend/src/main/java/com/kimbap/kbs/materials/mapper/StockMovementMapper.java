@@ -42,9 +42,6 @@ public interface StockMovementMapper {
     // 재고가 있는 자재 목록 조회
     List<StockMovementVO> getAvailableMaterialList(@Param("fcode") String fcode);
     
-    // 재고가 있는 제품 목록 조회
-    List<StockMovementVO> getAvailableProductList(@Param("fcode") String fcode);
-    
     // 특정 품목의 재고 정보 조회
     StockMovementVO getItemStockInfo(@Param("itemType") String itemType, 
                                      @Param("itemCode") String itemCode, 
