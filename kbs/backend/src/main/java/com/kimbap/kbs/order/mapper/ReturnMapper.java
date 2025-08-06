@@ -43,6 +43,15 @@ public interface ReturnMapper {
   // prod_return_cd를 통해 주문코드(ord_cd) 조회
   String getOrdCdByReturnCd(String prodReturnCd);
 
-  // 
+  // lot번호
   String getLotNoByOrdDCd(String ordDCd);
+
+  // 주문상세 상태를 출고완료(t3)로 변경
+  void updateOrderDetailStatusToT3(String ordDCd);
+
+  // prod_return 상태를 반품요청취소(v2)로 변경
+  void updateProdReturnStatusToV2(String ordDCd);
+
+  // 주문상세 코드로 주문코드 조회
+  String getOrdCdByOrdDCd(String ordDCd);
 }

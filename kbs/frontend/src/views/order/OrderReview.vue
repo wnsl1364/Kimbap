@@ -38,8 +38,7 @@ const formFields = [
   { label: '납기요청일자', field: 'deliReqDt', type: 'text', readonly: true },
   { label: '입금예정일자', field: 'exPayDt', type: 'text', readonly: true },
   { label: '비고', field: 'note', type: 'text', readonly: true },
-  { label: '미수금', field: 'arrears', type: 'text', readonly: true, suffixButton: '미수 상세보기',
-  suffixEvent: 'showArrearsModal' }
+  { label: '미수금', field: 'unsettledAmount', type: 'text', readonly: true,}
 ]
 
 // 제품 테이블
@@ -121,7 +120,8 @@ const handleLoadOrder = async (selectedRow) => {
       deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
       exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
       note: order.note,
-      regi: order.regi
+      regi: order.regi,
+      unsettledAmount: order.unsettledAmount
     })
 
     // 제품목록 세팅
@@ -131,7 +131,7 @@ const handleLoadOrder = async (selectedRow) => {
         const price = item.unitPrice || 0
         const total = qty * price
 
-        console.log('✅ 제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
+        console.log('제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
 
         return {
           ...item,

@@ -6,13 +6,14 @@ export const useOrderFormStore = defineStore('orderForm', () => {
   const formData = ref({
     ordCd: '',
     ordDt: '',
-    cpCd: '',      // 추가
-    cpName: '',    // 거래처명
-    deliAdd: '',   // 배송지 주소
+    cpCd: '',
+    cpName: '',
+    deliAdd: '',
     deliReqDt: '',
     exPayDt: '',
     note: '',
-    regi: ''       // 추가
+    regi: '',
+    unsettledAmount: ''
   })
 
 
@@ -28,7 +29,8 @@ export const useOrderFormStore = defineStore('orderForm', () => {
       deliAdd: '',
       deliReqDt: '',
       exPayDt: '',
-      note: ''
+      note: '',
+      unsettledAmount: ''
     }
   }
 

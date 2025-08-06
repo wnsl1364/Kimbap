@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrderDetail, registerReturn } from '@/api/return'
+import { getOrderDetail, registerReturn, cancelReturn } from '@/api/return'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
 import { format, parseISO } from 'date-fns'
@@ -15,8 +15,8 @@ const products = ref([])
 const selectedRows = ref([])
 
 const infoFormButtons = ref({
-  save: { show: true, label: '요청', severity: 'info' },
-  delete: { show: false, label: '삭제', severity: 'danger' },
+  save: { show: true, label: '반품요청', severity: 'info' },
+  delete: { show: true, label: '반품취소', severity: 'danger' },
 })
 
 // 할인 계산 함수 (주문 수량에 따라 할인 적용)
@@ -85,6 +85,31 @@ const handleSave = async () => {
   }
 }
 
+// 반품취소
+const handleCancelReturn = async () => {
+  const selected = selectedRows.value.filter(item => item.ordDStatus === 't4');
+
+  if (selected.length === 0) {
+    return alert('반품요청 상태인 제품만 선택해주세요.');
+  }
+
+  const ordDCdList = selected.map(item => item.ordDCd);
+
+  if (!confirm('선택한 반품 요청을 취소하시겠습니까?')) return;
+
+  try {
+    const res = await cancelReturn(ordDCdList);
+    if (res.data.result_code === 'SUCCESS') {
+      alert('반품 요청이 취소되었습니다.');
+      router.push({ path: '/order/orderList', query: { refresh: true } });
+    } else {
+      alert('취소 실패: ' + res.data.message);
+    }
+  } catch (err) {
+    console.error('반품 취소 실패:', err);
+    alert('반품 취소 중 오류 발생');
+  }
+}
 
 // 반품수량 변경 시 할인단가 적용 및 반품금액 계산
 watch(products, (newVal) => {
@@ -137,6 +162,7 @@ onMounted(async () => {
       :buttons="infoFormButtons"
       button-position="top"
       @save="handleSave"
+      @delete="handleCancelReturn"
       :dataKey="'ordCd'"
     />
 

@@ -156,4 +156,27 @@
       JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
       WHERE ro.ord_d_cd = #{ordDCd}
   </select>
+
+  <!-- 주문상세 상태를 출고완료(t3)로 -->
+  <update id="updateOrderDetailStatusToT3" parameterType="string">
+    UPDATE order_d
+    SET ord_d_status = 't3'
+    WHERE ord_d_cd = #{ordDCd}
+    AND ord_d_status = 't4'
+  </update>
+
+  <!-- prod_return 상태를 반품요청취소(v2)로 -->
+  <update id="updateProdReturnStatusToV2" parameterType="string">
+    UPDATE prod_return
+    SET return_status_customer = 'v2'
+    WHERE ord_d_cd = #{ordDCd}
+    AND return_status_customer = 'v1'
+  </update>
+
+  <!-- 주문상세 코드로 주문코드 조회 -->
+  <select id="getOrdCdByOrdDCd" parameterType="string" resultType="string">
+    SELECT ord_cd
+    FROM order_d
+    WHERE ord_d_cd = #{ordDCd}
+  </select>
 </mapper>

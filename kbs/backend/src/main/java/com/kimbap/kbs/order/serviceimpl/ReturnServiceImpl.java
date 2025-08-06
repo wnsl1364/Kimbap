@@ -157,4 +157,25 @@ public class ReturnServiceImpl implements ReturnService {
 
         returnMapper.updateOrderStatusCustomer(updateParams);
     }
+
+    @Override
+    @Transactional
+    public void cancelReturnItems(List<String> ordDCdList) {
+        for (String ordDCd : ordDCdList) {
+            // 1. 주문상세 상태를 출고완료(t3)로 변경
+            returnMapper.updateOrderDetailStatusToT3(ordDCd);
+            log.info("주문상세 상태 복구 → t3 (ord_d_cd: {})", ordDCd);
+
+            // 2. prod_return 상태를 반품요청취소(v2)로 변경
+            returnMapper.updateProdReturnStatusToV2(ordDCd);
+            log.info("prod_return 상태 변경 → v2 (ord_d_cd: {})", ordDCd);
+        }
+
+        // 3. 주문 마스터 상태 갱신 (주문상세 기준)
+        for (String ordDCd : ordDCdList) {
+            String ordCd = returnMapper.getOrdCdByOrdDCd(ordDCd);
+            updateOrderMasterStatus(ordCd);
+        }
+    }
+
 }

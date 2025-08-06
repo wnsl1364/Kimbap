@@ -138,4 +138,30 @@ public class ReturnController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    // 반품 취소 (주문상세 단위)
+    @PutMapping("/cancel")
+    public ResponseEntity<Map<String, Object>> cancelReturn(@RequestBody List<String> ordDCdList) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (ordDCdList == null || ordDCdList.isEmpty()) {
+                response.put("result_code", "FAIL");
+                response.put("message", "취소할 주문상세가 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            returnService.cancelReturnItems(ordDCdList);
+
+            response.put("result_code", "SUCCESS");
+            response.put("message", "반품 취소 성공");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("반품 취소 실패", e);
+            response.put("result_code", "FAIL");
+            response.put("message", "반품 취소 중 오류 발생");
+            response.put("data", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 }
