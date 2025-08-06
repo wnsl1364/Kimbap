@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
+import { ref, onMounted, onUnmounted} from 'vue'
 import { getOrderList } from '@/api/order'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'

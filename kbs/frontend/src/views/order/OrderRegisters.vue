@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, watchEffect, readonly  } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
@@ -9,6 +9,7 @@ import { storeToRefs } from 'pinia'; // storeToRefs를 사용해야만 반응형
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useMemberStore } from '@/stores/memberStore'
+import { getOrderList } from '@/api/order'
 
 // 날짜 포맷팅을 위한 date-fns
 import { format, addDays, isValid, parse, parseISO } from 'date-fns'
@@ -16,6 +17,7 @@ import { format, addDays, isValid, parse, parseISO } from 'date-fns'
 // 라우터 설정
 const route = useRoute()
 const router = useRouter()
+const ordCd = route.query.ordCd
 
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
@@ -82,8 +84,9 @@ const calculateDiscountedPrice = (basePrice, qty) => {
 // 버튼 설정
 const infoFormButtons = ref({
   reset: { show: true, label: '초기화', severity: 'secondary' },
-  save: { show: true, label: '저장', severity: 'success' },
-  delete: { show: false, label: '삭제', severity: 'danger' }
+  save: { show: true, label: '저장', severity: 'info' },
+  delete: { show: false, label: '삭제', severity: 'danger' },
+  load: { show: true, label: '주문정보 불러오기', severity: 'success' },
 });
 
 // 제품 추가 영역 버튼 설정
@@ -267,18 +270,27 @@ const handleProductDeleteList = async (ordDCdList) => {
 // ordCd가 없으면 등록 모드 → 저장/초기화 표시, 삭제 숨김
 // ordCd 있고 ordStatusCustomer === 's1'이면 → 수정 모드에서 삭제 버튼 활성화
 // 다른 상태(s2 이상)이면 → 삭제/초기화 숨김
+const updateInfoFormButtons = () => {
+  const ordCd = formData.value.ordCd
+  const ordStatus = formData.value.ordStatusCustomer
+  const isNewOrder = !ordCd
+  const isWaiting = ordStatus === STATUS_WAITING
+
+  // 핵심 포인트! 새 객체로 완전히 재할당해야 LeftAlignTable에서 감지함
+  infoFormButtons.value = {
+    reset: { show: isNewOrder, label: '초기화', severity: 'secondary' },
+    save: { show: isNewOrder || isWaiting, label: '저장', severity: 'info' },
+    delete: { show: !isNewOrder && isWaiting, label: '삭제', severity: 'danger' },
+    load: { show: isNewOrder, label: '주문정보 불러오기', severity: 'success' }
+  }
+}
+
 watch(
   () => [formData.value.ordCd, formData.value.ordStatusCustomer],
-  ([ordCd, ordStatus]) => {
-    const isNewOrder = !ordCd
-    const isWaiting = ordStatus === STATUS_WAITING
-
-    infoFormButtons.value.save.show = isNewOrder || isWaiting
-    infoFormButtons.value.reset.show = isNewOrder || isWaiting
-    infoFormButtons.value.delete.show = !isNewOrder && isWaiting
-  },
+  updateInfoFormButtons,
   { immediate: true }
 )
+
 
 // 수량변경 시 단가 및 총 금액 자동 계산
 // products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
@@ -302,9 +314,96 @@ watch(
   { deep: true }
 )
 
-
 // 제품 모달 설정
 const productModalConfig = ref({})
+
+// 모달 데이터셋
+const modalDataSets = ref({})
+
+const loadOrderListForModal = async () => {
+  try {
+    const res = await getOrderList()
+
+    const items = res.data.data.map(order => ({
+      ordCd: order.ordCd,
+      cpName: order.cpName,
+      ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
+      prodName: order.prodName  // 백에서 가공된 데이터 그대로 사용!
+    }))
+
+    modalDataSets.value = {
+      load: {
+        items,
+        columns: [
+          { field: 'ordCd', header: '주문코드' },
+          { field: 'prodName', header: '제품명' },
+          { field: 'cpName', header: '거래처명' },
+          { field: 'ordDt', header: '주문일자' }
+        ],
+        mappingFields: {
+          ordCd: 'ordCd',
+          prodName: 'prodName',
+          cpName: 'cpName',
+          ordDt: 'ordDt'
+        },
+        emitEvent: 'load' 
+      }
+    }
+  } catch (err) {
+    console.error('주문 목록 로딩 실패:', err)
+  }
+}
+
+// 주문정보 불러오기
+const handleLoadOrder = async (selectedRow) => {
+  try {
+    const ordCd = selectedRow.ordCd
+    
+    const res = await axios.get(`/api/order/${ordCd}`)
+    const order = res.data.data
+
+    // 기본정보 세팅
+    formStore.setFormData({
+      ordCd: order.ordCd,
+      ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
+      cpCd: order.cpCd,
+      cpName: order.cpName,
+      deliAdd: order.deliAdd,
+      deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
+      exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
+      note: order.note,
+      regi: order.regi,
+      unsettledAmount: order.unsettledAmount,
+      ordStatusCustomer: order.ordStatusCustomer,
+      ordStatusInternal: order.ordStatusInternal 
+    })
+
+    // 제품목록 세팅
+    productStore.setProducts(
+      order.orderDetails.map(item => {
+        const qty = item.ordQty || 0
+        const price = item.unitPrice || 0
+        const total = qty * price
+
+        console.log('제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
+
+        return {
+          ...item,
+          totalAmount: total,
+          deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : '',
+          ordDStatus: item.ordDStatus || 't1',
+          ordDCd: item.ordDCd
+        }
+      })
+    )
+
+    // 버튼 상태 갱신 강제 호출 (여기 추가!)
+    formData.value = { ...formData.value }
+    updateInfoFormButtons()
+  } catch (err) {
+    console.error('주문 상세 불러오기 실패:', err)
+  }
+}
 
 onMounted(async () => {
   // 제품 목록(DB)
@@ -341,9 +440,16 @@ onMounted(async () => {
   }
 })
 
-onMounted(() => {
-  console.log('[디버깅] memberStore:', memberStore)
-  console.log('[디버깅] 현재 user:', user.value)
+// 주문 불러오기
+onMounted(async () => {
+  if (!ordCd) {
+    await loadOrderListForModal();
+  }
+
+  // 자동 주문 불러오기
+  if (ordCd) {
+    await handleLoadOrder({ ordCd })
+  }
 })
 
 onMounted(() => {
@@ -425,7 +531,7 @@ onUnmounted(() => {
 <template>
     <div class="space-y-4">
         <!-- 기본정보 영역 -->
-        <LeftAlignTable v-model:data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset" @save="handleSave"  @delete="handleDelete"/>
+        <LeftAlignTable v-if="infoFormButtons" v-model:data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset" @save="handleSave"  @delete="handleDelete" @load="handleLoadOrder" :modalDataSets="modalDataSets" :dataKey="'ordCd'"/>
     </div>
     <div class="space-y-4 mt-8">
         <!-- 제품추가 영역 -->
