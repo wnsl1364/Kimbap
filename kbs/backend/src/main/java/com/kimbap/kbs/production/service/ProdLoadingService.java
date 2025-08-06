@@ -19,5 +19,6 @@ public interface ProdLoadingService {
   String processProdLoadingBatch(List<ProdInboundVO> prodLoadingList);  
   // 창고재고목록코드 생성
   String generateWareStockCode();
-
+  // 특정 창고의 구역 정보 조회 (층별, 현재 적재 상황 포함)
+  List<Map<String, Object>> getWarehouseAreasWithStock(String wcode, Integer floor);
 }

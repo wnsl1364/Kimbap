@@ -157,4 +157,25 @@ public class ProdLoadingController {
           return ResponseEntity.internalServerError().build();
       }
   }
+  // 특정 창고의 구역 정보 조회 (층별, 현재 적재 상황 포함)
+
+@GetMapping("/warehouse-areas")
+public ResponseEntity<List<Map<String, Object>>> getWarehouseAreasWithStock(
+        @RequestParam String wcode, 
+        @RequestParam Integer floor) {
+    try {
+        System.out.println("창고 구역별 적재 현황 조회 요청: " + wcode + " " + floor + "층");
+        
+        List<Map<String, Object>> areaList = prodLoadingService.getWarehouseAreasWithStock(wcode, floor);
+        
+        System.out.println("창고 구역별 적재 현황 조회 완료: " + wcode + " " + floor + "층 - " + areaList.size() + "개 구역");
+        return ResponseEntity.ok(areaList);
+        
+    } catch (Exception e) {
+        System.err.println("창고 구역별 적재 현황 조회 실패: " + wcode + " " + floor + "층 - " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.internalServerError().build();
+    }
+}
+    
 }

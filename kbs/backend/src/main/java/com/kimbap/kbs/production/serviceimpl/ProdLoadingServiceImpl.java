@@ -3,6 +3,7 @@ package com.kimbap.kbs.production.serviceimpl;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -265,6 +266,46 @@ public class ProdLoadingServiceImpl implements ProdLoadingService {
       
       System.out.println("임시 창고재고목록코드 생성: " + fallbackCode);
       return fallbackCode;
+    }
+  }
+  @Override
+  public List<Map<String, Object>> getWarehouseAreasWithStock(String wcode, Integer floor) {
+    try {
+      // 해당 층의 구역 정보 조회
+      List<ProdInboundVO> warehouseAreas = prodLoadingMapper.getWarehouseAreasByFloor(wcode, floor);
+      
+      List<Map<String, Object>> result = new ArrayList<>();
+      
+      for (ProdInboundVO area : warehouseAreas) {
+        Map<String, Object> areaInfo = new HashMap<>();
+        
+        // 기본 구역 정보
+        areaInfo.put("wareAreaCd", area.getWareAreaCd());
+        areaInfo.put("areaRow", area.getAreaRow());
+        areaInfo.put("areaCol", area.getAreaCol());
+        areaInfo.put("areaFloor", area.getAreaFloor());
+        areaInfo.put("vol", area.getVol());
+        
+        // 현재 적재량 조회
+        Integer currentVolume = prodLoadingMapper.getCurrentVolumeByArea(area.getWareAreaCd());
+        if (currentVolume == null) currentVolume = 0;
+        
+        areaInfo.put("currentVolume", currentVolume);
+        areaInfo.put("availableVolume", area.getVol().intValue() - currentVolume);
+        
+        // 현재 적재된 자재 조회 (pcode 반환)
+        String currentProduct = prodLoadingMapper.getCurrentProductByArea(area.getWareAreaCd());
+        areaInfo.put("currentProduct", currentProduct);
+        
+        result.add(areaInfo);
+      }
+      
+      System.out.println("창고 구역별 적재 현황 조회 완료: " + wcode + " " + floor + "층 - " + result.size() + "개 구역");
+      return result;
+        
+    } catch (Exception e) {
+      System.err.println("창고 구역별 적재 현황 조회 실패: " + wcode + " " + floor + "층 - " + e.getMessage());
+      throw new RuntimeException("창고 구역별 적재 현황 조회 실패: " + e.getMessage(), e);
     }
   }
 }

@@ -6,7 +6,6 @@ import {
   getWslCodeByArea,
   // 창고 구역 선택 관련 신규 함수들
   getWarehousesByFactory,
-  getWarehouseAreasWithStock,
   getWareAreaCode,
 } from '@/api/materials';
 import {
@@ -14,6 +13,7 @@ import {
   getSameProductAreas,
   getProdLoadingWaitList,
   getProdLoadingByInboCd,
+  getWarehouseAreasWithStock,
   processProdLoadingSingle,
   processProdLoadingBatch,
   getFactoryList
