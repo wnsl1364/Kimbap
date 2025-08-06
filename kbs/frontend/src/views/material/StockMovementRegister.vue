@@ -29,6 +29,7 @@ const itemSelectModalVisible = ref(false);
 const locationSelectModalVisible = ref(false);
 const currentRowForLocation = ref(null);
 const isInitialized = ref(false); // 초기화 상태 추적
+const formKey = ref(0); // InputForm 강제 재렌더링용 키
 
 // 품목 선택 모달용 데이터
 const availableItems = ref([]);
@@ -223,7 +224,42 @@ const itemTableColumns = computed(() => [
 
 // 헤더 폼 데이터 변경 처리
 const handleHeaderDataChange = (newData) => {
-  headerFormData.value = { ...newData };
+  console.log('헤더 데이터 변경 요청:', newData);
+  
+  // 완전히 빈 객체이거나 모든 값이 빈 문자열인 경우 완전 무시
+  if (!newData || Object.keys(newData).length === 0) {
+    console.log('빈 데이터 수신 - 완전 무시');
+    return;
+  }
+  
+  // 모든 값이 빈 문자열, null, undefined인 경우 무시
+  const validValues = Object.entries(newData).filter(([key, value]) => {
+    return value !== '' && value !== null && value !== undefined;
+  });
+  
+  if (validValues.length === 0) {
+    console.log('모든 필드가 빈 값 - 완전 무시');
+    return;
+  }
+  
+  // readonly 필드들은 항상 보존
+  const protectedFields = ['reqDt', 'requ', 'requName'];
+  const currentData = { ...headerFormData.value };
+  
+  // 유효한 값만 업데이트
+  validValues.forEach(([key, value]) => {
+    currentData[key] = value;
+  });
+  
+  // readonly 필드 보호
+  protectedFields.forEach(field => {
+    if (headerFormData.value[field] && !currentData[field]) {
+      currentData[field] = headerFormData.value[field];
+    }
+  });
+  
+  headerFormData.value = currentData;
+  console.log('최종 업데이트된 헤더 데이터:', headerFormData.value);
 };
 
 // 품목 테이블 데이터 변경 처리
@@ -467,8 +503,33 @@ const handleRemoveSelectedItems = () => {
 
 // 저장 처리
 const handleSave = async () => {
+  // 저장 시작 전 헤더 데이터 백업 (깊은 복사)
+  const headerDataBackup = JSON.parse(JSON.stringify(headerFormData.value));
+  console.log('저장 전 백업 데이터:', headerDataBackup);
+  
   try {
     console.log('저장 시작...');
+    console.log('저장 전 헤더 데이터:', headerFormData.value);
+    
+    // 폼 유효성 검증
+    if (!validateForm()) {
+      console.log('폼 유효성 검증 실패 - 저장 중단');
+      
+      // 즉시 복원
+      headerFormData.value = { ...headerDataBackup };
+      console.log('즉시 헤더 데이터 복원:', headerFormData.value);
+      
+      // InputForm 컴포넌트 강제 재렌더링
+      formKey.value += 1;
+      
+      // 추가 지연 복원 (컴포넌트가 다시 렌더링된 후)
+      setTimeout(() => {
+        headerFormData.value = { ...headerDataBackup };
+        console.log('지연된 헤더 데이터 재복원:', headerFormData.value);
+      }, 200);
+      
+      return;
+    }
     
     // 헤더 데이터 구성
     const header = {
@@ -529,6 +590,20 @@ const handleSave = async () => {
     
   } catch (error) {
     console.error('등록 실패:', error);
+    console.log('에러 발생 시 백업 데이터:', headerDataBackup);
+    
+    // 에러 발생 시 무조건 백업 데이터로 복원
+    headerFormData.value = { ...headerDataBackup };
+    console.log('에러 시 헤더 데이터 복원:', headerFormData.value);
+    
+    // InputForm 컴포넌트 강제 재렌더링
+    formKey.value += 1;
+    
+    // 추가 지연 복원
+    setTimeout(() => {
+      headerFormData.value = { ...headerDataBackup };
+      console.log('에러 시 지연된 헤더 데이터 재복원:', headerFormData.value);
+    }, 200);
     
     let errorMessage = '이동요청서 등록 중 오류가 발생했습니다.';
     
@@ -699,6 +774,7 @@ watch(selectedItems, (newSelection) => {
   <!-- 기본정보 입력 폼 -->
   <div class="mb-6">
     <InputForm
+      :key="`header-form-${formKey}`"
       :columns="headerFormFields"
       :data="headerFormData"
       title="기본정보"

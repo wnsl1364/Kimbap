@@ -1051,15 +1051,13 @@ public class MateServiceImpl implements MateService {
             Integer purcQty = currentData.getPurcQty() != null ? currentData.getPurcQty() : 0;
             String newStatus = "";
 
+            // 🔥 수정된 상태 로직 (너가 원하는 대로!)
             if (newCurrQty >= purcQty) {
-                newStatus = "c5"; // 입고완료
-                System.out.println("✅ 상태: 입고완료 (curr_qty " + newCurrQty + " >= purc_qty " + purcQty + ")");
-            } else if (newCurrQty > 0) {
-                newStatus = "c4"; // 부분입고
-                System.out.println("🔄 상태: 부분입고 (curr_qty " + newCurrQty + " < purc_qty " + purcQty + ")");
+                newStatus = "c3"; // ✅ 입고대기 (모든 출고 완료)
+                System.out.println("✅ 상태: 입고대기 (curr_qty " + newCurrQty + " >= purc_qty " + purcQty + ")");
             } else {
-                newStatus = "c3"; // 입고대기
-                System.out.println("⏳ 상태: 입고대기 (curr_qty = 0)");
+                newStatus = "c2"; // ✅ 승인 (아직 출고 안끝남)
+                System.out.println("🔄 상태: 승인 (curr_qty " + newCurrQty + " < purc_qty " + purcQty + ")");
             }
 
             updateData.setPurcDStatus(newStatus);

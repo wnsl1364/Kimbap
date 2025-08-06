@@ -7,8 +7,6 @@ import { useToast } from 'primevue/usetoast';
 import { getPurchaseOrdersForView } from '@/api/materials';
 import { useRouter } from 'vue-router';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
-import BasicTable from '@/components/kimbap/table/BasicTable.vue';
-import RadioButton from 'primevue/radiobutton';
 import { format, isValid } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
