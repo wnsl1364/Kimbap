@@ -1079,4 +1079,10 @@ public class MateServiceImpl implements MateService {
             throw new RuntimeException("curr_qty 및 상태 업데이트 실패: " + e.getMessage(), e);
         }
     }
+    
+    // 자재 입출고 목록 조회
+    @Override
+    public List<MaterialsVO> getMaterialFlowList(MaterialsVO search) {
+        return mateMapper.selectMaterialFlowList(search);
+    }
 }

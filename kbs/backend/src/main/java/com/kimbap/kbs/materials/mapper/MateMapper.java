@@ -164,4 +164,8 @@ public interface MateMapper {
     void insertTempMateInboReservation(MaterialsVO tempRecord);
 
     void updatePurchaseOrderCurrQtyAndStatus(MaterialsVO updateData);
+
+
+    // 자재 입출고 내역 조회
+    List<MaterialsVO> selectMaterialFlowList(MaterialsVO search);
 }

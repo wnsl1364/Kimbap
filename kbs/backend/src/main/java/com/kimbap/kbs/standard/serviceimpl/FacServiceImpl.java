@@ -17,12 +17,16 @@ import com.kimbap.kbs.standard.service.ChangeItemVO;
 import com.kimbap.kbs.standard.service.FacMaxVO;
 import com.kimbap.kbs.standard.service.FacService;
 import com.kimbap.kbs.standard.service.FacVO;
+import com.kimbap.kbs.standard.service.VersionSyncService;
 
 @Service
 public class FacServiceImpl  implements FacService{
     
     @Autowired
     private FacMapper facMapper;
+
+    @Autowired
+    private VersionSyncService versionSyncService;
 
     // 목록 조회
     @Override
@@ -110,6 +114,13 @@ public class FacServiceImpl  implements FacService{
             newFac.setModi(newFac.getModi());
 
             facMapper.insertFac(newFac);
+
+            // ✅ 공장버전 참조 중인 자식 테이블도 버전 업데이트
+            versionSyncService.syncFactoryVersion(
+                newFac.getFcode(),
+                oldFac.getFacVerCd(),
+                nextVer
+            );
 
             // 최대 생산량 정보 insert
             if (newFac.getFacMaxList() != null) {

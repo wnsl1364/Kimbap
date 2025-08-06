@@ -114,6 +114,14 @@ public class MaterialsVO {
     private BigDecimal maxCol;       // 최대열
     private BigDecimal maxFloor;     // 최대층
 
+    // ✅ 검색 조건 필드 추가
+    private Date regDt;   
+    private String movementType;
+    private String movementCategory;  
+    private Date  regDtStart;
+    private Date  regDtEnd;
+    private Integer qty;  
+
     // ========== 편의 메서드들 ==========
     /**
      * 현재 재고량 자동 계산해주는 메서드

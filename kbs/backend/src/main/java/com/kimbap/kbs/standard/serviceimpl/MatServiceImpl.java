@@ -17,12 +17,16 @@ import com.kimbap.kbs.standard.service.ChangeItemVO;
 import com.kimbap.kbs.standard.service.MatService;
 import com.kimbap.kbs.standard.service.MatSupplierVO;
 import com.kimbap.kbs.standard.service.MatVO;
+import com.kimbap.kbs.standard.service.VersionSyncService;
 
 @Service
 public class MatServiceImpl implements MatService {
 
     @Autowired
     private MatMapper matMapper;
+
+    @Autowired
+    private VersionSyncService versionSyncService;
 
     @Override
     public List<MatVO> getMatList() {
@@ -139,7 +143,14 @@ public class MatServiceImpl implements MatService {
 
             matMapper.insertMat(newMat);
 
-            // ✅ 공급처도 insert (버전은 동일하게 유지)
+            // ✅ 자재버전 참조 중인 자식 테이블도 버전 업데이트
+            versionSyncService.syncMaterialVersion(
+                newMat.getMcode(),
+                oldMat.getMateVerCd(),
+                nextVer
+            );
+
+            // ✅ 공급처 insert (같은 버전 사용)
             if (newMat.getSuppliers() != null) {
                 int index = 1;
                 for (MatSupplierVO supplier : newMat.getSuppliers()) {
