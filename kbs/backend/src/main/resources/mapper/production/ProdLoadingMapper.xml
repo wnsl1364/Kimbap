@@ -130,7 +130,7 @@
     WHERE wslcode LIKE 'WStock-' || #{dateStr} || '-%'
   </select>
   <!-- 자재 적재 처리 (ware_stock 테이블에 INSERT) -->
-  <insert id="insertWareStock" parameterType="com.kimbap.kbs.materials.service.MateLoadingVO">
+  <insert id="insertWareStock" parameterType="com.kimbap.kbs.production.service.ProdInboundVO">
     <!-- 디버그: 실행 전 파라미터 확인 -->
     INSERT INTO ware_stock (
       wslcode,
@@ -154,4 +154,21 @@
       #{unit}
     )
   </insert>
+  <!-- 특정 창고의 구역 정보 조회 (층별) -->
+  <select id="getWarehouseAreasByFloor" resultType="com.kimbap.kbs.production.service.ProdInboundVO">
+    SELECT 
+        wd.ware_area_cd,
+        wd.area_row,
+        wd.area_col,
+        wd.area_floor,
+        wd.vol,
+        wd.is_used,
+        wd.wcode,
+        wd.ware_ver_cd
+    FROM ware_d wd
+    WHERE wd.wcode = #{wcode}
+    AND wd.area_floor = #{floor}
+    AND wd.is_used = 'f1'    -- 활성화된 구역만
+    ORDER BY wd.area_row ASC, wd.area_col ASC
+  </select>
 </mapper>

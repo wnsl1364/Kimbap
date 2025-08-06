@@ -6,7 +6,8 @@ import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber';
 import { useToast } from 'primevue/usetoast';
 import { useCommonStore } from '@/stores/commonStore';
-import { getWarehousesByFactory, getWarehouseAreasWithStock } from '@/api/materials';
+import { getWarehousesByFactory } from '@/api/materials';
+import { getWarehouseAreasWithStock } from '@/api/production';
 
 const props = defineProps({
     visible: { type: Boolean, default: false },

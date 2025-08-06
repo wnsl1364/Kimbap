@@ -74,6 +74,14 @@ export const getSameProductAreas = (pcode, fcode, excludeAreaCd = '') => {
   });
 };
 
+// 특정 창고의 구역 정보 조회 (층별, 현재 적재 상황 포함)
+
+export const getWarehouseAreasWithStock = (wcode, floor) => {
+  return axios.get('/api/prod/prodLoading/warehouse-areas', {
+    params: { wcode, floor }
+  });
+};
+
 // 특정 입고번호의 적재 대기 자재 단건 조회
 export const getProdLoadingByInboCd = (prodInboCd) => {
   return axios.get(`/api/prod/prodLoading/detail/${prodInboCd}`);
