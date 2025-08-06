@@ -15,15 +15,15 @@ public interface ProdLoadingMapper {
   String getCurrentProductByArea(@Param("wareAreaCd") String wareAreaCd);
   //구역별 현재 적재 상황 조회
   ProdInboundVO getWarehouseAreaStock(@Param("wareAreaCd") String wareAreaCd);
-  //동일한 자재가 적재된 다른 구역들 조회(분할적재용)
+  //동일한 제품이 적재된 다른 구역들 조회(분할적재용)
   List<ProdInboundVO> getSameProductAreas(@Param("pcode") String pcode,
                                           @Param("fcode") String fcode,
                                           @Param("excludeAreaCd") String excludeAreaCd);
   // 제품 기준정보를 가져옴                                        
   ProdInboundVO getProductInfo(String pcode);
-
+  // 창고재고목록 등록
   void insertWareStock(ProdInboundVO prodLoading);
-  
-  int getLastWareStockSequence(String datePattern);
+  // 창고재고목록코드 마지막 순번 조회
+  int getLastWareStockSequence(@Param("datePattern") String datePattern);
 
 }

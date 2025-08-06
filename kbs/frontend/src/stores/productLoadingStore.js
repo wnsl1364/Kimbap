@@ -333,7 +333,7 @@ const processBatchLoading = async () => {
             // 원본 자재의 남은 수량 계산
             const remainingQty = (originalItem.totalQty || 0) - totalLoadedQty;
             
-            console.log(`자재 ${item.prodInboCd}: 원래수량=${originalItem.totalQty}, 적재량=${totalLoadedQty}, 남은수량=${remainingQty}`);
+            console.log(`제품 ${item.prodInboCd}: 원래수량=${originalItem.totalQty}, 적재량=${totalLoadedQty}, 남은수량=${remainingQty}`);
             
             if (remainingQty > 0) {
               // 부분 적재: 남은 수량으로 업데이트
@@ -500,13 +500,13 @@ const processBatchLoading = async () => {
   };
 
   /**
-   * 자재의 창고구역 설정 (임시 저장)
+   * 제품의 창고구역 설정 (임시 저장)
    */
-  const setMaterialWarehouseArea = (mateInboCd, wareAreaCd) => {
-    const material = mateLoadingList.value.find(item => item.mateInboCd === mateInboCd);
-    if (material) {
-      material.wareAreaCd = wareAreaCd;
-      console.log('자재 창고구역 설정:', mateInboCd, '->', wareAreaCd);
+  const setProductWarehouseArea = (prodInboCd, wareAreaCd) => {
+    const product = prodLoadingList.value.find(item => item.prodInboCd === prodInboCd);
+    if (product) {
+      product.wareAreaCd = wareAreaCd;
+      console.log('제품 창고구역 설정:', prodInboCd, '->', wareAreaCd);
     }
   };
 
@@ -514,7 +514,7 @@ const processBatchLoading = async () => {
    * 선택된 자재들의 창고구역 설정 상태 확인
    */
   const checkWarehouseAreaAssignment = () => {
-    const unassignedItems = selectedMateLoadings.value.filter(item => !item.wareAreaCd || item.wareAreaCd.trim() === '');
+    const unassignedItems = selectedProdLoadings.value.filter(item => !item.wareAreaCd || item.wareAreaCd.trim() === '');
     return {
       isAllAssigned: unassignedItems.length === 0,
       unassignedCount: unassignedItems.length,
@@ -524,10 +524,10 @@ const processBatchLoading = async () => {
 
 
   /**
-   * 선택된 자재 설정
+   * 선택된 제품 설정
    */
-  const setSelectedMateLoadings = (selections) => {
-    selectedMateLoadings.value = selections;
+  const setSelectedProductLoadings = (selections) => {
+    selectedProdLoadings.value = selections;
   };
 
   /**
@@ -549,20 +549,21 @@ const processBatchLoading = async () => {
    * 데이터 초기화
    */
   const resetData = () => {
-    mateLoadingList.value = [];
-    selectedMateLoadings.value = [];
+    prodLoadingList.value = [];
+    selectedProdLoadings.value = [];
     searchFilter.value = {};
     // 창고 구역 관련 데이터도 초기화
     warehouseList.value = [];
     warehouseAreas.value = [];
     selectedWarehouseArea.value = null;
     areaValidationResult.value = {};
-    sameMaterialAreas.value = [];
+    sameProductAreas.value = [];
   };
 
   return {
 
     mateLoadingList,
+    prodLoadingList,
     selectedMateLoadings,
     factoryList,
     isLoading,
@@ -587,10 +588,10 @@ const processBatchLoading = async () => {
     // Actions
     fetchProdLoadingList,           // 제품 적재 대기 목록 조회
     fetchFactoryList,               // 공장 목록 조회(드롭다운에서 사용)
-    processSingleLoading,
-    processBatchLoading,
+    processSingleLoading,           // 단건 제품 적재 처리
+    processBatchLoading,            // 다중 제품 적재 처리 (적재처리 버튼)
     fetchWslCodeByArea,
-    setSelectedMateLoadings,
+    setSelectedProductLoadings,     // 선택된 제품 설정
     setSearchFilter,
     clearSearchFilter,
     searchProdLoadings,             // 제품 적재 대기 목록 필터링
@@ -602,7 +603,7 @@ const processBatchLoading = async () => {
     fetchWareAreaCode,
     validateArea,                    // 제품 구역 적재 가능 여부 검증
     fetchSameProductAreas,           // 동일한 제품이 적재된 다른 구역들 조회
-    setMaterialWarehouseArea,
+    setProductWarehouseArea,         // 제품의 창고구역 설정 (임시 저장)
     checkWarehouseAreaAssignment
   };
 });
