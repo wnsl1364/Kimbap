@@ -376,3 +376,8 @@ export const getSameMaterialAreas = (mcode, fcode, excludeAreaCd = '') => {
     params
   });
 };
+
+// 자재 입출고 내역 조회
+export const getMaterialFlowList = (params) => {
+  return axios.get('/api/materials/flow', { params });
+};

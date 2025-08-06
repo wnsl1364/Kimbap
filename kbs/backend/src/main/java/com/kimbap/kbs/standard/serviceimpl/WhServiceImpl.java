@@ -1,6 +1,5 @@
 package com.kimbap.kbs.standard.serviceimpl;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.standard.mapper.WhMapper;
 import com.kimbap.kbs.standard.service.ChangeItemVO;
+import com.kimbap.kbs.standard.service.VersionSyncService;
 import com.kimbap.kbs.standard.service.WhDetailVO;
 import com.kimbap.kbs.standard.service.WhService;
 import com.kimbap.kbs.standard.service.WhVO;
@@ -24,6 +24,9 @@ public class WhServiceImpl implements WhService{
     
     @Autowired
     private WhMapper whMapper;
+    
+    @Autowired
+    private VersionSyncService versionSyncService;
 
     // 창고 목록 조회
     @Override
@@ -204,6 +207,13 @@ public class WhServiceImpl implements WhService{
             newWh.setRegi(oldWh.getRegi()); // 등록자는 유지
 
             whMapper.insertWh(newWh);
+
+            // ✅ 🔥 버전 변경에 따른 참조 테이블 동기화
+            versionSyncService.syncWarehouseVersion(
+                newWh.getWcode(),
+                oldWh.getWareVerCd(),  // V001
+                nextVer                // V002
+            );
 
         } else if (!Objects.equals(oldWh.getIsUsed(), newWh.getIsUsed())) {
             // ✅ 사용여부만 변경 → update만 수행

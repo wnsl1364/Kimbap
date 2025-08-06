@@ -1094,4 +1094,63 @@
         )
     </insert>
     
+    <select id="selectMaterialFlowList" parameterType="map" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT *
+        FROM (
+            SELECT 
+                TRUNC(i.inbo_dt) AS reg_dt,
+                '입고' AS movement_type,
+                '발주' AS movement_category,
+                m.mate_name,
+                m.mcode,
+                i.total_qty AS qty,
+                m.unit,
+                wh.ware_name,
+                i.lot_no,
+                i.note
+            FROM mate_inbo i
+            JOIN material m ON i.mcode = m.mcode
+            LEFT JOIN warehouse wh ON i.wcode = wh.wcode
+
+            UNION ALL
+
+            SELECT 
+                TRUNC(r.cre_dt) AS reg_dt,
+                '출고' AS movement_type,
+                r.rel_type AS movement_category,
+                m.mate_name,
+                m.mcode,
+                r.rel_qty AS qty,
+                m.unit,
+                wh.ware_name,
+                r.lot_no,
+                r.note
+            FROM mate_rel r
+            JOIN material m ON r.mcode = m.mcode
+            LEFT JOIN ware_stock ws ON r.wslcode = ws.wslcode
+            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+            LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
+        ) t
+        <where>
+            <if test="movementType != null and movementType != ''">
+                AND t.movement_type = #{movementType}
+            </if>
+            <if test="mateName != null and mateName != ''">
+                AND t.mate_name LIKE '%' || #{mateName} || '%'
+            </if>
+            <if test="wareName != null and wareName != ''">
+                AND t.ware_name LIKE '%' || #{wareName} || '%'
+            </if>
+            <if test="lotNo != null and lotNo != ''">
+                AND t.lot_no LIKE '%' || #{lotNo} || '%'
+            </if>
+            <if test="regDtStart != null">
+                AND t.reg_dt &gt;= #{regDtStart}
+            </if>
+            <if test="regDtEnd != null">
+                AND t.reg_dt &lt;= #{regDtEnd}
+            </if>
+        </where>
+        ORDER BY t.reg_dt DESC
+    </select>
 </mapper>

@@ -100,7 +100,7 @@
                     modi
             FROM    factory
             WHERE   fcode = #{fcode}
-            AND     is_used = 'f1' 
+            AND     op_status = 'r1' 
             ORDER BY fac_ver_cd DESC
             )
         WHERE ROWNUM = 1

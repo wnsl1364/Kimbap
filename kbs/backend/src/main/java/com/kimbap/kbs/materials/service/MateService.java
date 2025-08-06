@@ -107,4 +107,7 @@ public interface MateService {
     String generateNextMateInboCode(String yearMonth);
 
     void updatePurchaseOrderCurrQtyAndStatus(MaterialsVO updateData);
+
+    // 자재 입출고 목록 조회
+    List<MaterialsVO> getMaterialFlowList(MaterialsVO search);
 }

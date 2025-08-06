@@ -16,12 +16,16 @@ import com.kimbap.kbs.standard.mapper.ProdMapper;
 import com.kimbap.kbs.standard.service.ChangeItemVO;
 import com.kimbap.kbs.standard.service.ProdService;
 import com.kimbap.kbs.standard.service.ProdVO;
+import com.kimbap.kbs.standard.service.VersionSyncService;
 
 @Service
 public class ProdServiceImpl implements ProdService{
 
     @Autowired
     private ProdMapper prodMapper;
+
+    @Autowired
+    private VersionSyncService versionSyncService;
 
     @Override
     public List<ProdVO> getProdList() {
@@ -88,6 +92,14 @@ public class ProdServiceImpl implements ProdService{
             newProd.setRegi(oldProd.getRegi()); // 등록자는 유지
 
             prodMapper.insertProd(newProd);
+
+            // ✅ 🔥 참조 테이블 버전 동기화
+            versionSyncService.syncProductVersion(
+                newProd.getPcode(),
+                oldProd.getProdVerCd(),
+                nextVer
+            );
+
             System.out.println("🆕 내용 변경 → 버전 증가: " + newProd);
 
         } else if (!Objects.equals(oldProd.getIsUsed(), newProd.getIsUsed())) {
