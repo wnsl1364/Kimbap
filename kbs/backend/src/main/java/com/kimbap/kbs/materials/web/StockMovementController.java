@@ -163,23 +163,6 @@ public class StockMovementController {
         }
     }
 
-    // 재고가 있는 제품 목록 조회
-    @GetMapping("/available-products")
-    public ResponseEntity<List<StockMovementVO>> getAvailableProductList(@RequestParam String fcode) {
-        try {
-            System.out.println("재고 제품 목록 조회 요청: " + fcode);
-            
-            List<StockMovementVO> list = stockMovementService.getAvailableProductList(fcode);
-            
-            System.out.println("재고 제품 목록 조회 완료: " + fcode + " - " + list.size() + "건");
-            return ResponseEntity.ok(list);
-        } catch (Exception e) {
-            System.err.println("재고 제품 목록 조회 실패: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
     // 특정 품목의 재고 정보 조회
     @GetMapping("/item-stock")
     public ResponseEntity<StockMovementVO> getItemStockInfo(
