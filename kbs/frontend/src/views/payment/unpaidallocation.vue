@@ -3,6 +3,7 @@ import { ref, onBeforeMount, computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useUnpaidStore } from '@/stores/unpaidStore';
 import { useCommonStore } from '@/stores/commonStore';
+import { useToast } from 'primevue/usetoast';
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import Singleselect from '@/components/kimbap/modal/singleselect.vue';
@@ -14,6 +15,7 @@ const { fetchCompanys, fetchCashflows, resetForm, fetchSave } = store;
 
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common);
+const toast = useToast();
 
 // 🟦 거래처 코드 변환
 const convertCompanyCodes = (list) => {
@@ -76,12 +78,18 @@ const modalDataSets = computed(() => ({
 const isCashflowDialogVisible = ref(false);
 
 const handleLoadCashflow = async () => {
-    try {
-        await fetchCashflows();
-        isCashflowDialogVisible.value = true;
-    } catch (err) {
-        alert('입금 내역 불러오기 중 오류 발생');
-    }
+  try {
+    await fetchCashflows();
+    isCashflowDialogVisible.value = true;
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: '불러오기 실패',
+      detail: '입금 내역 불러오기 중 오류가 발생했습니다.',
+      life: 3000
+    });
+    console.error('❌ 입금 내역 로딩 오류:', err);
+  }
 };
 
 // ✅ 모달에서 항목 선택 시 반영
@@ -143,11 +151,24 @@ const handleCompanySelected = (item) => {
 const handleSave = async () => {
   try {
     await fetchSave();
-    alert('정산 완료되었습니다');
+
+    toast.add({
+      severity: 'success',
+      summary: '정산 완료',
+      detail: '정산이 성공적으로 완료되었습니다.',
+      life: 3000
+    });
+
     resetForm(); // 필요 시
   } catch (err) {
-    alert('정산 중 오류 발생');
-    console.error(err);
+    toast.add({
+      severity: 'error',
+      summary: '정산 실패',
+      detail: '정산 중 오류가 발생했습니다.',
+      life: 3000
+    });
+
+    console.error('❌ 정산 오류:', err);
   }
 };
 

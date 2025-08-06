@@ -5,6 +5,7 @@ import { useCommonStore } from '@/stores/commonStore';
 import { useStandardCpStore } from '@/stores/standardCpStore';
 import { useMemberStore } from '@/stores/memberStore';
 import { storeToRefs } from 'pinia';
+import { useToast } from 'primevue/usetoast';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -15,6 +16,7 @@ const { companyList, formData, changeHistory } = storeToRefs(store);
 const { fetchCompanys, saveCompany, fetchCompanyDetail } = store;
 const memberStore = useMemberStore();
 const { user } = storeToRefs(memberStore);
+const toast = useToast();
 
 const isEmployee = computed(() => user.value?.memType === 'p1');
 const isManager = computed(() => user.value?.memType === 'p4');
@@ -124,22 +126,49 @@ onMounted(async () => {
 
 // 거래처기준정보 등록 처리
 const handleSaveCompany = async () => {
-    if (!isAdmin.value && !isManager.value) {
-    alert('등록 권한이 없습니다.');
+  if (!isAdmin.value && !isManager.value) {
+    toast.add({
+      severity: 'error',
+      summary: '등록 실패',
+      detail: '등록 권한이 없습니다.',
+      life: 3000
+    });
     return;
-    }
-    if (!user.value?.empCd) {
-        alert('로그인 정보가 없습니다.');
-        return;
-    }
-    // 신규 등록이면 regi, 수정이면 modi 설정
-    if (!formData.value.cpCd) {
-        formData.value.regi = user.value.empCd;
-    } else {
-        formData.value.modi = user.value.empCd;
-    }
-    const result = await saveCompany();
-    alert(result === '등록 성공' ? '등록 성공' : result);
+  }
+
+  if (!user.value?.empCd) {
+    toast.add({
+      severity: 'warn',
+      summary: '경고',
+      detail: '로그인 정보가 없습니다.',
+      life: 3000
+    });
+    return;
+  }
+
+  if (!formData.value.cpCd) {
+    formData.value.regi = user.value.empCd;
+  } else {
+    formData.value.modi = user.value.empCd;
+  }
+
+  const result = await saveCompany();
+
+  if (result === '등록 성공') {
+    toast.add({
+      severity: 'success',
+      summary: '등록 완료',
+      detail: '거래처가 정상적으로 등록되었습니다.',
+      life: 3000
+    });
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: '등록 실패',
+      detail: result,
+      life: 3000
+    });
+  }
 };
 
 // 거래처 단건 조회 처리
@@ -153,19 +182,41 @@ const clearForm = () => {
 
 const handleReset = async () => {
     await fetchCompanys(); // 전체 목록 다시 조회
+    toast.add({
+        severity: 'info',
+        summary: '초기화 완료 ✨',
+        detail: '검색 조건이 초기화되고 전체 목록을 조회했습니다.',
+        life: 3000
+    });
 };
 
 const handleSearch = async (searchData) => {
-    await fetchCompanys(); // 최신 데이터 가져오기
+  await fetchCompanys(); // 최신 데이터 가져오기
 
-    companyList.value = companyList.value.filter((item) => {
-        const matchcpCd = !searchData.cpCd || item.cpCd?.toLowerCase().includes(searchData.cpCd.toLowerCase());
-        const matchcpName = !searchData.cpName || item.cpName?.includes(searchData.cpName);
-        const matchcpType = !searchData.cpType || item.cpType?.includes(searchData.cpType);
-        const matchloanTerm = !searchData.loanTerm || String(item.loanTerm) === String(searchData.loanTerm);
+  companyList.value = companyList.value.filter((item) => {
+    const matchcpCd = !searchData.cpCd || item.cpCd?.toLowerCase().includes(searchData.cpCd.toLowerCase());
+    const matchcpName = !searchData.cpName || item.cpName?.includes(searchData.cpName);
+    const matchcpType = !searchData.cpType || item.cpType?.includes(searchData.cpType);
+    const matchloanTerm = !searchData.loanTerm || String(item.loanTerm) === String(searchData.loanTerm);
 
-        return matchcpCd && matchcpName && matchcpType && matchloanTerm;
+    return matchcpCd && matchcpName && matchcpType && matchloanTerm;
+  });
+
+  if (companyList.value.length === 0) {
+    toast.add({
+      severity: 'info',
+      summary: '검색 결과 없음',
+      detail: '조건에 해당하는 거래처가 없습니다.',
+      life: 3000
     });
+  } else {
+    toast.add({
+      severity: 'success',
+      summary: '검색 성공',
+      detail: `총 ${companyList.value.length}건의 거래처가 검색되었습니다.`,
+      life: 3000
+    });
+  }
 };
 </script>
 <template>

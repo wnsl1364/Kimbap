@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { useStandardMatStore } from '@/stores/standardMatStore';
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore';
+import { useToast } from 'primevue/usetoast';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
@@ -18,9 +19,9 @@ const today = format(new Date(), 'yyyy-MM-dd');
 const common = useCommonStore()
 const { commonCodes } = storeToRefs(common)
 const convertedMaterialList = computed(() => convertUnitCodes(materialList.value));
-
 const memberStore = useMemberStore();
 const { user } = storeToRefs(memberStore);
+const toast = useToast();
 
 const isEmployee = computed(() => user.value?.memType === 'p1');
 const isManager = computed(() => user.value?.memType === 'p4');
@@ -239,11 +240,21 @@ onMounted(async() => {
 // 💾 9. 자재 등록 처리
 const handleSaveMaterial = async () => {
     if (!isAdmin.value && !isManager.value) {
-    alert('등록 권한이 없습니다.');
+    toast.add({
+      severity: 'error',
+      summary: '등록 실패',
+      detail: '등록 권한이 없습니다.',
+      life: 3000
+    });
     return;
     }
     if (!user.value?.empCd) {
-        alert('로그인 정보가 없습니다.');
+        toast.add({
+            severity: 'warn',
+            summary: '경고',
+            detail: '로그인 정보가 없습니다.',
+            life: 3000
+        });
         return;
     }
     // 신규 등록이면 regi, 수정이면 modi 설정
@@ -253,7 +264,21 @@ const handleSaveMaterial = async () => {
         formData.value.modi = user.value.empCd;
     }
     const result = await saveMaterial();
-    alert(result === '등록 성공' ? '등록 성공' : result);
+    if (result === '등록 성공') {
+        toast.add({
+            severity: 'success',
+            summary: '등록 완료',
+            detail: '거래처가 정상적으로 등록되었습니다.',
+            life: 3000
+        });
+    } else {
+        toast.add({
+            severity: 'error',
+            summary: '등록 실패',
+            detail: result,
+            life: 3000
+        });
+    }
 };
 
 // 📄 10. 자재 단건 조회 처리
@@ -277,10 +302,32 @@ const handleSearch = async (searchData) => {
 
     return matchMcode && matchMateName && matchMateType && matchStoCon;
   });
+
+  if (materialList.value.length === 0) {
+    toast.add({
+      severity: 'info',
+      summary: '검색 결과 없음',
+      detail: '조건에 해당하는 자재가 없습니다.',
+      life: 3000
+    });
+  } else {
+    toast.add({
+      severity: 'success',
+      summary: '검색 성공',
+      detail: `총 ${materialList.value.length}건의 자재가 검색되었습니다.`,
+      life: 3000
+    });
+  }
 };
 
 const handleReset = async () => {
   await fetchMaterials(); // 전체 목록 다시 조회
+    toast.add({
+        severity: 'info',
+        summary: '초기화 완료 ✨',
+        detail: '검색 조건이 초기화되고 전체 목록을 조회했습니다.',
+        life: 3000
+    });
 };
 </script>
 <template>
