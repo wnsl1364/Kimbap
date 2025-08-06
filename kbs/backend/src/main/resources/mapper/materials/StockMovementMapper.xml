@@ -117,14 +117,10 @@
             AND mr.move_status = #{moveStatus}
         </if>
         <if test="startDate != null and startDate != ''">
-            <![CDATA[
-            AND mr.req_dt >= TO_DATE(#{startDate}, 'YYYY-MM-DD')
-            ]]>
+            AND mr.req_dt &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
         </if>
         <if test="endDate != null and endDate != ''">
-            <![CDATA[
-            AND mr.req_dt <= TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
-            ]]>
+            AND mr.req_dt &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD') + 1
         </if>
         ORDER BY mr.req_dt DESC, mr.move_req_cd DESC
     </select>
@@ -373,19 +369,17 @@
 
     <!-- 도착지 구역 적재 가능 여부 검증 -->
     <select id="validateDestinationArea" resultType="map">
-        <![CDATA[
         SELECT 
             wd.vol as max_volume,
             COALESCE(SUM(ws.qty), 0) as current_volume,
             CASE 
-                WHEN (wd.vol - COALESCE(SUM(ws.qty), 0)) >= #{moveQty} THEN 'Y'
+                WHEN (wd.vol - COALESCE(SUM(ws.qty), 0)) &gt;= #{moveQty} THEN 'Y'
                 ELSE 'N'
             END as is_valid
         FROM ware_d wd
         LEFT JOIN ware_stock ws ON wd.ware_area_cd = ws.ware_area_cd
         WHERE wd.ware_area_cd = #{wareAreaCd}
         GROUP BY wd.ware_area_cd, wd.vol
-        ]]>
     </select>
 
     <!-- 사용자 정보 조회 -->

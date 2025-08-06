@@ -54,7 +54,6 @@
         INNER JOIN factory f ON mi.fcode = f.fcode AND mi.fac_ver_cd = f.fac_ver_cd
         WHERE mi.inbo_status = 'c5'  -- 입고완료 상태만 (적재 대기)
         AND f.op_status = 'r1'       -- 활성화된 공장만
-        AND m.is_used = 'f1'         -- 활성화된 자재만
         -- 완전히 적재처리되지 않은 자재만 (부분 적재 포함)
         AND (mi.total_qty - COALESCE(
             (SELECT SUM(ws.qty) 
