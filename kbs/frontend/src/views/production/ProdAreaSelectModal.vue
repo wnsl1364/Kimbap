@@ -136,8 +136,8 @@ const getUnitCapacityStandard = (unitCode) => {
 
 // 🔥 실제 용량 계산 (단위 기반으로 100을 변환)
 const getRealCapacity = (area) => {
-    const materialUnit = props.selectedMaterial?.unit || 'g5';
-    const standardCapacity = getUnitCapacityStandard(materialUnit);
+    const productUnit = props.selectedProduct?.unit || 'g5';
+    const standardCapacity = getUnitCapacityStandard(productUnit);
     
     // 기본 100에서 단위별 표준 용량으로 변환
     return standardCapacity;
@@ -264,7 +264,7 @@ const getAreaStyle = (area) => {
     
     if (isSelected) return 'bg-blue-500 text-white border-blue-600';
     if (!area.isAvailable) return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
-    if (area.isSameMaterial) return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
+    if (area.isSameProduct) return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
     if (area.availableVolume <= 0) return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75'; // 🔥 실제 가용 용량 체크
     return 'bg-white hover:bg-blue-50 border-gray-300 hover:border-blue-400';
 };

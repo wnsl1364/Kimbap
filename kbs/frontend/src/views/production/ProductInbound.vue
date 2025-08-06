@@ -12,14 +12,14 @@ import WarehouseAreaSelectModal from '@/views/production/ProdAreaSelectModal.vue
 // Store 및 Toast
 const productLoadingStore = useProductLoadingStore();
 const commonStore = useCommonStore();
-const memberStore = useMemberStore(); // 🔥 사용자 정보 store
+const memberStore = useMemberStore(); // 사용자 정보 store
 const toast = useToast();
 
 // Store에서 상태 가져오기
 const {
     mateLoadingList,
     prodLoadingList,
-    selectedMateLoadings,
+    setSelectedProductLoadings,
     factoryList,
     isLoading,
     searchFilter,
@@ -36,7 +36,7 @@ const { user } = storeToRefs(memberStore);
 // 🔥 디버깅: 검색 필터 상태 감시
 watch(searchFilter, (newFilter) => {
     console.log('검색 필터 변경:', newFilter);
-    console.log('전체 목록 크기:', mateLoadingList.value.length);
+    console.log('전체 목록 크기:', prodLoadingList.value.length);
     console.log('필터링된 목록 크기:', filteredProdLoadingList.value.length);
 }, { deep: true });
 
@@ -95,9 +95,9 @@ onMounted(async () => {
         await productLoadingStore.fetchFactoryList();
         await productLoadingStore.fetchProdLoadingList();
         
-        console.log('MateLoading 컴포넌트 초기화 완료');
+        console.log('ProdLoading 컴포넌트 초기화 완료');
     } catch (error) {
-        console.error('MateLoading 컴포넌트 초기화 실패:', error);
+        console.error('ProdLoading 컴포넌트 초기화 실패:', error);
         toast.add({
             severity: 'error',
             summary: '초기화 실패',
@@ -172,7 +172,7 @@ const handleSelectionChange = (newSelection) => {
     selectedItems.value = newSelection;
     
     // 🔥 store에도 즉시 반영
-    productLoadingStore.setSelectedMateLoadings([...newSelection]);
+    productLoadingStore.setSelectedProductLoadings([...newSelection]);
 };
 
 //  구역선택 버튼 클릭 처리 (신규)
@@ -264,9 +264,9 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                     }))
                 };
                 
-                // 🔥 자동으로 체크박스 체크하기 - 수정된 material 객체 사용
+                // 🔥 자동으로 체크박스 체크하기 - 수정된 product 객체 사용
                 if (product && !selectedItems.value.some(item => item.prodInboCd === product.prodInboCd)) {
-                    // 변환된 데이터가 아닌 원본 material 객체를 사용하되, 화면 표시용 정보도 포함
+                    // 변환된 데이터가 아닌 원본 product 객체를 사용하되, 화면 표시용 정보도 포함
                     const productForSelection = {
                         ...product,
                         // 화면 표시용 변환된 정보도 포함
@@ -279,7 +279,7 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                     console.log('선택된 제품의 wareAreaCd:', productForSelection.wareAreaCd);
                     
                     // 🔥 store에도 즉시 반영
-                    productLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
+                    productLoadingStore.setSelectedProductLoadings([...selectedItems.value]);
                     
                     // 🔥 InputTable의 선택 상태만 업데이트 (전체 데이터는 변경하지 않음)
                     console.log('구역 선택 후 체크박스 상태 업데이트 완료');
@@ -315,44 +315,44 @@ const handleProcessLoading = async () => {
         toast.add({
             severity: 'warn',
             summary: '선택 필요',
-            detail: '적재 처리할 자재를 선택해주세요.',
+            detail: '적재 처리할 제품을 선택해주세요.',
             life: 3000
         });
         return;
     }
 
     try {
-        console.log('적재 처리 시작 - 선택된 자재들:', selectedItems.value);
+        console.log('적재 처리 시작 - 선택된 제품들:', selectedItems.value);
         
-        // 🔥 각 자재의 구역 정보 상세 로깅
+        // 🔥 각 제품의 구역 정보 상세 로깅
         selectedItems.value.forEach((item, index) => {
-            console.log(`자재 ${index + 1}: ${item.mateInboCd}`, {
+            console.log(`제품 ${index + 1}: ${item.prodInboCd}`, {
                 wareAreaCd: item.wareAreaCd,
                 placementPlan: item.placementPlan,
                 hasArea: (item.wareAreaCd && item.wareAreaCd.trim() !== '') || (item.placementPlan && item.placementPlan.length > 0)
             });
         });
         
-        // 선택된 자재들의 구역 설정 상태 확인
+        // 선택된 제품들의 구역 설정 상태 확인
         const itemsWithArea = selectedItems.value.filter(item => 
             (item.wareAreaCd && item.wareAreaCd.trim() !== '') ||
             (item.placementPlan && item.placementPlan.length > 0)
         );
         
-        console.log('구역이 설정된 자재들:', itemsWithArea);
+        console.log('구역이 설정된 제품들:', itemsWithArea);
         
         if (itemsWithArea.length === 0) {
             toast.add({
                 severity: 'warn',
                 summary: '구역 선택 필요',
-                detail: '선택된 자재 중 창고구역이 설정된 자재가 없습니다. 먼저 구역을 선택해주세요.',
+                detail: '선택된 제품 중 창고구역이 설정된 제품이 없습니다. 먼저 구역을 선택해주세요.',
                 life: 3000
             });
             return;
         }
         
         // 선택된 자재들을 store에 설정
-        productLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
+        productLoadingStore.setSelectedProductLoadings([...selectedItems.value]);
         
         // 다중 적재 처리 실행
         const result = await productLoadingStore.processBatchLoading();
@@ -399,13 +399,13 @@ watch(selectedItems, (newSelection) => {
     console.log('selectedItems 변경 감지:', newSelection.length, '개 선택됨');
     
     // store에 즉시 반영
-    productLoadingStore.setSelectedMateLoadings([...newSelection]);
+    productLoadingStore.setSelectedProductLoadings([...newSelection]);
     
     // 각 선택된 자재의 구역 정보 로깅
     newSelection.forEach((item, index) => {
         const hasArea = (item.wareAreaCd && item.wareAreaCd.trim() !== '') || 
                        (item.placementPlan && item.placementPlan.length > 0);
-        console.log(`선택된 자재 ${index + 1}: ${item.mateInboCd} - 구역설정여부: ${hasArea}`);
+        console.log(`선택된 제품 ${index + 1}: ${item.prodInboCd} - 구역설정여부: ${hasArea}`);
     });
 }, { deep: true });
 </script>

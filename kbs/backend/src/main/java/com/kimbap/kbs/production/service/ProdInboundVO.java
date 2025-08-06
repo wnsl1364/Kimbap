@@ -46,7 +46,7 @@ public class ProdInboundVO {
   private String unit;
   private String facName;        
   private Integer totalQty;      // 적재 대기 수량
-  private Integer qty;           // 실제 적재 수량 (입력값)
+  private BigDecimal qty;        // 실제 적재 수량 (입력값)
   private String wslcode;        // 적재제품목록코드
   private String wareAreaCd;     // 구역코드 (선택된 구역)
   private String regi;           // 등록자
@@ -59,7 +59,7 @@ public class ProdInboundVO {
   private BigDecimal areaFloor;   // 구역층 (1, 2, 3...)
   private BigDecimal vol;         // 용량
   
-
+  private Integer lastSeq;        // 창고재고목록코드 마지막 순번
 
   /**
    * 현재 적재량 (계산 필드)

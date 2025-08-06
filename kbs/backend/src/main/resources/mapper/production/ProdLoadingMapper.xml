@@ -77,21 +77,21 @@
   <!-- 동일한 자재가 적재된 다른 구역들 조회 -->
   <select id="getSameProductAreas" resultType="com.kimbap.kbs.production.service.ProdInboundVO">
       SELECT DISTINCT
-          ws.ware_area_cd,
-          wd.area_row,
-          wd.area_col,
-          wd.area_floor,
-          wd.vol,
-          NVL(area_stock.current_volume, 0) as current_volume,
-          (wd.vol - NVL(area_stock.current_volume, 0)) as available_volume
+        ws.ware_area_cd,
+        wd.area_row,
+        wd.area_col,
+        wd.area_floor,
+        wd.vol,
+        NVL(area_stock.current_volume, 0) as current_volume,
+        (wd.vol - NVL(area_stock.current_volume, 0)) as available_volume
       FROM ware_stock ws
       INNER JOIN prod_inbo pi ON ws.prod_inbo_cd = pi.prod_inbo_cd
       INNER JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
       INNER JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
       LEFT JOIN (
-          SELECT ware_area_cd, SUM(qty) as current_volume
-          FROM ware_stock
-          GROUP BY ware_area_cd
+        SELECT ware_area_cd, SUM(qty) as current_volume
+        FROM ware_stock
+        GROUP BY ware_area_cd
       ) area_stock ON ws.ware_area_cd = area_stock.ware_area_cd
       WHERE pi.pcode = #{pcode}
       AND w.fcode = #{fcode}
@@ -123,4 +123,35 @@
     WHERE pcode = #{pcode}
     AND is_used = 'f1'
   </select>
+  <!-- 창고재고목록코드 마지막 순번 조회 -->
+  <select id="getLastWareStockSequence" parameterType="string" resultType="int">
+    SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(wslcode, -3))), 0) as last_seq
+    FROM ware_stock
+    WHERE wslcode LIKE 'WStock-' || #{dateStr} || '-%'
+  </select>
+  <!-- 자재 적재 처리 (ware_stock 테이블에 INSERT) -->
+  <insert id="insertWareStock" parameterType="com.kimbap.kbs.materials.service.MateLoadingVO">
+    <!-- 디버그: 실행 전 파라미터 확인 -->
+    INSERT INTO ware_stock (
+      wslcode,
+      ware_area_cd,
+      mate_inbo_cd,
+      prod_inbo_cd,
+      item_type,
+      inbo_dt,
+      regi,
+      qty,
+      unit
+    ) VALUES (
+      #{wslcode},
+      #{wareAreaCd},
+      NULL,                    -- 제품입고코드는 NULL (자재이므로)
+      #{prodInboCd},           
+      'h3',                    -- 자재타입에 따라 동적 설정
+      #{inboDt},
+      #{regi},
+      #{qty},
+      #{unit}
+    )
+  </insert>
 </mapper>
