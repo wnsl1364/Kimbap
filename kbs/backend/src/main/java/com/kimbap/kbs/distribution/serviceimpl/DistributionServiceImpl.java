@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.kimbap.kbs.distribution.mapper.DistributionMapper;
 import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
+import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
 
 import lombok.RequiredArgsConstructor;
@@ -27,5 +28,17 @@ public class DistributionServiceImpl implements DistributionService {
     @Override
     public List<RelOrderAndResultVO> getRelOrdList(RelOrderAndResultVO filter) {
         return distributionMapper.getRelOrdList(filter);
+    }
+
+    // 출고지시서 등록 모달관련
+    @Override
+    public List<RelOrdModalVO> getRelOrdModal(RelOrdModalVO vo) {
+        return distributionMapper.getRelOrdModal(vo);
+    }
+
+    // 모달 선택시 상세출력
+    @Override
+    public List<RelOrdModalVO> getRelOrdSelect(String ordCd) {
+        return distributionMapper.getRelOrdSelect(ordCd);
     }
 }

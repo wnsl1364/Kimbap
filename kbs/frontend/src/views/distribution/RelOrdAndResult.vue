@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
-import { getOrderList } from '@/api/order'
+import { getRelOrdModal, getRelOrdSelect } from '@/api/distribution'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
@@ -9,6 +9,8 @@ import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useRoute } from 'vue-router';
+
+const today = format(new Date(), 'yyyy-MM-dd')
 
 // 라우터 설정
 const route = useRoute()
@@ -26,33 +28,31 @@ const showArrearsModal = ref(false)
 
 // form 필드
 const formFields1 = [
-  { label: '출고지시번호', field: 'ordCd', type: 'text', disabled: true },
-  { label: '작성자', field: 'ordDt', type: 'text', disabled: true },
-  { label: '지시일자', field: 'cpName', type: 'input', disabled: true },
-  { label: '창고', field: 'note', type: 'text', readonly: true },
+  { label: '출고지시번호', field: 'newRelOrdCd', type: 'text', disabled: true },
+  { label: '작성자', field: '', type: 'text', disabled: true },
+  { label: '지시일자', field: 'relDt', type: 'input', disabled: true },
+  { label: '창고', field: '', type: 'text', readonly: true },
 ];
 const formFields2 = [
   { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
-  { label: '거래처 담당자', field: 'deliAdd', type: 'text', disabled: true },
-  { label: '납품지 주소', field: 'deliReqDt', type: 'text', disabled: true },
-  { label: '비고', field: 'note', type: 'text', readonly: true },
+  { label: '거래처 담당자', field: 'mName', type: 'text', disabled: true },
+  { label: '납품지 주소', field: 'deliAdd', type: 'text', disabled: true },
+  { label: '납기요청일', field: 'deliReqDt', type: 'text', disabled: true },
 ]
 
 // 제품 테이블
 const columns = [
-  { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
-  { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
-  { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true },
-  { field: 'deliAvailDt', header: '납기가능일자', type: 'calendar' }
+  { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'noRelQty', header: '잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
+  { field: 'relOrdStatus', header: '출고상태', type: 'input', readonly: true }
 ]
 
 // 버튼 설정
 const infoFormButtons = ref({
-  reset: { show: true, label: '저장', severity: 'info' },
+  save: { show: true, label: '저장', severity: 'info' },
   load: { show: true, label: '주문정보 불러오기', severity: 'success' },
-  delete: { show: true, label: '이전', severity: 'danger' }
 });
 
 // 제품 추가 영역 버튼 설정
@@ -68,15 +68,14 @@ const modalDataSets = ref({})
 
 const loadOrderListForModal = async () => {
   try {
-    const res = await getOrderList()
+    const res = await getRelOrdModal({}) // ✅ 파라미터가 있으면 추가
 
-    const items = res.data.data.map(order => ({
+    const items = res.data.map(order => ({
       ordCd: order.ordCd,
       cpName: order.cpName,
       ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
-      prodName: order.prodName  // 백에서 가공된 데이터 그대로 사용!
+      prodName: order.prodNameSummary  // ✅ 필드명 주의!
     }))
-
     modalDataSets.value = {
       load: {
         items,
@@ -96,52 +95,50 @@ const loadOrderListForModal = async () => {
       }
     }
   } catch (err) {
-    console.error('주문 목록 로딩 실패:', err)
+    console.error('출고지시 모달 주문 목록 로딩 실패:', err)
   }
 }
 
 const handleLoadOrder = async (selectedRow) => {
+  console.log('🟢 모달에서 선택된 row:', selectedRow);
   try {
-    const ordCd = selectedRow.ordCd
-    
-    const res = await axios.get(`/api/order/${ordCd}`)
-    const order = res.data.data
+    const ordCd = selectedRow.ordCd;
 
-    // 기본정보 세팅
+    // 1. 주문 상세 정보 (기존대로 불러오기)
+    const orderRes = await axios.get(`/api/order/${ordCd}`);
+    const order = orderRes.data.data;
+
+    // 2. 출고지시용 제품 리스트
+    const prodRes = await getRelOrdSelect(ordCd);
+    const productList = prodRes.data;
+
+    // 담당자명, 거래처명은 productList[0]에서 바로 꺼내기
+    const mName = productList[0]?.mname || '';
+    const cpName = productList[0]?.mcpName || '';
+    const newRelOrdCd = productList[0]?.newRelOrdCd || '';
+
     formStore.setFormData({
       ordCd: order.ordCd,
       ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
       cpCd: order.cpCd,
-      cpName: order.cpName,
+      cpName: cpName,         
       deliAdd: order.deliAdd,
       deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
       exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
       note: order.note,
-      regi: order.regi
-    })
+      mName: mName,           
+      regi: order.regi,
+      relDt: today,
+      newRelOrdCd: newRelOrdCd,
+    });
 
-    // 제품목록 세팅
-    productStore.setProducts(
-      order.orderDetails.map(item => {
-        const qty = item.ordQty || 0
-        const price = item.unitPrice || 0
-        const total = qty * price
-
-        console.log('✅ 제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
-
-        return {
-          ...item,
-          totalAmount: total,
-          deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : '',
-          ordDStatus: item.ordDStatus || 't1',
-          ordDCd: item.ordDCd
-        }
-      })
-    )
+    productStore.setProducts(productList);
+    console.log('✅ 출고지시 제품 리스트:', productList)
   } catch (err) {
-    console.error('주문 상세 불러오기 실패:', err)
+    console.error('출고지시 주문 데이터 로딩 실패:', err);
   }
-}
+};
+
 
 
 
@@ -200,7 +197,7 @@ onUnmounted(() => {
     <InputTable
       :data="products"
       :columns="columns"
-      :title="'제품'"
+      :title="''"
       scrollHeight="360px"
       height="460px"
       :dataKey="'pcode'"

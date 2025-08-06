@@ -10,4 +10,9 @@ public interface DistributionService {
   // 출고 지시서 조회
   List<RelOrderAndResultVO> getRelOrdList(RelOrderAndResultVO filter);
 
+  // 출고지시서 등록 모달관련
+  List<RelOrdModalVO> getRelOrdModal(RelOrdModalVO vo);
+
+  // 모달 선택 후 주문 상세 출력
+  List<RelOrdModalVO> getRelOrdSelect(String ordCd);
 }

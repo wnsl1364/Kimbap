@@ -9,3 +9,13 @@ export const distributionInOutCheck = (filter) => {
 export const getRelOrdList = (filter) => {
   return axios.post('/api/distribution/relOrdList', filter);
 };
+
+// 출고지시서 등록 모달관련
+export const getRelOrdModal = (filter) => {
+  return axios.post('/api/distribution/relOrderModal', filter);
+};
+
+// 출고지시서 등록 모달관련
+export const getRelOrdSelect = (ordCd) => {
+  return axios.get('/api/distribution/relOrderSelect', { params: { ordCd } });
+};

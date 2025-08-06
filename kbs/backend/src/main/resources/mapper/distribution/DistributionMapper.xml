@@ -100,4 +100,90 @@
   </where>
 </select>
 
+<!-- 출고지시서 모달 출력 -->
+<select id="getRelOrdModal" resultType="com.kimbap.kbs.distribution.service.RelOrdModalVO" parameterType="com.kimbap.kbs.distribution.service.RelOrdModalVO">
+  SELECT
+      o.ord_cd AS ordCd,
+      c.cp_name AS cpName,
+      (
+          SELECT 
+              MIN(p.prod_name) || CASE 
+                  WHEN COUNT(*) = 1 THEN ''
+                  ELSE ' 외 ' || (COUNT(*) - 1) || '개'
+              END
+          FROM order_d od2
+          JOIN product p ON od2.pcode = p.pcode AND od2.prod_ver_cd = p.prod_ver_cd
+          WHERE od2.ord_cd = o.ord_cd
+      ) AS prodNameSummary,
+      o.ord_dt AS ordDt
+  FROM order_list o
+  JOIN company c ON o.cp_cd = c.cp_cd
+
+  WHERE o.is_used = 'f1'
+    AND EXISTS (
+      SELECT 1
+      FROM order_d od
+      JOIN prod_inbo pi ON od.pcode = pi.pcode AND od.prod_ver_cd = pi.prod_ver_cd
+      WHERE od.ord_cd = o.ord_cd
+    )
+  ORDER BY o.ord_dt DESC
+</select>
+
+<!-- 출고지시서 모달 선택시 출력 -->
+<select id="getRelOrdSelect" resultType="com.kimbap.kbs.distribution.service.RelOrdModalVO" parameterType="String">
+SELECT
+(
+        SELECT 
+            'REL-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
+            LPAD(NVL(MAX(SUBSTR(rel_ord_cd, -4)), 0) + 1, 4, '0')
+        FROM release_ord
+        WHERE TO_CHAR(rel_dt, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+    ) AS newRelOrdCd,
+
+    p.prod_name AS prodName,
+    od.ord_qty AS ordQty,
+    cp.cp_name AS mCpName,
+    cp.mname AS mName,
+
+    NVL((
+        SELECT SUM(pr.rel_qty)
+        FROM prod_rel pr
+        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+        WHERE ro.ord_d_cd = od.ord_d_cd
+    ), 0) AS relQty,
+
+    (od.ord_qty - NVL((
+        SELECT SUM(pr.rel_qty)
+        FROM prod_rel pr
+        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+        WHERE ro.ord_d_cd = od.ord_d_cd
+    ), 0)) AS noRelQty,
+
+    CASE
+        WHEN NVL((
+            SELECT SUM(pr.rel_qty)
+            FROM prod_rel pr
+            JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+            WHERE ro.ord_d_cd = od.ord_d_cd
+        ), 0) = 0 THEN '미출고'
+        WHEN NVL((
+            SELECT SUM(pr.rel_qty)
+            FROM prod_rel pr
+            JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+            WHERE ro.ord_d_cd = od.ord_d_cd
+        ), 0) &lt; od.ord_qty THEN '부분출고'
+        ELSE '출고완료'
+    END AS relOrdStatus
+
+FROM order_d od
+JOIN product p 
+  ON od.pcode = p.pcode 
+ AND od.prod_ver_cd = p.prod_ver_cd
+JOIN order_list odl
+  ON od.ord_cd = odl.ord_cd
+JOIN company cp
+  ON odl.cp_cd = cp.cp_cd
+
+WHERE od.ord_cd = #{ordCd}
+</select>
 </mapper>
