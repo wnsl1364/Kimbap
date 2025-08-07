@@ -3,12 +3,14 @@ package com.kimbap.kbs.distribution.serviceimpl;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.kimbap.kbs.distribution.mapper.DistributionMapper;
 import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
+import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
 import com.kimbap.kbs.distribution.service.ReleaseOrdVO;
 import com.kimbap.kbs.distribution.service.WarehouseVO;
 
@@ -51,8 +53,24 @@ public class DistributionServiceImpl implements DistributionService {
     }
 
     // 출고 지시서 등록
+    @Transactional
     @Override
-    public int insertReleaseOrders(List<ReleaseOrdVO> list) {
-        return distributionMapper.insertReleaseOrders(list);
+    public void saveReleaseOrder(ReleaseMasterOrdVO master, List<ReleaseOrdVO> detailList) {
+    // 1. 출고마스터코드 생성 (쿼리 호출)
+    String relMasCd = distributionMapper.selectNewRelMasCd();
+
+    // 2. 생성한 relMasCd 를 master VO 에 세팅
+    master.setRelMasCd(relMasCd);
+
+    // 3. 마스터 insert
+    distributionMapper.insertReleaseOrdMaster(master);
+
+    // 4. detailList에 모두 relMasCd 세팅
+    for (ReleaseOrdVO item : detailList) {
+        item.setRelMasCd(relMasCd);
     }
+
+    // 5. 출고지시서 리스트 insert
+    distributionMapper.insertReleaseOrdList(detailList);
+}
 }

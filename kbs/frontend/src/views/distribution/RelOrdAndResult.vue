@@ -66,29 +66,46 @@ const formFields1 = [
 
 const handleSave = async () => {
   try {
-    const { newRelOrdCd, relDt, regi, note } = formData.value;
+    const { newRelOrdCd, relDt, regi, note, cpCd, mName, deliAdd, deliReqDt } = formData.value;
 
-    const payload = products.value.map(product => ({
-      newRelOrdCd: newRelOrdCd,
+    // master VO
+    const master = {
+      relMasCd,
+      regi,
+      relDt,
+      note,
+      cp_cd: cpCd,
+      mName,
+      deli_add: deliAdd,
+      deli_req_dt: deliReqDt,
+      relOrdStatus: 'm1'
+    };
+
+    // detailList
+    const detailList = products.value.map(product => ({
+      newRelOrdCd: product.newRelOrdCd,
       wcode: product.wcode,
       wareVerCd: product.wareVerCd,
       ordDCd: product.ordDCd,
-      relDt: relDt,
-      regi: regi,
       relQty: product.relQty,
-      note: note,
+      relMasCd: master.relMasCd
     }));
 
-    console.log('📦 등록할 출고지시 데이터:', payload);
+    const payload = {
+      master,
+      detailList
+    };
 
+    console.log('📦 등록할 출고지시 payload:', payload);
     await insertRelOrd(payload);
 
     alert('출고지시 저장 완료!');
   } catch (err) {
-        console.error('❌ 출고지시 저장 실패:', err.response?.data || err.message);
+    console.error('❌ 출고지시 저장 실패:', err.response?.data || err.message);
     alert('저장 중 오류 발생: ' + (err.response?.data || err.message));
   }
 };
+
 
 // 버튼 설정
 const infoFormButtons = ref({
