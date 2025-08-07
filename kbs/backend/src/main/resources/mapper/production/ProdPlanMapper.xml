@@ -188,19 +188,40 @@
 
     <insert id="insertMrp" parameterType="MrpVO">
         INSERT INTO mrp (mrp_cd, plan_gene_dt, produ_start_dt, note, regi, produ_plan_cd)
-        VALUES (#{mrpCd}, #{planGeneDt}, #{produStartDt}, #{note}, #{regi}, #{produPlanCd})
+        VALUES (
+            #{mrpCd},
+            #{planGeneDt},
+            #{produStartDt},
+            #{note},
+            #{regi},
+            #{produPlanCd}
+        )
     </insert>
 
     <insert id="insertMrpDetail" parameterType="MrpDetailVO">
         INSERT INTO mrp_d (mrp_d_cd, mcode, mate_ver_cd, mrp_cd, unit, required_qty, field)
-        VALUES (sys_guid(), #{mcode}, #{mateVerCd}, #{mrpCd}, #{unit}, #{requiredQty}, #{field})
+        VALUES (
+            fn_create_pk_code('mrp_d'),
+            #{mcode},
+            #{mateVerCd},
+            #{mrpCd},
+            #{unit},
+            #{requiredQty},
+            #{field}
+        )
     </insert>
 
     <!-- 기존 BOM 자재 조회 그대로 재사용 -->
     <select id="selectBomMaterials" resultType="BomDetailVO">
-        SELECT bd.mcode, bd.mate_ver_cd, bd.need_qty, bd.unit
+        SELECT
+            bd.mcode,
+            bd.mate_ver_cd,
+            bd.need_qty,
+            bd.unit,
+            m.mate_name
         FROM bom b
         JOIN bom_d bd ON b.bcode = bd.bcode AND b.bom_ver_cd = bd.bom_ver_cd
+        JOIN material m ON bd.mcode = m.mcode AND bd.mate_ver_cd = m.mate_ver_cd
         WHERE b.pcode = #{pcode}
         AND b.prod_ver_cd = #{prodVerCd}
         AND b.is_used = 'f1'
@@ -233,7 +254,13 @@
     <!-- 발주서 등록 -->
     <insert id="insertPurchaseOrder" parameterType="PurcOrdVO">
         INSERT INTO purc_ord (purc_cd, ord_dt, regi, purc_status, ord_total_amount)
-        VALUES (#{purcCd}, #{ordDt}, #{regi}, #{purcStatus}, #{ordTotalAmount})
+        VALUES (
+            #{purcCd},
+            #{ordDt},
+            #{regi},
+            #{purcStatus},
+            #{ordTotalAmount}
+        )
     </insert>
     
     <!-- 발주서 상세 등록 -->
@@ -243,9 +270,18 @@
             unit, unit_price, ex_deli_dt, note, purc_d_status, 
             mate_cp_cd, curr_qty
         ) VALUES (
-            #{purcDCd}, #{purcCd}, #{mcode}, #{mateVerCd}, #{purcQty},
-            #{unit}, #{unitPrice}, #{exDeliDt}, #{note}, #{purcDStatus},
-            #{mateCpCd}, #{currQty}
+            fn_create_pk_code('purc_ord_d'),
+            #{purcCd},
+            #{mcode},
+            #{mateVerCd},
+            #{purcQty},
+            #{unit},
+            #{unitPrice},
+            #{exDeliDt},
+            #{note},
+            #{purcDStatus},
+            #{mateCpCd},
+            #{currQty}
         )
     </insert>
     

@@ -20,4 +20,7 @@ public class BomDetailVO {
   private String mateVerCd;   // 자재버전코드
   private String bcode;       // BOM마스터코드
   private String bomVerCd;    // BOM버전코드
+
+  // JOIN
+  private String mateName;    // 자재명
 }

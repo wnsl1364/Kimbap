@@ -64,10 +64,13 @@ const selectedRows = ref([]);
 const infoFormButtons = computed(() => {
   if (user.value?.memType === 'p2') { // 매출업체
     return {
-      refund: { show: true, label: '반품관리', severity: 'help' }
+      refund: { show: true, label: '반품관리', severity: 'help' },
+      excel: { show: true, label: '엑셀 다운로드', severity: 'success' }
     }
   } else {
-    return {} // 버튼 없음
+    return {
+      excel: { show: true, label: '엑셀 다운로드', severity: 'success' }
+    }
   }
 })
 
@@ -164,7 +167,11 @@ const searchColumns = computed(() => {
       {
         key: 'ordDt',
         label: '주문일자',
-        type: 'dateRange'
+        type: 'dateRange',
+        default: {
+          start: new Date(defaultSearchValues.value.ordDt[0]),
+          end: new Date(defaultSearchValues.value.ordDt[1])
+        }
       },
       {
         key: 'deliReqDt',
@@ -199,7 +206,11 @@ const searchColumns = computed(() => {
       {
         key: 'ordDt',
         label: '주문일자',
-        type: 'dateRange'
+        type: 'dateRange',
+        default: {
+          start: new Date(defaultSearchValues.value.ordDt[0]),
+          end: new Date(defaultSearchValues.value.ordDt[1])
+        }
       },
       {
         key: 'deliReqDt',
@@ -283,18 +294,26 @@ const handleRowClick = (rowData) => {
 const handleRefundRequest = () => {
   const selected = selectedRows.value;
 
-  if (!selected || !selected.ordCd) {
+  if (!selected || selected.length !== 1) {
+    alert('반품 관리는 하나의 주문만 선택할 수 있습니다.');
+    return;
+  }
+
+  const order = selected[0];
+
+  if (!order.ordCd) {
     alert('주문을 선택하세요.');
     return;
   }
 
-  if (selected.ordStatus !== '출고완료' && selected.ordStatus !== '부분반품' && selected.ordStatus !== '반품요청') {
+  if (!['출고완료', '부분반품', '반품요청'].includes(order.ordStatus)) {
     alert('출고완료, 부분반품, 반품요청 상태인 주문만 반품 관리가 가능합니다.');
     return;
   }
 
-  router.push(`/order/returnRequest/${selected.ordCd}`);
+  router.push(`/order/returnRequest/${order.ordCd}`);
 };
+
 
 watch(selectedRows, (newVal) => {
   console.log('선택된 주문:', newVal)
@@ -328,13 +347,15 @@ watch(() => route.query.refresh, (newVal) => {
       :enableRowActions="false"
       :enableSelection="true"
       :scroll-height="'55vh'" :height="'65vh'"
-      :selectionMode="'single'"
+      :selectionMode="'multiple'"
       :showRowCount="true"
       :buttons="infoFormButtons"
       :dateFields="['ordDt', 'deliReqDt']"
       :enableRowClick="true"
       @rowClick="handleRowClick"
       @refund="handleRefundRequest"
+      :showExcelDownload="true"
+      :title="'주문목록'"
     />
   </div>
 </template>
