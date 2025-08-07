@@ -1203,4 +1203,127 @@
         WHERE t.reg_dt = TRUNC(SYSDATE)
         ORDER BY t.reg_dt DESC
         </select>
+    <!-- 자재 재고 현황 조회 -->
+    <select id="getMaterialStockStatus" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+        m.mcode AS material_code,
+        -- 최신 버전의 자재명 사용 (서브쿼리로 정확히!)
+        (SELECT m2.mate_name 
+        FROM material m2 
+        WHERE m2.mcode = m.mcode 
+        AND m2.mate_ver_cd = (SELECT MAX(m3.mate_ver_cd) FROM material m3 WHERE m3.mcode = m.mcode)
+        AND ROWNUM = 1) AS material_name,
+        -- 최신 버전의 자재유형 사용
+        (SELECT m2.mate_type 
+        FROM material m2 
+        WHERE m2.mcode = m.mcode 
+        AND m2.mate_ver_cd = (SELECT MAX(m3.mate_ver_cd) FROM material m3 WHERE m3.mcode = m.mcode)
+        AND ROWNUM = 1) AS material_type,
+        -- 최신 버전의 자재유형 한글명
+        (SELECT dc.cd_info
+        FROM material m2
+        LEFT JOIN detail_cd dc ON m2.mate_type = dc.d_cd AND dc.group_cd = '0H'
+        WHERE m2.mcode = m.mcode 
+        AND m2.mate_ver_cd = (SELECT MAX(m3.mate_ver_cd) FROM material m3 WHERE m3.mcode = m.mcode)
+        AND ROWNUM = 1) AS material_type_text,
+        
+        -- 공장 정보
+        f.fcode AS factory_code,                     
+        f.fac_name AS factory_name,                  
+        
+        -- 집계된 재고 정보
+        SUM(ws.qty) AS total_quantity,               
+        MAX(m.unit) AS unit,                         
+        MAX(unit_cd.cd_info) AS unit_text,           
+        MAX(m.std) AS specification,                 
+        
+        -- 집계된 재고 기준 상태 판정
+        CASE 
+            WHEN SUM(ws.qty) &lt;= 0 THEN 'empty'
+            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &lt; MAX(m.safe_stock) THEN 'shortage'
+            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &gt; (MAX(m.safe_stock) * 2) THEN 'overstock'
+            ELSE 'normal'
+        END AS stock_status,
+        
+        -- 안전재고 대비 정보
+        MAX(m.safe_stock) AS safe_stock,
+        CASE 
+            WHEN MAX(m.safe_stock) IS NOT NULL THEN (SUM(ws.qty) - MAX(m.safe_stock))
+            ELSE NULL 
+        END AS stock_difference,
+        CASE 
+            WHEN MAX(m.safe_stock) IS NOT NULL AND MAX(m.safe_stock) &gt; 0 THEN 
+                ROUND((SUM(ws.qty) / MAX(m.safe_stock)) * 100, 2)
+            ELSE NULL 
+        END AS stock_percentage,
+        
+        -- DISTINCT mi.lot_no AS lot_count,      -- LOT 개수
+        'LOT별조회(' || COUNT(DISTINCT mi.lot_no) || '건)' AS lot_detail_link,  -- 링크 텍스트
+        
+        -- 기타 정보
+        MAX(m.sto_con) AS storage_condition,
+        MAX(condition_cd.cd_info) AS storage_condition_text,
+        MAX(m.corigin) AS origin,                    
+        MAX(m.edate) AS expiry_days,                 
+        MAX(m.note) AS material_note,                
+        
+        -- 최신 입고일 정보
+        MAX(ws.inbo_dt) AS last_inbound_date,
+        
+        -- 창고 정보 (집계)
+        COUNT(DISTINCT w.wcode) AS warehouse_count
+        -- 창고명 목록은 일단 제거 (DISTINCT 지원 안 됨)
+
+    FROM ware_stock ws
+        -- 핵심 조인들
+        INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+        INNER JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+        INNER JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+        INNER JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
+        INNER JOIN factory f ON w.fcode = f.fcode AND w.fac_ver_cd = f.fac_ver_cd
+        
+        -- 공통코드 조인들
+        LEFT JOIN detail_cd type_cd ON m.mate_type = type_cd.d_cd AND type_cd.group_cd = '0H'
+        LEFT JOIN detail_cd unit_cd ON m.unit = unit_cd.d_cd AND unit_cd.group_cd = '0G'
+        LEFT JOIN detail_cd condition_cd ON m.sto_con = condition_cd.d_cd AND condition_cd.group_cd = '0O'
+        
+    WHERE 1=1
+        -- 기본 필터 조건
+        AND (ws.item_type = 'h1' OR (ws.item_type IS NULL AND ws.mate_inbo_cd IS NOT NULL))
+        AND m.is_used IN ('f1', 'f2')               -- 사용중인 자재 (활성+구버전)
+        AND w.is_used IN ('f1', 'f2')               -- 사용중인 창고 (활성+구버전)
+        
+        -- 동적 검색 조건들 (MyBatis에서 처리)
+        <if test="mcode != null and mcode != ''">
+            AND m.mcode = #{mcode}
+        </if>
+        
+        <if test="mateName != null and mateName != ''">
+            AND m.mate_name LIKE '%' || #{mate_name} || '%'
+        </if>
+        
+        <if test="mateType != null and mateType != ''">
+            AND m.mate_type = #{mate_type}
+        </if>
+        
+        <if test="facName != null and facName != ''">
+            AND f.fac_name LIKE '%' || #{fac_name} || '%'
+        </if>
+
+    -- 그룹화: 자재코드별, 공장별 집계 (버전 무관!)
+    GROUP BY 
+        m.mcode,                                     -- 자재코드만! 버전 제외!
+        f.fcode, f.fac_name                          -- 공장 정보만
+
+    -- 정렬: 상태별 우선순위 → 공장명 → 자재명
+    ORDER BY 
+        CASE 
+            WHEN SUM(ws.qty) &lt;= 0 THEN 1                    -- empty 최우선
+            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &lt; MAX(m.safe_stock) THEN 2  -- shortage
+            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &gt; (MAX(m.safe_stock) * 2) THEN 3  -- overstock
+            ELSE 4                                           -- normal
+        END,
+        f.fac_name,                                          -- 공장명
+        MAX(m.mate_name)                                 -- 자재명 (MAX로)
+        </select>
 </mapper>

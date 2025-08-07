@@ -176,4 +176,9 @@ public interface MateMapper {
      */
     List<MaterialsVO> getMaterialStockList(MaterialsVO searchParams);
     
+    /**
+     * @param searchParams 검색 조건이 담긴 MaterialsVO
+     * @return 자재 재고 상태 목록
+     */
+    List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams);
 }

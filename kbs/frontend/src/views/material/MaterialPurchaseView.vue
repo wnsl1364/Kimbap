@@ -90,67 +90,78 @@ const inputTableColumns = computed(() => {
       field: 'purcCd',
       header: '발주번호',
       type: 'clickable',
-      align: 'center'
+      align: 'center',
+      width: '120px'
     },
     {
       field: 'purcDCd', 
       header: '발주상세번호',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '130px'
     },
     {
       field: 'mateName',
       header: '자재명',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '150px'
     },
     {
       field: 'cpName',
       header: '거래처명',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '120px'
     },
     {
       field: 'purcQty',
       header: '수량',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '80px'
     },
     {
       field: 'unit',
       header: '단위',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '60px'
     },
     {
       field: 'unitPrice',
       header: '단가(원)',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '100px'
     },
     {
       field: 'totalAmount',
       header: '총액(원)',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '120px'
     },
     {
       field: 'exDeliDt',
       header: '납기예정일',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '110px'
     },
     {
       field: 'purcDStatus',
       header: '발주상태',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '80px'
     },
     {
       field: 'note',
       header: '비고',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '150px'
     }
   ];
 
@@ -161,21 +172,24 @@ const inputTableColumns = computed(() => {
       field: 'ordDt',
       header: '주문일자',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '100px'
     });
     
     baseColumns.splice(2, 0, {
       field: 'regiName',
       header: '등록자',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '80px'
     });
     
-    baseColumns.splice(10, 0, {
+    baseColumns.splice(11, 0, {
       field: 'deliDt',
       header: '실제납기일',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '110px'
     });
   }
 
@@ -342,8 +356,11 @@ const handleRowClick = (rowData) => {
   if (!purcCd) return;
 
   if (memType === 'p3') {
-    // 매출업체는 주문등록(수정) 페이지로
+    // 매출업체는 발주 승인 페이지로
     router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
+  } else if (memType === 'p4') {
+    // 내부직원은 자재 입고 페이지로 
+    router.push({ path: '/material/MaterialInbound', query: { purcCd } })
   } else {
     console.warn('지원되지 않는 사용자 유형입니다:', memType)
   }
