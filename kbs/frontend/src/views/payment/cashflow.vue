@@ -54,6 +54,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const cashflowColumns = ref([]); // 입출금목록 테이블 컬럼
 const inputFormButtons = ref({}); // 입출금 등록 버튼
+const exportColumns = ref([]); 
 
 // UI 구성 정의
 onBeforeMount(() => {
@@ -104,6 +105,13 @@ onBeforeMount(() => {
         },
         { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
         { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
+    ];
+    exportColumns.value = [
+        { field: 'statementCd', header: '입출금코드' },
+        { field: 'transType', header: '거래유형' },
+        { field: 'depositAmount', header: '금액(원)' },
+        { field: 'regDt', header: '등록일자' },
+        { field: 'calStatus', header: '정산 상태' }
     ];
     (cashflowColumns.value = [
         { field: 'statementCd', header: '입출금코드' },
@@ -236,6 +244,8 @@ const handleSearch = async (searchData) => {
                 :showHistoryButton="false"
                 :scrollable="true"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
                 scrollHeight="420px"
                 height="500px"
             />
