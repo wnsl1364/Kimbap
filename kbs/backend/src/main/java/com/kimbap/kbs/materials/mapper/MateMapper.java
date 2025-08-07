@@ -168,4 +168,10 @@ public interface MateMapper {
 
     // 자재 입출고 내역 조회
     List<MaterialsVO> selectMaterialFlowList(MaterialsVO search);
+
+    /**
+     * @param searchParams 검색 조건이 담긴 MaterialsVO
+     * @return 자재 재고 목록
+     */
+    List<MaterialsVO> getMaterialStockList(MaterialsVO searchParams);
 }

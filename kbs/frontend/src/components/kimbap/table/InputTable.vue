@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { format } from 'date-fns'
 import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue' // 경로는 너의 프로젝트에 맞게 수정해줘!
 
@@ -156,9 +156,12 @@ watch(
 
 // 빈 행 생성
 const createEmptyRow = () => {
-    const emptyRow = { id: Date.now() }
+    const emptyRow = { 
+        id: Date.now(),
+        [props.dataKey]: `temp_${Date.now()}` // dataKey에 대한 임시 값 생성
+    }
     props.columns.forEach(column => {
-        if (column.type === 'input') {
+        if (column.type === 'input' || column.type === 'inputsearch') {
             emptyRow[column.field] = column.inputType === 'number' ? 0 : ''
         } else if (column.type === 'calendar') {
             emptyRow[column.field] = null
@@ -170,10 +173,18 @@ const createEmptyRow = () => {
 }
 
 // 행 추가
-const addRow = () => {
+const addRow = async () => {
     const newRow = createEmptyRow()
     internalData.value.push(newRow)
     emitDataChange()
+    
+    // DOM 업데이트 완료 후 스크롤을 맨 아래로 이동
+    await nextTick(() => {
+        const tableContainer = document.querySelector('.p-datatable-scrollable-body')
+        if (tableContainer) {
+            tableContainer.scrollTop = tableContainer.scrollHeight
+        }
+    })
 }
 
 // 행 삭제 (선택된 행들)
@@ -330,10 +341,11 @@ defineExpose({
                 </div>
             </div>
 
-            <DataTable :value="internalData" :tableStyle="{ minWidth: '50rem' }" showGridlines responsiveLayout="scroll"
+            <DataTable :value="internalData" :tableStyle="{ minWidth: '50rem', tableLayout: 'fixed' }" showGridlines responsiveLayout="scroll"
                 v-model:selection="selectedRows" :dataKey="props.dataKey" size="large"
                 :selectionMode="enableSelection ? selectionMode : null" scrollable :scrollHeight="scrollHeight"
-                :style="{ border: '1px solid #e5e7eb' }" @rowClick="props.enableRowClick ? handleRowClick : undefined">
+                :style="{ border: '1px solid #e5e7eb' }" @rowClick="props.enableRowClick ? handleRowClick : undefined"
+                stripedRows>
 
                 <!-- 선택 체크박스 컬럼 -->
                 <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 3rem">
@@ -341,7 +353,8 @@ defineExpose({
 
                 <!-- 데이터 컬럼들 -->
                 <Column v-for="column in columns" :key="column.field" :header="column.header"
-                    :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)">
+                    :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)"
+                    :style="column.width ? { width: column.width } : {}">
                     <template #body="slotProps">
                         <template v-if="column.type === 'readonly'">
                             <span>
@@ -354,29 +367,30 @@ defineExpose({
                         </template>
 
                         <template v-else-if="column.type === 'input'">
-                            <div class="flex items-center border rounded w-full h-10">
+                            <div class="flex items-center border rounded h-10 w-full">
                                 <input :value="slotProps.data[column.field]"
                                     @input="updateField(slotProps.data, column.field, $event.target.value)"
                                     :type="column.inputType || 'text'" :readonly="column.readonly"
                                     :disabled="column.disabled" :placeholder="column.placeholder"
                                     :min="column.inputType === 'number' ? 0 : undefined"
-                                    :style="{ width: column.width || 'auto' }"
                                     :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
                             </div>
                         </template>
                         
                         <!-- inputsearch 타입에서 모달 연결 -->
                         <template v-else-if="column.type === 'inputsearch'">
-                            <div class="flex items-center border rounded w-full h-10">
+                            <div class="flex items-center border rounded h-10 w-full overflow-hidden">
                                 <input :value="slotProps.data[column.field]"
                                     @input="updateField(slotProps.data, column.field, $event.target.value)"
                                     :type="column.inputType || 'text'"
                                     :readonly="column.readonly" :disabled="column.disabled"
                                     :placeholder="column.placeholder"
-                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
-                                <i v-if="column.suffixIcon"
-                                    :class="[column.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2 hover:text-blue-500']"
-                                    @click.stop="openModal(slotProps.data, column.field)" />
+                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align)]" />
+                                <div v-if="column.suffixIcon" 
+                                     class="flex items-center justify-center px-2 cursor-pointer text-gray-400 hover:text-blue-500 flex-shrink-0"
+                                     @click.stop="openModal(slotProps.data, column.field)">
+                                    <i :class="[column.suffixIcon, 'text-xs']" />
+                                </div>
                             </div>
                         </template>
                         

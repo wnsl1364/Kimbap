@@ -174,7 +174,7 @@ const materialColumns = ref([
     field: 'materialName',
     header: '자재명',
     type: 'inputsearch',
-    width: '150px',
+    width: '180px',
     suffixIcon: 'pi pi-search',
     placeholder: '자재명 검색',
     readonly: false
@@ -183,7 +183,7 @@ const materialColumns = ref([
     field: 'buyer',
     header: '공급업체',
     type: 'inputsearch',
-    width: '150px',
+    width: '180px',
     suffixIcon: 'pi pi-search',
     placeholder: '공급업체 검색',
     readonly: false
