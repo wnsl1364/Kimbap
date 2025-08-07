@@ -367,13 +367,13 @@ defineExpose({
                         </template>
 
                         <template v-else-if="column.type === 'input'">
-                            <div class="flex items-center border rounded h-10 w-full">
+                            <div class="flex items-center border rounded h-10 w-full overflow-hidden">
                                 <input :value="slotProps.data[column.field]"
                                     @input="updateField(slotProps.data, column.field, $event.target.value)"
                                     :type="column.inputType || 'text'" :readonly="column.readonly"
                                     :disabled="column.disabled" :placeholder="column.placeholder"
                                     :min="column.inputType === 'number' ? 0 : undefined"
-                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2', getAlignClass(column.align)]" />
+                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align)]" />
                             </div>
                         </template>
                         
