@@ -231,13 +231,13 @@
     </select>
     
     <!-- 발주서 등록 -->
-    <insert id="insertPurchaseOrder" parameterType="PurchaseOrderVO">
+    <insert id="insertPurchaseOrder" parameterType="PurcOrdVO">
         INSERT INTO purc_ord (purc_cd, ord_dt, regi, purc_status, ord_total_amount)
         VALUES (#{purcCd}, #{ordDt}, #{regi}, #{purcStatus}, #{ordTotalAmount})
     </insert>
     
     <!-- 발주서 상세 등록 -->
-    <insert id="insertPurchaseOrderDetail" parameterType="PurchaseOrderDetailVO">
+    <insert id="insertPurchaseOrderDetail" parameterType="PurcOrdDetailVO">
         INSERT INTO purc_ord_d (
             purc_d_cd, purc_cd, mcode, mate_ver_cd, purc_qty, 
             unit, unit_price, ex_deli_dt, note, purc_d_status, 
@@ -297,7 +297,7 @@
     </select>
     
     <!-- 자재 기본정보 조회 -->
-    <select id="selectMaterialInfo" resultType="MaterialVO">
+    <select id="selectMaterialInfo" resultType="MaterVO">
         SELECT 
             mcode,
             mate_ver_cd,
