@@ -57,6 +57,7 @@ const cpColumns = ref([]); // 공급처 테이블 컬럼
 const mataerialColumns = ref([]); // 자재목록 테이블 컬럼
 const inputFormButtons = ref({}); // 자재 등록 버튼
 const rowButtons = ref({}); // 공급처 테이블용 버튼
+const selectedMaterial = ref({});
 
 // 이력조회 모달 관련 상태 및 핸들러
 const selectedHistoryItems = ref([]);
@@ -91,9 +92,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedMcode.value = rowData.mcode;
+    selectedMaterial.value = { mateName: rowData.mateName, mcode: rowData.mcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.mcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -212,8 +212,8 @@ onBeforeMount(() => {
     cpColumns.value = [
         { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '100px',align: "left" ,placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
         { field: 'cpName', header: '거래처명', width: '140px', type: 'input' },
-        { field: 'unitPrice', header: '단가(원)', width: '100px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
-        { field: 'ltime', header: '리드타임(일)', width: '60px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
+        { field: 'unitPrice', header: '단가(원)', width: '80px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
+        { field: 'ltime', header: '리드타임(일)', width: '80px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
     ];
 
     mataerialColumns.value = [
@@ -221,7 +221,7 @@ onBeforeMount(() => {
         { field: 'mateName', header: '자재명' },
         { field: 'mateType', header: '유형' },
         { field: 'stoCon', header: '보관조건' },
-        { field: 'edate', header: '소비기한(일)' }
+        { field: 'edate', header: '소비기한(일)', align: 'right', slot: true }
     ];
 
     inputFormButtons.value = {
@@ -355,7 +355,8 @@ const handleReset = async () => {
         <div class="w-full md:basis-[45%]">
             <InputForm title="자재정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveMaterial" />
         </div>
-        <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+        <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems"
+        :selectedItem="selectedMaterial" :titleName="selectedMaterial.mateName" :titleCode="selectedMaterial.mcode"  />
     </div>
 </template>
 

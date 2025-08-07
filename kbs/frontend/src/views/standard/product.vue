@@ -55,6 +55,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const productColumns = ref([]); // 제품목록 테이블 컬럼
 const inputFormButtons = ref({}); // 제품 등록 버튼
+const selectedProduct = ref({});
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -84,9 +85,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedPcode.value = rowData.pcode;
+    selectedProduct.value = { prodName: rowData.prodName, pcode: rowData.pcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.pcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -296,5 +296,6 @@ const handleSearch = async (searchData) => {
             <InputForm title="제품정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveProduct" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" 
+    :selectedItem="selectedProduct" :titleName="selectedProduct.prodName" :titleCode="selectedProduct.pcode"/>
 </template>

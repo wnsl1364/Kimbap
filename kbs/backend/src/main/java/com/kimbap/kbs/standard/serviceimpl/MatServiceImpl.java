@@ -129,7 +129,8 @@ public class MatServiceImpl implements MatService {
                 !Objects.equals(oldMat.getMoqty(), newMat.getMoqty()) ||
                 !Objects.equals(oldMat.getSafeStock(), newMat.getSafeStock()) ||
                 !Objects.equals(oldMat.getStd(), newMat.getStd()) ||
-                !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit());
+                !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit()) ||
+                !Objects.equals(oldMat.getEdate(), newMat.getEdate());
 
         if (isChanged) {
             // ✅ 내용 변경 → 버전 증가
@@ -141,6 +142,7 @@ public class MatServiceImpl implements MatService {
             newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
             newMat.setModi(newMat.getModi());
 
+            // ✅ 자재 INSERT
             matMapper.insertMat(newMat);
 
             // ✅ 자재버전 참조 중인 자식 테이블도 버전 업데이트
@@ -150,14 +152,18 @@ public class MatServiceImpl implements MatService {
                 nextVer
             );
 
-            // ✅ 공급처 insert (같은 버전 사용)
-            if (newMat.getSuppliers() != null) {
+            // ✅ 공급처 처리
+            if (newMat.getSuppliers() != null && !newMat.getSuppliers().isEmpty()) {
+                // 1) 기존 공급처 삭제
+                matMapper.deleteMatSuppliersByMaterial(newMat.getMcode(), nextVer);
+
+                // 2) 신규 공급처 insert
                 int index = 1;
                 for (MatSupplierVO supplier : newMat.getSuppliers()) {
                     supplier.setMcode(newMat.getMcode());
-                    supplier.setMateVerCd(newMat.getMateVerCd());
+                    supplier.setMateVerCd(nextVer);
 
-                    String mateCpCd = String.format("%s-%s-SUP-%02d", newMat.getMcode(), newMat.getMateVerCd(), index);
+                    String mateCpCd = String.format("%s-%s-SUP-%02d", newMat.getMcode(), nextVer, index);
                     supplier.setMateCpCd(mateCpCd);
 
                     matMapper.insertMatSupplier(supplier);
@@ -167,7 +173,12 @@ public class MatServiceImpl implements MatService {
 
         } else if (!Objects.equals(oldMat.getIsUsed(), newMat.getIsUsed())) {
             // ✅ 사용여부만 변경됨 → update만
-            matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), newMat.getIsUsed(), newMat.getModi());
+            matMapper.updateIsUsedOnly(
+                oldMat.getMcode(),
+                oldMat.getMateVerCd(),
+                newMat.getIsUsed(),
+                newMat.getModi()
+            );
         } else {
             // ❌ 아무것도 안 바뀐 경우
             System.out.println("⚠️ 자재 정보 변경 없음, 처리 생략");

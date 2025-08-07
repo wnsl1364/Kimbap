@@ -118,8 +118,8 @@ public class MaterialsVO {
     private Date regDt;
     private String movementType;
     private String movementCategory;
-    private Date regDtStart;
-    private Date regDtEnd;
+    private String regDtStart;
+    private String regDtEnd;
     private Integer qty;
 
     // ========== 편의 메서드들 ==========

@@ -71,7 +71,10 @@ const initializeColumns = () => {
         let initialValue = '';
 
         // 범위 검색 타입들은 객체로 초기화
-        if (column.type === 'dateRange') {
+        // ✅ default 값 우선 적용
+        if (column.default !== undefined) {
+            initialValue = column.default;
+        } else if (column.type === 'dateRange') {
             initialValue = { start: null, end: null };
         } else if (column.type === 'numberRange') {
             // 숫자 범위는 기본값 0으로 설정! ✨
