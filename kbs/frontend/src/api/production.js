@@ -96,3 +96,8 @@ export const processProdLoadingSingle = (prodLoadingData) => {
 export const processProdLoadingBatch = (prodLoadingList) => {
   return axios.post('/api/prod/prodLoading/processBatch', prodLoadingList);
 };
+
+// ========= MRP, 발주 등록 관려 API ============================
+export const getMrpPreview = (data) => {
+  return axios.post('/api/prod/prodPlan/mrpPreview', data)
+}

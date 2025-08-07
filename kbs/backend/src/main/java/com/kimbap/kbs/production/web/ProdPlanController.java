@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kimbap.kbs.production.service.MrpPreviewVO;
 import com.kimbap.kbs.production.service.ProdPlanDetailVO;
 import com.kimbap.kbs.production.service.ProdPlanFullVO;
 import com.kimbap.kbs.production.service.ProdPlanService;
@@ -30,7 +31,6 @@ public class ProdPlanController {
     public List<ProdPlanVO> list() {
         return service.getAllPlans();
     }
-
     // 생산계획 조건 검색
     @PostMapping("/search")
     public List<ProdPlanVO> searchPlans(@RequestBody ProdPlanVO condition) {
@@ -63,4 +63,26 @@ public class ProdPlanController {
         service.runMrpByProdPlan(produPlanCd);
         return ResponseEntity.ok("MRP 완료");
     }
+    // MRP 기반 발주서 생성
+    @PostMapping("/createPurchaseOrder")
+    public ResponseEntity<?> createPurchaseOrderFromMrp(@RequestParam String mrpCd) {
+        try {
+            service.createPurchaseOrderFromMrp(mrpCd);
+            return ResponseEntity.ok("발주서 생성 완료");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("발주서 생성 실패: " + e.getMessage());
+        }
+    }
+
+    // MRP 미리보기 - 기존 VO 재사용
+    @PostMapping("/mrpPreview")
+    public ResponseEntity<MrpPreviewVO> getMrpPreview(@RequestBody ProdPlanFullVO fullVO) {
+        try {
+            MrpPreviewVO preview = service.getMrpPreview(fullVO);
+            return ResponseEntity.ok(preview);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
 }
