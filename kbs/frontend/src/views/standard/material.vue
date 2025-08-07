@@ -212,8 +212,8 @@ onBeforeMount(() => {
     cpColumns.value = [
         { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '100px',align: "left" ,placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
         { field: 'cpName', header: '거래처명', width: '140px', type: 'input' },
-        { field: 'unitPrice', header: '단가(원)', width: '100px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
-        { field: 'ltime', header: '리드타임(일)', width: '60px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
+        { field: 'unitPrice', header: '단가(원)', width: '80px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
+        { field: 'ltime', header: '리드타임(일)', width: '80px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
     ];
 
     mataerialColumns.value = [
@@ -221,7 +221,7 @@ onBeforeMount(() => {
         { field: 'mateName', header: '자재명' },
         { field: 'mateType', header: '유형' },
         { field: 'stoCon', header: '보관조건' },
-        { field: 'edate', header: '소비기한(일)' }
+        { field: 'edate', header: '소비기한(일)', align: 'right', slot: true }
     ];
 
     inputFormButtons.value = {

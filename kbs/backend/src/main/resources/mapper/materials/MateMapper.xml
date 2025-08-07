@@ -1094,6 +1094,7 @@
         )
     </insert>
     
+    <!--  자재입출고 내역 -->
     <select id="selectMaterialFlowList" parameterType="map" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT *
         FROM (
@@ -1109,12 +1110,14 @@
                 i.lot_no,
                 i.note
             FROM mate_inbo i
-            JOIN material m ON i.mcode = m.mcode
+            JOIN material m 
+            ON i.mcode = m.mcode 
+            AND i.mate_ver_cd = m.mate_ver_cd
             LEFT JOIN warehouse wh ON i.wcode = wh.wcode
 
             UNION ALL
 
-            SELECT 
+            SELECT DISTINCT
                 TRUNC(r.cre_dt) AS reg_dt,
                 '출고' AS movement_type,
                 r.rel_type AS movement_category,
@@ -1126,7 +1129,9 @@
                 r.lot_no,
                 r.note
             FROM mate_rel r
-            JOIN material m ON r.mcode = m.mcode
+            JOIN material m 
+            ON r.mcode = m.mcode
+            AND r.mate_ver_cd = m.mate_ver_cd
             LEFT JOIN ware_stock ws ON r.wslcode = ws.wslcode
             LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
             LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
@@ -1144,13 +1149,58 @@
             <if test="lotNo != null and lotNo != ''">
                 AND t.lot_no LIKE '%' || #{lotNo} || '%'
             </if>
-            <if test="regDtStart != null">
-                AND t.reg_dt &gt;= #{regDtStart}
+            <if test="regDtStart != null and regDtStart != ''">
+                AND t.reg_dt &gt;= TO_DATE(#{regDtStart}, 'YYYY-MM-DD')
             </if>
-            <if test="regDtEnd != null">
-                AND t.reg_dt &lt;= #{regDtEnd}
+            <if test="regDtEnd != null and regDtEnd != ''">
+                AND t.reg_dt &lt;= TO_DATE(#{regDtEnd}, 'YYYY-MM-DD')
             </if>
         </where>
         ORDER BY t.reg_dt DESC
     </select>
+
+
+    <!-- 하루치  -->
+    <select id="selectTodayMaterialFlowList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT *
+        FROM (
+            SELECT 
+                TRUNC(i.inbo_dt) AS reg_dt,
+                '입고' AS movement_type,
+                '발주' AS movement_category,
+                m.mate_name,
+                m.mcode,
+                i.total_qty AS qty,
+                m.unit,
+                wh.ware_name,
+                i.lot_no,
+                i.note
+            FROM mate_inbo i
+            JOIN material m ON i.mcode = m.mcode
+            AND i.mate_ver_cd = m.mate_ver_cd
+            LEFT JOIN warehouse wh ON i.wcode = wh.wcode
+
+            UNION ALL
+
+            SELECT 
+                TRUNC(r.cre_dt) AS reg_dt,
+                '출고' AS movement_type,
+                r.rel_type AS movement_category,
+                m.mate_name,
+                m.mcode,
+                r.rel_qty AS qty,
+                m.unit,
+                wh.ware_name,
+                r.lot_no,
+                r.note
+            FROM mate_rel r
+            JOIN material m ON r.mcode = m.mcode
+            AND r.mate_ver_cd = m.mate_ver_cd
+            LEFT JOIN ware_stock ws ON r.wslcode = ws.wslcode
+            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+            LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
+        ) t
+        WHERE t.reg_dt = TRUNC(SYSDATE)
+        ORDER BY t.reg_dt DESC
+        </select>
 </mapper>

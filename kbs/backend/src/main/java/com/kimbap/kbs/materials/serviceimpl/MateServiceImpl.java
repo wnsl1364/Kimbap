@@ -1083,4 +1083,8 @@ public class MateServiceImpl implements MateService {
     public List<MaterialsVO> getMaterialFlowList(MaterialsVO search) {
         return mateMapper.selectMaterialFlowList(search);
     }
+    @Override
+    public List<MaterialsVO> getTodayMaterialFlowList() {
+        return mateMapper.selectTodayMaterialFlowList();
+    }
 }

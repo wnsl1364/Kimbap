@@ -1,22 +1,28 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { format, isValid } from 'date-fns';
-import { getMaterialFlowList } from '@/api/materials';
+import { format } from 'date-fns';
+import { getMaterialFlowList, getTodayMaterialFlowList } from '@/api/materials';
 import { useToast } from 'primevue/usetoast';
 
 export const usemathistoryListStore = defineStore('MatHistory', () => {
   const mathistoryList = ref([]); // 입출고 내역 목록
   const toast = useToast();
 
+    const fetchTodayMatHistorys = async () => {
+    try {
+      const res = await getTodayMaterialFlowList();
+      mathistoryList.value = res.data || [];
+    } catch (err) {
+      console.error('❌ 오늘 입출고 조회 실패:', err);
+    }
+  };
+
   // 자재 입출고 내역 조회
   const fetchMatHistorys = async (searchData = {}) => {
-    const dateRange = searchData.regDt || {};
-
-    // ✅ 필드명 백엔드 VO에 맞게 수정 (regDtStart, regDtEnd)
     const params = {
       movementType: searchData.movementType || '',
-      regDtStart: isValid(dateRange.start) ? format(dateRange.start, 'yyyy-MM-dd') : '',
-      regDtEnd: isValid(dateRange.end) ? format(dateRange.end, 'yyyy-MM-dd') : '',
+      regDtStart: searchData.regDtStart || '',
+      regDtEnd: searchData.regDtEnd || '',
       mateName: searchData.mateName || '',
       wareName: searchData.wareName || '',
       lotNo: searchData.lotNo || ''
@@ -47,6 +53,7 @@ export const usemathistoryListStore = defineStore('MatHistory', () => {
 
   return {
     mathistoryList,
+    fetchTodayMatHistorys,
     fetchMatHistorys
   };
 });

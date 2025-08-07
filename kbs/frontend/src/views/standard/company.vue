@@ -110,7 +110,7 @@ onBeforeMount(() => {
         { field: 'cpName', header: '거래처명' },
         { field: 'cpType', header: '거래처유형' },
         { field: 'repname', header: '대표자명' },
-        { field: 'loanTerm', header: '여신기간(일)' }
+        { field: 'loanTerm', header: '여신기간(일)', align: 'right', slot: true }
     ];
 
     inputFormButtons.value = {

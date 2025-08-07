@@ -994,16 +994,15 @@ public class MateController {
         }
     }
 
-    //
-     // ✅ 날짜 문자열 변환 가능하게 설정
-    @InitBinder
-    public void initBinder(WebDataBinder binder) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd"); // ISO 8601
-        sdf.setLenient(false);
-        binder.registerCustomEditor(Date.class, new CustomDateEditor(sdf, true));
-    }
+
+
+    // 자재 입출고 내역 조회
     @GetMapping("/flow")
     public List<MaterialsVO> getMaterialFlowList(MaterialsVO search) {
         return mateService.getMaterialFlowList(search);
+    }
+    @GetMapping("/flow/today")
+    public List<MaterialsVO> getTodayMaterialFlowList() {
+        return mateService.getTodayMaterialFlowList();
     }
 }

@@ -10,7 +10,7 @@ import InputTable from '@/components/kimbap/table/InputTable.vue';
 // 🟩 Pinia 상태 및 액션
 const store = usemathistoryListStore();
 const { mathistoryList } = storeToRefs(store);
-const { fetchMatHistorys   } = store;
+const { fetchMatHistorys, fetchTodayMatHistorys } = store;
 
 // 공통코드 가져오기
 const common = useCommonStore();
@@ -43,6 +43,7 @@ const inputTableButtons = ref({});
 
 // UI 구성 정의
 onBeforeMount(() => {
+    const today = new Date(); // ← 여기에 추가
     searchColumns.value = [
         {
             key: 'movementType',
@@ -57,7 +58,11 @@ onBeforeMount(() => {
         {
             key: 'regDt',
             label: '기간',
-            type: 'dateRange'
+            type: 'dateRange',
+            default: {
+                start: today,
+                end: today
+            }
         },
         {
             key: 'mateName',
@@ -79,15 +84,15 @@ onBeforeMount(() => {
         }
     ];
     InputTablecolumns.value = [
-        { field: 'regDt', header: '일자', type: 'readonly' },
-        { field: 'movementType', header: '구분', type: 'readonly' },       // 입고 / 출고
-        { field: 'movementCategory', header: '유형', type: 'readonly' },   // 발주 / 공통코드
-        { field: 'mcode', header: '자재코드', type: 'readonly' },
-        { field: 'mateName', header: '자재명', type: 'readonly' },
-        { field: 'qty', header: '수량', type: 'readonly' },                // 입고 = totalQty / 출고 = relQty
-        { field: 'unit', header: '단위', type: 'readonly' },
-        { field: 'wareName', header: '창고', type: 'readonly' },
-        { field: 'lotNo', header: 'LOT번호', type: 'readonly' },
+        { field: 'regDt', header: '일자', type: 'readonly', width: '120px' },
+        { field: 'movementType', header: '구분', type: 'readonly', width: '80px' },       // 입고 / 출고
+        { field: 'movementCategory', header: '유형', type: 'readonly', width: '80px' },   // 발주 / 공통코드
+        { field: 'mcode', header: '자재코드', type: 'readonly' , width: '120px'},
+        { field: 'mateName', header: '자재명', type: 'readonly' , width: '170px'},
+        { field: 'qty', header: '수량', type: 'readonly' , width: '120px', align: 'right'},                // 입고 = totalQty / 출고 = relQty
+        { field: 'unit', header: '단위', type: 'readonly' , width: '80px'},
+        { field: 'wareName', header: '창고', type: 'readonly' , width: '140px'},
+        { field: 'lotNo', header: 'LOT번호', type: 'readonly', width: '200px' },
         { field: 'note', header: '비고', type: 'readonly' }
     ];
 });
@@ -95,7 +100,7 @@ onBeforeMount(() => {
 onMounted(async () => {
     await common.fetchCommonCodes('0Y'); // 발주 유형
     await common.fetchCommonCodes('0G'); // 발주 유형
-    await fetchMatHistorys();
+    await fetchTodayMatHistorys(); 
 });
 
 const handleSearch = async (searchData) => {
@@ -103,7 +108,7 @@ const handleSearch = async (searchData) => {
 };
 
 const handleReset = async () => {
-    await fetchMatHistorys();
+     await fetchTodayMatHistorys(); 
 };
 </script>
 <template>

@@ -381,3 +381,7 @@ export const getSameMaterialAreas = (mcode, fcode, excludeAreaCd = '') => {
 export const getMaterialFlowList = (params) => {
   return axios.get('/api/materials/flow', { params });
 };
+// 입출고내역 하루
+export async function getTodayMaterialFlowList() {
+  return axios.get('/api/materials/flow/today');
+}

@@ -260,6 +260,12 @@
         SELECT COUNT(*) FROM MATE_SUPPLIER WHERE mcode = #{mcode}
     </select>
 
+    <delete id="deleteMatSuppliersByMaterial">
+        DELETE FROM MATE_SUPPLIER
+        WHERE mcode = #{mcode}
+        AND mate_ver_cd = #{mateVerCd}
+    </delete>
+
     
     <update id="updateIsUsedOnly">
         UPDATE material
