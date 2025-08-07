@@ -11,7 +11,8 @@ import { getFactoryList,                  // 공장 목록 조회
          postProdRequestListByCondition,  // 생산요청 목록 조건 검색
          getProdRequestDetailList,        // 생산요청별 상세내역 조회
          postSaveProdReq,                 // 생산요청 등록
-         deleteProductionReq              // 생산요청 삭제
+         deleteProductionReq,             // 생산요청 삭제
+         getMrpPreview                    // MRP, 발주서 미리보기
         } from '@/api/production';
 
 export const useProductStore = defineStore('product', () => {
@@ -127,6 +128,17 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
+  // MRP 미리보기 조회
+  const fetchMrpPreview = async (planData) => {
+    try {
+      const res = await getMrpPreview(planData)
+      return res.data
+    } catch (err) {
+      console.error('MRP 미리보기 조회 실패:', err)
+      throw err
+    }
+  }
+
   return {
     factoryList,                      // 공장 목록
     prodPlanList,                     // 생산계획 목록
@@ -145,6 +157,7 @@ export const useProductStore = defineStore('product', () => {
     fetchProdRequestListByCondition,  // 생산요청 목록 조건 조회 함수
     fetchProdRequestDetailList,       // 생산요청의 상세 목록 조회
     saveProdReq,                      // 생산요청 저장
-    deleteProdReq                     // 생산요청 삭제
+    deleteProdReq,                    // 생산요청 삭제
+    fetchMrpPreview                   // MRP, 발주 미리보기
   }
 })

@@ -10,6 +10,7 @@ import { useProductStore } from '@/stores/productStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore'
 import ProdPlanSelectModal from '@/views/production/ProdPlanSelectModal.vue' // 생산계획 가져오기 모달
+import MrpPreviewModal from '@/views/production/MrpPreviewModal.vue' // MRP 미리보기 모달
 
 // 로그인 정보 가져오기 ====================================================
 const memberStore = useMemberStore()
@@ -34,8 +35,15 @@ const {
 } = store
 
 const prodDetailList = ref([]); // 생산계획 제품 목록
-const formData = ref({});  // 선택된 행 초기값 
+const formData = ref({});       // 선택된 행 초기값 
 const modalVisible = ref(false) // 모달 열기 상태
+
+// ==============================================
+const mrpPreviewVisible = ref(false) // MRP 미리보기 모달 상태
+const mrpPreviewData = ref({})       // MRP 미리보기 데이터
+const mrpPreviewLoading = ref(false) // 로딩 상태
+const pendingPlanData = ref(null)    // 저장 대기 중인 생산계획 데이터
+// ==============================================
 
 // 공통코드 가져오기
 const common = useCommonStore()
@@ -150,23 +158,80 @@ const handleSave = async (data) => {
 
     console.log('📦 최종 payload (생산계획 저장용)', JSON.stringify(payload, null, 2))
 
-    await store.saveProdPlan(payload)
-    prodDetailList.value = []
+    // 신규 등록이고 제품이 있는 경우에만 MRP 미리보기 표시
+    if (isNew && prodDetailList.value.length > 0) {
+      pendingPlanData.value = payload
+      await showMrpPreview(payload)
+    } else {
+      // 기존처럼 바로 저장
+      await saveProdPlanDirect(payload, isNew)
+    }
+  } catch (err) {
     toast.add({
-      severity: 'success',
-      summary: isNew ? '신규 등록 완료' : '수정 완료',
-      detail: isNew ? '생산계획이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
+      severity: 'error',
+      summary: '처리 실패',
+      detail: '처리 중 오류가 발생했습니다.',
       life: 3000
     });
+  } 
+}
+
+// ===================================================
+// MRP 미리보기 표시
+const showMrpPreview = async (payload) => {
+  mrpPreviewLoading.value = true
+  mrpPreviewVisible.value = true
+  
+  try {
+    const previewData = await store.fetchMrpPreview(payload)
+    mrpPreviewData.value = previewData
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: 'MRP 미리보기 실패',
+      detail: 'MRP 미리보기를 불러오지 못했습니다.',
+      life: 3000
+    })
+    mrpPreviewVisible.value = false
+  } finally {
+    mrpPreviewLoading.value = false
+  }
+}
+// 실제 생산계획 저장
+const saveProdPlanDirect = async (payload, isNew) => {
+  await store.saveProdPlan(payload)
+  prodDetailList.value = []
+  toast.add({
+    severity: 'success',
+    summary: isNew ? '신규 등록 완료' : '수정 완료',
+    detail: isNew ? '생산계획이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
+    life: 3000
+  });
+}
+// MRP 미리보기 모달에서 확인 버튼 클릭
+const handleMrpPreviewConfirm = async () => {
+  try {
+    if (pendingPlanData.value) {
+      await saveProdPlanDirect(pendingPlanData.value, true)
+      pendingPlanData.value = null
+      mrpPreviewData.value = {}
+    }
   } catch (err) {
     toast.add({
       severity: 'error',
       summary: '저장 실패',
-      detail: '저장 실패했습니다.',
+      detail: '생산계획 저장 중 오류가 발생했습니다.',
       life: 3000
     });
   }
 }
+// MRP 미리보기 모달에서 취소 버튼 클릭
+const handleMrpPreviewCancel = () => {
+  pendingPlanData.value = null
+  mrpPreviewData.value = {}
+}
+// ===================================================
+
 // 검색 입력란과 검색 결과 초기화
 const handleReset = () => {
   formData.value = {}
@@ -294,6 +359,14 @@ const modalDataSets = computed(() => ({
     <ProdPlanSelectModal
       v-model:visible="modalVisible"
       @select="handlePlanSelect"
+    />
+    <!-- MRP 미리보기 모달 -->
+    <MrpPreviewModal
+      v-model:visible="mrpPreviewVisible"
+      :mrp-preview="mrpPreviewData"
+      :loading="mrpPreviewLoading"
+      @confirm="handleMrpPreviewConfirm"
+      @cancel="handleMrpPreviewCancel"
     />
   </div>
 </template>

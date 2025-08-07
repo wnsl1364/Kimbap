@@ -13,6 +13,8 @@ public interface ProdPlanService {
   void deleteProdPlan(String produPlanCd);                        // 생산계획과 관련 상세 삭제
 
   // MRP 기능 service ==========================================
-  void runMrpByProdPlan(String produPlanCd);                      // MRP 등록
+  MrpPreviewVO getMrpPreview(ProdPlanFullVO fullVO);       // MRP 미리보기 (기존 로직 재사용)
+  void runMrpByProdPlan(String produPlanCd);               // 실제 MRP 실행
+  void createPurchaseOrderFromMrp(String mrpCd);           // 실제 발주서 생성
 
 }
