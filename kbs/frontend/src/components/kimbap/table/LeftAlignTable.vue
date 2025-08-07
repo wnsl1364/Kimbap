@@ -138,7 +138,21 @@ const handleButtonClick = (type) => {
                       :maxDate="field.maxDate"
                       showIcon class="w-full" />
           </template>
-
+          <template v-else-if="field.type === 'select'">
+            <select
+              class="border rounded flex-1 px-3 py-2 w-full h-10"
+              v-model="props.data[field.field]"
+              :disabled="field.disabled"
+            >
+              <option
+                v-for="opt in field.options"
+                :key="opt[field.optionValue || 'value']"
+                :value="opt[field.optionValue || 'value']"
+              >
+                {{ opt[field.optionLabel || 'label'] }}
+              </option>
+            </select>
+          </template>
           <template v-else>
             <div class="flex items-center w-full h-10">
               <input

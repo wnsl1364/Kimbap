@@ -399,7 +399,7 @@ defineExpose({
                                 @update:modelValue="updateField(slotProps.data, column.field, $event)"
                                 dateFormat="yy-mm-dd" showIcon class="w-full" />
                         </template>
-
+                        
                         <template v-else-if="column.type === 'clickable'">
                             <span
                                 class="text-blue-600 underline cursor-pointer"

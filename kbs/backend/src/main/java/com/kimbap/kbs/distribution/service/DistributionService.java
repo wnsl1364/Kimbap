@@ -15,4 +15,7 @@ public interface DistributionService {
 
   // 모달 선택 후 주문 상세 출력
   List<RelOrdModalVO> getRelOrdSelect(String ordCd);
+
+  // 창고 목록 조회
+  List<WarehouseVO> getWarehouseListByOrdCd(String ordCd);
 }

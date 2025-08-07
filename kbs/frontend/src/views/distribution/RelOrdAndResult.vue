@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
-import { getRelOrdModal, getRelOrdSelect } from '@/api/distribution'
+import { getRelOrdModal, getRelOrdSelect, getWareList } from '@/api/distribution'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
@@ -8,9 +8,14 @@ import { format, parseISO } from 'date-fns'
 import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
+import { useMemberStore } from '@/stores/memberStore'
 import { useRoute } from 'vue-router';
 
 const today = format(new Date(), 'yyyy-MM-dd')
+
+// 로그인 정보 가져오기
+const memberStore = useMemberStore()
+const { user } = storeToRefs(memberStore)
 
 // 라우터 설정
 const route = useRoute()
@@ -24,14 +29,17 @@ const productStore = useOrderProductStore()
 const { formData } = storeToRefs(formStore)
 const { products } = storeToRefs(productStore)
 
+//창고 목록 상태
+const warehouseList = ref([])
+
 const showArrearsModal = ref(false)
 
 // form 필드
 const formFields1 = [
   { label: '출고지시번호', field: 'newRelOrdCd', type: 'text', disabled: true },
-  { label: '작성자', field: '', type: 'text', disabled: true },
+  { label: '작성자', field: 'regi', type: 'text', disabled: true },
   { label: '지시일자', field: 'relDt', type: 'input', disabled: true },
-  { label: '창고', field: '', type: 'text', readonly: true },
+  { label: '비고', field: 'note', type: 'input', disabled: false },
 ];
 const formFields2 = [
   { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
@@ -41,13 +49,22 @@ const formFields2 = [
 ]
 
 // 제품 테이블
-const columns = [
+const columns = computed(() => [
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
   { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'noRelQty', header: '잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
   { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
+  {
+    field: 'wcode', // 창고코드
+    header: '창고',
+    type: 'select',
+    align: 'right',
+    options: warehouseList,  // 창고 목록 변수
+    optionValue: 'wcode',
+    optionLabel: 'wname' // 또는 창고명을 보여주고 싶다면 'wname' 등으로 변경
+  },
   { field: 'relOrdStatus', header: '출고상태', type: 'input', readonly: true }
-]
+]);
 
 // 버튼 설정
 const infoFormButtons = ref({
@@ -117,6 +134,16 @@ const handleLoadOrder = async (selectedRow) => {
     const cpName = productList[0]?.mcpName || '';
     const newRelOrdCd = productList[0]?.newRelOrdCd || '';
 
+    // 3. 창고 리스트
+    const wareRes = await getWareList(ordCd)
+    warehouseList.value = wareRes.data || []
+
+    // 🔥 formFields1 내 '창고' 필드의 options 갱신
+    const wareField = formFields1.find(f => f.field === 'wcode');
+    if (wareField) {
+      wareField.options = [...warehouseList.value]; // ⭐️ 여기가 핵심
+    }
+
     formStore.setFormData({
       ordCd: order.ordCd,
       ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
@@ -127,11 +154,12 @@ const handleLoadOrder = async (selectedRow) => {
       exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
       note: order.note,
       mName: mName,           
-      regi: order.regi,
+      regi : user.value.empName || '',
       relDt: today,
       newRelOrdCd: newRelOrdCd,
+      wcode: '',
     });
-
+    console.log('창고 목록:', warehouseList.value);
     productStore.setProducts(productList);
     console.log('✅ 출고지시 제품 리스트:', productList)
   } catch (err) {
@@ -206,8 +234,4 @@ onUnmounted(() => {
       :enableSelection="false"
     />
   </div>
-  <!-- <div class="mt-4">
-    <h2 class="text-lg mb-0 font-semibold">거절사유</h2>
-    <input v-model="rejectReason" type="text" class="border rounded px-3 py-2 w-full " placeholder="거절 사유를 입력하세요" />
-  </div> -->
 </template>

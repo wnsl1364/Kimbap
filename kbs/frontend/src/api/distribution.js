@@ -19,3 +19,8 @@ export const getRelOrdModal = (filter) => {
 export const getRelOrdSelect = (ordCd) => {
   return axios.get('/api/distribution/relOrderSelect', { params: { ordCd } });
 };
+
+// 창고 목록 조회
+export const getWareList = (ordCd) => {
+  return axios.get('/api/distribution/warehouseList', { params: { ordCd } });
+};

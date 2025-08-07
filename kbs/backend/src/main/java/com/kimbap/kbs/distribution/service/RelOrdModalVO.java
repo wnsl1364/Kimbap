@@ -26,4 +26,5 @@ public class RelOrdModalVO {
   private String mName;
   private String newRelOrdCd;
 
+  
 }
