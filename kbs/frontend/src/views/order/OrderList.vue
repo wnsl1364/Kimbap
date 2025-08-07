@@ -355,6 +355,7 @@ watch(() => route.query.refresh, (newVal) => {
       @rowClick="handleRowClick"
       @refund="handleRefundRequest"
       :showExcelDownload="true"
+      :title="'주문목록'"
     />
   </div>
 </template>
