@@ -279,7 +279,7 @@ const handleSearch = async (searchData) => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="제품 기준정보 목록"
+                title="제품 목록"
                 :data="convertedproductList"
                 dataKey="pcode"
                 :columns="productColumns"

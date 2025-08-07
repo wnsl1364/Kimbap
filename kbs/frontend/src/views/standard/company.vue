@@ -227,7 +227,7 @@ const handleSearch = async (searchData) => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="거래처 기준정보 목록"
+                title="거래처 목록"
                 :data="convertedcompanyList"
                 dataKey="cpCd"
                 :columns="productColumns"

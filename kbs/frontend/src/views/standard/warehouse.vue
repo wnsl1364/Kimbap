@@ -273,7 +273,7 @@ watch(
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="창고 기준정보 목록"
+                title="창고 목록"
                 :data="convertedwarehouseList"
                 dataKey="wcode"
                 :columns="warehouseColumns"

@@ -28,5 +28,11 @@ public class UnpaidServiceImpl implements UnpaidService {
         if (updated2 == 0) {
             throw new RuntimeException("거래처 미정산금액 차감 실패: " + vo.getCpCd());
         }
+
+        // 3. 입금내역에 거래처코드 저장
+        int  updated3 = unpaidSettleMapper.updateStatementCpCd(vo);
+        if  (updated3 == 0) {
+            throw new RuntimeException("거래처 코드 저장 실패: " + vo.getCpCd());
+        }
     }
 }

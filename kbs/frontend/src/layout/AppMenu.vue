@@ -17,23 +17,23 @@ const model = ref([
         label: '기준정보',
         items: [
             {
-                label: '자재 기준정보',
+                label: '자재 관리',
                 to: '/standard/material'
             },
             {
-                label: '제품 기준정보',
+                label: '제품 관리',
                 to: '/standard/product'
             },
             {
-                label: '거래처 기준정보',
+                label: '거래처 관리',
                 to: '/standard/company'
             },
             {
-                label: '공장 기준정보',
+                label: '공장 관리',
                 to: '/standard/factory'
             },
             {
-                label: '창고 기준정보',
+                label: '창고 관리',
                 to: '/standard/warehouse'
             },
         ]
