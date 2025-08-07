@@ -178,13 +178,13 @@ public class OrderController {
 
     // 주문 승인(내부직원)
     @PutMapping("/{ordCd}/approve")
-    public ResponseEntity<?> approveOrder(@PathVariable String ordCd) {
+    public ResponseEntity<?> approveOrder(@PathVariable String ordCd, @RequestBody OrderVO orderVO) {
         try {
-            // 기존 주문 정보 조회 (기존 상태 유지 & 상세 포함)
-            OrderVO existingOrder = orderService.getOrderWithDetails(ordCd);
+            // 주문번호 세팅
+            orderVO.setOrdCd(ordCd);
 
             // 납기 가능일자 누락 검증
-            boolean hasMissingDeliAvail = existingOrder.getOrderDetails().stream()
+            boolean hasMissingDeliAvail = orderVO.getOrderDetails().stream()
                 .anyMatch(d -> d.getDeliAvailDt() == null);
             if (hasMissingDeliAvail) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -193,12 +193,12 @@ public class OrderController {
                 ));
             }
 
-            // 상태만 수정
-            existingOrder.setOrdStatusInternal("a2"); // 승인
-            existingOrder.setOrdStatusCustomer("s2"); // 접수완료
+            // 상태 변경
+            orderVO.setOrdStatusInternal("a2"); // 내부: 승인
+            orderVO.setOrdStatusCustomer("s2"); // 외부: 접수완료
 
-            // update 호출
-            orderService.updateOrder(existingOrder);
+            // DB에 업데이트
+            orderService.updateOrder(orderVO);
 
             return ResponseEntity.ok(Map.of(
                 "result_code", "SUCCESS",
@@ -212,6 +212,7 @@ public class OrderController {
             ));
         }
     }
+
 
 
     // 주문 거절(내부직원)

@@ -361,11 +361,10 @@ defineExpose({
                                 {{
                                 props.dateFields.includes(column.field)
                                     ? formatDate(slotProps.data[column.field])
-                                    : slotProps.data[column.field]
+                                    : (column.formatter ? column.formatter(slotProps.data[column.field]) : slotProps.data[column.field])
                                 }}
                             </span>
                         </template>
-
                         <template v-else-if="column.type === 'input'">
                             <div class="flex items-center border rounded h-10 w-full overflow-hidden">
                                 <input :value="slotProps.data[column.field]"
@@ -420,7 +419,6 @@ defineExpose({
                                 @click.stop="$emit(column.buttonEvent || 'buttonClick', slotProps.data, column)"
                             />
                         </template>
-
                     </template>
                 </Column>
             </DataTable>
