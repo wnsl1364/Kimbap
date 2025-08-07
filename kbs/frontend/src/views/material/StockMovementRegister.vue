@@ -10,6 +10,7 @@ import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import MultipleSelectModal from '@/components/kimbap/modal/multipleselect.vue';
 import LocationSelectModal from './LocationSelectModal.vue';
+import { getPendingMoveRequestPlacements } from '@/api/materials';
 
 // Store 및 기본 설정
 const stockMovementStore = useStockMovementStore();
@@ -28,15 +29,17 @@ const selectedItems = ref([]);
 const itemSelectModalVisible = ref(false);
 const locationSelectModalVisible = ref(false);
 const currentRowForLocation = ref(null);
-const isInitialized = ref(false); // 초기화 상태 추적
-const formKey = ref(0); // InputForm 강제 재렌더링용 키
+const isInitialized = ref(false);
+const inputFormRef = ref(null);
 
 // 품목 선택 모달용 데이터
 const availableItems = ref([]);
 const selectedItemsFromModal = ref([]);
-const modalItemsWithQty = ref([]); // 모달에서 수량 입력된 아이템들
 
-// 자재 선택 모달 컬럼 설정 (자재 전용)
+// 이동요청 중인 자재 배치 정보 (d1 상태)
+const pendingMoveRequestPlacements = ref([]);
+
+// 자재 선택 모달 컬럼 설정
 const itemModalColumns = computed(() => [
   { field: 'itemCode', header: '자재번호', type: 'readonly' },
   { field: 'itemName', header: '자재명', type: 'readonly' },
@@ -45,6 +48,44 @@ const itemModalColumns = computed(() => [
   { field: 'areaLocation', header: '구역', type: 'readonly' },
   { field: 'qty', header: '재고수량', type: 'readonly', align: 'right' },
   { field: 'moveQty', header: '이동수량', type: 'input', inputType: 'number', align: 'right', placeholder: '수량 입력', required: true }
+]);
+
+// 헤더 폼 필드 설정
+const headerFormFields = computed(() => [
+  { key: 'reqDt', label: '요청일', type: 'readonly' },
+  { key: 'requName', label: '요청자', type: 'readonly' },
+  { 
+    key: 'moveType', 
+    label: '이동유형', 
+    type: 'dropdown',
+    required: true,
+    options: [
+      { label: '내부', value: 'z1' },
+      { label: '외부', value: 'z2' }
+    ]
+  },
+  { key: 'moveRea', label: '이동사유', type: 'input', required: true, placeholder: '이동사유를 입력하세요' },
+  { key: 'note', label: '비고', type: 'input', placeholder: '비고사항을 입력하세요' }
+]);
+
+// 자재 테이블 컬럼 설정
+const itemTableColumns = computed(() => [
+  { field: 'itemCode', header: '자재코드', type: 'readonly' },
+  { field: 'itemName', header: '자재명', type: 'readonly' },
+  { field: 'lotNo', header: 'LOT번호', type: 'readonly' },
+  { field: 'moveQty', header: '수량', type: 'readonly', align: 'right' },
+  { field: 'unitText', header: '단위', type: 'readonly' },
+  { field: 'depaLocation', header: '출발위치', type: 'readonly' },
+  { field: 'arrLocation', header: '도착위치', type: 'readonly', width: '250px' },
+  { 
+    field: 'locationSelect', 
+    header: '위치선택', 
+    type: 'button', 
+    buttonLabel: '선택',
+    buttonIcon: 'pi pi-map-marker',
+    buttonEvent: 'locationSelect',
+    width: '100px'
+  }
 ]);
 
 // 컴포넌트 마운트 시 초기화
@@ -87,19 +128,22 @@ const formatDate = (date) => {
 // 초기 데이터 로드
 const loadInitialData = async () => {
   try {
-    // 공통코드 로드
     await Promise.all([
       commonStore.fetchCommonCodes('0G'), // 단위코드
-      commonStore.fetchCommonCodes('0H'), // 품목유형코드
+      commonStore.fetchCommonCodes('0H')  // 품목유형코드
     ]);
 
-    // 공장 목록 로드 (품목 선택 모달용)
     if (!stockMovementStore.factoryList || stockMovementStore.factoryList.length === 0) {
       await stockMovementStore.fetchLocationData('factory');
     }
 
-    // 품목 데이터 로드
     await loadAvailableItems();
+    
+    // 이동요청 중인 자재 배치 정보는 필수가 아니므로 별도로 로드
+    loadPendingMoveRequestPlacements().catch(() => {
+      // 에러 발생해도 무시 (이미 함수 내부에서 처리됨)
+    });
+    
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -115,13 +159,9 @@ const loadAvailableItems = async () => {
   try {
     const factories = stockMovementStore.factoryList || [];
     const allItems = [];
-    let materialLoadCount = 0;
     let failedFactories = [];
     
     for (const factory of factories) {
-      console.log(`공장 ${factory.fcode} (${factory.facName}) 자재 조회 시작`);
-      
-      // 자재만 가져오기 (완제품 제외)
       try {
         await stockMovementStore.fetchAvailableItems(factory.fcode, 'material');
         const materials = (stockMovementStore.availableMaterials || []).map(item => ({
@@ -130,52 +170,34 @@ const loadAvailableItems = async () => {
           itemType: item.mateType || 'h1',
           itemCode: item.mcode,
           itemName: item.mateName,
-          mateVerCd: item.mateVerCd || item.mate_ver_cd || '001', // 백엔드에서 가져온 mate_ver_cd 사용
+          mateVerCd: item.mateVerCd || item.mate_ver_cd || '001',
           areaLocation: item.wareAreaCd || `${item.areaRow || ''}${item.areaCol || ''}` || '미지정'
         }));
         
         allItems.push(...materials);
-        materialLoadCount += materials.length;
-        console.log(`공장 ${factory.fcode} 자재 로드 성공: ${materials.length}건`);
       } catch (error) {
-        console.error(`공장 ${factory.fcode} 자재 로드 실패:`, error);
         if (!failedFactories.includes(factory.facName)) {
           failedFactories.push(factory.facName);
         }
       }
-      
-      // 완제품 이동 기능은 비활성화
-      console.log(`공장 ${factory.fcode} 제품 로드 생략 (완제품 이동 기능 비활성화)`);
     }
     
-    // 공통코드 변환 적용
     let processedItems = convertItemTypeCodes(allItems);
     processedItems = convertUnitCodes(processedItems);
     
     availableItems.value = processedItems;
     
-    // 로딩 결과 요약 출력
-    console.log(`품목 데이터 로드 완료 - 총 ${processedItems.length}건 (자재: ${materialLoadCount}건)`);
-    
-    // 사용자에게 로딩 결과 알림
+    // 실패한 공장이 있을 때만 알림
     if (failedFactories.length > 0) {
       toast.add({
         severity: 'warn',
         summary: '일부 데이터 로드 실패',
-        detail: `${failedFactories.join(', ')} 공장의 일부 자재 데이터를 로드할 수 없습니다. 사용 가능한 ${processedItems.length}건의 자재가 로드되었습니다.`,
-        life: 5000
-      });
-    } else {
-      toast.add({
-        severity: 'success',
-        summary: '자재 데이터 로드 완료',
-        detail: `총 ${processedItems.length}건의 자재가 로드되었습니다.`,
+        detail: `${failedFactories.join(', ')} 공장의 데이터를 로드할 수 없습니다.`,
         life: 3000
       });
     }
     
   } catch (error) {
-    console.error('품목 데이터 로드 실패:', error);
     toast.add({
       severity: 'error',
       summary: '데이터 로드 실패',
@@ -185,61 +207,10 @@ const loadAvailableItems = async () => {
   }
 };
 
-// 헤더 폼 필드 설정
-const headerFormFields = computed(() => [
-  { key: 'reqDt', label: '요청일', type: 'readonly' },
-  { key: 'requName', label: '요청자', type: 'readonly' },
-  { 
-    key: 'moveType', 
-    label: '이동유형', 
-    type: 'dropdown',
-    required: true,
-    options: [
-      { label: '내부', value: 'z1' },
-      { label: '외부', value: 'z2' }
-    ]
-  },
-  { key: 'moveRea', label: '이동사유', type: 'input', required: true, placeholder: '이동사유를 입력하세요' },
-  { key: 'note', label: '비고', type: 'input', placeholder: '비고사항을 입력하세요' }
-]);
-
-// 자재 테이블 컬럼 설정
-const itemTableColumns = computed(() => [
-  { field: 'itemCode', header: '자재코드', type: 'readonly' },
-  { field: 'itemName', header: '자재명', type: 'readonly' },
-  { field: 'lotNo', header: 'LOT번호', type: 'readonly' },
-  { field: 'moveQty', header: '수량', type: 'readonly', align: 'right', description: '자재 선택 시 입력됨' },
-  { field: 'unitText', header: '단위', type: 'readonly' },
-  { field: 'depaLocation', header: '출발위치', type: 'readonly' },
-  { field: 'arrLocation', header: '도착위치', type: 'readonly', width: '250px' },
-  { 
-    field: 'locationSelect', 
-    header: '위치선택', 
-    type: 'button', 
-    buttonLabel: '선택',
-    buttonIcon: 'pi pi-map-marker',
-    buttonEvent: 'locationSelect',
-    width: '100px'
-  }
-]);
-
-// 헤더 폼 데이터 변경 처리
+// 헤더 폼 데이터 변경 처리 - 개선된 버전
 const handleHeaderDataChange = (newData) => {
-  console.log('헤더 데이터 변경 요청:', newData);
-  
-  // 완전히 빈 객체이거나 모든 값이 빈 문자열인 경우 완전 무시
+  // 완전히 빈 객체인 경우만 무시
   if (!newData || Object.keys(newData).length === 0) {
-    console.log('빈 데이터 수신 - 완전 무시');
-    return;
-  }
-  
-  // 모든 값이 빈 문자열, null, undefined인 경우 무시
-  const validValues = Object.entries(newData).filter(([key, value]) => {
-    return value !== '' && value !== null && value !== undefined;
-  });
-  
-  if (validValues.length === 0) {
-    console.log('모든 필드가 빈 값 - 완전 무시');
     return;
   }
   
@@ -247,20 +218,19 @@ const handleHeaderDataChange = (newData) => {
   const protectedFields = ['reqDt', 'requ', 'requName'];
   const currentData = { ...headerFormData.value };
   
-  // 유효한 값만 업데이트
-  validValues.forEach(([key, value]) => {
+  // 모든 필드 업데이트 (빈 값도 허용)
+  Object.entries(newData).forEach(([key, value]) => {
     currentData[key] = value;
   });
   
-  // readonly 필드 보호
+  // readonly 필드 보호 - 기존 값이 있으면 덮어쓰지 않음
   protectedFields.forEach(field => {
-    if (headerFormData.value[field] && !currentData[field]) {
+    if (headerFormData.value[field] && (newData[field] === '' || newData[field] === null || newData[field] === undefined)) {
       currentData[field] = headerFormData.value[field];
     }
   });
   
   headerFormData.value = currentData;
-  console.log('최종 업데이트된 헤더 데이터:', headerFormData.value);
 };
 
 // 품목 테이블 데이터 변경 처리
@@ -273,68 +243,85 @@ const handleSelectionChange = (newSelection) => {
   selectedItems.value = newSelection;
 };
 
-// 자재 추가 버튼 클릭
+// 자재 추가 버튼 클릭 - 강화된 버전
 const handleAddItem = () => {
-  console.log('자재 추가 버튼 클릭됨');
-  try {
-    selectedItemsFromModal.value = [];
-    itemSelectModalVisible.value = true;
-    console.log('모달 상태 변경:', itemSelectModalVisible.value);
-  } catch (error) {
-    console.error('모달 열기 중 오류:', error);
-    toast.add({
-      severity: 'error',
-      summary: '모달 오류',
-      detail: '자재 선택 모달을 여는 중 오류가 발생했습니다.',
-      life: 3000
-    });
-  }
+  // 모달 열기 전에 모든 자재의 수량을 먼저 0으로 초기화
+  availableItems.value = availableItems.value.map(item => ({
+    ...item,
+    moveQty: 0
+  }));
+  
+  // 그 다음 목록에 있는 자재만 수량 복원
+  syncModalQuantityWithTable();
+  
+  // 모달 선택 상태 초기화
+  selectedItemsFromModal.value = [];
+  
+  // 모달 열기
+  itemSelectModalVisible.value = true;
 };
 
-// 자재 선택 모달에서 자재 선택 완료
+// 자재 선택 모달에서 자재 선택 완료 - 수정된 버전
 const handleItemSelect = (selectedItemsFromModal) => {
   try {
-    let hasError = false;
-    
-    selectedItemsFromModal.forEach(item => {
-      // 모달에서 입력된 수량 확인
-      if (!item.moveQty || item.moveQty <= 0) {
-        toast.add({
-          severity: 'warn',
-          summary: '수량 입력 필요',
-          detail: `${item.itemName}의 이동수량을 입력해주세요.`,
-          life: 3000
-        });
-        hasError = true;
-        return;
-      }
-
-      // 입력된 수량이 재고수량을 초과하는지 확인
-      if (item.moveQty > item.qty) {
-        toast.add({
-          severity: 'warn',
-          summary: '수량 초과',
-          detail: `${item.itemName}의 이동수량(${item.moveQty})이 재고수량(${item.qty})을 초과할 수 없습니다.`,
-          life: 3000
-        });
-        hasError = true;
-        return;
-      }
-    });
-
-    // 오류가 있으면 처리 중단
-    if (hasError) {
+    // 체크된 자재들만 처리
+    if (!selectedItemsFromModal || selectedItemsFromModal.length === 0) {
+      toast.add({
+        severity: 'warn',
+        summary: '선택 필요',
+        detail: '추가할 자재를 선택해주세요.',
+        life: 3000
+      });
+      // 모달 닫기 전에 목록 기준으로 수량 동기화
+      syncModalQuantityWithTable();
       return;
     }
 
+    let hasError = false;
+    const errorMessages = [];
+    
     selectedItemsFromModal.forEach(item => {
-      const existingItem = itemTableData.value.find(existing => 
+      if (!item.moveQty || item.moveQty <= 0) {
+        errorMessages.push(`${item.itemName}: 이동수량 입력 필요`);
+        hasError = true;
+      } else if (item.moveQty > item.qty) {
+        errorMessages.push(`${item.itemName}: 수량 초과 (재고: ${item.qty})`);
+        hasError = true;
+      }
+    });
+
+    if (hasError) {
+      toast.add({
+        severity: 'warn',
+        summary: '입력 확인 필요',
+        detail: errorMessages.join(', '),
+        life: 4000
+      });
+      // 에러 발생 시에도 목록 기준으로 수량 동기화
+      syncModalQuantityWithTable();
+      return;
+    }
+
+    // 현재 테이블에 있는 자재들의 키 저장 (기존 목록 보존용)
+    const existingTableKeys = new Set(
+      itemTableData.value.map(existing => `${existing.itemCode}_${existing.lotNo}_${existing.depaAreaCd}`)
+    );
+    
+    // 새로 선택된 자재들의 키
+    const selectedItemKeys = new Set(
+      selectedItemsFromModal.map(item => `${item.itemCode}_${item.lotNo}_${item.wareAreaCd}`)
+    );
+    
+    // 체크된 자재들만 처리 (기존 목록은 건드리지 않음)
+    selectedItemsFromModal.forEach(item => {
+      const existingItemIndex = itemTableData.value.findIndex(existing => 
         existing.itemCode === item.itemCode && 
         existing.lotNo === item.lotNo && 
         existing.depaAreaCd === item.wareAreaCd
       );
       
-      if (!existingItem) {
+      if (existingItemIndex === -1) {
+        // 새로운 자재 추가 (기존 목록에 없는 경우만)
         const newItem = {
           id: Date.now() + Math.random(),
           itemType: item.itemType,
@@ -343,21 +330,20 @@ const handleItemSelect = (selectedItemsFromModal) => {
           itemName: item.itemName,
           lotNo: item.lotNo,
           currentStock: item.qty,
-          moveQty: item.moveQty, // 모달에서 입력된 수량 사용
+          moveQty: item.moveQty,
           unit: item.unit,
           unitText: item.unitText || convertSingleUnitText(item.unit),
           depaAreaCd: item.wareAreaCd,
-          depaWareCd: item.wcode || null, // 출발 창고 코드 추가
+          depaWareCd: item.wcode || null,
           depaLocation: `${item.facName} / ${item.wareName} / ${item.wareAreaCd}`,
           arrAreaCd: '',
-          arrWareCd: null, // 도착 창고 코드 초기화
+          arrWareCd: null,
           arrLocation: '선택해주세요',
-          locationSelect: '', // 위치선택 버튼용 빈 필드
+          locationSelect: '',
           mcode: item.mcode,
           mateVerCd: item.mateVerCd,
           pcode: item.pcode,
           prodVerCd: item.prodVerCd,
-          // LocationSelectModal에서 필요한 원본 자재 정보 추가
           fcode: item.fcode,
           facName: item.facName,
           mateName: item.itemName,
@@ -366,30 +352,64 @@ const handleItemSelect = (selectedItemsFromModal) => {
         
         itemTableData.value.push(newItem);
       } else {
-        // 기존 아이템이 있는 경우 수량 업데이트
-        existingItem.moveQty = item.moveQty;
+        // 기존 자재 수량 업데이트
+        itemTableData.value[existingItemIndex].moveQty = item.moveQty;
       }
     });
+
+    // 모달 확인 후 즉시 수량 동기화 (목록에 없는 자재들의 수량을 0으로 초기화)
+    syncModalQuantityWithTable();
     
+    // 성공 시에만 알림
     toast.add({
       severity: 'success',
-      summary: '자재 추가 완료',
-      detail: `${selectedItemsFromModal.length}개 자재가 추가되었습니다.`,
-      life: 3000
+      summary: '자재 처리 완료',
+      detail: `${selectedItemsFromModal.length}개 자재가 선택되었습니다.`,
+      life: 2000
     });
+    
+    // 모달 닫기
+    itemSelectModalVisible.value = false;
+    
   } catch (error) {
-    console.error('자재 추가 중 오류:', error);
+    // 에러 발생 시에도 목록 기준으로 수량 동기화
+    syncModalQuantityWithTable();
+    
     toast.add({
       severity: 'error',
-      summary: '자재 추가 실패',
-      detail: '자재 추가 중 오류가 발생했습니다.',
+      summary: '자재 처리 실패',
+      detail: '자재 처리 중 오류가 발생했습니다.',
       life: 3000
     });
   }
 };
 
+// 모달의 수량을 목록과 동기화하는 함수 - 강화된 버전
+const syncModalQuantityWithTable = () => {
+  const currentTableItems = new Set();
+  const currentTableQtyMap = new Map();
+  
+  // 현재 테이블에 있는 자재들의 키와 수량을 저장
+  itemTableData.value.forEach(tableItem => {
+    const key = `${tableItem.itemCode}_${tableItem.lotNo}_${tableItem.depaAreaCd}`;
+    currentTableItems.add(key);
+    currentTableQtyMap.set(key, tableItem.moveQty);
+  });
+  
+  // availableItems의 moveQty를 강제로 동기화
+  // - 목록에 있는 자재: 목록의 수량 유지
+  // - 목록에 없는 자재: 무조건 0으로 설정
+  availableItems.value = availableItems.value.map(item => {
+    const key = `${item.itemCode}_${item.lotNo}_${item.wareAreaCd}`;
+    return {
+      ...item,
+      moveQty: currentTableItems.has(key) ? currentTableQtyMap.get(key) : 0
+    };
+  });
+};
+
 // 도착위치 선택 버튼 클릭
-const handleLocationSelect = (rowData) => {
+const handleLocationSelect = async (rowData) => {
   if (!rowData.moveQty || rowData.moveQty <= 0) {
     toast.add({
       severity: 'warn',
@@ -410,9 +430,15 @@ const handleLocationSelect = (rowData) => {
     return;
   }
   
+  // 위치 선택 모달을 열기 전에 최신 이동요청 정보를 다시 로드 (실패해도 진행)
+  try {
+    await loadPendingMoveRequestPlacements();
+  } catch (error) {
+    console.warn('위치 선택 시 이동요청 정보 로드 실패, 계속 진행:', error);
+  }
+  
   currentRowForLocation.value = {
     ...rowData,
-    // 모달에서 사용할 정보 추가
     totalQty: rowData.moveQty
   };
   locationSelectModalVisible.value = true;
@@ -420,42 +446,28 @@ const handleLocationSelect = (rowData) => {
 
 // 도착위치 선택 완료
 const handleLocationSelectConfirm = (locationData) => {
-  console.log('도착위치 선택 완료 데이터:', locationData);
-  console.log('현재 선택된 행:', currentRowForLocation.value);
-  
   if (currentRowForLocation.value && locationData) {
     const targetRowIndex = itemTableData.value.findIndex(item => 
       item.id === currentRowForLocation.value.id
     );
     
     if (targetRowIndex !== -1) {
-      // 첫 번째 배치 계획의 구역 정보를 사용 (단일 구역 선택으로 가정)
       const firstPlan = locationData.placementPlan && locationData.placementPlan[0];
       
       if (firstPlan) {
-        // 반응형 업데이트를 위해 새 객체로 교체
         const updatedItem = {
           ...itemTableData.value[targetRowIndex],
           arrAreaCd: firstPlan.wareAreaCd,
           arrLocation: `${locationData.facName} / ${locationData.wareName} / ${firstPlan.wareAreaCd}`,
           arrFcode: locationData.fcode,
           arrWcode: locationData.wcode,
-          arrWareCd: locationData.wcode // 백엔드 매핑용 필드명 추가
+          arrWareCd: locationData.wcode
         };
         
-        // 배열 요소 교체로 반응형 업데이트 보장
         itemTableData.value.splice(targetRowIndex, 1, updatedItem);
         
-        console.log('도착위치 업데이트 완료:', updatedItem.arrLocation);
-        
-        toast.add({
-          severity: 'success',
-          summary: '도착위치 선택 완료',
-          detail: `도착위치: ${updatedItem.arrLocation}`,
-          life: 3000
-        });
+        // 성공 알림 제거 (UI에서 변경사항을 바로 확인 가능)
       } else {
-        console.error('배치 계획 정보가 없습니다.');
         toast.add({
           severity: 'error',
           summary: '도착위치 설정 실패',
@@ -464,7 +476,6 @@ const handleLocationSelectConfirm = (locationData) => {
         });
       }
     } else {
-      console.error('대상 행을 찾을 수 없습니다.');
       toast.add({
         severity: 'error',
         summary: '도착위치 설정 실패',
@@ -478,14 +489,130 @@ const handleLocationSelectConfirm = (locationData) => {
   locationSelectModalVisible.value = false;
 };
 
-// 선택된 자재 제거
+// 기존 배치 정보 가져오기 (다른 자재들이 이미 선택한 위치들 + 이동요청 중인 자재들)
+const getExistingPlacements = () => {
+  // 현재 목록에서 다른 자재들의 배치 정보 (현재 세션에서 등록 중)
+  const currentPlacements = itemTableData.value
+    .filter(item => item.arrAreaCd && item.itemCode !== currentRowForLocation.value?.itemCode)
+    .map(item => ({
+      wareAreaCd: item.arrAreaCd,
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      mcode: item.mcode,
+      moveQty: item.moveQty,
+      facName: item.facName,
+      source: 'current' // 현재 등록 중인 자재
+    }));
+
+  // 이동요청 중인 자재들의 배치 정보 (DB에 저장된 d1 상태 요청들)
+  const pendingPlacements = pendingMoveRequestPlacements.value
+    .filter(item => item.wareAreaCd) // 도착구역이 설정된 것들만
+    .map(item => ({
+      wareAreaCd: item.wareAreaCd,  // arrAreaCd에서 매핑됨
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      mcode: item.mcode,
+      moveQty: item.moveQty,
+      facName: item.facName,
+      moveReqCd: item.moveReqCd,
+      mrdCode: item.mrdCode,
+      lotNo: item.lotNo,
+      source: 'pending' // 이동요청 중인 자재 (DB의 d1 상태)
+    }));
+
+  console.log('현재 등록 중인 배치:', currentPlacements);
+  console.log('이동요청 중인 배치:', pendingPlacements);
+
+  return [...currentPlacements, ...pendingPlacements];
+};
+
+// 이동요청 중인 자재 배치 정보 로드 (move_status = 'd1')
+const loadPendingMoveRequestPlacements = async () => {
+  try {
+    const response = await getPendingMoveRequestPlacements();
+    
+    // API 응답 데이터를 적절한 형태로 매핑
+    // MyBatis camelCase 변환: move_req_cd -> moveReqCd, mate_name -> mateName 등
+    pendingMoveRequestPlacements.value = (response.data || []).map(item => ({
+      wareAreaCd: item.arrAreaCd,           // 도착구역코드 -> wareAreaCd로 매핑
+      itemCode: item.mcode,                 // 자재마스터코드
+      itemName: item.mateName,              // 자재명 (camelCase 변환됨)
+      mcode: item.mcode,                    // 자재마스터코드
+      moveQty: item.moveQty,                // 이동수량 (camelCase 변환됨)
+      facName: item.facName || '',          // 공장명 (camelCase 변환됨)
+      moveReqCd: item.moveReqCd,            // 이동요청코드 (camelCase 변환됨)
+      lotNo: item.lotNo,                    // LOT번호 (camelCase 변환됨)
+      itemType: item.itemType,              // 품목유형 (camelCase 변환됨)
+      unit: item.unit,                      // 단위
+      depaAreaCd: item.depaAreaCd,          // 출발구역코드 (camelCase 변환됨)
+      arrAreaCd: item.arrAreaCd,            // 도착구역코드 (camelCase 변환됨)
+      moveStatus: item.moveStatus || 'd1'   // 이동상태 (camelCase 변환됨)
+    }));
+    
+    console.log('이동요청 중인 자재 배치 정보 로드 완료:', pendingMoveRequestPlacements.value.length, '개');
+    console.log('로드된 데이터:', pendingMoveRequestPlacements.value);
+  } catch (error) {
+    console.error('이동요청 중인 자재 배치 정보 로드 실패:', error);
+    pendingMoveRequestPlacements.value = [];
+    
+    // 구체적인 에러 정보 로깅
+    if (error.response) {
+      console.error('HTTP 상태:', error.response.status);
+      console.error('응답 데이터:', error.response.data);
+      console.error('요청 URL:', error.config?.url);
+    }
+    
+    toast.add({
+      severity: 'warn',
+      summary: '일부 기능 제한',
+      detail: '이동요청 중인 자재 정보를 불러올 수 없어 위치 충돌 검사가 제한됩니다.',
+      life: 4000
+    });
+  }
+};
+
+// 폼 초기화 함수
+const resetForm = () => {
+  // 헤더 폼 초기화
+  initializeHeaderForm();
+  
+  // 자재 목록 초기화
+  itemTableData.value = [];
+  selectedItems.value = [];
+  
+  // 모달 상태 초기화
+  selectedItemsFromModal.value = [];
+  itemSelectModalVisible.value = false;
+  locationSelectModalVisible.value = false;
+  currentRowForLocation.value = null;
+  
+  // availableItems의 수량 초기화
+  availableItems.value = availableItems.value.map(item => ({
+    ...item,
+    moveQty: 0
+  }));
+  
+  // 이동요청 중인 자재 배치 정보 다시 로드 (실패해도 폼 초기화는 계속)
+  loadPendingMoveRequestPlacements().catch(() => {
+    console.warn('폼 초기화 시 이동요청 정보 로드 실패');
+  });
+  
+  toast.add({
+    severity: 'info',
+    summary: '폼 초기화',
+    detail: '새로운 이동요청서를 작성할 수 있습니다.',
+    life: 2000
+  });
+};
+
+// 선택된 자재 제거 - 강화된 버전
 const handleRemoveSelectedItems = () => {
   if (selectedItems.value.length === 0) {
     toast.add({
       severity: 'warn',
       summary: '선택 필요',
       detail: '제거할 자재를 선택해주세요.',
-      life: 3000
+      life: 2000
     });
     return;
   }
@@ -494,45 +621,17 @@ const handleRemoveSelectedItems = () => {
   itemTableData.value = itemTableData.value.filter(item => !selectedIds.includes(item.id));
   selectedItems.value = [];
   
-  toast.add({
-    severity: 'success',
-    summary: '자재 제거 완료',
-    detail: `${selectedIds.length}개 자재가 제거되었습니다.`,
-    life: 3000
-  });
+  // 목록에서 제거된 자재들의 모달 수량을 즉시 0으로 동기화
+  syncModalQuantityWithTable();
 };
 
 // 저장 처리
 const handleSave = async () => {
-  // 저장 시작 전 헤더 데이터 백업 (깊은 복사)
-  const headerDataBackup = JSON.parse(JSON.stringify(headerFormData.value));
-  console.log('저장 전 백업 데이터:', headerDataBackup);
-  
   try {
-    console.log('저장 시작...');
-    console.log('저장 전 헤더 데이터:', headerFormData.value);
-    
-    // 폼 유효성 검증
     if (!validateForm()) {
-      console.log('폼 유효성 검증 실패 - 저장 중단');
-      
-      // 즉시 복원
-      headerFormData.value = { ...headerDataBackup };
-      console.log('즉시 헤더 데이터 복원:', headerFormData.value);
-      
-      // InputForm 컴포넌트 강제 재렌더링
-      formKey.value += 1;
-      
-      // 추가 지연 복원 (컴포넌트가 다시 렌더링된 후)
-      setTimeout(() => {
-        headerFormData.value = { ...headerDataBackup };
-        console.log('지연된 헤더 데이터 재복원:', headerFormData.value);
-      }, 200);
-      
       return;
     }
     
-    // 헤더 데이터 구성
     const header = {
       moveType: headerFormData.value.moveType,
       moveRea: headerFormData.value.moveRea,
@@ -540,43 +639,23 @@ const handleSave = async () => {
       requ: user.value?.empCd || headerFormData.value.requ
     };
     
-    // 상세 데이터 구성
-    const details = itemTableData.value.map(item => {
-      console.log('원본 아이템 데이터:', item); // 디버그 로그
-      console.log('mateVerCd 값:', item.mateVerCd);
-      console.log('mate_ver_cd 값:', item.mate_ver_cd);
-      
-      const detailItem = {
-        mcode: item.mcode || null,
-        mateVerCd: item.mateVerCd || item.mate_ver_cd || '001', // 기본값 추가
-        pcode: item.pcode || null,
-        prodVerCd: item.prodVerCd || null,
-        itemType: item.itemType,
-        lotNo: item.lotNo,
-        moveQty: item.moveQty,
-        unit: item.unit,
-        depaAreaCd: item.depaAreaCd,
-        arrAreaCd: item.arrAreaCd,
-        // 창고 코드 추가
-        depaWareCd: item.depaWareCd || null,
-        arrWareCd: item.arrWcode || null,
-        // 추가 정보
-        itemCode: item.itemCode,
-        itemName: item.itemName
-      };
-      
-      console.log('전송할 데이터 아이템:', detailItem);
-      return detailItem;
-    });
+    const details = itemTableData.value.map(item => ({
+      mcode: item.mcode || null,
+      mateVerCd: item.mateVerCd || item.mate_ver_cd || '001',
+      pcode: item.pcode || null,
+      prodVerCd: item.prodVerCd || null,
+      itemType: item.itemType,
+      lotNo: item.lotNo,
+      moveQty: item.moveQty,
+      unit: item.unit,
+      depaAreaCd: item.depaAreaCd,
+      arrAreaCd: item.arrAreaCd,
+      depaWareCd: item.depaWareCd || null,
+      arrWareCd: item.arrWcode || null,
+      itemCode: item.itemCode,
+      itemName: item.itemName
+    }));
     
-    const requestData = {
-      header: header,
-      details: details
-    };
-    
-    console.log('전송할 데이터:', requestData);
-    
-    // 로딩 상태 표시
     toast.add({
       severity: 'info',
       summary: '등록 중',
@@ -586,8 +665,6 @@ const handleSave = async () => {
     
     const result = await stockMovementStore.registerNewMoveRequest(header, details);
     
-    console.log('등록 결과:', result);
-    
     toast.add({
       severity: 'success',
       summary: '등록 완료',
@@ -595,54 +672,27 @@ const handleSave = async () => {
       life: 5000
     });
     
-    // 성공한 경우에만 목록 페이지로 이동
-    router.push('/stock-movement/list');
+    // 페이지 이동 대신 폼 초기화 후 최신 이동요청 정보 로드
+    resetForm();
     
   } catch (error) {
-    console.error('등록 실패:', error);
-    console.log('에러 발생 시 백업 데이터:', headerDataBackup);
-    
-    // 에러 발생 시 무조건 백업 데이터로 복원
-    headerFormData.value = { ...headerDataBackup };
-    console.log('에러 시 헤더 데이터 복원:', headerFormData.value);
-    
-    // InputForm 컴포넌트 강제 재렌더링
-    formKey.value += 1;
-    
-    // 추가 지연 복원
-    setTimeout(() => {
-      headerFormData.value = { ...headerDataBackup };
-      console.log('에러 시 지연된 헤더 데이터 재복원:', headerFormData.value);
-    }, 200);
-    
     let errorMessage = '이동요청서 등록 중 오류가 발생했습니다.';
     
     if (error.response) {
-      // 서버에서 반환한 에러 메시지가 있는 경우
       errorMessage = error.response.data?.message || error.response.data?.detail || errorMessage;
-      console.error('서버 에러 응답:', error.response.data);
     }
     
-    // 에러 발생 시 폼 데이터는 그대로 유지하고 에러 메시지만 표시
     toast.add({
       severity: 'error',
       summary: '등록 실패',
       detail: errorMessage,
       life: 5000
     });
-    
-    // 에러 발생 시에는 페이지 이동하지 않고 현재 페이지에 머무름
-    // 사용자가 입력한 데이터가 그대로 유지됨
   }
 };
 
 // 폼 유효성 검증
 const validateForm = () => {
-  console.log('폼 유효성 검증 시작...');
-  console.log('헤더 데이터:', headerFormData.value);
-  console.log('자재 데이터:', itemTableData.value);
-  
-  // 1. 기본정보 검증
   if (!headerFormData.value.moveType) {
     toast.add({
       severity: 'warn',
@@ -663,7 +713,6 @@ const validateForm = () => {
     return false;
   }
   
-  // 2. 자재 목록 검증
   if (itemTableData.value.length === 0) {
     toast.add({
       severity: 'warn',
@@ -674,11 +723,9 @@ const validateForm = () => {
     return false;
   }
   
-  // 3. 각 자재별 상세 검증
   for (let i = 0; i < itemTableData.value.length; i++) {
     const item = itemTableData.value[i];
     
-    // 이동수량 검증
     if (!item.moveQty || item.moveQty <= 0) {
       toast.add({
         severity: 'warn',
@@ -689,7 +736,6 @@ const validateForm = () => {
       return false;
     }
     
-    // 재고 초과 검증
     if (item.moveQty > item.currentStock) {
       toast.add({
         severity: 'warn',
@@ -700,7 +746,6 @@ const validateForm = () => {
       return false;
     }
     
-    // 도착위치 선택 검증
     if (!item.arrAreaCd || item.arrAreaCd.trim() === '') {
       toast.add({
         severity: 'warn',
@@ -711,7 +756,6 @@ const validateForm = () => {
       return false;
     }
     
-    // 필수 필드 검증
     if (!item.itemCode || !item.lotNo) {
       toast.add({
         severity: 'error',
@@ -723,14 +767,12 @@ const validateForm = () => {
     }
   }
   
-  console.log('폼 유효성 검증 통과');
   return true;
 };
 
-
 // 공통코드 형변환 함수들
 const convertItemTypeCodes = (list) => {
-  const itemTypeCodes = commonStore.getCodes('0H'); // 품목유형코드
+  const itemTypeCodes = commonStore.getCodes('0H');
   
   return list.map(item => {
     const matchedType = itemTypeCodes.find(code => code.dcd === item.itemType);
@@ -743,7 +785,7 @@ const convertItemTypeCodes = (list) => {
 };
 
 const convertUnitCodes = (list) => {
-  const unitCodes = commonStore.getCodes('0G'); // 단위코드
+  const unitCodes = commonStore.getCodes('0G');
   
   return list.map(item => {
     const matchedUnit = unitCodes.find(code => code.dcd === item.unit);
@@ -755,7 +797,6 @@ const convertUnitCodes = (list) => {
   });
 };
 
-// 기본 품목유형 텍스트 (공통코드 로드 전 대체용)
 const getDefaultItemTypeText = (itemType) => {
   switch(itemType) {
     case 'h1': return '원자재';
@@ -765,7 +806,6 @@ const getDefaultItemTypeText = (itemType) => {
   }
 };
 
-// 단일 아이템 단위 변환
 const convertSingleUnitText = (unit) => {
   const unitCodes = commonStore.getCodes('0G') || [];
   const unitCode = unitCodes.find(code => code.dcd === unit);
@@ -776,15 +816,20 @@ const convertSingleUnitText = (unit) => {
 watch(selectedItems, (newSelection) => {
   // Store 상태 동기화 등 필요 시 처리
 }, { deep: true });
+
+// itemTableData 변경 감지하여 모달 수량 자동 동기화
+watch(itemTableData, () => {
+  // 목록이 변경될 때마다 모달의 수량을 자동으로 동기화
+  syncModalQuantityWithTable();
+}, { deep: true });
 </script>
 
 <template>
 <div class="space-y-4">
-
   <!-- 기본정보 입력 폼 -->
   <div class="mb-6">
     <InputForm
-      :key="`header-form-${formKey}`"
+      ref="inputFormRef"
       :columns="headerFormFields"
       :data="headerFormData"
       title="기본정보"
@@ -841,6 +886,7 @@ watch(selectedItems, (newSelection) => {
     v-model:visible="locationSelectModalVisible"
     :selectedMaterial="currentRowForLocation"
     :loadingQuantity="currentRowForLocation?.moveQty || 0"
+    :existingPlacements="getExistingPlacements()"
     @confirm="handleLocationSelectConfirm"
   />
 </div>
@@ -861,7 +907,6 @@ watch(selectedItems, (newSelection) => {
 .p-dialog-mask .p-dialog {
   width: 90vw !important;
   max-width: 1200px !important;
-
 }
 
 .p-dialog .p-dialog-content {

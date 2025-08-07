@@ -381,6 +381,13 @@ export const getSameMaterialAreas = (mcode, fcode, excludeAreaCd = '') => {
 export const getMaterialFlowList = (params) => {
   return axios.get('/api/materials/flow', { params });
 };
+
+// 이동요청 상태가 d1(요청)인 모든 자재의 배치 정보 조회
+// MOVE_REQ 테이블의 MOVE_STATUS = 'd1'인 요청들의
+// MOVE_REQ_D 테이블에서 ARR_AREA_CD (도착구역코드) 정보를 조회
+export const getPendingMoveRequestPlacements = () => {
+  return axios.get('/api/materials/stockMovement/stock-movement/pending-placements');
+};
 // 입출고내역 하루
 export async function getTodayMaterialFlowList() {
   return axios.get('/api/materials/flow/today');

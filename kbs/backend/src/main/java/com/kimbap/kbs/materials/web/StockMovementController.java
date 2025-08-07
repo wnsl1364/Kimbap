@@ -424,6 +424,25 @@ public class StockMovementController {
         }
     }
 
+    // ========== 이동요청 중인 자재 배치 정보 관련 ==========
+
+    // 이동요청 중인 자재 배치 정보 조회 (move_status = 'd1')
+    @GetMapping("/stock-movement/pending-placements")
+    public ResponseEntity<List<StockMovementVO>> getPendingMoveRequestPlacements() {
+        try {
+            System.out.println("이동요청 중인 자재 배치 정보 조회 요청");
+            
+            List<StockMovementVO> list = stockMovementService.getPendingMoveRequestPlacements();
+            
+            System.out.println("이동요청 중인 자재 배치 정보 조회 완료: " + list.size() + "건");
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            System.err.println("이동요청 중인 자재 배치 정보 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     // ========== 유틸리티 메서드 ==========
 
     // Map을 VO로 변환하는 헬퍼 메서드
