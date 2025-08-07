@@ -18,6 +18,7 @@ public class RelOrdModalVO {
 
   // 모달 선택시
   private String prodName;
+  private String ordDCd;
   private int ordQty;
   private int relQty;
   private int noRelQty;
@@ -25,6 +26,8 @@ public class RelOrdModalVO {
   private String mCpName;
   private String mName;
   private String newRelOrdCd;
-
+  private String wcode;
+  private String wareVerCd;
+  
   
 }

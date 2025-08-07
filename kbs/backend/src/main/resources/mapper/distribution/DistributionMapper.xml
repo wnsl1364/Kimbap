@@ -5,64 +5,66 @@
   <!-- 입출고 조회 페이지 -->
   <select id="getInOutCheck" resultType="com.kimbap.kbs.distribution.service.DistributionVO" parameterType="com.kimbap.kbs.distribution.service.DistributionVO">
     SELECT
-      temp.regDt,
-      temp.type,
-      temp.pCode,
-      temp.prodName,
-      temp.qty,
-      temp.wareAreaCd,
-      temp.stockQty,
-      temp.note
-    FROM (
-      SELECT 
-        a.inbo_dt AS regDt,
-        '입고' AS type,
-        a.pcode,
-        b.prod_name AS prodName,
-        a.inbo_qty AS qty,
-        '' AS note,
-        c.ware_area_cd AS wareAreaCd,
-        c.qty AS stockQty
-      FROM prod_inbo a
-      JOIN product b ON a.pcode = b.pcode
-      JOIN ware_stock c ON a.prod_inbo_cd = c.prod_inbo_cd
+    temp.regDt,
+    temp.type,
+    temp.pCode,
+    temp.prodName,
+    temp.qty,
+    temp.wareAreaCd,
+    temp.stockQty,
+    temp.note
+  FROM (
+    -- 입고 데이터
+    SELECT 
+      a.inbo_dt AS regDt,
+      '입고' AS type,
+      a.pcode,
+      b.prod_name AS prodName,
+      a.inbo_qty AS qty,
+      '' AS note,
+      c.ware_area_cd AS wareAreaCd,
+      c.qty AS stockQty
+    FROM prod_inbo a
+    JOIN product b ON a.pcode = b.pcode
+    JOIN ware_stock c ON a.prod_inbo_cd = c.prod_inbo_cd
 
-      UNION ALL
+    UNION ALL
 
-      SELECT 
-        a.rel_dt AS regDt,
-        '출고' AS type,
-        b.pcode,
-        b.prod_name AS prodName,
-        a.rel_qty AS qty,
-        d.note,
-        e.ware_area_cd AS wareAreaCd,
-        e.qty AS stockQty
-      FROM prod_rel a
-      JOIN product b ON a.pcode = b.pcode
-      JOIN release_ord d ON a.rel_ord_cd = d.rel_ord_cd
-      JOIN prod_inbo f ON a.lot_no = f.lot_no
-      JOIN ware_stock e ON f.prod_inbo_cd = e.prod_inbo_cd
-    ) temp
+    -- 출고 데이터 (rel_dt 수정)
+    SELECT 
+      rom.rel_dt AS regDt,
+      '출고' AS type,
+      b.pcode,
+      b.prod_name AS prodName,
+      a.rel_qty AS qty,
+      rom.note,
+      e.ware_area_cd AS wareAreaCd,
+      e.qty AS stockQty
+    FROM prod_rel a
+    JOIN product b ON a.pcode = b.pcode
+    JOIN release_ord d ON a.rel_ord_cd = d.rel_ord_cd
+    JOIN release_ord_master rom ON d.rel_mas_cd = rom.rel_mas_cd
+    JOIN prod_inbo f ON a.lot_no = f.lot_no
+    JOIN ware_stock e ON f.prod_inbo_cd = e.prod_inbo_cd
+  ) temp
 
-<where>
-  <if test="prodName != null and prodName != ''">
-    AND temp.prodName LIKE '%' || #{prodName} || '%'
-  </if>
-  <if test="pCode != null and pCode != ''">
-  AND temp.pCode LIKE '%' || #{pCode} || '%'
-</if>
-<if test="wareAreaCd != null and wareAreaCd != ''">
-  AND temp.wareAreaCd LIKE '%' || #{wareAreaCd} || '%'
-</if>
-
-  <if test="type != null and type != '전체'">
-    AND temp.type = #{type}
-  </if>
-  <if test="startDate != null and endDate != null">
-    AND temp.regDt BETWEEN #{startDate} AND #{endDate}
-  </if>
-</where>
+  <where>
+    <if test="prodName != null and prodName != ''">
+      AND temp.prodName LIKE '%' || #{prodName} || '%'
+    </if>
+    <if test="pCode != null and pCode != ''">
+      AND temp.pCode LIKE '%' || #{pCode} || '%'
+    </if>
+    <if test="wareAreaCd != null and wareAreaCd != ''">
+      AND temp.wareAreaCd LIKE '%' || #{wareAreaCd} || '%'
+    </if>
+    <if test="type != null and type != '전체'">
+      AND temp.type = #{type}
+    </if>
+    <if test="startDate != null and endDate != null">
+      AND temp.regDt BETWEEN #{startDate} AND #{endDate}
+    </if>
+  </where>
 
 
     ORDER BY temp.regDt DESC
@@ -72,18 +74,19 @@
   <select id="getRelOrdList" resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO" parameterType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
   SELECT 
     a.rel_ord_cd,
-    a.rel_dt,
+    f.rel_dt,
     d.cp_name,
     e.prod_name,
     a.rel_ord_qty,
     c.deli_add,
-    a.rel_ord_status,
-    a.note
+    f.rel_ord_status,
+    f.note
   FROM release_ord a
   JOIN order_d b ON a.ord_d_cd = b.ord_d_cd
   JOIN order_list c ON c.ord_cd = b.ord_cd
   JOIN company d ON d.cp_cd = c.cp_cd
-  JOIN product e ON e.pcode = b.pcode
+  JOIN product e ON e.pcode = b.pcode AND e.prod_ver_cd = b.prod_ver_cd
+  JOIN release_ord_master f ON a.rel_mas_cd = f.rel_mas_cd 
   <where>
     <if test="cpName != null and cpName != ''">
       AND d.cp_name LIKE '%' || #{cpName} || '%'
@@ -92,10 +95,10 @@
       AND a.rel_ord_cd LIKE '%' || #{relOrdCd} || '%'
     </if>
     <if test="type != null and type != '전체'">
-      AND a.rel_ord_status = #{type}
+      AND f.rel_ord_status = #{type}
     </if>
     <if test="startDate != null and endDate != null">
-      AND a.rel_dt BETWEEN #{startDate} AND #{endDate}
+      AND f.rel_dt BETWEEN #{startDate} AND #{endDate}
     </if>
   </where>
 </select>
@@ -131,21 +134,25 @@
 
 <!-- 출고지시서 모달 선택시 출력 -->
 <select id="getRelOrdSelect" resultType="com.kimbap.kbs.distribution.service.RelOrdModalVO" parameterType="String">
-SELECT
-(
-        SELECT 
-            'REL-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
-            LPAD(NVL(MAX(SUBSTR(rel_ord_cd, -4)), 0) + 1, 4, '0')
-        FROM release_ord
-        WHERE TO_CHAR(rel_dt, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+
+  SELECT
+    (
+      SELECT 
+        'REL-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
+        LPAD(NVL(MAX(TO_NUMBER(SUBSTR(ro.rel_ord_cd, -4))), 0) + 1, 4, '0')
+      FROM release_ord ro
+      WHERE SUBSTR(ro.rel_ord_cd, 5, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
     ) AS newRelOrdCd,
 
     p.prod_name AS prodName,
     od.ord_qty AS ordQty,
     od.pcode AS pCode,
     od.prod_ver_cd AS prodVerCd,
+    od.ord_d_cd AS ordDCd,
     cp.cp_name AS mCpName,
     cp.mname AS mName,
+    w.wcode AS wcode,
+    w.ware_ver_cd AS wareVerCd,
 
     NVL((
         SELECT SUM(pr.rel_qty)
@@ -162,52 +169,55 @@ SELECT
     ), 0)) AS noRelQty,
 
     CASE
-        WHEN NVL((
-            SELECT SUM(pr.rel_qty)
-            FROM prod_rel pr
-            JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-            WHERE ro.ord_d_cd = od.ord_d_cd
-        ), 0) = 0 THEN '미출고'
-        WHEN NVL((
-            SELECT SUM(pr.rel_qty)
-            FROM prod_rel pr
-            JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-            WHERE ro.ord_d_cd = od.ord_d_cd
-        ), 0) &lt; od.ord_qty THEN '부분출고'
-        ELSE '출고완료'
+      WHEN NVL((
+          SELECT SUM(pr.rel_qty)
+          FROM prod_rel pr
+          JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+          WHERE ro.ord_d_cd = od.ord_d_cd
+      ), 0) = 0 THEN '미출고'
+      WHEN NVL((
+          SELECT SUM(pr.rel_qty)
+          FROM prod_rel pr
+          JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+          WHERE ro.ord_d_cd = od.ord_d_cd
+      ), 0) &lt; od.ord_qty THEN '부분출고'
+      ELSE '출고완료'
     END AS relOrdStatus
 
-FROM order_d od
-JOIN product p 
-  ON od.pcode = p.pcode 
- AND od.prod_ver_cd = p.prod_ver_cd
-JOIN order_list odl
-  ON od.ord_cd = odl.ord_cd
-JOIN company cp
-  ON odl.cp_cd = cp.cp_cd
+  FROM order_d od
+  JOIN product p ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
+  JOIN order_list ol ON od.ord_cd = ol.ord_cd
+  JOIN company cp ON ol.cp_cd = cp.cp_cd
 
-WHERE od.ord_cd = #{ordCd}
+  JOIN prod_inbo pi ON pi.pcode = p.pcode AND pi.prod_ver_cd = p.prod_ver_cd
+  JOIN ware_stock ws ON pi.prod_inbo_cd = ws.prod_inbo_cd
+  JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+  JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
+
+  WHERE od.ord_cd = #{ordCd}
 </select>
 
 <!-- 창고출력 select -->
 <select id="getWarehouseListByOrdCd" resultType="com.kimbap.kbs.distribution.service.WarehouseVO" parameterType="String">
-SELECT DISTINCT
-  f.wcode,
-  f.ware_name
-FROM order_d a
-JOIN product b
-  ON a.pcode = b.pcode
- AND a.prod_ver_cd = b.prod_ver_cd
-JOIN prod_inbo c
-  ON b.pcode = c.pcode
- AND b.prod_ver_cd = c.prod_ver_cd
-JOIN ware_stock d
-  ON d.prod_inbo_cd = c.prod_inbo_cd
-JOIN ware_d e
-  ON e.ware_area_cd = d.ware_area_cd
-JOIN warehouse f
-  ON f.wcode = e.wcode
-WHERE a.ord_cd = #{ordCd}
+  SELECT d.wcode,
+         d.ware_name,
+         a.lot_no
+  FROM   prod_inbo a
+  JOIN   ware_stock b
+  ON     a.prod_inbo_cd = b.prod_inbo_cd
+  JOIN   ware_d c
+  ON     b. ware_area_cd = c.ware_area_cd
+  JOIN   warehouse d
+  ON     c.wcode = d.wcode
+  AND    c.ware_ver_cd = d.ware_ver_cd
+  JOIN   product e
+  ON     a.pcode = e.pcode
+  AND    a.prod_ver_cd = e.prod_ver_cd
+  JOIN   order_d f
+  ON     e.pcode = f.pcode
+  AND    e.prod_ver_cd = f.prod_ver_cd
+  WHERE  f.ord_cd = #{ordCd}
 </select>
+
 
 </mapper>

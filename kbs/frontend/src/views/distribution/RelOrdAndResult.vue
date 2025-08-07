@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
-import { getRelOrdModal, getRelOrdSelect, getWareList } from '@/api/distribution'
+import { getRelOrdModal, getRelOrdSelect, getWareList, insertRelOrd } from '@/api/distribution'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
@@ -10,8 +10,6 @@ import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useMemberStore } from '@/stores/memberStore'
 import { useRoute } from 'vue-router';
-
-const today = format(new Date(), 'yyyy-MM-dd')
 
 // 로그인 정보 가져오기
 const memberStore = useMemberStore()
@@ -36,39 +34,65 @@ const showArrearsModal = ref(false)
 
 // form 필드
 const formFields1 = [
-  { label: '출고지시번호', field: 'newRelOrdCd', type: 'text', disabled: true },
+  { label: '출고지시번호', field: 'newRelOrdCd', type: 'text', disabled: false },
   { label: '작성자', field: 'regi', type: 'text', disabled: true },
-  { label: '지시일자', field: 'relDt', type: 'input', disabled: true },
+  { label: '출고일자', field: 'relDt', type: 'calendar', disabled: true },
   { label: '비고', field: 'note', type: 'input', disabled: false },
-];
-const formFields2 = [
-  { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
-  { label: '거래처 담당자', field: 'mName', type: 'text', disabled: true },
-  { label: '납품지 주소', field: 'deliAdd', type: 'text', disabled: true },
-  { label: '납기요청일', field: 'deliReqDt', type: 'text', disabled: true },
-]
-
-// 제품 테이블
-const columns = computed(() => [
-  { field: 'prodName', header: '제품명', type: 'input', readonly: true },
-  { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
+  ];
+  const formFields2 = [
+    { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
+    { label: '거래처 담당자', field: 'mName', type: 'text', disabled: true },
+    { label: '납품지 주소', field: 'deliAdd', type: 'text', disabled: true },
+    { label: '납기요청일', field: 'deliReqDt', type: 'text', disabled: true },
+  ]
+  
+  // 제품 테이블
+  const columns = computed(() => [
+    { field: 'prodName', header: '제품명', type: 'input', readonly: true },
+    { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+    { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+    { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
   {
     field: 'wcode', // 창고코드
     header: '창고',
     type: 'select',
     align: 'right',
-    options: warehouseList,  // 창고 목록 변수
+    options: warehouseList.value,  // 창고 목록 변수
     optionValue: 'wcode',
-    optionLabel: 'wname' // 또는 창고명을 보여주고 싶다면 'wname' 등으로 변경
+    optionLabel: 'wareName' // 또는 창고명을 보여주고 싶다면 'wname' 등으로 변경
   },
   { field: 'relOrdStatus', header: '출고상태', type: 'input', readonly: true }
 ]);
 
+const handleSave = async () => {
+  try {
+    const { newRelOrdCd, relDt, regi, note } = formData.value;
+
+    const payload = products.value.map(product => ({
+      newRelOrdCd: newRelOrdCd,
+      wcode: product.wcode,
+      wareVerCd: product.wareVerCd,
+      ordDCd: product.ordDCd,
+      relDt: relDt,
+      regi: regi,
+      relQty: product.relQty,
+      note: note,
+    }));
+
+    console.log('📦 등록할 출고지시 데이터:', payload);
+
+    await insertRelOrd(payload);
+
+    alert('출고지시 저장 완료!');
+  } catch (err) {
+        console.error('❌ 출고지시 저장 실패:', err.response?.data || err.message);
+    alert('저장 중 오류 발생: ' + (err.response?.data || err.message));
+  }
+};
+
 // 버튼 설정
 const infoFormButtons = ref({
-  save: { show: true, label: '저장', severity: 'info' },
+  save: { show: true, label: '저장', severity: 'info', onClick: handleSave },
   load: { show: true, label: '주문정보 불러오기', severity: 'success' },
 });
 
@@ -86,7 +110,7 @@ const modalDataSets = ref({})
 const loadOrderListForModal = async () => {
   try {
     const res = await getRelOrdModal({}) // ✅ 파라미터가 있으면 추가
-
+    
     const items = res.data.map(order => ({
       ordCd: order.ordCd,
       cpName: order.cpName,
@@ -153,20 +177,18 @@ const handleLoadOrder = async (selectedRow) => {
       deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
       exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
       note: order.note,
-      mName: mName,           
+      mName: mName,
       regi : user.value.empName || '',
-      relDt: today,
       newRelOrdCd: newRelOrdCd,
-      wcode: '',
+      wName: '',
     });
-    console.log('창고 목록:', warehouseList.value);
+    console.log('넘겨줄 데이터:', order);
     productStore.setProducts(productList);
     console.log('✅ 출고지시 제품 리스트:', productList)
   } catch (err) {
     console.error('출고지시 주문 데이터 로딩 실패:', err);
   }
 };
-
 
 
 
@@ -199,6 +221,7 @@ onUnmounted(() => {
       button-position="top"
       :modalDataSets="modalDataSets"
       :dataKey="'ordCd'"
+      @save="handleSave"
       @showArrearsModal="showArrearsModal = true"
       @load="handleLoadOrder"
       @reset="handleApprove"

@@ -18,4 +18,7 @@ public interface DistributionService {
 
   // 창고 목록 조회
   List<WarehouseVO> getWarehouseListByOrdCd(String ordCd);
+
+  // 출고 지시서 등록
+  int insertReleaseOrders(List<ReleaseOrdVO> list);
 }
