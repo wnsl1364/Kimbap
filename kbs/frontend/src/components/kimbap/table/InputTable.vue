@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed, nextTick } from 'vue';
 import { format } from 'date-fns';
-import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue'; // 경로는 너의 프로젝트에 맞게 수정해줘!
+import SingleSelectModal from '@/components/kimbap/modal/singleselect.vue';
 
 const props = defineProps({
     data: {
@@ -355,7 +355,7 @@ const downloadExcel = () => {
                     <Button v-if="buttons.refund?.show" :label="buttons.refund.label" :severity="buttons.refund.severity" @click="$emit('refund')" />
                     <Button v-if="buttons.refundReq?.show" :label="buttons.refundReq.label" :severity="buttons.refundReq.severity" @click="$emit('refundReq')" />
                     <Button v-if="buttons.location?.show" :label="buttons.location.label" :severity="buttons.location.severity" @click="$emit('location')" />
-                    <Button v-if="buttons.excel?.show" icon="pi pi-file-excel" :label="buttons.excel.label || '엑셀 다운로드'" :severity="buttons.excel.severity || 'success'" class="p-button-sm" @click="downloadExcel" />
+                    <Button v-if="buttons.excel?.show" icon="pi pi-file-excel" :label="buttons.excel.label || '엑셀 다운로드'" :severity="buttons.excel.severity || 'success'" @click="downloadExcel" />
 
                     <!-- 행 관리 버튼들 -->
                     <template v-if="enableRowActions">
@@ -381,7 +381,7 @@ const downloadExcel = () => {
                 stripedRows
             >
                 <!-- 선택 체크박스 컬럼 -->
-                <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 3rem"> </Column>
+                <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 57px"> </Column>
 
                 <!-- 데이터 컬럼들 -->
                 <Column v-for="column in columns" :key="column.field" :header="column.header" :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)" :style="column.width ? { width: column.width } : {}">

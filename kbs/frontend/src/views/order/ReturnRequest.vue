@@ -38,7 +38,7 @@ const productColumns = [
   { field: 'prodName', header: '제품명', type: 'readonly' },
   { field: 'ordQty', header: '주문수량(BOX)', type: 'readonly', align: 'right' },
   { field: 'returnQty', header: '반품수량(BOX)', type: 'input', inputType: 'number', align: 'right' },
-  { field: 'returnAmount', header: '반품금액', type: 'readonly', align: 'right' },
+  { field: 'returnAmount', header: '반품금액', type: 'readonly', align: 'right', formatter: val => Number(val).toLocaleString() },
   { field: 'returnRea', header: '반품사유', type: 'input', align: 'left' },
 ]
 
