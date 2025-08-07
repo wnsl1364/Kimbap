@@ -115,12 +115,12 @@ public class MaterialsVO {
     private BigDecimal maxFloor;     // 최대층
 
     // ✅ 검색 조건 필드 추가
-    private Date regDt;   
+    private Date regDt;
     private String movementType;
-    private String movementCategory;  
-    private Date  regDtStart;
-    private Date  regDtEnd;
-    private Integer qty;  
+    private String movementCategory;
+    private Date regDtStart;
+    private Date regDtEnd;
+    private Integer qty;
 
     // ========== 편의 메서드들 ==========
     /**
