@@ -1,6 +1,7 @@
 package com.kimbap.kbs.production.web;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -57,13 +58,13 @@ public class ProdPlanController {
         service.deleteProdPlan(produPlanCd);
         return ResponseEntity.noContent().build();
     }
-    // MRP 등록
+    // 개별 MRP 등록
     @PostMapping("/runMrp")
     public ResponseEntity<?> runMrp(@RequestParam String produPlanCd) {
         service.runMrpByProdPlan(produPlanCd);
         return ResponseEntity.ok("MRP 완료");
     }
-    // MRP 기반 발주서 생성
+    // 개별 발주서 생성
     @PostMapping("/createPurchaseOrder")
     public ResponseEntity<?> createPurchaseOrderFromMrp(@RequestParam String mrpCd) {
         try {
@@ -74,7 +75,7 @@ public class ProdPlanController {
         }
     }
 
-    // MRP 미리보기 - 기존 VO 재사용
+    // MRP 미리보기
     @PostMapping("/mrpPreview")
     public ResponseEntity<MrpPreviewVO> getMrpPreview(@RequestBody ProdPlanFullVO fullVO) {
         try {
@@ -82,6 +83,28 @@ public class ProdPlanController {
             return ResponseEntity.ok(preview);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    // 핵심: 생산계획 저장 + MRP + 발주서 생성 통합 API
+    @PostMapping("/planSaveWithMrp")
+    public ResponseEntity<?> saveProdPlanWithMrp(@RequestBody ProdPlanFullVO fullVO) {
+        try {
+            // 1. 생산계획 저장
+            service.saveProdPlan(fullVO);
+            
+            // 2. MRP 실행 + 발주서 생성을 한 번에 처리
+            String produPlanCd = fullVO.getPlan().getProduPlanCd();
+            String mrpCd = service.runMrpAndCreatePurchaseOrder(produPlanCd);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "생산계획, MRP, 발주서 생성 완료",
+                "produPlanCd", produPlanCd,
+                "mrpCd", mrpCd
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("처리 실패: " + e.getMessage());
         }
     }
 

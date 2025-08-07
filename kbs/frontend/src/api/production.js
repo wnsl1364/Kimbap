@@ -101,3 +101,7 @@ export const processProdLoadingBatch = (prodLoadingList) => {
 export const getMrpPreview = (data) => {
   return axios.post('/api/prod/prodPlan/mrpPreview', data)
 }
+// 생산계획 + MRP + 발주서 통합 생성 API
+export const postSaveProdPlanWithMrp = (data) => {
+  return axios.post('/api/prod/prodPlan/planSaveWithMrp', data)
+}
