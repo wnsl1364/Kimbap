@@ -11,7 +11,11 @@ const props = defineProps({
     items: Array,
     columns: Array,
     itemKey: { type: String, default: 'id' },
-    fetchItems: Function
+    fetchItems: Function,
+    selectedItem: Object,
+    // ✅ 추가: 모달 제목 구성용
+    titleName: { type: String, default: '' },     // 이름 (예: 공장명 / 거래처명)
+    titleCode: { type: String, default: '' }, 
 });
 
 // emits 정의
@@ -44,6 +48,14 @@ function onClose() {
 
 <template>
     <Dialog :visible="visible" @update:visible="emit('update:visible', $event)" modal header="이력 목록" :style="{ width: '60rem' }" :closable="false">
+        <!-- ✅ 헤더 커스텀 -->
+        <template #header>
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold">
+                📜 {{ props.titleName || '-' }} ({{ props.titleCode || '-' }}) 이력 조회
+                </h2>
+            </div>
+        </template>
         <!-- 테이블 -->
         <DataTable :value="filteredItems" dataKey="version" tableStyle="min-width: 50rem" showGridlines scrollable scrollHeight="384px">
             <Column v-for="col in columns" :key="String(col.field)" :field="String(col.field)" :header="col.header">

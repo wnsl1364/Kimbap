@@ -10,6 +10,7 @@ import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 
+
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardCpStore();
 const { companyList, formData, changeHistory } = storeToRefs(store);

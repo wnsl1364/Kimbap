@@ -48,6 +48,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const warehouseColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
+const selectedWarehouse = ref({});
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -77,9 +78,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedCpcode.value = rowData.wcode;
+    selectedWarehouse.value = { wareName: rowData.wareName, wcode: rowData.wcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.wcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -249,7 +249,7 @@ const handleSearch = async (searchData) => {
 // 공장 옵션 (label: 공장명, value: 공장코드)
 const factoryOptions = computed(() =>
     factoryList.value.map((f) => ({
-        label: f.facName,
+        label: f.wareName,
         value: f.fcode
     }))
 );
@@ -290,5 +290,6 @@ watch(
             <InputForm title="창고정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveWarehouse" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems"
+    :selectedItem="selectedWarehouse" :titleName="selectedWarehouse.wareName" :titleCode="selectedWarehouse.wcode" />
 </template>
