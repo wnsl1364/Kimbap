@@ -111,4 +111,5 @@ public interface MateService {
     // 자재 입출고 목록 조회
     List<MaterialsVO> getMaterialFlowList(MaterialsVO search);
     List<MaterialsVO> getTodayMaterialFlowList();
+    List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams);
 }

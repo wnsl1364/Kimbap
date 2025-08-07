@@ -1087,4 +1087,67 @@ public class MateServiceImpl implements MateService {
     public List<MaterialsVO> getTodayMaterialFlowList() {
         return mateMapper.selectTodayMaterialFlowList();
     }
+
+    @Override
+    public List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams) {
+        try {
+            System.out.println("=== 자재 재고 현황 조회 시작 ===");
+            System.out.println("검색 조건:");
+            if (searchParams != null) {
+                System.out.println("  - mcode: " + searchParams.getMcode());
+                System.out.println("  - mateName: " + searchParams.getMateName());
+                System.out.println("  - mateType: " + searchParams.getMateType());
+                System.out.println("  - facName: " + searchParams.getFacName());
+            }
+            
+            List<MaterialsVO> stockStatusList = mateMapper.getMaterialStockStatus(searchParams);
+            
+            // 🔧 stockPercentage 후처리 (DB에서 null인 경우 직접 계산)
+            if (stockStatusList != null) {
+                for (MaterialsVO item : stockStatusList) {
+                    if (item.getStockPercentage() == null && 
+                        item.getSafeStock() != null && 
+                        item.getSafeStock() > 0 && 
+                        item.getTotalQuantity() != null) {
+                        
+                        double calculatedPercentage = (item.getTotalQuantity().doubleValue() / item.getSafeStock()) * 100;
+                        item.setStockPercentage(Math.round(calculatedPercentage * 100.0) / 100.0); // 소수점 둘째 자리까지
+                        
+                        System.out.println("🔧 stockPercentage 보정: " + item.getMaterialCode() + 
+                                         " -> " + item.getStockPercentage() + "%");
+                    }
+                }
+            }
+            
+            System.out.println("✅ 자재 재고 현황 조회 완료: " + stockStatusList.size() + "건");
+            
+            if (stockStatusList != null && !stockStatusList.isEmpty()) {
+                // 첫 번째 데이터 로깅
+                MaterialsVO firstItem = stockStatusList.get(0);
+                System.out.println("🔍 첫 번째 데이터 상세:");
+                System.out.println("  - materialCode: " + firstItem.getMaterialCode());
+                System.out.println("  - materialName: " + firstItem.getMaterialName());
+                System.out.println("  - factoryName: " + firstItem.getFactoryName());
+                System.out.println("  - totalQuantity: " + firstItem.getTotalQuantity());
+                System.out.println("  - safeStock: " + firstItem.getSafeStock());
+                System.out.println("  - stockDifference: " + firstItem.getStockDifference());
+                System.out.println("  - stockPercentage: " + firstItem.getStockPercentage());
+                System.out.println("  - stockStatus: " + firstItem.getStockStatus());
+                
+                // stockPercentage 계산 검증
+                if (firstItem.getSafeStock() != null && firstItem.getSafeStock() > 0 && firstItem.getTotalQuantity() != null) {
+                    double calculatedPercentage = (firstItem.getTotalQuantity().doubleValue() / firstItem.getSafeStock()) * 100;
+                    System.out.println("  - 계산된 stockPercentage: " + calculatedPercentage);
+                    System.out.println("  - DB에서 온 stockPercentage: " + firstItem.getStockPercentage());
+                }
+            }
+            
+            return stockStatusList;
+            
+        } catch (Exception e) {
+            System.err.println("❌ 자재 재고 현황 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("자재 재고 현황 조회 실패: " + e.getMessage(), e);
+        }
+    }
 }

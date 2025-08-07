@@ -71,11 +71,31 @@ public class MaterialsVO {
     private String cpTel;                   // 거래처 전화번호
     private String cpAddress;               // 거래처 주소
 
-// ========== 자재 관련 추가 필드 ==========
+    // ========== 자재 관련 추가 필드 ==========
     private String std;                     // 규격
     private Integer safeStock;              // 안전재고
-
-    // ========== 자재출고 (MateRelVO) ==========
+    
+    // ========== 자재 재고 현황 관련 필드 ==========
+    private String materialCode;            // 자재코드 (material_code)
+    private String materialName;            // 자재명 (material_name)
+    private String materialType;            // 자재유형 코드 (material_type)
+    private String materialTypeText;        // 자재유형 한글명 (material_type_text)
+    private String factoryCode;             // 공장코드 (factory_code)
+    private String factoryName;             // 공장명 (factory_name)
+    private Integer totalQuantity;          // 총 재고량 (total_quantity)
+    private String unitText;                // 단위 한글명 (unit_text)
+    private String specification;           // 규격 (specification)
+    private String stockStatus;             // 재고 상태 (stock_status: empty, shortage, overstock, normal)
+    private Integer stockDifference;        // 안전재고 대비 차이 (stock_difference)
+    private Double stockPercentage;         // 안전재고 대비 퍼센트 (stock_percentage)
+    private String lotDetailLink;           // LOT 개수 정보 (lot_detail_link)
+    private String storageCondition;        // 보관조건 (storage_condition)
+    private String storageConditionText;    // 보관조건 한글명 (storage_condition_text)
+    private String origin;                  // 원산지 (origin)
+    private Integer expiryDays;             // 유통기한 일수 (expiry_days)
+    private String materialNote;            // 자재 비고 (material_note)
+    private Date lastInboundDate;           // 최신 입고일 (last_inbound_date)
+    private Integer warehouseCount;         // 창고 개수 (warehouse_count)    // ========== 자재출고 (MateRelVO) ==========
     private String mateRelCd;       // 자재출고코드
     private String produProdCd;     // 제품생산코드
     private String wslcode;         // 작업지시코드
