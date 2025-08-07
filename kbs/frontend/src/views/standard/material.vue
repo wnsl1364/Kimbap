@@ -210,10 +210,10 @@ onBeforeMount(() => {
     ];
 
     cpColumns.value = [
-        { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '250px',align: "left" ,placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
-        { field: 'cpName', header: '거래처명', width: '100px', type: 'input' },
+        { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '100px',align: "left" ,placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
+        { field: 'cpName', header: '거래처명', width: '140px', type: 'input' },
         { field: 'unitPrice', header: '단가(원)', width: '100px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
-        { field: 'ltime', header: '리드타임(일)', width: '100px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
+        { field: 'ltime', header: '리드타임(일)', width: '60px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
     ];
 
     mataerialColumns.value = [
@@ -336,7 +336,7 @@ const handleReset = async () => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="자재 기준정보 목록"
+                title="자재 목록"
                 :data="convertedMaterialList"
                 dataKey="mcode"
                 :columns="mataerialColumns"
@@ -358,3 +358,5 @@ const handleReset = async () => {
         <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
     </div>
 </template>
+
+

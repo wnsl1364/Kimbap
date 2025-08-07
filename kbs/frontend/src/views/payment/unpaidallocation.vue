@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeMount, computed, onMounted, watch } from 'vue';
+import { ref, onBeforeMount, computed, onMounted, watch, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useUnpaidStore } from '@/stores/unpaidStore';
 import { useCommonStore } from '@/stores/commonStore';
@@ -24,7 +24,8 @@ const convertCompanyCodes = (list) => {
         const matchedCpType = cpTypeCodes.find((code) => code.dcd === item.cpType);
         return {
             ...item,
-            cpType: matchedCpType ? matchedCpType.cdInfo : item.cpType
+            cpType: matchedCpType ? matchedCpType.cdInfo : item.cpType,
+             // 💥 여기!
         };
     });
 };
@@ -39,7 +40,7 @@ onBeforeMount(() => {
         { label: '거래처명', field: 'cpName', type: 'modal', modalKey: 'cpName', suffixIcon: 'pi pi-search' },
         { label: '은행', field: 'bankName', type: 'text', disabled: true },
         { label: '입금자명', field: 'depo', type: 'text', disabled: true },
-        { label: '입금금액', field: 'depositAmount', type: 'number', disabled: true },
+        { label: '입금금액', field: 'depositAmountFormatted', type: 'text', disabled: true },
         { label: '입금일자', field: 'regDt', type: 'text', disabled: true }
     ];
     columns.value = [
@@ -64,7 +65,8 @@ const modalDataSets = computed(() => ({
         columns: [
             { field: 'cpCd', header: '거래처코드' },
             { field: 'cpName', header: '거래처명' },
-            { field: 'cpType', header: '거래처유형' }
+            { field: 'cpType', header: '거래처유형' },
+            { field: 'mname', header: '담당자명' },
         ],
         displayField: 'cpName',
         mappingFields: { 
@@ -98,7 +100,8 @@ const handleCashflowSelected = (item) => {
   formData.value.statementCd = item.statementCd;
   formData.value.bankName = item.bankName;
   formData.value.depo = item.depo;
-  formData.value.depositAmount = item.depositAmount;
+  formData.value.depositAmount = item.depositAmount; // 숫자로 저장
+  formData.value.depositAmountFormatted = item.depositAmount?.toLocaleString(); // 보여줄 용도
   formData.value.regDt = item.regDt;
   isCashflowDialogVisible.value = false;
 };
@@ -123,9 +126,9 @@ const unpaidDetails = computed({
     return [{
       cpCd: company.cpCd,
       cpName: company.cpName,
-      unsettledAmount: unsettled,
-      depositAmount: deposit,
-      remainingAmount: unsettled - deposit
+      unsettledAmount: unsettled.toLocaleString(),
+      depositAmount: deposit.toLocaleString(),
+      remainingAmount: (unsettled - deposit).toLocaleString()
     }];
   },
   set() {
@@ -159,7 +162,10 @@ const handleSave = async () => {
       life: 3000
     });
 
-    resetForm(); // 필요 시
+    resetForm(); // ✅ 초기화
+    await fetchCompanys(); // ✅ 등록 후 거래처 목록 다시 불러오기
+    companyList.value = convertCompanyCodes(companyList.value); // ✅ 다시 공통코드 변환
+
   } catch (err) {
     toast.add({
       severity: 'error',
@@ -170,8 +176,10 @@ const handleSave = async () => {
 
     console.error('❌ 정산 오류:', err);
   }
-};
-
+}
+onUnmounted(() => {
+  resetForm();
+});
 </script>
 
 <template>

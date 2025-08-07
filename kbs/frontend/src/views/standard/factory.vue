@@ -130,15 +130,19 @@ onBeforeMount(() => {
         { field: 'regDt', header: '등록일자' },
     ];
     facMaxColumns.value = [
-        { field: 'pcode', header: '제품코드', type: 'inputsearch',width: "100px" ,align: "left" ,placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
-        { field: 'prodName', header: '제품명',  type: 'input',width: "100px"  },
-        { field: 'prodVerCd', header: '제품버전',  type: 'input',width: "100px"  },
-        { field: 'mpqty', header: '최대생산량(EA)',  type: 'input',width: "100px" ,align: "right", inputType: 'number', placeholder: '최대생산량을 입력하세요' },
+        { field: 'pcode', header: '제품코드', type: 'inputsearch', width: '200px',align: "left" ,placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
+        { field: 'prodName', header: '제품명',  type: 'input', width: '200px'  },
+        { field: 'prodVerCd', header: '제품버전',  type: 'input', width: '50px' },
+        { field: 'mpqty', header: '최대생산량(EA)',  type: 'input',width: '150px' ,align: "right", inputType: 'number', placeholder: '최대생산량을 입력하세요' },
     ]
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
 })
+
+const visibleFacMaxColumns = computed(() =>
+  facMaxColumns.value.filter(col => col.field !== 'prodVerCd')
+);
 
 onMounted(async () => {
     await common.fetchCommonCodes('0R'); // 가동상태
@@ -256,7 +260,7 @@ const handleSearch = async (searchData) => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="공장 기준정보 목록"
+                title="공장 목록"
                 :data="convertedfactoryList"
                 dataKey="fcode"
                 :columns="factoryColumns"
@@ -270,7 +274,7 @@ const handleSearch = async (searchData) => {
                 class="mb-2"
 
             />
-            <InputTable title="공장별최대생산량" v-model:data="facMaxData" :columns="facMaxColumns" :buttons="rowButtons" dataKey="pcode" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
+            <InputTable title="공장별최대생산량" v-model:data="facMaxData" :columns="visibleFacMaxColumns" :buttons="rowButtons" dataKey="pcode" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
         </div>
         <div class="w-full md:basis-[45%]">
             <InputForm title="공장정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveFactory" />

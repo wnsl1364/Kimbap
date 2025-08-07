@@ -14,5 +14,12 @@
         SET unsettled_amount = unsettled_amount - #{depositAmount}
         WHERE cp_cd = #{cpCd}
     </update>
+
+    <!-- 3. 입금내역에 거래처코드 저장 -->
+    <update id="updateStatementCpCd">
+        UPDATE statement
+        SET cp_cd = #{cpCd}
+        WHERE statement_cd = #{statementCd}
+    </update>
     
 </mapper>

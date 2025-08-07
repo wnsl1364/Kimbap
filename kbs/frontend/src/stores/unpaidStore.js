@@ -7,6 +7,7 @@ import { getSalesList } from '@/api/standard';
 export const useUnpaidStore = defineStore('unpaid', () => {
     const formData = ref({
         statementCd: '',
+        cpCd : '',
         cpName: '',
         bankName: '',
         depo: '',
@@ -18,6 +19,7 @@ export const useUnpaidStore = defineStore('unpaid', () => {
     const resetForm = () => {
         formData.value = {
             statementCd: '',
+            cpCd : '',
             cpName: '',
             bankName: '',
             depo: '',
