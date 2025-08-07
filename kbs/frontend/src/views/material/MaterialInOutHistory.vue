@@ -39,7 +39,9 @@ const convertedMathistoryList = computed(() => convertUnitCodes(mathistoryList.v
 // UI 상태 정의
 const searchColumns = ref([]); // 검색 컬럼
 const InputTablecolumns = ref([]); // 목록 컬럼
-const inputTableButtons = ref({});
+const inputTableButtons = ref({
+    excel: { show: true, label: '엑셀 다운로드', severity: 'success' }
+});
 
 // UI 구성 정의
 onBeforeMount(() => {
@@ -117,6 +119,6 @@ const handleReset = async () => {
     </div>
     <div class="space-y-4 mt-8">
         <!-- 🔽 실제 테이블 -->
-        <InputTable :columns="InputTablecolumns" :title="'자재 입출고 조회'" :data="convertedMathistoryList" scrollHeight="360px" height="460px" :enableSelection="false" :buttons="inputTableButtons" :enableRowActions="false" :showRowCount="true" />
+        <InputTable :columns="InputTablecolumns" :title="'자재 입출고 조회'" :data="convertedMathistoryList" scrollHeight="360px" height="460px" :enableSelection="false" :buttons="inputTableButtons" :enableRowActions="false" :showRowCount="true" :showExcelDownload="true" />
     </div>
 </template>
