@@ -49,9 +49,10 @@ public class OrderServiceImpl  implements OrderService {
                 detail.setDeliAvailDt(null);
 
                 // 시퀀스로 주문상세코드 생성
-                int seq = orderMapper.getNextOrderDetailSeq();
                 String year = new SimpleDateFormat("yyyy").format(new Date());
-                String newOrdDCd = "ORDD-" + year + "-" + String.format("%06d", seq);
+                int seq = orderMapper.getNextOrderDetailSeq();
+                String newOrdDCd = "ORDD-" + year + String.format("%06d", seq);
+
                 detail.setOrdDCd(newOrdDCd);
 
                 orderMapper.insertOrderDetail(detail);

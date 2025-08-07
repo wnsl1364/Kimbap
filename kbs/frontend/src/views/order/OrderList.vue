@@ -8,6 +8,7 @@ import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
+import { format, subDays } from 'date-fns'
 
 // 라우터 설정
 const router = useRouter();
@@ -102,6 +103,25 @@ const orderColumns = computed(() => {
 // 주문 목록 데이터
 const orders = ref([]);
 
+// 날짜
+const getDefaultDayRange = () => {
+  const end = new Date()
+  const start = subDays(end, 7)
+  return {
+    ordDtStart: format(start, 'yyyy-MM-dd'),
+    ordDtEnd: format(end, 'yyyy-MM-dd')
+  }
+}
+
+// 날짜 기본 목록 조회
+const defaultSearchValues = computed(() => {
+  const { ordDtStart, ordDtEnd } = getDefaultDayRange();
+  return {
+    ordDt: [new Date(ordDtStart), new Date(ordDtEnd)]
+  }
+});
+
+
 // 주문 목록 조회
 onMounted(async () => {
   try {
@@ -114,7 +134,8 @@ onMounted(async () => {
     // 조건 분기: p2만 cpCd를 함께 보냄
     const params = {
       id: user.value.id,
-      memType: user.value.memType
+      memType: user.value.memType,
+      ...getDefaultDayRange()
     };
 
     if (user.value.memType === 'p2') {
@@ -122,7 +143,6 @@ onMounted(async () => {
     }
 
     const res = await getOrderList(params);
-
     orders.value = ordStatusCodes(res.data.data);
     console.log('실제 응답 내용:', res.data);
   } catch (err) {
@@ -206,6 +226,19 @@ const handleSearch = (searchData) => {
     ...searchData, // 전달받은 검색 조건 포함
   };
 
+  // ordDt: [시작일, 종료일] → ordDtStart, ordDtEnd로 변환
+  if (searchData.ordDt?.length === 2) {
+    params.ordDtStart = format(searchData.ordDt[0], 'yyyy-MM-dd');
+    params.ordDtEnd = format(searchData.ordDt[1], 'yyyy-MM-dd');
+  }
+
+  // 나머지 검색 필드 복사 (ordDt 제외)
+  Object.entries(searchData).forEach(([key, value]) => {
+    if (key !== 'ordDt') {
+      params[key] = value;
+    }
+  });
+
   if (user.value.memType === 'p2') {
     params.cpCd = user.value.cpCd;
   }
@@ -221,10 +254,13 @@ const handleSearch = (searchData) => {
 
 // 리셋 이벤트 핸들러
 const handleReset = () => {
-    console.log('검색 조건이 리셋되었습니다');
-    handleSearch({});
-};
+  console.log('검색 조건이 리셋되었습니다')
+  handleSearch({
+    ordDt: defaultSearchValues.value.ordDt
+  });
+}
 
+// 행 선택 이동
 const handleRowClick = (rowData) => {
   console.log('[OrderList.vue] 라우터 이동 대상:', rowData)
   const ordCd = rowData.ordCd
@@ -243,6 +279,7 @@ const handleRowClick = (rowData) => {
   }
 }
 
+// 체크박스 선택 반품 요청
 const handleRefundRequest = () => {
   const selected = selectedRows.value;
 
@@ -279,7 +316,7 @@ watch(() => route.query.refresh, (newVal) => {
 <template>
   <!-- 검색 폼 컴포넌트 -->
   <div class="space-y-4">
-    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
+    <SearchForm :columns="searchColumns" :defaultValues="defaultSearchValues" @search="handleSearch" @reset="handleReset" />
   </div>
   <!-- 주문 목록 테이블 -->
   <div class="space-y-4 mt-8">
