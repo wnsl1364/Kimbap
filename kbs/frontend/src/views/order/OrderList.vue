@@ -77,9 +77,9 @@ const orderColumns = computed(() => {
     return [
       { field: 'ordCd', header: '주문코드', type: 'clickable' },
       { field: 'prodName', header: '제품명', type: 'readonly' },
-      { field: 'totalQty', header: '주문수량(BOX)', type: 'readonly' },
-      { field: 'returnQty', header: '반품수량(BOX)', type: 'readonly' },
-      { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
+      { field: 'totalQty', header: '주문수량(BOX)', type: 'readonly', align: 'right' },
+      { field: 'returnQty', header: '반품수량(BOX)', type: 'readonly', align: 'right' },
+      { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() },
       { field: 'ordDt', header: '주문일자', type: 'readonly' },
       { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
       { field: 'note', header: '비고', type: 'readonly' },

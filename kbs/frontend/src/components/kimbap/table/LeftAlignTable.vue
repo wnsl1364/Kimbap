@@ -156,13 +156,14 @@ const handleButtonClick = (type) => {
           <template v-else>
             <div class="flex items-center w-full h-10">
               <input
-                :value="props.data[field.field]"
-                @input="updateField(field.field, $event.target.value)"
+                :value="field.formatter ? field.formatter(props.data[field.field]) : props.data[field.field]"
+                @input="updateField(field.field, field.formatter ? $event.target.value.replace(/[^0-9]/g, '') : $event.target.value)"
                 :type="field.inputType || 'text'"
                 :readonly="field.readonly"
                 :disabled="field.disabled"
                 class="border rounded flex-1 px-3 py-2"
               />
+
               <i
                 v-if="field.suffixIcon"
                 :class="[field.suffixIcon, 'cursor-pointer text-gray-400 px-3 py-2 hover:text-blue-500']"

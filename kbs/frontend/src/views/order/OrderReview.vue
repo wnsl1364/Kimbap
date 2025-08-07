@@ -34,7 +34,7 @@ const formFields = [
   { label: '납기요청일자', field: 'deliReqDt', type: 'text', readonly: true },
   { label: '입금예정일자', field: 'exPayDt', type: 'text', readonly: true },
   { label: '비고', field: 'note', type: 'text', readonly: true },
-  { label: '미수금', field: 'unsettledAmount', type: 'text', readonly: true,}
+  { label: '미수금', field: 'unsettledAmount', type: 'text', readonly: true, formatter: val => (val === null || val === undefined || val === '') ? '' : Number(val).toLocaleString()}
 ]
 
 // 제품 테이블
@@ -42,8 +42,8 @@ const columns = [
   { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
   { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
-  { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true },
+  { field: 'unitPrice', header: '단가(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString()},
+  { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() },
   { field: 'deliAvailDt', header: '납기가능일자', type: 'calendar' }
 ]
 
