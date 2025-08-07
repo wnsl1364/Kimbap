@@ -212,16 +212,29 @@ const saveProdPlanDirect = async (payload, isNew) => {
 const handleMrpPreviewConfirm = async () => {
   try {
     if (pendingPlanData.value) {
-      await saveProdPlanDirect(pendingPlanData.value, true)
+      // 통합 API 호출
+      await store.saveProdPlanWithMrp(pendingPlanData.value)
+      
+      // 성공 후 처리
+      formData.value = {}
+      prodDetailList.value = []
       pendingPlanData.value = null
       mrpPreviewData.value = {}
+      
+      toast.add({
+        severity: 'success',
+        summary: '등록 완료',
+        detail: '생산계획, MRP, 발주서가 모두 생성되었습니다.',
+        life: 5000
+      });
     }
   } catch (err) {
+    console.error('통합 저장 오류:', err)
     toast.add({
       severity: 'error',
       summary: '저장 실패',
-      detail: '생산계획 저장 중 오류가 발생했습니다.',
-      life: 3000
+      detail: '생산계획 저장 중 오류가 발생했습니다: ' + (err.response?.data || err.message),
+      life: 5000
     });
   }
 }

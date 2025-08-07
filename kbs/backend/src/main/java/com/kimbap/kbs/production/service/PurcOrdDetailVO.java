@@ -26,4 +26,10 @@ public class PurcOrdDetailVO {
   private String mateCpCd;        // 자재별 공급사 코드(FK)
   private LocalDate deliDt;       // 납기일자
   private BigDecimal currQty;     // 현재 납기수량
+
+  // JOIN용
+  private String mateName;        // 자재명
+  private String supplierName;    // 공급업체명  
+  private Integer leadTime;       // 리드타임
+  private BigDecimal totalAmount; // 총액
 }
