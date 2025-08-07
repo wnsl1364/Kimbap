@@ -50,6 +50,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const productColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
+const exportColumns = ref([]); 
 
 // UI 구성 정의
 onBeforeMount(() => {
@@ -117,6 +118,16 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    exportColumns.value = [
+      { field: 'cpCd', header: '거래처코드' },
+      { field: 'cpName', header: '거래처명' },
+      { field: 'cpType', header: '거래처유형' },
+      { field: 'crnumber', header: '사업자번호' },
+      { field: 'repname', header: '대표자명' },
+      { field: 'tel', header: '연락처(-포함)' },
+      { field: 'mname', header: '담당자명' },
+      { field: 'loanTerm', header: '여신기간(일)' },
+    ]
 });
 
 onMounted(async () => {
@@ -239,6 +250,8 @@ const handleSearch = async (searchData) => {
                 scrollHeight="530px"
                 height="630px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
             />
         </div>
         <div class="w-full md:basis-[45%]">

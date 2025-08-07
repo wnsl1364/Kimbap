@@ -49,6 +49,7 @@ const inputColumns = ref([]); // 입력 폼 컬럼
 const warehouseColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
 const selectedWarehouse = ref({});
+const exportColumns = ref([]);
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -62,6 +63,7 @@ const changeColumns = [
     { field: 'changeReason', header: '변경사유' },
     { field: 'regDt', header: '등록일자' }
 ];
+
 
 // 함수 내용만 교체
 const fetchHistoryItems = async () => {
@@ -108,6 +110,16 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    exportColumns.value = [
+        { field: 'wcode', header: '창고코드' },
+        { field: 'wareName', header: '창고명' },
+        { field: 'wareType', header: '유형' },
+        { key: 'maxRow', label: '최대 행'},
+        { key: 'maxCol', label: '최대 열'},
+        { key: 'maxFloor', label: '최대 층'},
+        { field: 'address', header: '주소' },
+        { key: 'fcode', label: '공장명'},
+    ]
 });
 
 // ✅ factoryOptions 수정
@@ -284,6 +296,8 @@ watch(
                 :scrollable="true"
                 scrollHeight="530px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
                 height="630px"
             />
         </div>

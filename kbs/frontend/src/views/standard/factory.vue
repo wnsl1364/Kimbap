@@ -53,6 +53,7 @@ const factoryColumns = ref([]); // 공장목록 테이블 컬럼
 const inputFormButtons = ref({}); // 공장 등록 버튼
 const rowButtons = ref({}); // 공장별 최대생산량 테이블용 버튼
 const selectedFactory = ref({});
+const exportColumns = ref([]);
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -141,6 +142,16 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    // 엑셀 다운로드용 컬럼
+    exportColumns.value = [
+        { field: 'fcode', header: '공장코드' },
+        { field: 'facName', header: '공장명' },
+        { field: 'address', header: '주소' },
+        { field: 'mname', header: '담당자명' },
+        { field: 'pcode', header: '제품코드' },
+        { field: 'prodName', header: '제품명' },
+        { field: 'mpqty', header: '최대생산량' },
+    ]
 });
 
 const visibleFacMaxColumns = computed(() => facMaxColumns.value.filter((col) => col.field !== 'prodVerCd'));
@@ -251,6 +262,27 @@ const handleSearch = async (searchData) => {
         });
     }
 };
+
+const mergedExportData = computed(() => {
+  // 공장 정보가 있는 경우에만
+  return factoryList.value.flatMap(factory => {
+    const facMaxForFactory = facMaxData.value.filter(fm => fm.fcode === factory.fcode);
+
+    // 공장별 최대생산량이 있으면 각각 매핑, 없으면 공장 단독 1건 반환
+    return facMaxForFactory.length > 0
+      ? facMaxForFactory.map(fm => ({
+          ...factory,
+          ...fm  // mpqty, pcode, prodName, prodVerCd 등
+        }))
+      : [{
+          ...factory,
+          pcode: '',
+          prodName: '',
+          prodVerCd: '',
+          mpqty: ''
+        }];
+  });
+});
 </script>
 
 <template>
@@ -272,6 +304,9 @@ const handleSearch = async (searchData) => {
                 scrollHeight="230px"
                 height="320px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportData="mergedExportData"  
+                :exportColumns="exportColumns"
                 class="mb-2"
             />
             <InputTable title="공장별최대생산량" v-model:data="facMaxData" :columns="visibleFacMaxColumns" :buttons="rowButtons" dataKey="pcode" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />

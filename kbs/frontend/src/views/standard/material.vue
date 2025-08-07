@@ -32,15 +32,18 @@ const isAdmin = computed(() => user.value?.memType === 'p5');
 const convertUnitCodes = (list) => {
   const mateTypeCodes = common.getCodes('0H'); // 자재유형
   const stoConCodes = common.getCodes('0O');   // 보관조건
+  const UnitCodes = common.getCodes('0G');   // 보관조건
 
   return list.map(item => {
     const matchedMateType = mateTypeCodes.find(code => code.dcd === item.mateType);
     const matchedStoCon = stoConCodes.find(code => code.dcd === item.stoCon);
+    const matchedUnit = UnitCodes.find(code => code.dcd === item.unit);
 
     return {
       ...item,
       mateType: matchedMateType ? matchedMateType.cdInfo : item.mateType,
       stoCon: matchedStoCon ? matchedStoCon.cdInfo : item.stoCon,
+      unit: matchedUnit ? matchedUnit.cdInfo : item.unit,
     };
   });
 };
@@ -58,6 +61,7 @@ const mataerialColumns = ref([]); // 자재목록 테이블 컬럼
 const inputFormButtons = ref({}); // 자재 등록 버튼
 const rowButtons = ref({}); // 공급처 테이블용 버튼
 const selectedMaterial = ref({});
+const exportColumns = ref([]);
 
 // 이력조회 모달 관련 상태 및 핸들러
 const selectedHistoryItems = ref([]);
@@ -227,12 +231,29 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    // 엑셀 다운로드용 컬럼
+    exportColumns.value = [
+        { field: 'mcode', header: '자재코드' },
+        { field: 'mateName', header: '자재명' },
+        { field: 'mateType', header: '자재유형' },
+        { field: 'stoCon', header: '보관조건' },
+        { field: 'unit', header: '단위' },
+        { field: 'moqty', header: '최소발주단위' },
+        { field: 'edate', header: '소비기한(일)' },
+        { field: 'safeStock', header: '안전재고(일)' },
+        { field: 'cpCd', header: '거래처코드' },
+        { field: 'cpName', header: '거래처명' },
+        { field: 'unitPrice', header: '단가' },
+        { field: 'ltime', header: '리드타임(일)' },
+        
+    ]
 });
 
 // ⚙️ 8. 데이터 fetch (초기 자재/공급처 목록)
 onMounted(async() => {
     await common.fetchCommonCodes('0H')  // 자재유형
     await common.fetchCommonCodes('0O')  // 보관조건
+    await common.fetchCommonCodes('0G')  // 단위
     await fetchSuppliers();
     await fetchMaterials();
 });
@@ -329,7 +350,28 @@ const handleReset = async () => {
         life: 3000
     });
 };
+
+const mergedExportData = computed(() => {
+  return convertedMaterialList.value.flatMap(material => {
+    const relatedSuppliers = supplierData.value.filter(s => s.mcode === material.mcode);
+
+    return relatedSuppliers.length > 0
+      ? relatedSuppliers.map(supplier => ({
+          ...material,
+          ...supplier
+        }))
+      : [{
+          ...material,
+          cpCd: '',
+          cpName: '',
+          unitPrice: '',
+          ltime: ''
+        }];
+  });
+});
+
 </script>
+
 <template>
     <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
 
@@ -347,6 +389,9 @@ const handleReset = async () => {
                 scrollHeight="230px"
                 height="320px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
+                :exportData="mergedExportData" 
                 class="mb-2"
             />
             <InputTable title="자재별 공급처" v-model:data="supplierData" :columns="cpColumns" :buttons="rowButtons" dataKey="cpCd" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
