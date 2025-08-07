@@ -26,14 +26,6 @@ const isAdmin = computed(() => user.value?.memType === 'p5');
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
 
-const wareRes = await getWareList(ordCd);
-warehouseList.value = wareRes.data || [];
-
-const warehouseField = formFields1.value.find(f => f.field === 'wcode');
-if (warehouseField) {
-  warehouseField.options = warehouseList.value; // ✅ 핵심!
-}
-
 // 공통코드 가져오기
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common);
@@ -118,47 +110,55 @@ onBeforeMount(() => {
     };
 });
 
+// ✅ factoryOptions 수정
+const factoryOptions = computed(() =>
+  factoryList.value.map((f) => ({
+    label: f.facName,  // 🔄 공장은 facName
+    value: f.fcode
+  }))
+);
+
 onMounted(async () => {
-    await common.fetchCommonCodes('0Q'); // 창고 유형
-    await fetchFactoryList();
-    await fetchWarehouses();
-    inputColumns.value = [
-        { key: 'wcode', label: '창고코드', type: 'readonly' },
-        { key: 'wareName', label: '창고명', type: 'text' },
-        {
-            key: 'wareType',
-            label: '창고유형',
-            type: 'dropdown',
-            options: [
-                { label: '상온 창고', value: 'q1' },
-                { label: '냉장 창고', value: 'q2' },
-                { label: '냉동 창고', value: 'q3' }
-            ]
-        },
-        { key: 'address', label: '주소', type: 'text' },
-        { key: 'maxRow', label: '최대 행', type: 'number', disabled: (row) => !!row.wcode },
-        { key: 'maxCol', label: '최대 열', type: 'number', disabled: (row) => !!row.wcode },
-        { key: 'maxFloor', label: '최대 층', type: 'number', disabled: (row) => !!row.wcode },
-        { key: 'fcode', label: '공장명', type: 'dropdown', options: factoryOptions.value },
-        {
-            key: 'isUsed',
-            label: '사용여부',
-            type: 'radio',
-            options: [
-                { label: '활성화', value: 'f1' },
-                { label: '비활성화', value: 'f2' }
-            ]
-        },
-        {
-            key: 'chaRea',
-            label: '변경사유',
-            type: 'text',
-            disabled: (row) => !row.wcode
-        },
-        { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
-        { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
-    ];
-    console.log('[DEBUG] warehouseList:', warehouseList.value);
+  await common.fetchCommonCodes('0Q'); // 창고 유형
+  await fetchFactoryList();
+  await fetchWarehouses();
+
+  inputColumns.value = [
+    { key: 'wcode', label: '창고코드', type: 'readonly' },
+    { key: 'wareName', label: '창고명', type: 'text' },
+    {
+      key: 'wareType',
+      label: '창고유형',
+      type: 'dropdown',
+      options: [
+        { label: '상온 창고', value: 'q1' },
+        { label: '냉장 창고', value: 'q2' },
+        { label: '냉동 창고', value: 'q3' }
+      ]
+    },
+    { key: 'address', label: '주소', type: 'text' },
+    { key: 'maxRow', label: '최대 행', type: 'number', disabled: (row) => !!row.wcode },
+    { key: 'maxCol', label: '최대 열', type: 'number', disabled: (row) => !!row.wcode },
+    { key: 'maxFloor', label: '최대 층', type: 'number', disabled: (row) => !!row.wcode },
+    { key: 'fcode', label: '공장명', type: 'dropdown', options: factoryOptions.value },
+    {
+      key: 'isUsed',
+      label: '사용여부',
+      type: 'radio',
+      options: [
+        { label: '활성화', value: 'f1' },
+        { label: '비활성화', value: 'f2' }
+      ]
+    },
+    {
+      key: 'chaRea',
+      label: '변경사유',
+      type: 'text',
+      disabled: (row) => !row.wcode
+    },
+    { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
+    { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
+  ];
 });
 
 // 창고기준정보 등록 처리
@@ -254,13 +254,6 @@ const handleSearch = async (searchData) => {
     }
 };
 
-// 공장 옵션 (label: 공장명, value: 공장코드)
-const factoryOptions = computed(() =>
-    factoryList.value.map((f) => ({
-        label: f.wareName,
-        value: f.fcode
-    }))
-);
 
 // fcode 변경 시 facVerCd 자동 세팅
 watch(
