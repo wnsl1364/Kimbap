@@ -54,10 +54,6 @@ const model = ref([
                 to: '/order/orderList'
             },
             {
-                label: '거래내역',
-                to: '/order/transactionDetails'
-            },
-            {
                 label: '거래처원장',
                 to: '/order/orderLedger'
             },
