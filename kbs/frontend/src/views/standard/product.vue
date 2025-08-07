@@ -289,6 +289,7 @@ const handleSearch = async (searchData) => {
                 :scrollable="true"
                 scrollHeight="470px"
                 :showRowCount="true"
+                :showExcelDownload="true"
                 height="560px"
             />
         </div>

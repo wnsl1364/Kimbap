@@ -13,7 +13,10 @@ const props = defineProps({
     showHistoryButton: { type: Boolean, default: true },
     selectable: { type: Boolean, default: true },
     hoverable: { type: Boolean, default: false },
-    showRowCount: { type: Boolean, default: false }
+    showRowCount: { type: Boolean, default: false },
+    showExcelDownload: { type: Boolean, default: false },
+    exportColumns: { type: Array, default: () => [] },
+    exportData: { type: Array, default: null }
 });
 
 const emit = defineEmits(['view-history', 'row-select', 'clear-selection']);
@@ -37,13 +40,62 @@ const getAlignClass = (col) => {
     if (col.align === 'center') return 'text-center';
     return 'text-left';
 };
+
+const downloadExcel = () => {
+  import('xlsx').then((xlsx) => {
+    let rowsToDownload;
+
+    if (props.exportData?.length && selected.value.length > 0) {
+      // ✅ exportData + 선택된 항목 → 매칭된 것만 추출
+      const selectedKeys = selected.value.map(row => row[props.dataKey]);
+      rowsToDownload = props.exportData.filter(row =>
+        selectedKeys.includes(row[props.dataKey])
+      );
+    } else if (selected.value.length > 0) {
+      // ✅ exportData가 없으면 selected 값만 다운
+      rowsToDownload = selected.value;
+    } else {
+      // ✅ 아무 선택 없을 경우 전체 exportData or data 다운
+      rowsToDownload = props.exportData ?? props.data;
+    }
+
+    const headerMap = {};
+    props.exportColumns.forEach(col => {
+      if (col.field) headerMap[col.field] = col.header;
+    });
+
+    const converted = rowsToDownload.map(row => {
+      const newRow = {};
+      for (const key in headerMap) {
+        newRow[headerMap[key]] = row[key] ?? '';
+      }
+      return newRow;
+    });
+
+    const worksheet = xlsx.utils.json_to_sheet(converted);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+    const filename = rowsToDownload.length === 1
+      ? `${rowsToDownload[0][props.dataKey] || 'item'}.xlsx`
+      : `${props.title || 'data'}.xlsx`;
+
+    xlsx.writeFile(workbook, filename);
+  });
+};
 </script>
 
 <template>
-    <div class="border p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
-        <div>
-            <h2 v-if="title" class="text-lg font-semibold mb-4">{{ title }}</h2>
-            <h3 v-if="showRowCount" class="text-base text-gray-600 mb-0 mt-0">검색결과 {{ rowCount }}건</h3>
+    <div class="border p-4 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
+        <div class="flex justify-between items-start mb-0">
+            <!-- 왼쪽: 제목 + 검색결과 -->
+            <div>
+                <h2 v-if="title" class="text-lg font-semibold mb-1">{{ title }}</h2>
+                <h3 v-if="showRowCount" class="text-base text-gray-600 mt-0 mb-1">검색결과 {{ rowCount }}건</h3>
+            </div>
+
+            <!-- 오른쪽: 엑셀 다운로드 버튼 -->
+            <Button v-if="props.showExcelDownload" icon="pi pi-file-excel" label="엑셀 다운로드" class="p-button-sm" severity="success" @click="downloadExcel" />
         </div>
 
         <DataTable
