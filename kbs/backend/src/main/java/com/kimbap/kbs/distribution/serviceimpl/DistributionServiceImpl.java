@@ -9,6 +9,7 @@ import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
+import com.kimbap.kbs.distribution.service.ReleaseOrdVO;
 import com.kimbap.kbs.distribution.service.WarehouseVO;
 
 import lombok.RequiredArgsConstructor;
@@ -47,5 +48,11 @@ public class DistributionServiceImpl implements DistributionService {
         @Override
     public List<WarehouseVO> getWarehouseListByOrdCd(String ordCd) {
         return distributionMapper.getWarehouseListByOrdCd(ordCd);
+    }
+
+    // 출고 지시서 등록
+    @Override
+    public int insertReleaseOrders(List<ReleaseOrdVO> list) {
+        return distributionMapper.insertReleaseOrders(list);
     }
 }

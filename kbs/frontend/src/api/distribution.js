@@ -24,3 +24,8 @@ export const getRelOrdSelect = (ordCd) => {
 export const getWareList = (ordCd) => {
   return axios.get('/api/distribution/warehouseList', { params: { ordCd } });
 };
+
+// 출고 지시서 등록
+export const insertRelOrd = (data) => {
+  return axios.post('/api/distribution/insertReleaseOrders', data);
+};
