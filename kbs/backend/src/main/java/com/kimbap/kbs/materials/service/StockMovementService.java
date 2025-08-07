@@ -97,4 +97,9 @@ public interface StockMovementService {
     
     // 이동요청 승인 대기 건수 조회
     Integer getPendingApprovalCount();
+
+    // ========== 이동요청 중인 자재 배치 정보 관련 ==========
+    
+    // 이동요청 중인 자재 배치 정보 조회 (move_status = 'd1')
+    List<StockMovementVO> getPendingMoveRequestPlacements();
 }

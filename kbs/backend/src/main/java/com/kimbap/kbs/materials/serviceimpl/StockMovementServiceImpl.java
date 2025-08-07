@@ -428,4 +428,20 @@ public class StockMovementServiceImpl implements StockMovementService {
             return 0;
         }
     }
+
+    // ========== 이동요청 중인 자재 배치 정보 관련 ==========
+
+    @Override
+    public List<StockMovementVO> getPendingMoveRequestPlacements() {
+        System.out.println("=== 이동요청 중인 자재 배치 정보 조회 시작 ===");
+        
+        try {
+            List<StockMovementVO> result = stockMovementMapper.getPendingMoveRequestPlacements();
+            System.out.println("이동요청 중인 자재 배치 정보 조회 완료: " + result.size() + "건");
+            return result;
+        } catch (Exception e) {
+            System.err.println("이동요청 중인 자재 배치 정보 조회 실패: " + e.getMessage());
+            throw new RuntimeException("이동요청 중인 자재 배치 정보 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
 }

@@ -124,4 +124,9 @@ public interface StockMovementMapper {
     
     // 월별 이동요청 건수 조회
     List<Map<String, Object>> getMonthlyMoveRequestCount(@Param("year") String year);
+
+    // ========== 이동요청 중인 자재 배치 정보 관련 ==========
+    
+    // 이동요청 중인 자재 배치 정보 조회 (move_status = 'd1')
+    List<StockMovementVO> getPendingMoveRequestPlacements();
 }

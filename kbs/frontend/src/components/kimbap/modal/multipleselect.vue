@@ -19,15 +19,56 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'update:modelValue', 'update:items'])
 
 const searchText = ref('')
-const selectedItems = ref([...props.modelValue])
+const selectedItems = ref([])
 
 // 입력 값들을 추적하는 reactive 객체
 const inputValues = ref({})
+// 모달이 열릴 때의 초기 상태를 저장 (취소 시 복원용)
+const initialInputValues = ref({})
+const initialSelectedItems = ref([])
 
+// props.items가 변경될 때마다 inputValues 동기화
+watch(
+  () => props.items,
+  (newItems) => {
+    if (newItems && newItems.length > 0) {
+      const newInputValues = {}
+      newItems.forEach(item => {
+        const itemId = item[props.itemKey]
+        // 기존 값을 사용하지 않고 항목의 실제 값 또는 0으로 설정
+        const inputFields = {}
+        props.columns.forEach(col => {
+          if (col.type === 'input') {
+            // 항목에 해당 필드값이 있으면 사용, 없으면 기본값 사용
+            inputFields[col.field] = item[col.field] || (col.inputType === 'number' ? 0 : '')
+          }
+        })
+        newInputValues[itemId] = inputFields
+      })
+      inputValues.value = newInputValues
+    }
+  },
+  { immediate: true, deep: true }
+)
+
+// props.modelValue 변경 감지
 watch(
   () => props.modelValue,
   (val) => {
     selectedItems.value = [...val]
+  },
+  { immediate: true }
+)
+
+// 모달 표시 상태 변경 감지
+watch(
+  () => props.visible,
+  (newVisible, oldVisible) => {
+    if (newVisible && !oldVisible) {
+      // 모달이 열릴 때 - 입력값 완전 초기화 후 초기 상태 저장
+      initializeInputValues()
+      saveInitialState()
+    }
   }
 )
 
@@ -47,7 +88,63 @@ onMounted(async () => {
   }
 })
 
+// 아이템에서 입력 가능한 필드들만 추출
+function extractInputFields(item) {
+  const inputFields = {}
+  props.columns.forEach(col => {
+    if (col.type === 'input') {
+      inputFields[col.field] = item[col.field] || (col.inputType === 'number' ? 0 : '')
+    }
+  })
+  return inputFields
+}
+
+// 입력값 완전 초기화 함수 (모달이 열릴 때마다 실행)
+function initializeInputValues() {
+  const newInputValues = {}
+  if (props.items && props.items.length > 0) {
+    props.items.forEach(item => {
+      const itemId = item[props.itemKey]
+      // 모든 입력 필드를 0 또는 빈 문자열로 초기화
+      const inputFields = {}
+      props.columns.forEach(col => {
+        if (col.type === 'input') {
+          inputFields[col.field] = col.inputType === 'number' ? 0 : ''
+        }
+      })
+      newInputValues[itemId] = inputFields
+    })
+  }
+  inputValues.value = newInputValues
+}
+
+// 초기 상태 저장 (모달이 열릴 때)
+function saveInitialState() {
+  // 현재 선택된 아이템들 저장
+  initialSelectedItems.value = [...selectedItems.value]
+  
+  // 현재 입력값들 저장 (deep copy)
+  initialInputValues.value = {}
+  Object.keys(inputValues.value).forEach(itemId => {
+    initialInputValues.value[itemId] = { ...inputValues.value[itemId] }
+  })
+}
+
+// 초기 상태로 복원 (취소 시)
+function restoreInitialState() {
+  // 선택된 아이템들 복원
+  selectedItems.value = [...initialSelectedItems.value]
+  
+  // 입력값들 복원
+  inputValues.value = {}
+  Object.keys(initialInputValues.value).forEach(itemId => {
+    inputValues.value[itemId] = { ...initialInputValues.value[itemId] }
+  })
+}
+
 function onClose() {
+  // 취소 시 초기 상태로 복원
+  restoreInitialState()
   emit('update:visible', false)
 }
 
@@ -72,7 +169,13 @@ function updateInputValue(itemId, field, value) {
   }
   inputValues.value[itemId][field] = value
 }
+
+// 현재 아이템의 입력값 가져오기
+function getInputValue(itemId, field) {
+  return inputValues.value[itemId]?.[field] || ''
+}
 </script>
+
 <template>
   <Dialog
     :visible="visible"
@@ -120,7 +223,7 @@ function updateInputValue(itemId, field, value) {
         <template #body="slotProps" v-if="col.type === 'input'">
           <InputNumber
             v-if="col.inputType === 'number'"
-            :modelValue="inputValues[slotProps.data[itemKey]]?.[col.field] || ''"
+            :modelValue="getInputValue(slotProps.data[itemKey], col.field)"
             @update:modelValue="updateInputValue(slotProps.data[itemKey], col.field, $event)"
             :placeholder="col.placeholder || ''"
             :min="0"
@@ -131,7 +234,7 @@ function updateInputValue(itemId, field, value) {
           />
           <InputText
             v-else
-            :modelValue="inputValues[slotProps.data[itemKey]]?.[col.field] || ''"
+            :modelValue="getInputValue(slotProps.data[itemKey], col.field)"
             @update:modelValue="updateInputValue(slotProps.data[itemKey], col.field, $event)"
             :placeholder="col.placeholder || ''"
             class="w-full"
@@ -146,28 +249,8 @@ function updateInputValue(itemId, field, value) {
 
     <!-- 하단 버튼 -->
     <div class="flex justify-end gap-2 mt-4">
-      <Button label="닫기" severity="secondary" @click="onClose" />
+      <Button label="취소" severity="secondary" @click="onClose" />
       <Button label="확인" @click="onConfirm" :disabled="!selectedItems.length" />
     </div>
   </Dialog>
-
-
-    <!-- 사용예시 
-     <MultiSelectDialog
-      v-model:visible="dialogVisible"
-      v-model:modelValue="selectedProducts"
-      :items="products"
-      :itemKey="'code'"
-      :columns="[
-        { field: 'code', header: 'Code' },
-        { field: 'name', header: 'Name' },
-        { field: 'category', header: 'Category' },
-        { field: 'quantity', header: 'Quantity' }
-      ]"
-    />
-     -->
 </template>
-
-
-
-
