@@ -6,7 +6,6 @@ axios.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔍 Authorization 헤더 추가:', config.headers.Authorization);
     } else {
       console.log('❌ 토큰이 없습니다');
     }
