@@ -34,7 +34,9 @@ const convertedcustomerList = computed(() => convertUnitCodes(customerList.value
 // UI 상태 정의
 const searchColumns = ref([]); // 검색 컬럼
 const InputTablecolumns = ref([]); // 목록 컬럼
-const inputTableButtons = ref([]); // 인풋테이블 버튼
+const inputTableButtons = ref({
+    excel: { show: true, label: '엑셀 다운로드', severity: 'success' }
+});
 
 // UI 구성 정의
 onBeforeMount(() => {
@@ -88,7 +90,7 @@ const totalOutstanding = computed(() => {
     </div>
     <div class="space-y-4 mt-8">
         <!-- 🔽 실제 테이블 -->
-        <InputTable :columns="InputTablecolumns" :title="'미수금 내역'" :data="convertedcustomerList" scrollHeight="360px" height="460px" :enableSelection="false" :buttons="inputTableButtons" :enableRowActions="false" :showRowCount="true" />
+        <InputTable :columns="InputTablecolumns" :title="'미수금 내역'" :data="convertedcustomerList" scrollHeight="360px" height="460px" :enableSelection="false" :buttons="inputTableButtons" :enableRowActions="false" :showRowCount="true" :showExcelDownload="true"  />
         <!-- 🔽 총 미수금 금액 표시 -->
         <div class="flex justify-end items-center text-lg font-semibold text-gray-800 mb-2">
             총 미수금 금액:
