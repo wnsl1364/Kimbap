@@ -56,8 +56,8 @@ const columns = [
   { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
   { field: 'prodName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
   { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', min: 1, },
-  { field: 'unitPrice', header: '단가(원)', type: 'input', align: 'right', readonly: true },
-  { field: 'totalAmount', header: '총 금액(원)', type: 'input', align: 'right', readonly: true }
+  { field: 'unitPrice', header: '단가(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString()},
+  { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() }
 ]
 
 // 주문 상태 코드 정의
@@ -381,14 +381,17 @@ const handleLoadOrder = async (selectedRow) => {
     // 제품목록 세팅
     productStore.setProducts(
       order.orderDetails.map(item => {
-        const qty = item.ordQty || 0
-        const price = item.unitPrice || 0
-        const total = qty * price
+        const qty = Number(item.ordQty || 0)
+        const basePrice = Number(item.unitPrice || 0) / KBP_PER_BOX
+        const unitPrice = calculateDiscountedPrice(basePrice, qty)
+        const total = qty * unitPrice
 
         console.log('제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
 
         return {
           ...item,
+          basePrice,
+          unitPrice,
           totalAmount: total,
           deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : '',
           ordDStatus: item.ordDStatus || 't1',

@@ -22,10 +22,6 @@ const productStore = useOrderProductStore()
 const { formData } = storeToRefs(formStore)
 const { products } = storeToRefs(productStore)
 
-// 미수금
-const arrears = ref(0)
-const showArrearsModal = ref(false)
-
 // 거절 사유
 const rejectReason = ref('')
 
@@ -147,20 +143,11 @@ const handleLoadOrder = async (selectedRow) => {
   }
 }
 
-
-// 날짜 포맷
-const formatDateFields = (obj, fields) => {
-  fields.forEach(field => {
-    if (obj[field]) {
-      obj[field] = format(parseISO(obj[field]), 'yyyy-MM-dd')
-    }
-  })
-}
-
 // 승인
 const handleApprove = async () => {
   // 납기가능일자 누락 체크
   const missingDeliAvail = products.value.some(p => !p.deliAvailDt)
+  // console.log('승인 직전 제품 데이터:', JSON.stringify(products.value, null, 2))
 
   if (missingDeliAvail) {
     alert('모든 제품에 납기가능일자를 입력해주세요.')
@@ -169,7 +156,20 @@ const handleApprove = async () => {
 
   try {
     const ordCd = formData.value.ordCd
-    const res = await axios.put(`/api/order/${ordCd}/approve`)
+    // deliAvailDt를 yyyy-MM-dd로 변환해서 새 배열 생성
+    const updatedProducts = products.value.map(p => ({
+      ...p,
+      deliAvailDt: format(new Date(p.deliAvailDt), 'yyyy-MM-dd')
+    }))
+
+    const payload = {
+      ordCd,
+      orderDetails: updatedProducts,
+      ordStatusInternal: 'a2' // 승인 상태코드
+    }
+
+    const res = await axios.put(`/api/order/${ordCd}/approve`, payload)
+
     if (res.data.result_code === 'SUCCESS') {
       alert('주문 승인 완료!')
     } else {
@@ -190,6 +190,7 @@ const handleReject = async () => {
     const ordCd = formData.value.ordCd
     const updatedProducts = products.value.map(p => ({
       ...p,
+      deliAvailDt: p.deliAvailDt ? format(new Date(p.deliAvailDt), 'yyyy-MM-dd') : null,
       ordDStatus: 't2'
     }));
 
@@ -199,7 +200,7 @@ const handleReject = async () => {
       ordStatusInternal: 'a3',
     };
 
-    console.log('🚨 거절 요청 payload:', JSON.stringify(payload, null, 2))
+    console.log('거절 요청 payload:', JSON.stringify(payload, null, 2))
 
     const res = await axios.put(`/api/order/${ordCd}/reject`, payload);
     if (res.data.result_code === 'SUCCESS') {
@@ -219,7 +220,6 @@ onMounted(async () => {
   if (!ordCd) {
     await loadOrderListForModal();
   }
-
   // 자동 주문 불러오기
   if (ordCd) {
     await handleLoadOrder({ ordCd })
@@ -243,7 +243,6 @@ onUnmounted(() => {
       button-position="top"
       :modalDataSets="modalDataSets"
       :dataKey="'ordCd'"
-      @showArrearsModal="showArrearsModal = true"
       @load="handleLoadOrder"
       @reset="handleApprove"
       @delete="handleReject"
@@ -263,8 +262,4 @@ onUnmounted(() => {
       :enableSelection="false"
     />
   </div>
-  <!-- <div class="mt-4">
-    <h2 class="text-lg mb-0 font-semibold">거절사유</h2>
-    <input v-model="rejectReason" type="text" class="border rounded px-3 py-2 w-full " placeholder="거절 사유를 입력하세요" />
-  </div> -->
 </template>
