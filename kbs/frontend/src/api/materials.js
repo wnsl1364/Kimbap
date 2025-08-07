@@ -19,6 +19,11 @@ export const updateMaterialInbound = (inboundData) => {
   return axios.put('/api/materials/inbound', inboundData);
 };
 
+// 🔥 자재입고 신규 등록 (mate_inbo 테이블에 INSERT)
+export const insertMateInbo = (mateInboData) => {
+  return axios.post('/api/materials/inbound', mateInboData);
+};
+
 // ========== 발주 목록 조회 (권한별 + 검색 조건) ==========
 export const getPurchaseOrderList = (searchParams = {}, userType = 'p1') => {
   // 권한별 memtype 매핑
