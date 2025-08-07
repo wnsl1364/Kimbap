@@ -363,7 +363,7 @@ defineExpose({
                     :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)"
                     :style="column.width ? { width: column.width } : {}">
                     <template #body="slotProps">
-                        <template v-if="column.type === 'readonly'">
+                        <!-- <template v-if="column.type === 'readonly'">
                             <span>
                                 {{
                                 props.dateFields.includes(column.field)
@@ -371,7 +371,24 @@ defineExpose({
                                     : (column.formatter ? column.formatter(slotProps.data[column.field]) : slotProps.data[column.field])
                                 }}
                             </span>
+                        </template> -->
+
+                        <template v-if="column.type === 'readonly'">
+                            <span>
+                                {{
+                                props.dateFields.includes(column.field)
+                                    ? formatDate(slotProps.data[column.field])
+                                    : (column.formatter
+                                        ? (column.formatter.length === 1
+                                            ? column.formatter(slotProps.data[column.field]) // 단일 값만 넘김
+                                            : column.formatter(slotProps.data)               // row 전체를 넘김
+                                        )
+                                        : slotProps.data[column.field]
+                                    )
+                                }}
+                            </span>
                         </template>
+
                         <template v-else-if="column.type === 'input'">
                             <div class="flex items-center border rounded h-10 w-full overflow-hidden">
                                 <input :value="slotProps.data[column.field]"

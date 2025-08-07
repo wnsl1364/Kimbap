@@ -48,7 +48,7 @@ onBeforeMount(() => {
         { field: 'cpName', header: '거래처명', type: 'readonly' },
         { field: 'crnumber', header: '사업자번호', type: 'readonly' },
         { field: 'loanTerm', header: '여신기간(일)', type: 'readonly' },
-        { field: 'unsettledAmount', header: '미수금금액(원)', type: 'readonly' }
+        { field: 'unsettledAmount', header: '미수금금액(원)', type: 'readonly', align: 'right' }
     ];
 });
 

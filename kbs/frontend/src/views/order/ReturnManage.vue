@@ -70,12 +70,7 @@ const returnColumns = [
   { field: 'returnEndDt', header: '처리일자', type: 'readonly' },
   { field: 'managerName', header: '담당자', type: 'readonly' },
   { field: 'returnRea', header: '요청사유', type: 'readonly' },
-  {
-    field: 'rejectRea',
-    header: '거절사유',
-    type: 'readonly',
-    formatter: (row) => row.returnStatusInternal === 'w2' ? row.rejectRea : ''
-  },
+  {field: 'rejectRea', header: '거절사유', type: 'readonly'},
 ];
 
 // 버튼 설정
