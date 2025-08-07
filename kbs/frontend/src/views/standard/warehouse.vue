@@ -26,6 +26,14 @@ const isAdmin = computed(() => user.value?.memType === 'p5');
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
 
+const wareRes = await getWareList(ordCd);
+warehouseList.value = wareRes.data || [];
+
+const warehouseField = formFields1.value.find(f => f.field === 'wcode');
+if (warehouseField) {
+  warehouseField.options = warehouseList.value; // ✅ 핵심!
+}
+
 // 공통코드 가져오기
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common);

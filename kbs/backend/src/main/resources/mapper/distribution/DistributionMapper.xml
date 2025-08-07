@@ -142,6 +142,8 @@ SELECT
 
     p.prod_name AS prodName,
     od.ord_qty AS ordQty,
+    od.pcode AS pCode,
+    od.prod_ver_cd AS prodVerCd,
     cp.cp_name AS mCpName,
     cp.mname AS mName,
 
@@ -186,4 +188,26 @@ JOIN company cp
 
 WHERE od.ord_cd = #{ordCd}
 </select>
+
+<!-- 창고출력 select -->
+<select id="getWarehouseListByOrdCd" resultType="com.kimbap.kbs.distribution.service.WarehouseVO" parameterType="String">
+SELECT DISTINCT
+  f.wcode,
+  f.ware_name
+FROM order_d a
+JOIN product b
+  ON a.pcode = b.pcode
+ AND a.prod_ver_cd = b.prod_ver_cd
+JOIN prod_inbo c
+  ON b.pcode = c.pcode
+ AND b.prod_ver_cd = c.prod_ver_cd
+JOIN ware_stock d
+  ON d.prod_inbo_cd = c.prod_inbo_cd
+JOIN ware_d e
+  ON e.ware_area_cd = d.ware_area_cd
+JOIN warehouse f
+  ON f.wcode = e.wcode
+WHERE a.ord_cd = #{ordCd}
+</select>
+
 </mapper>

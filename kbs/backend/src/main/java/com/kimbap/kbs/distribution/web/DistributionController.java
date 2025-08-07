@@ -13,6 +13,7 @@ import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
+import com.kimbap.kbs.distribution.service.WarehouseVO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,5 +42,11 @@ public class DistributionController {
     @GetMapping("/relOrderSelect")
     public List<RelOrdModalVO> getRelOrderSelect(@RequestParam("ordCd") String ordCd) {
         return distributionService.getRelOrdSelect(ordCd);
+    }
+
+    // 창고 목록 조회
+    @GetMapping("/warehouseList")
+    public List<WarehouseVO> getWarehousesByOrdCd(@RequestParam String ordCd) {
+        return distributionService.getWarehouseListByOrdCd(ordCd);
     }
 }
