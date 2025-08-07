@@ -2,7 +2,6 @@ package com.kimbap.kbs.distribution.web;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +14,7 @@ import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
+import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
 import com.kimbap.kbs.distribution.service.ReleaseOrdVO;
 import com.kimbap.kbs.distribution.service.WarehouseVO;
 
@@ -55,14 +55,32 @@ public class DistributionController {
 
     // 출고 지시서 등록
     @PostMapping("/insertReleaseOrders")
-    public ResponseEntity<String> insertReleaseOrders(@RequestBody List<ReleaseOrdVO> releaseOrders) {
-        try {
-            int insertedCount = distributionService.insertReleaseOrders(releaseOrders);
-            return ResponseEntity.ok(insertedCount + "건 등록 완료");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("출고지시서 등록 실패: " + e.getMessage());
+    public ResponseEntity<String> insertReleaseOrders(
+        @RequestBody ReleaseOrderRequest request
+    ) {
+        distributionService.saveReleaseOrder(request.getMaster(), request.getDetailList());
+        return ResponseEntity.ok("출고지시서 저장 완료");
+    }
+
+    // 요청 DTO
+    public static class ReleaseOrderRequest {
+        private ReleaseMasterOrdVO master;
+        private List<ReleaseOrdVO> detailList;
+
+        public ReleaseMasterOrdVO getMaster() {
+            return master;
+        }
+
+        public void setMaster(ReleaseMasterOrdVO master) {
+            this.master = master;
+        }
+
+        public List<ReleaseOrdVO> getDetailList() {
+            return detailList;
+        }
+
+        public void setDetailList(List<ReleaseOrdVO> detailList) {
+            this.detailList = detailList;
         }
     }
 }

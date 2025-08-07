@@ -3,11 +3,11 @@ package com.kimbap.kbs.distribution.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
 
 import com.kimbap.kbs.distribution.service.DistributionVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
+import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
 import com.kimbap.kbs.distribution.service.ReleaseOrdVO;
 import com.kimbap.kbs.distribution.service.WarehouseVO;
 
@@ -29,5 +29,10 @@ public interface DistributionMapper {
   List<WarehouseVO> getWarehouseListByOrdCd(String ordCd);
 
   // 출고 지시서 등록
-  int insertReleaseOrders(@Param("list") List<ReleaseOrdVO> releaseOrders);
+  void insertReleaseOrdMaster(ReleaseMasterOrdVO masterVO);
+
+  void insertReleaseOrdList(List<ReleaseOrdVO> releaseList);
+
+  // 출고마스터코드 자동 생성
+  String selectNewRelMasCd();
 }

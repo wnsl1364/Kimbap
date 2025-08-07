@@ -134,8 +134,7 @@
 
 <!-- 출고지시서 모달 선택시 출력 -->
 <select id="getRelOrdSelect" resultType="com.kimbap.kbs.distribution.service.RelOrdModalVO" parameterType="String">
-
-  SELECT
+SELECT
     (
       SELECT 
         'REL-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
@@ -143,6 +142,14 @@
       FROM release_ord ro
       WHERE SUBSTR(ro.rel_ord_cd, 5, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
     ) AS newRelOrdCd,
+
+    (
+      SELECT 
+        'REL-M-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
+        LPAD(NVL(MAX(TO_NUMBER(SUBSTR(rom.rel_mas_cd, -4))), 0) + 1, 4, '0')
+      FROM release_ord_master rom
+      WHERE SUBSTR(rom.rel_mas_cd, 7, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+    ) AS newRelMasCd,
 
     p.prod_name AS prodName,
     od.ord_qty AS ordQty,
@@ -219,5 +226,56 @@
   WHERE  f.ord_cd = #{ordCd}
 </select>
 
+<insert id="insertReleaseOrdMaster" parameterType="com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO">
+INSERT INTO release_ord_master (
+  rel_mas_cd,
+  regi,
+  rel_dt,
+  note,
+  cp_cd,
+  mname,
+  deli_add,
+  deli_req_dt,
+  rel_ord_status
+) VALUES (
+  #{relMasCd},
+  #{regi},
+  SYSDATE,
+  #{note},
+  #{cpCd},
+  #{mname},
+  #{deliAdd},
+  #{deliReqDt},
+  'm1');
+</insert>
+
+<insert id="insertReleaseOrdList" parameterType="java.util.List">
+  INSERT INTO release_ord (
+    rel_ord_cd,
+    wcode,
+    ware_ver_cd,
+    ord_d_cd,
+    rel_ord_qty,
+    rel_mas_cd
+  ) VALUES
+  <foreach collection="list" item="item" separator=",">
+    (
+      #{item.newRelOrdCd},
+      #{item.wcode},
+      #{item.wareVerCd},
+      #{item.ordDCd},
+      #{item.relQty},
+      #{item.relMasCd}
+    )
+  </foreach>
+</insert>
+
+<select id="selectNewRelMasCd" resultType="String">
+  SELECT 
+    'REL-M-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
+    LPAD(NVL(MAX(TO_NUMBER(SUBSTR(rel_mas_cd, -4))), 0) + 1, 4, '0')
+  FROM release_ord_master
+  WHERE SUBSTR(rel_mas_cd, 7, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD');
+</select>
 
 </mapper>
