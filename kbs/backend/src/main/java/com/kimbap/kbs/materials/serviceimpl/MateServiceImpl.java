@@ -63,9 +63,46 @@ public class MateServiceImpl implements MateService {
             System.out.println("facVerCd: " + mateInbo.getFacVerCd());
             System.out.println("inboStatus: " + mateInbo.getInboStatus());
             System.out.println("lotNo: " + mateInbo.getLotNo());
+            System.out.println("purcDCd: " + mateInbo.getPurcDCd());
 
-            mateMapper.updateMateInbo(mateInbo);  // ✅ 올바른 UPDATE 호출
+            // 자재입고 정보 업데이트
+            mateMapper.updateMateInbo(mateInbo);  
             System.out.println("자재입고 수정 완료: " + mateInbo.getMateInboCd());
+
+            if ("c5".equals(mateInbo.getInboStatus()) && mateInbo.getPurcDCd() != null) {
+                System.out.println("=== 입고완료 처리 - 발주상태 업데이트 시작 ===");
+                
+                // 현재 발주 상세 정보 조회
+                MaterialsVO purcOrderDetail = mateMapper.getPurcOrderDetailByCode(mateInbo.getPurcDCd());
+                if (purcOrderDetail != null) {
+                    Integer currentCurrQty = purcOrderDetail.getCurrQty() != null ? purcOrderDetail.getCurrQty() : 0;
+                    Integer purcQty = purcOrderDetail.getPurcQty() != null ? purcOrderDetail.getPurcQty() : 0;
+                    String newPurcDStatus = "";
+                    
+                    if (currentCurrQty >= purcQty) {
+                        newPurcDStatus = "c5"; // 입고완료 
+                        System.out.println("✅ 발주 입고완료: 기존 curr_qty " + currentCurrQty + " >= purc_qty " + purcQty);
+                    } else {
+                        newPurcDStatus = "c3"; // 입고대기 
+                        System.out.println("🔄 발주 입고대기 유지: 기존 curr_qty " + currentCurrQty + " < purc_qty " + purcQty);
+                    }
+                    
+                    // 발주 상세 상태만 업데이트 (CURR_QTY는 변경하지 않음)
+                    MaterialsVO purcUpdateData = MaterialsVO.builder()
+                            .purcDCd(mateInbo.getPurcDCd())
+                            .purcDStatus(newPurcDStatus)
+                            .build();
+                    
+                    // 발주 상세 상태만 업데이트
+                    mateMapper.updatePurcOrderDetailStatus(purcUpdateData);
+                    
+                    System.out.println("✅ 발주상태만 업데이트 완료: " + mateInbo.getPurcDCd() 
+                            + " → 상태: " + newPurcDStatus + " (curr_qty는 변경하지 않음)");
+                } else {
+                    System.err.println("⚠️ 발주상세 정보를 찾을 수 없음: " + mateInbo.getPurcDCd());
+                }
+            }
+            
         } catch (Exception e) {
             System.err.println("자재입고 수정 실패: " + e.getMessage());
             e.printStackTrace();

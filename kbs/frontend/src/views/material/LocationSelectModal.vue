@@ -530,7 +530,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                             <div class="flex justify-between items-start">
                                 <span class="font-mono text-xs">{{ placement.wareAreaCd }}</span>
                                 <div class="text-right">
-                                    <span class="font-semibold">{{ placement.moveQty }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}</span>
+                                    <span class="font-semibold">{{ placement.moveQty }}{{ placement.unitText || getUnitDisplayName(placement.unit) }}</span>
                                     <div v-if="placement.source === 'pending'" class="text-xs text-orange-600 font-medium">
                                         요청중 ({{ placement.moveReqCd }})
                                     </div>
@@ -650,7 +650,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                                     현재적재: ${area.currentVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
                                     가용용량: ${area.availableVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
                                     ${area.currentMaterial ? '기존자재: ' + area.currentMaterial : ''}
-                                    ${area.existingPlacement ? (area.existingPlacement.source === 'pending' ? '요청중자재: ' : '등록중자재: ') + area.existingPlacement.itemName + ' (' + area.existingPlacement.moveQty + getUnitDisplayName(selectedMaterial?.unit || 'g5') + ')' + (area.existingPlacement.moveReqCd ? ' [' + area.existingPlacement.moveReqCd + ']' : '') : ''}
+                                    ${area.existingPlacement ? (area.existingPlacement.source === 'pending' ? '요청중자재: ' : '등록중자재: ') + area.existingPlacement.itemName + ' (' + area.existingPlacement.moveQty + (area.existingPlacement.unitText || getUnitDisplayName(area.existingPlacement.unit)) + ')' + (area.existingPlacement.moveReqCd ? ' [' + area.existingPlacement.moveReqCd + ']' : '') : ''}
                                     ${area.isDifferentMaterialSelected ? (area.existingPlacement?.source === 'pending' ? '[선택불가] 다른 자재가 이동요청 중인 구역' : '[선택불가] 다른 자재가 선택된 구역') : ''}
                                     ${!area.isAvailable && !area.isDifferentMaterialSelected ? '[선택불가] 다른 자재가 적재된 구역' : ''}
                                     ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
