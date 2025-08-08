@@ -267,6 +267,19 @@ public class MateServiceImpl implements MateService {
     }
 
     @Override
+    public List<MaterialsVO> getMateInboByPurcCd(String purcCd) {
+        try {
+            System.out.println("발주번호별 자재입고 데이터 조회 서비스: " + purcCd);
+            List<MaterialsVO> list = mateMapper.getMateInboByPurcCd(purcCd);
+            System.out.println("발주번호별 자재입고 데이터 조회 완료: " + list.size() + "건");
+            return list;
+        } catch (Exception e) {
+            System.err.println("발주번호별 자재입고 데이터 조회 실패: " + e.getMessage());
+            throw new RuntimeException("발주번호별 자재입고 데이터 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public List<MaterialsVO> getPurcOrdList() {
         return mateMapper.getPurcOrdList();
     }
@@ -1188,7 +1201,6 @@ public class MateServiceImpl implements MateService {
             throw new RuntimeException("자재 재고 현황 조회 실패: " + e.getMessage(), e);
         }
     }
-<<<<<<< Updated upstream
 
     /**
      * 🔍 LOT별 재고 조회
@@ -1223,6 +1235,3 @@ public class MateServiceImpl implements MateService {
         }
     }
 }
-=======
-}
->>>>>>> Stashed changes

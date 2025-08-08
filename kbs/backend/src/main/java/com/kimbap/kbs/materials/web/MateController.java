@@ -77,6 +77,22 @@ public class MateController {
     }
 
     /**
+     * 특정 발주번호의 자재입고 데이터 조회
+     */
+    @GetMapping("/inbound/by-purc/{purcCd}")
+    public ResponseEntity<List<MaterialsVO>> getMateInboByPurcCd(@PathVariable String purcCd) {
+        try {
+            System.out.println("발주번호별 자재입고 데이터 조회: " + purcCd);
+            List<MaterialsVO> list = mateService.getMateInboByPurcCd(purcCd);
+            System.out.println("조회 결과: " + list.size() + "건");
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            System.err.println("발주번호별 자재입고 데이터 조회 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
      * 자재입고 등록
      */
     @PostMapping("/inbound")

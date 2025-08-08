@@ -28,6 +28,9 @@ public interface MateMapper {
 
     MaterialsVO getMateInboById(String mateInboCd);
 
+    // 특정 발주번호의 자재입고 데이터 조회
+    List<MaterialsVO> getMateInboByPurcCd(String purcCd);
+
     List<MaterialsVO> getMateRelList();
 
     void insertMateRel(MaterialsVO mateRel);
