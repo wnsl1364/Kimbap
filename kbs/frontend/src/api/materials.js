@@ -11,11 +11,6 @@ export const getMaterialInboundById = (mateInboCd) => {
   return axios.get(`/api/materials/inbound/${mateInboCd}`);
 };
 
-// 🔥 특정 발주번호의 입고대기(c3) 상태 자재 조회
-export const getPurchaseOrderDetailsForInbound = (purcCd) => {
-  return axios.get(`/api/materials/purchase-orders/${purcCd}/inbound-ready`);
-};
-
 export const saveMaterialInbound = (inboundData) => {
   return axios.post('/api/materials/inbound', inboundData);
 };

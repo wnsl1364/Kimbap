@@ -201,27 +201,6 @@ public class MateController {
     }
 
     /**
-     * 🔥 특정 발주번호의 입고대기(c3) 상태 자재 조회 (자재입고 페이지용)
-     */
-    @GetMapping("/purchase-orders/{purcCd}/inbound-ready")
-    public ResponseEntity<List<PurchaseOrderViewVO>> getPurchaseOrderDetailsForInbound(@PathVariable String purcCd) {
-        try {
-            System.out.println("🔍 입고대기 자재 조회 요청 - 발주번호: " + purcCd);
-            
-            List<PurchaseOrderViewVO> inboundReadyMaterials = mateService.getPurchaseOrderDetailsForInbound(purcCd);
-            
-            System.out.println("✅ 입고대기 자재 조회 완료: " + inboundReadyMaterials.size() + "건");
-            
-            return ResponseEntity.ok(inboundReadyMaterials);
-            
-        } catch (Exception e) {
-            System.err.println("❌ 입고대기 자재 조회 실패: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
      * 자재-거래처 연결 조회 (검색용) 사용처: 자재 검색 모달, 거래처 검색 모달
      */
     @GetMapping("/materials-with-suppliers")
