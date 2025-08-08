@@ -5,9 +5,12 @@ import { format } from 'date-fns';
 import { useProductStore } from '@/stores/productStore';
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
+import { useToast } from 'primevue/usetoast';
 import Dialog from 'primevue/dialog';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import StandartTable from '@/components/kimbap/table/StandardTable.vue';
+
+const toast = useToast();
 
 const props = defineProps({
   visible: Boolean,
@@ -51,16 +54,44 @@ const searchColumns = [
 ];
 // 생산계획 조건 검색
 const handleSearch = async (searchData) => {
-  const formatted = {
-    produPlanCd: searchData.produPlanCd,
-    planDtStart: searchData.planDtRange?.start ? format(searchData.planDtRange.start, 'yyyy-MM-dd') : null,
-    planDtEnd: searchData.planDtRange?.end ? format(searchData.planDtRange.end, 'yyyy-MM-dd') : null,
-    periodStartDt: searchData.planRange?.start ? format(searchData.planRange.start, 'yyyy-MM-dd') : null,
-    periodEndDt: searchData.planRange?.end ? format(searchData.planRange.end, 'yyyy-MM-dd') : null,
-    fcode: searchData.factory?.fcode || null,
-    facVerCd: searchData.factory?.facVerCd || null
-  };
-  await store.fetchProdPlanListByCondition(formatted);
+  try {
+    const formatted = {
+      produPlanCd: searchData.produPlanCd,
+      planDtStart: searchData.planDtRange?.start ? format(searchData.planDtRange.start, 'yyyy-MM-dd') : null,
+      planDtEnd: searchData.planDtRange?.end ? format(searchData.planDtRange.end, 'yyyy-MM-dd') : null,
+      periodStartDt: searchData.planRange?.start ? format(searchData.planRange.start, 'yyyy-MM-dd') : null,
+      periodEndDt: searchData.planRange?.end ? format(searchData.planRange.end, 'yyyy-MM-dd') : null,
+      fcode: searchData.factory?.fcode || null,
+      facVerCd: searchData.factory?.facVerCd || null
+    };
+    await store.fetchProdPlanListByCondition(formatted);
+
+    const resultCount = condProdPlanList.value.length;
+    
+    if (resultCount > 0) {
+      toast.add({
+        severity: 'success',
+        summary: '조회 완료',
+        detail: `${resultCount}건의 생산계획이 조회되었습니다.`,
+        life: 3000
+      });
+    } else {
+      toast.add({
+        severity: 'warn',
+        summary: '조회 결과 없음',
+        detail: '조건에 맞는 생산계획이 없습니다.',
+        life: 3000
+      });
+    }
+  } catch (error) {
+    console.error('검색 중 오류 발생:', error);
+    toast.add({
+      severity: 'error',
+      summary: '조회 실패',
+      detail: '생산계획 조회 중 오류가 발생했습니다.',
+      life: 3000
+    });
+  }
 };
 // 생산계획 행 클릭 시 해당 정보 전달
 const handleRowClick = async (row) => {

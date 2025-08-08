@@ -199,33 +199,28 @@ const formatQuantity = (qty, unit) => {
             scrollHeight="400px"
             class="mt-4"
           >
-            <Column field="mcode" header="자재코드" style="min-width: 120px">
+            <Column field="mcode" header="자재코드" style="min-width: 150px">
               <template #body="{ data }">
                 <span class="font-mono text-sm">{{ data.mcode }}</span>
               </template>
             </Column>
-            <Column field="mateName" header="자재명" style="min-width: 200px">
+            <Column field="mateName" header="자재명" style="min-width: 250px">
               <template #body="{ data }">
                 <span class="font-medium">{{ data.mateName || '-' }}</span>
               </template>
             </Column>
-            <Column field="requiredQty" header="부족 수량" style="min-width: 120px" class="text-right">
+            <Column field="requiredQty" header="부족 수량" style="min-width: 150px" class="text-right">
               <template #body="{ data }">
                 <span class="text-red-600 font-semibold">
-                  {{ formatQuantity(data.requiredQty, data.unit) }}
+                  {{ formatQuantity(data.requiredQty) }}
                 </span>
               </template>
             </Column>
-            <Column field="currentStock" header="현재고" style="min-width: 120px" class="text-right">
+            <Column field="currentStock" header="현재고" style="min-width: 150px" class="text-right">
               <template #body="{ data }">
                 <span class="text-blue-600">
-                  {{ formatQuantity(data.currentStock, data.unit) }}
+                  {{ formatQuantity(data.currentStock) }}
                 </span>
-              </template>
-            </Column>
-            <Column field="unit" header="단위" style="min-width: 80px" class="text-center">
-              <template #body="{ data }">
-                <Tag :value="data.unit" severity="info" rounded />
               </template>
             </Column>
           </DataTable>
@@ -267,7 +262,7 @@ const formatQuantity = (qty, unit) => {
             <Column field="purcQty" header="발주수량" style="min-width: 120px" class="text-right">
               <template #body="{ data }">
                 <span class="font-semibold">
-                  {{ formatQuantity(data.purcQty, data.unit) }}
+                  {{ formatQuantity(data.purcQty) }}
                 </span>
               </template>
             </Column>
