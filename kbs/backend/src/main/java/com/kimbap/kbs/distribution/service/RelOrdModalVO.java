@@ -17,6 +17,7 @@ public class RelOrdModalVO {
   private String ordDt;           // 주문일자
 
   // 모달 선택시
+  private String newRelMasCd; // 출고마스터코드
   private String prodName;
   private String ordDCd;
   private int ordQty;
