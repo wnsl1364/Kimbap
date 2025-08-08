@@ -304,4 +304,79 @@ INSERT INTO release_ord_master (
   FROM release_ord
   WHERE SUBSTR(rel_ord_cd, 5, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
 </select>
+
+
+<!-- 출고지시서 불러오기: 대기(m1)만 -->
+<select id="getRelOrdListWaiting"
+        resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
+
+  SELECT
+      rom.rel_mas_cd
+    , rom.rel_dt
+    , cp.cp_name
+
+    , (
+        SELECT MIN(p.prod_name)
+               || CASE WHEN COUNT(*) > 1
+                       THEN ' 외 ' || (COUNT(*) - 1) || '개'
+                       ELSE '' END
+        FROM release_ord ro
+        JOIN order_d od
+          ON ro.ord_d_cd = od.ord_d_cd
+        JOIN product p
+          ON od.pcode = p.pcode
+         AND od.prod_ver_cd = p.prod_ver_cd
+       WHERE ro.rel_mas_cd = rom.rel_mas_cd
+      )
+
+    , (
+        SELECT SUM(ro.rel_ord_qty)
+        FROM release_ord ro
+       WHERE ro.rel_mas_cd = rom.rel_mas_cd
+      )
+
+    , ol.deli_add
+    , rom.rel_ord_status
+    , rom.note
+
+  FROM release_ord_master rom
+  JOIN release_ord ro1
+    ON rom.rel_mas_cd = ro1.rel_mas_cd
+  JOIN order_d od1
+    ON ro1.ord_d_cd = od1.ord_d_cd
+  JOIN order_list ol
+    ON od1.ord_cd = ol.ord_cd
+  JOIN company cp
+    ON ol.cp_cd = cp.cp_cd
+
+  WHERE rom.rel_ord_status = 'm1'
+
+  GROUP BY
+      rom.rel_mas_cd
+    , rom.rel_dt
+    , cp.cp_name
+    , ol.deli_add
+    , rom.rel_ord_status
+    , rom.note
+
+  ORDER BY rom.rel_dt DESC, rom.rel_mas_cd DESC
+<select id="getRelDetails"
+        parameterType="string"
+        resultType="com.kimbap.kbs.distribution.service.RelDetailVO">
+    SELECT
+        od.pcode
+      , p.prod_name
+      , od.ord_qty
+      , ro.rel_ord_qty
+    FROM release_ord ro
+    JOIN order_d od
+      ON ro.ord_d_cd = od.ord_d_cd
+    JOIN product p
+      ON od.pcode = p.pcode
+     AND od.prod_ver_cd = p.prod_ver_cd
+    WHERE ro.rel_mas_cd = #{relMasCd}
+    ORDER BY p.prod_name, od.pcode
+</select>
+
+</select>
 </mapper>
