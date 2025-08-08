@@ -3,7 +3,6 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useMaterialStore } from '@/stores/materialStore';
 import { useMemberStore } from '@/stores/memberStore';
 import { useToast } from 'primevue/usetoast';
-// 🎯 새로운 깔끔한 API 함수 import!
 import { getPurchaseOrdersForView } from '@/api/materials';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
@@ -19,8 +18,6 @@ const common = useCommonStore();
 const toast = useToast();
 const router = useRouter();
 const route = useRoute();
-
-// 🎯 깔끔한 데이터 구조!
 const cleanPurchaseData = ref([]);
 
 const formatDate = (date) => {
@@ -36,7 +33,7 @@ const formatDate = (date) => {
   }
 };
 
-// 🎯 단위코드 변환 (기존 함수 재사용)
+// 단위코드 변환 (기존 함수 재사용)
 const convertUnitCodes = (list) => {
   if (!list || !Array.isArray(list)) return [];
 
@@ -85,7 +82,7 @@ const searchColumns = computed(() => {
     : materialStore.supplierPurchaseSearchColumns;
 });
 
-// 🔥 InputTable용 컬럼 정의 (실제 데이터 필드와 매치!)
+// InputTable용 컬럼 정의
 const inputTableColumns = computed(() => {
   const baseColumns = [
     {
@@ -167,7 +164,7 @@ const inputTableColumns = computed(() => {
     }
   ];
 
-  // 🔥 사용자 타입별 추가 컬럼
+  // 사용자 타입별 추가 컬럼
   if (actualUserType.value === 'internal') {
     // 내부직원용: 실제납기일, 등록자, 주문일자 추가
     baseColumns.splice(1, 0, {
@@ -205,10 +202,7 @@ const currentTableColumns = computed(() => {
     : materialStore.supplierPurchaseColumns;
 });
 
-// 🎯 깔끔한 데이터만 표시!
 const cleanConvertedData = computed(() => {
-  console.log('🎯 깔끔한 데이터 변환 시작:', cleanPurchaseData.value?.length);
-  
   if (!cleanPurchaseData.value || !Array.isArray(cleanPurchaseData.value)) {
     return [];
   }
@@ -219,7 +213,7 @@ const cleanConvertedData = computed(() => {
     ordDt: formatDate(item.ordDt),
     exDeliDt: formatDate(item.exDeliDt),
     deliDt: formatDate(item.deliDt),
-    // 🔥 숫자 포맷팅 추가
+    // 숫자 포맷팅 추가
     unitPrice: Number(item.unitPrice || 0).toLocaleString(),
     totalAmount: Number(item.totalAmount || 0).toLocaleString()
   }));
@@ -227,33 +221,27 @@ const cleanConvertedData = computed(() => {
   // 단위코드 변환
   const converted = convertUnitCodes(formattedData);
   
-  console.log('✅ 깔끔한 데이터 변환 완료:', converted?.length);
   return converted;
 });
 
-// 🎯 새로운 깔끔한 API 호출!
 const onSearch = async (searchData) => {
   try {
     isLoading.value = true;
-    console.log('🎯 깔끔한 검색 시작:', searchData, actualUserType.value);
-    
     const response = await getPurchaseOrdersForView(searchData, actualUserType.value);
     cleanPurchaseData.value = response.data;
     
-    console.log('✅ 깔끔한 검색 완료:', response.data);
-    
     toast.add({
       severity: 'success',
-      summary: '검색 완료! 🎉',
-      detail: `${response.data.length}건의 깔끔한 발주 데이터를 조회했습니다!`,
+      summary: '검색 완료',
+      detail: `${response.data.length}건의 발주 데이터를 조회했습니다.`,
       life: 3000
     });
     
   } catch (error) {
-    console.error('❌ 깔끔한 검색 실패:', error);
+    console.error('검색 실패:', error);
     toast.add({
       severity: 'error',
-      summary: '검색 실패 ㅠㅠ',
+      summary: '검색 실패',
       detail: '발주 데이터 조회 중 오류가 발생했습니다.',
       life: 3000
     });
@@ -266,7 +254,7 @@ const onReset = () => {
   loadCleanPurchaseData();
   toast.add({
     severity: 'info',
-    summary: '초기화 완료 ✨',
+    summary: '초기화 완료',
     detail: '검색 조건이 초기화되고 전체 목록을 조회했습니다.',
     life: 3000
   });
@@ -276,24 +264,23 @@ const onReset = () => {
 const loadCleanPurchaseData = async () => {
   try {
     isLoading.value = true;
-    console.log('🎯 깔끔한 데이터 로드 시작 - 사용자 타입:', actualUserType.value);
+    console.log('데이터 로드 시작 - 사용자 타입:', actualUserType.value);
     
     const response = await getPurchaseOrdersForView({}, actualUserType.value);
     cleanPurchaseData.value = response.data;
 
-    console.log('✅ 깔끔한 데이터 로드 완료:', response.data.length, '건');
+    console.log('깔끔한 데이터 로드 완료:', response.data.length, '건');
 
   } catch (error) {
-    console.error('❌ 깔끔한 데이터 로드 실패:', error);
+    console.error('깔끔한 데이터 로드 실패:', error);
     loadCleanSampleData();
   } finally {
     isLoading.value = false;
   }
 };
 
-// 🎯 깔끔한 샘플 데이터!
 const loadCleanSampleData = () => {
-  console.log('🧹 깔끔한 샘플 데이터 로드');
+  console.log('깔끔한 샘플 데이터 로드');
   
   const cleanSampleData = [
     {
@@ -347,7 +334,7 @@ const loadCleanSampleData = () => {
   ];
   
   cleanPurchaseData.value = cleanSampleData;
-  console.log('🧹 깔끔한 샘플 데이터 설정 완료!');
+  console.log('샘플 데이터 설정 완료');
 };
 
 const handleRowClick = (rowData) => {
@@ -467,7 +454,7 @@ onMounted(async () => {
           @reset="onReset"
         />
 
-        <!-- 🔥 완벽 매핑된 InputTable -->
+        <!-- InputTable -->
         <InputTable
           :key="`purchase-table-${actualUserType}`"
           :columns="inputTableColumns"
@@ -481,7 +468,7 @@ onMounted(async () => {
           :enableSelection="false"
           @rowClick="handleRowClick"
           :enableRowClick="true"
-          @dataChange="(newData) => console.log('🎯 깔끔한 InputTable 데이터 변경:', newData)"
+          @dataChange="(newData) => console.log('InputTable 데이터 변경:', newData)"
         />
       </div>
     </div>
