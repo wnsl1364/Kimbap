@@ -80,7 +80,8 @@ public class OrderController {
         @RequestParam(required = false) String deliReqDtEnd,
         @RequestParam(required = false) String cpName,
         @RequestParam(required = false) String ordStatus,
-        @RequestParam(required = false) String cpCd
+        @RequestParam(required = false) String cpCd,
+        @RequestParam(required = false) String prodName
     ) {
         Map<String, Object> response = new HashMap<>();
         try {
@@ -106,6 +107,9 @@ public class OrderController {
                 } else {
                     params.put("ordStatusInternal", ordStatus); // 내부직원
                 }
+            }
+            if (prodName != null && !prodName.isEmpty()) {
+                params.put("prodName", prodName);
             }
 
 

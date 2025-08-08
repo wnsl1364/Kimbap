@@ -94,9 +94,9 @@ const orderColumns = computed(() => {
       { field: 'ordCd', header: '주문코드', type: 'clickable' },
       { field: 'prodName', header: '제품명', type: 'readonly' },
       { field: 'cpName', header: '거래처명', type: 'readonly' },
-      { field: 'totalAmount', header: '총금액(원)', type: 'readonly' },
+      { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() },
       { field: 'ordDt', header: '주문일자', type: 'readonly' },
-      { field: 'deliReqDt', header: '납기요청일자', type: 'readonly' },
+      { field: 'deliReqDt', header: '납기일자', type: 'readonly' },
       { field: 'note', header: '비고', type: 'readonly' },
       { field: 'ordStatus', header: '상태', type: 'readonly' }
     ]
@@ -165,6 +165,12 @@ const searchColumns = computed(() => {
         placeholder: '주문코드를 입력하세요'
       },
       {
+        key: 'prodName',
+        label: '제품명',
+        type: 'text',
+        placeholder: '제품명을 입력하세요'
+      },
+      {
         key: 'ordDt',
         label: '주문일자',
         type: 'dateRange',
@@ -202,6 +208,12 @@ const searchColumns = computed(() => {
         label: '주문코드',
         type: 'text',
         placeholder: '주문코드를 입력하세요'
+      },
+      {
+        key: 'prodName',
+        label: '제품명',
+        type: 'text',
+        placeholder: '제품명을 입력하세요'
       },
       {
         key: 'ordDt',

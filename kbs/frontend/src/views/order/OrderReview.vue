@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted} from 'vue'
+import { ref, onMounted, onUnmounted, computed} from 'vue'
 import { getOrderList } from '@/api/order'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
@@ -67,7 +67,8 @@ const modalDataSets = ref({})
 
 const loadOrderListForModal = async () => {
   try {
-    const res = await getOrderList()
+    // const res = await getOrderList({ ordStatusInternal: 'a1' })
+    const res = await getOrderList({ ordStatus: 'a1' })
 
     const items = res.data.data.map(order => ({
       ordCd: order.ordCd,
@@ -172,6 +173,10 @@ const handleApprove = async () => {
 
     if (res.data.result_code === 'SUCCESS') {
       alert('주문 승인 완료!')
+
+      formStore.$reset()
+      productStore.$reset()
+      await loadOrderListForModal()
     } else {
       alert('승인 실패: ' + res.data.message)
     }
@@ -205,6 +210,10 @@ const handleReject = async () => {
     const res = await axios.put(`/api/order/${ordCd}/reject`, payload);
     if (res.data.result_code === 'SUCCESS') {
       alert('주문 거절 완료!')
+
+      formStore.$reset()
+      productStore.$reset()
+      await loadOrderListForModal()
     } else {
       alert('거절 실패: ' + res.data.message)
     }
@@ -214,6 +223,15 @@ const handleReject = async () => {
   }
 }
 
+// 총 금액 계산
+// products 배열의 각 항목에서 ordQty와 unitPrice를 곱하여 총 금액을 계산
+const allTotalAmount = computed(() => {
+  return products.value.reduce((sum, item) => {
+    const qty = Number(item.ordQty) || 0
+    const price = Number(item.unitPrice) || 0
+    return sum + qty * price
+  }, 0)
+});
 
 // 주문 불러오기
 onMounted(async () => {
@@ -261,5 +279,12 @@ onUnmounted(() => {
       :enableRowActions="false"
       :enableSelection="false"
     />
+    <!-- 하단 합계 영역 -->
+    <div class="flex justify-end items-center mt-4 px-4">
+      <p class="text-base font-semibold text-gray-700 mr-2 mb-0">총 주문 총액</p>
+      <p class="text-xl font-bold text-orange-500">
+        {{ allTotalAmount.toLocaleString() }} <em class="text-sm font-normal not-italic text-black ml-1">원</em>
+      </p>
+    </div>
   </div>
 </template>

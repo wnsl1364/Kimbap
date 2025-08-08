@@ -54,4 +54,10 @@ public interface ReturnMapper {
 
   // 주문상세 코드로 주문코드 조회
   String getOrdCdByOrdDCd(String ordDCd);
+
+  // return_amount 계산
+  void updateReturnAmount(Map<String, Object> params);
+
+  // 미수금 차감
+  void decreaseCompanyUnsettledAmount(Map<String, Object> params);
 }

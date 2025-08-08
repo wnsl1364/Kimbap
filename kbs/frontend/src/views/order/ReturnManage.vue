@@ -121,12 +121,17 @@ const handleApprove = async () => {
     const payload = {
       prodReturnCd: selectedRows.value.prodReturnCd,
       manager: user.value.memCd,
-      rejectRea: rejectReason.value
+      rejectRea: '',
+      ordDCd: selectedRows.value.ord_d_cd,
+      returnQty: selectedRows.value.returnQty,
+      unitPrice: selectedRows.value.unitPrice
     };
     
     await approveReturn(payload);
     alert('승인 처리되었습니다.');
-    router.push({ path: '/order/orderList', query: { refresh: true } });
+    // router.push({ path: '/order/orderList', query: { refresh: true } });
+    fetchReturnList();
+    selectedRows.value = null;
   } catch (err) {
     console.error('승인 처리 실패:', err);
     alert('승인 처리 중 오류 발생');

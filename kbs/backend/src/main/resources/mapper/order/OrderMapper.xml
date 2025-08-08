@@ -93,46 +93,56 @@
             note,
             ord_status_internal AS ordStatusInternal,
             ord_status_customer AS ordStatusCustomer
-        FROM vw_order_list
+        FROM vw_order_list v
         WHERE is_used = 'f1'
 
         <!-- 공통 검색 조건 -->
         <if test="ordCd != null and ordCd != ''">
-            AND ord_cd LIKE '%' || #{ordCd} || '%'
+            AND v.ord_cd LIKE '%' || #{ordCd} || '%'
         </if>
 
         <!-- 주문일자 범위 조건 -->
         <if test="ordDtStart != null and ordDtStart != ''">
-            AND TRUNC(ord_dt) &gt;= TO_DATE(#{ordDtStart}, 'YYYY-MM-DD')
+            AND TRUNC(v.ord_dt) &gt;= TO_DATE(#{ordDtStart}, 'YYYY-MM-DD')
         </if>
         <if test="ordDtEnd != null and ordDtEnd != ''">
-            AND TRUNC(ord_dt) &lt;= TO_DATE(#{ordDtEnd}, 'YYYY-MM-DD')
+            AND TRUNC(v.ord_dt) &lt;= TO_DATE(#{ordDtEnd}, 'YYYY-MM-DD')
         </if>
 
         <!-- 납기일자 범위 조건 -->
         <if test="deliReqDtStart != null and deliReqDtStart != ''">
-            AND TRUNC(deli_req_dt) &gt;= TO_DATE(#{deliReqDtStart}, 'YYYY-MM-DD')
+            AND TRUNC(v.deli_req_dt) &gt;= TO_DATE(#{deliReqDtStart}, 'YYYY-MM-DD')
         </if>
         <if test="deliReqDtEnd != null and deliReqDtEnd != ''">
-            AND TRUNC(deli_req_dt) &lt;= TO_DATE(#{deliReqDtEnd}, 'YYYY-MM-DD')
+            AND TRUNC(v.deli_req_dt) &lt;= TO_DATE(#{deliReqDtEnd}, 'YYYY-MM-DD')
         </if>
 
         <if test="ordStatusInternal != null and ordStatusInternal != ''">
-            AND ord_status_internal = #{ordStatusInternal}
+            AND v.ord_status_internal = #{ordStatusInternal}
         </if>
         <if test="ordStatusCustomer != null and ordStatusCustomer != ''">
-            AND ord_status_customer = #{ordStatusCustomer}
+            AND v.ord_status_customer = #{ordStatusCustomer}
         </if>
 
         <if test="cpName != null and cpName != ''">
-            AND cp_name LIKE '%' || #{cpName} || '%'
+            AND v.cp_name LIKE '%' || #{cpName} || '%'
         </if>
 
         <if test="cpCd != null and cpCd != ''">
-            AND cp_cd = #{cpCd}
+            AND v.cp_cd = #{cpCd}
         </if>
 
-        ORDER BY ord_cd DESC
+        <if test="prodName != null and prodName != ''">
+            AND EXISTS (
+                SELECT 1
+                FROM order_d od
+                JOIN product p ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
+                WHERE od.ord_cd = v.ord_cd
+                AND p.prod_name LIKE '%' || #{prodName} || '%'
+            )
+        </if>
+
+        ORDER BY v.ord_cd DESC
     </select>
 
 
