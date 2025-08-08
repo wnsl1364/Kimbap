@@ -8,26 +8,20 @@ import { format, parseISO } from 'date-fns'
 import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
-import { useMemberStore } from '@/stores/memberStore'
 import { useRoute } from 'vue-router';
-import { reactive } from 'vue';
 
-const infoFormButtons = reactive({});
-// 로그인 정보 가져오기
-const memberStore = useMemberStore()
-const { user } = storeToRefs(memberStore)
+const today = format(new Date(), 'yyyy-MM-dd');
 
 // 라우터 설정
 const route = useRoute()
 const ordCd = route.query.ordCd
-const relMasCd = route.query.relMasCd
 
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
 const productStore = useOrderProductStore()
 
 // 반응형 상태
-const { formData , resetForm } = storeToRefs(formStore)
+const { formData } = storeToRefs(formStore)
 const { products } = storeToRefs(productStore)
 
 //창고 목록 상태
@@ -38,33 +32,21 @@ const showArrearsModal = ref(false)
 // form 필드
 const formFields1 = [
   { label: '출고지시번호', field: 'newRelMasCd', type: 'text', disabled: true },
-  { label: '작성자', field: 'regi', type: 'text', disabled: true },
-  { label: '출고일자', field: 'relDt', type: 'calendar', disabled: true },
-  { label: '비고', field: 'note', type: 'input', disabled: false },
+  { label: '출고일자', field: 'relDt', type: 'text', disabled: true , defaultValue: today }
 ];
-const formFields2 = [
-  { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
-  { label: '거래처 담당자', field: 'mname', type: 'text', disabled: true },
-  { label: '납품지 주소', field: 'deliAdd', type: 'text', disabled: true },
-  { label: '납기요청일', field: 'deliReqDt', type: 'text', disabled: true },
-]
 
 // 제품 테이블
-const columns = computed(() => [
+const columns1 = computed(() => [
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
-  { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
-  {
-    field: 'wcode', // 창고코드
-    header: '창고',
-    type: 'select',
-    align: 'right',
-    options: warehouseList.value,  // 창고 목록 변수
-    optionValue: 'wcode',
-    optionLabel: 'wareName' // 또는 창고명을 보여주고 싶다면 'wname' 등으로 변경
-  },
-  { field: 'relOrdStatus', header: '출고상태', type: 'input', readonly: true }
+  { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true},
+  { field: 'relQty', header: '출고지시수량(box)', type: 'input', inputType: 'number', align: 'right'},
+  { field: 'relOrdStatus', header: 'LOT번호', type: 'input', align: 'left', readonly: true }
+]);
+
+const columns2 = computed(() => [
+  { field: 'prodName', header: '제품명', type: 'input', readonly: true },
+  { field: 'ordQty', header: 'LOT번호', type: 'input', inputType: 'number', align: 'right', readonly: true},
+  { field: 'relQty', header: '출고수량(box)', type: 'input', inputType: 'number', align: 'right'},
 ]);
 
 const handleSave = async () => {
@@ -132,10 +114,10 @@ const handleSave = async () => {
 
 
 // 버튼 설정
-// const infoFormButtons = ref({
-//   save: { show: true, label: '저장', severity: 'info', onClick: handleSave },
-//   load: { show: true, label: '주문정보 불러오기', severity: 'success' },
-// });
+const infoFormButtons = ref({
+  save: { show: true, label: '출고', severity: 'info', onClick: handleSave },
+  load: { show: true, label: '출고지시서 불러오기', severity: 'success' },
+});
 
 // 제품 추가 영역 버튼 설정
 const purchaseFormButtons = ref({
@@ -235,57 +217,15 @@ const handleLoadOrder = async (selectedRow) => {
 
 // 주문 불러오기
 onMounted(async () => {
-
-  if (!ordCd && !relMasCd) {
-    // 주문등록 모달용 목록 로딩
+  if (!ordCd) {
     await loadOrderListForModal();
   }
 
-  // 주문등록 모드: 쿼리로 ordCd가 넘어왔을 때 자동 주문 불러오기
+  // 자동 주문 불러오기
   if (ordCd) {
-    await handleLoadOrder({ ordCd });
+    await handleLoadOrder({ ordCd })
   }
-
-  // ✅ 지시서 조회 모드: relMasCd로 진입한 경우
-  if (relMasCd) {
-    // 출고/반려 버튼 추가
-    infoFormButtons.save = { 
-      show: true, 
-      label: '출고', 
-      severity: 'success', 
-      onClick: handleSave 
-    };
-    infoFormButtons.delete = { 
-      show: true, 
-      label: '반려', 
-      severity: 'danger', 
-      onClick: handleSave 
-    };
-    
-    try {
-      const res = await axios.get('/api/distribution/relOrderDetail', {
-        params: { relMasCd }
-      });
-      formStore.setFormData(res.data.master);
-      productStore.setProducts(res.data.products);
-    } catch (err) {
-      console.error('출고지시 상세 정보 로딩 실패:', err);
-    }
-  } else {
-    // 신규 등록 모드
-    infoFormButtons.save = { 
-      show: true, 
-      label: '저장', 
-      severity: 'info', 
-      onClick: handleSave 
-    };
-    infoFormButtons.load = { 
-      show: true, 
-      label: '주문정보 불러오기', 
-      severity: 'success' 
-    };
-  }
-});
+})
 // 피니아 리셋
 onUnmounted(() => {
   formStore.$reset();
@@ -300,14 +240,12 @@ onUnmounted(() => {
       @showArrearsModal="showArrearsModal = true" @load="handleLoadOrder" @reset="handleApprove"
       @delete="handleReject" />
   </div>
-  <div class="space-y-4">
-    <LeftAlignTable v-model:data="formData" :fields="formFields2" :title="'출고처'" :buttons="false" button-position="top"
-      :modalDataSets="modalDataSets" :dataKey="'ordCd'" @showArrearsModal="showArrearsModal = true"
-      @load="handleLoadOrder" @reset="handleApprove" @delete="handleReject" />
-  </div>
-
   <div class="space-y-4 mt-3">
-    <InputTable :data="products" :columns="columns" :title="''" scrollHeight="360px" height="460px" :dataKey="'pcode'"
+    <InputTable :data="products" :columns="columns1" :title="''" scrollHeight="250px" height="305px" :dataKey="'pcode'"
+      :buttons="purchaseFormButtons" :enableRowActions="false" :enableSelection="false" />
+  </div>
+    <div class="space-y-4 mt-3">
+    <InputTable :data="products" :columns="columns2" :title="''" scrollHeight="250px" height="305px" :dataKey="'pcode'"
       :buttons="purchaseFormButtons" :enableRowActions="false" :enableSelection="false" />
   </div>
 </template>

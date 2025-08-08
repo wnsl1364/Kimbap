@@ -20,4 +20,10 @@ export default [
         name: 'relOrdList',
         component: () => import('@/views/distribution/RelOrdList.vue'),
     },
+    // 출고처리
+    {
+        path: '/distribution/relSave',
+        name: 'relSave',
+        component: () => import('@/views/distribution/RelSave.vue'),
+    },
 ];
