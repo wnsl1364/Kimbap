@@ -295,18 +295,18 @@ const rowCount = computed(() => internalData.value.length);
 defineExpose({
     selectedRows
 });
-// 엑셀 다운로드 
+// 엑셀 다운로드 함수
 const downloadExcel = () => {
   import('xlsx').then((xlsx) => {
     let rowsToDownload;
 
     if (selectedRows.value.length > 0) {
-      rowsToDownload = selectedRows.value; // ✅ selected.value → selectedRows.value로 수정
+      rowsToDownload = selectedRows.value;
     } else {
       rowsToDownload = props.data;
     }
 
-    // ⛔ exportColumns 제거하고 → ✅ props.columns 사용
+    // 컬럼 헤더 매핑 (props.columns 기준)
     const headerMap = {};
     props.columns.forEach(col => {
       if (col.field) {
@@ -314,22 +314,37 @@ const downloadExcel = () => {
       }
     });
 
+    // ✅ 날짜 필드 자동 포맷 적용 (yyyy-MM-dd)
     const converted = rowsToDownload.map(row => {
       const newRow = {};
       for (const key in headerMap) {
-        newRow[headerMap[key]] = row[key] ?? '';
+        let value = row[key];
+
+        if (value instanceof Date) {
+          value = format(value, 'yyyy-MM-dd');
+        } else if (typeof value === 'string') {
+          const date = new Date(value);
+          if (!isNaN(date.getTime()) && value.length >= 8) {
+            value = format(date, 'yyyy-MM-dd');
+          }
+        }
+
+        newRow[headerMap[key]] = value ?? '';
       }
       return newRow;
     });
 
+    // 워크시트 및 파일 생성
     const worksheet = xlsx.utils.json_to_sheet(converted);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
+    // 파일명 결정
     const filename = rowsToDownload.length === 1
       ? `${rowsToDownload[0][props.dataKey] || 'item'}.xlsx`
       : `${props.title || 'data'}.xlsx`;
 
+    // 엑셀 파일 다운로드 실행
     xlsx.writeFile(workbook, filename);
   });
 };
