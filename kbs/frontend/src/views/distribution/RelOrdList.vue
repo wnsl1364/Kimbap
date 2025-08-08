@@ -3,6 +3,12 @@ import { ref, computed, onMounted, watch } from 'vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import { getRelOrdList } from '@/api/distribution';
+import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
+
+// 라우터 설정
+const router = useRouter();
+const route = useRoute();
 
 // api 데이터
 const rawData = ref([]);
@@ -40,7 +46,7 @@ const searchColumns = ref([
     placeholder: '제품명을 입력하세요'
   },
   {
-    key: 'relOrdCd',
+    key: 'relMasCd',
     label: '출고지시번호',
     type: 'text',
     placeholder: '제품코드를 입력하세요'
@@ -71,7 +77,7 @@ const onSearch = async (searchValues) => {
   try {
     const {
       cpName,
-      relOrdCd,
+      relMasCd,
       relDtStart,
       relDtEnd,
       type
@@ -82,7 +88,7 @@ const onSearch = async (searchValues) => {
 
     const filter = {
       cpName,
-      relOrdCd,
+      relMasCd,
       type,
       startDate,
       endDate
@@ -112,9 +118,9 @@ const inputTableColumns = computed(() => {
       align: 'center'
     },
     {
-      field: 'relOrdCd',
+      field: 'relMasCd',
       header: '출고지시번호',
-      type: 'readonly',
+      type: 'clickable',
       align: 'center'
     },
     {
@@ -157,7 +163,14 @@ const inputTableColumns = computed(() => {
   return baseColumns;
 });
 
-
+const handleRowclicked = (row) => {
+  console.log('📋 선택된 행:', row);
+  
+  const relMasCd = row.relMasCd;
+  
+  // 상세 페이지로 이동
+  router.push({ path: '/distribution/relOrdAndResult', query: { relMasCd } });
+};
 </script>
 
 <template>
@@ -169,9 +182,9 @@ const inputTableColumns = computed(() => {
           @reset="onReset" />
 
         <!-- 매핑된 InputTable -->
-        <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relOrdCd" :scroll-height="'50vh'"
+        <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relMasCd" :scroll-height="'50vh'"
           :height="'60vh'" :title="`입출고 리스트`" :buttons="materialTableButtons" :enableRowActions="false"
-          :enableSelection="false" />
+          :enableSelection="false" @rowClick="handleRowclicked"/>
       </div>
     </div>
   </div>

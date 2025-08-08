@@ -149,12 +149,16 @@ const model = ref([
             //     to: '/material/materialStockView'
             // },
             {
-                label: '출고지시서 조회/처리',
+                label: '출고지시서 조회',
                 to: '/distribution/relOrdList'
             },
             {
                 label: '출고 지시서 등록',
                 to: '/distribution/relOrdAndResult'
+            },
+            {
+                label: '출고 처리',
+                to: '/distribution/relSave'
             },
             {
                 label: '완제품 입출고 조회',

@@ -14,7 +14,7 @@
     temp.stockQty,
     temp.note
   FROM (
-    -- 입고 데이터
+
     SELECT 
       a.inbo_dt AS regDt,
       '입고' AS type,
@@ -30,7 +30,6 @@
 
     UNION ALL
 
-    -- 출고 데이터 (rel_dt 수정)
     SELECT 
       rom.rel_dt AS regDt,
       '출고' AS type,
@@ -71,36 +70,53 @@
   </select>
 
   <!-- 출고지시서 조회 -->
-  <select id="getRelOrdList" resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO" parameterType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
+<select id="getRelOrdList" resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO" parameterType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
   SELECT 
-    a.rel_ord_cd,
-    f.rel_dt,
-    d.cp_name,
-    e.prod_name,
-    a.rel_ord_qty,
-    c.deli_add,
-    f.rel_ord_status,
-    f.note
-  FROM release_ord a
-  JOIN order_d b ON a.ord_d_cd = b.ord_d_cd
-  JOIN order_list c ON c.ord_cd = b.ord_cd
-  JOIN company d ON d.cp_cd = c.cp_cd
-  JOIN product e ON e.pcode = b.pcode AND e.prod_ver_cd = b.prod_ver_cd
-  JOIN release_ord_master f ON a.rel_mas_cd = f.rel_mas_cd 
+    rom.rel_mas_cd       AS relMasCd,
+    rom.rel_dt           AS relDt,
+    cp.cp_name           AS cpName,
+
+    (
+      SELECT MIN(p.prod_name) || CASE WHEN COUNT(*) > 1 THEN ' 외 ' || (COUNT(*) - 1) || '개' ELSE '' END
+      FROM release_ord ro
+      JOIN order_d od ON ro.ord_d_cd = od.ord_d_cd
+      JOIN product p ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
+      WHERE ro.rel_mas_cd = rom.rel_mas_cd
+    ) AS prodName,
+
+    (
+      SELECT SUM(ro.rel_ord_qty)
+      FROM release_ord ro
+      WHERE ro.rel_mas_cd = rom.rel_mas_cd
+    ) AS relOrdQty,
+
+    ol.deli_add          AS deliAdd,
+    rom.rel_ord_status   AS relOrdStatus,
+    rom.note             AS note
+
+  FROM release_ord_master rom
+  JOIN release_ord ro1 ON rom.rel_mas_cd = ro1.rel_mas_cd
+  JOIN order_d od1 ON ro1.ord_d_cd = od1.ord_d_cd
+  JOIN order_list ol ON od1.ord_cd = ol.ord_cd
+  JOIN company cp ON ol.cp_cd = cp.cp_cd
+
   <where>
     <if test="cpName != null and cpName != ''">
-      AND d.cp_name LIKE '%' || #{cpName} || '%'
+      AND cp.cp_name LIKE '%' || #{cpName} || '%'
     </if>
-    <if test="relOrdCd != null and relOrdCd != ''">
-      AND a.rel_ord_cd LIKE '%' || #{relOrdCd} || '%'
+    <if test="relMasCd != null and relMasCd != ''">
+      AND rom.rel_mas_cd LIKE '%' || #{relMasCd} || '%'
     </if>
     <if test="type != null and type != '전체'">
-      AND f.rel_ord_status = #{type}
+      AND rom.rel_ord_status = #{type}
     </if>
     <if test="startDate != null and endDate != null">
-      AND f.rel_dt BETWEEN #{startDate} AND #{endDate}
+      AND rom.rel_dt BETWEEN #{startDate} AND #{endDate}
     </if>
   </where>
+
+  GROUP BY rom.rel_mas_cd, rom.rel_dt, cp.cp_name, ol.deli_add, rom.rel_ord_status, rom.note
+  ORDER BY rom.rel_dt DESC
 </select>
 
 <!-- 출고지시서 모달 출력 -->
@@ -181,14 +197,14 @@ SELECT
           FROM prod_rel pr
           JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
           WHERE ro.ord_d_cd = od.ord_d_cd
-      ), 0) = 0 THEN '미출고'
+      ), 0) = 0 THEN 'm1'
       WHEN NVL((
           SELECT SUM(pr.rel_qty)
           FROM prod_rel pr
           JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
           WHERE ro.ord_d_cd = od.ord_d_cd
-      ), 0) &lt; od.ord_qty THEN '부분출고'
-      ELSE '출고완료'
+      ), 0) &lt; od.ord_qty THEN 'm3'
+      ELSE 'm2'
     END AS relOrdStatus
 
   FROM order_d od
@@ -243,7 +259,7 @@ INSERT INTO release_ord_master (
   SYSDATE,
   #{note},
   #{cpCd},
-  #{mName},
+  #{mname},
   #{deliAdd},
   #{deliReqDt},
   'm1')

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RelOrderAndResultVO {
   private Date relDt;         // 출고지시일자
-  private String relOrdCd;    // 출고지시번호
+  private String relMasCd;    // 출고지시마스터번호
   private String cpName;      // 거래처명
   private String prodName;    // 제품명
   private int relOrdQty;    // 출고지시수량

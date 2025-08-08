@@ -59,6 +59,8 @@ public class DistributionServiceImpl implements DistributionService {
     @Override
     public void saveReleaseOrder(ReleaseMasterOrdVO master, List<ReleaseOrdVO> detailList) {
         // 1. 출고마스터코드 생성
+        System.out.println("DEBUG: master = " + master);
+        System.out.println("DEBUG: master.getMName() = " + master.getMname());
         String relMasCd = distributionMapper.selectNewRelMasCd();
         master.setRelMasCd(relMasCd);
 
