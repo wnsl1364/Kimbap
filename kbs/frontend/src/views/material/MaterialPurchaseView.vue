@@ -3,9 +3,9 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useMaterialStore } from '@/stores/materialStore';
 import { useMemberStore } from '@/stores/memberStore';
 import { useToast } from 'primevue/usetoast';
-// 🎯 새로운 깔끔한 API 함수 import!
 import { getPurchaseOrdersForView } from '@/api/materials';
 import { useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import { format, isValid } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
@@ -17,8 +17,7 @@ const memberStore = useMemberStore();
 const common = useCommonStore();
 const toast = useToast();
 const router = useRouter();
-
-// 🎯 깔끔한 데이터 구조!
+const route = useRoute();
 const cleanPurchaseData = ref([]);
 
 const formatDate = (date) => {
@@ -34,7 +33,7 @@ const formatDate = (date) => {
   }
 };
 
-// 🎯 단위코드 변환 (기존 함수 재사용)
+// 단위코드 변환 (기존 함수 재사용)
 const convertUnitCodes = (list) => {
   if (!list || !Array.isArray(list)) return [];
 
@@ -72,7 +71,7 @@ const actualUserType = computed(() => {
   if (showTestControls.value) return userType.value;
   
   const memType = memberStore.user?.memType;
-  if (memType === 'p1') return 'internal';
+  if (memType === 'p1' || memType === 'p4') return 'internal';
   if (memType === 'p3') return 'supplier';
   return 'internal';
 });
@@ -83,99 +82,113 @@ const searchColumns = computed(() => {
     : materialStore.supplierPurchaseSearchColumns;
 });
 
-// 🔥 InputTable용 컬럼 정의 (실제 데이터 필드와 매치!)
+// InputTable용 컬럼 정의
 const inputTableColumns = computed(() => {
   const baseColumns = [
     {
       field: 'purcCd',
       header: '발주번호',
       type: 'clickable',
-      align: 'center'
+      align: 'center',
+      width: '120px'
     },
     {
       field: 'purcDCd', 
       header: '발주상세번호',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '130px'
     },
     {
       field: 'mateName',
       header: '자재명',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '150px'
     },
     {
       field: 'cpName',
       header: '거래처명',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '120px'
     },
     {
       field: 'purcQty',
       header: '수량',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '80px'
     },
     {
       field: 'unit',
       header: '단위',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '60px'
     },
     {
       field: 'unitPrice',
       header: '단가(원)',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '100px'
     },
     {
       field: 'totalAmount',
       header: '총액(원)',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '120px'
     },
     {
       field: 'exDeliDt',
       header: '납기예정일',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '110px'
     },
     {
       field: 'purcDStatus',
       header: '발주상태',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '80px'
     },
     {
       field: 'note',
       header: '비고',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '150px'
     }
   ];
 
-  // 🔥 사용자 타입별 추가 컬럼
+  // 사용자 타입별 추가 컬럼
   if (actualUserType.value === 'internal') {
     // 내부직원용: 실제납기일, 등록자, 주문일자 추가
     baseColumns.splice(1, 0, {
       field: 'ordDt',
       header: '주문일자',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '100px'
     });
     
-    baseColumns.splice(2, 0, {
-      field: 'regiName',
-      header: '등록자',
-      type: 'readonly',
-      align: 'center'
-    });
+    // baseColumns.splice(2, 0, {
+    //   field: 'regiName',
+    //   header: '등록자',
+    //   type: 'readonly',
+    //   align: 'center',
+    //   width: '80px'
+    // });
     
-    baseColumns.splice(10, 0, {
+    baseColumns.splice(11, 0, {
       field: 'deliDt',
       header: '실제납기일',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '110px'
     });
   }
 
@@ -189,10 +202,7 @@ const currentTableColumns = computed(() => {
     : materialStore.supplierPurchaseColumns;
 });
 
-// 🎯 깔끔한 데이터만 표시!
 const cleanConvertedData = computed(() => {
-  console.log('🎯 깔끔한 데이터 변환 시작:', cleanPurchaseData.value?.length);
-  
   if (!cleanPurchaseData.value || !Array.isArray(cleanPurchaseData.value)) {
     return [];
   }
@@ -203,7 +213,7 @@ const cleanConvertedData = computed(() => {
     ordDt: formatDate(item.ordDt),
     exDeliDt: formatDate(item.exDeliDt),
     deliDt: formatDate(item.deliDt),
-    // 🔥 숫자 포맷팅 추가
+    // 숫자 포맷팅 추가
     unitPrice: Number(item.unitPrice || 0).toLocaleString(),
     totalAmount: Number(item.totalAmount || 0).toLocaleString()
   }));
@@ -211,33 +221,27 @@ const cleanConvertedData = computed(() => {
   // 단위코드 변환
   const converted = convertUnitCodes(formattedData);
   
-  console.log('✅ 깔끔한 데이터 변환 완료:', converted?.length);
   return converted;
 });
 
-// 🎯 새로운 깔끔한 API 호출!
 const onSearch = async (searchData) => {
   try {
     isLoading.value = true;
-    console.log('🎯 깔끔한 검색 시작:', searchData, actualUserType.value);
-    
     const response = await getPurchaseOrdersForView(searchData, actualUserType.value);
     cleanPurchaseData.value = response.data;
     
-    console.log('✅ 깔끔한 검색 완료:', response.data);
-    
     toast.add({
       severity: 'success',
-      summary: '검색 완료! 🎉',
-      detail: `${response.data.length}건의 깔끔한 발주 데이터를 조회했습니다!`,
+      summary: '검색 완료',
+      detail: `${response.data.length}건의 발주 데이터를 조회했습니다.`,
       life: 3000
     });
     
   } catch (error) {
-    console.error('❌ 깔끔한 검색 실패:', error);
+    console.error('검색 실패:', error);
     toast.add({
       severity: 'error',
-      summary: '검색 실패 ㅠㅠ',
+      summary: '검색 실패',
       detail: '발주 데이터 조회 중 오류가 발생했습니다.',
       life: 3000
     });
@@ -250,7 +254,7 @@ const onReset = () => {
   loadCleanPurchaseData();
   toast.add({
     severity: 'info',
-    summary: '초기화 완료 ✨',
+    summary: '초기화 완료',
     detail: '검색 조건이 초기화되고 전체 목록을 조회했습니다.',
     life: 3000
   });
@@ -260,24 +264,23 @@ const onReset = () => {
 const loadCleanPurchaseData = async () => {
   try {
     isLoading.value = true;
-    console.log('🎯 깔끔한 데이터 로드 시작 - 사용자 타입:', actualUserType.value);
+    console.log('데이터 로드 시작 - 사용자 타입:', actualUserType.value);
     
     const response = await getPurchaseOrdersForView({}, actualUserType.value);
     cleanPurchaseData.value = response.data;
 
-    console.log('✅ 깔끔한 데이터 로드 완료:', response.data.length, '건');
+    console.log('깔끔한 데이터 로드 완료:', response.data.length, '건');
 
   } catch (error) {
-    console.error('❌ 깔끔한 데이터 로드 실패:', error);
+    console.error('깔끔한 데이터 로드 실패:', error);
     loadCleanSampleData();
   } finally {
     isLoading.value = false;
   }
 };
 
-// 🎯 깔끔한 샘플 데이터!
 const loadCleanSampleData = () => {
-  console.log('🧹 깔끔한 샘플 데이터 로드');
+  console.log('깔끔한 샘플 데이터 로드');
   
   const cleanSampleData = [
     {
@@ -331,19 +334,44 @@ const loadCleanSampleData = () => {
   ];
   
   cleanPurchaseData.value = cleanSampleData;
-  console.log('🧹 깔끔한 샘플 데이터 설정 완료!');
+  console.log('샘플 데이터 설정 완료');
 };
 
 const handleRowClick = (rowData) => {
   console.log('[MaterialPurchaseView.vue] 라우터 이동 대상:', rowData)
+  console.log('[MaterialPurchaseView.vue] 사용자 정보:', {
+    memType: memberStore.user?.memType,
+    empName: memberStore.user?.empName,
+    actualUserType: actualUserType.value
+  })
+  
   const purcCd = rowData.purcCd
+  const purcDStatus = rowData.purcDStatus
   const memType = memberStore.user?.memType
+
+  console.log('[MaterialPurchaseView.vue] 상태 확인:', {
+    purcCd,
+    purcDStatus,
+    purcStatus: rowData.purcStatus,
+    isC3Status: purcDStatus === '입고 대기' || purcDStatus === '입고대기' || rowData.purcDStatus === 'c3'
+  })
 
   if (!purcCd) return;
 
+  // 사용자 타입에 따른 페이지 이동
   if (memType === 'p3') {
-    // 매출업체는 주문등록(수정) 페이지로
+    console.log('[MaterialPurchaseView.vue] 공급업체 → 발주승인 페이지')
+    // 공급업체는 모든 발주를 승인 페이지로
     router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
+  } else if (memType === 'p1' || memType === 'p4') {
+    // 내부직원(사원, 담당자): 입고대기 상태만 자재입고 페이지로, 나머지는 발주승인 페이지로
+    if (purcDStatus === '입고 대기' || purcDStatus === '입고대기' || rowData.purcDStatus === 'c3') {
+      console.log('[MaterialPurchaseView.vue] 내부직원 + 입고대기 → 자재입고 페이지')
+      router.push({ path: '/material/materialInbound', query: { purcCd } })
+    } else {
+      console.log('[MaterialPurchaseView.vue] 내부직원 + 다른상태 → 발주승인 페이지')
+      router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
+    }
   } else {
     console.warn('지원되지 않는 사용자 유형입니다:', memType)
   }
@@ -365,6 +393,16 @@ onMounted(async () => {
   
   await nextTick();
   loadCleanPurchaseData();
+  
+  // 자재입고 메뉴에서 온 경우 안내 toast 띄우기
+  if (route.query.from === 'inbound') {
+    toast.add({
+      severity: 'info',
+      summary: '자재 입고 안내',
+      detail: '자재 발주 조회 페이지로 이동합니다. 입고대기 상태의 자재를 선택해주세요.',
+      life: 6000
+    });
+  }
 });
 </script>
 
@@ -412,17 +450,17 @@ onMounted(async () => {
         <SearchForm 
           :columns="searchColumns"
           @search="onSearch"
-          :gridColumns="5"
+          :gridColumns="4"
           @reset="onReset"
         />
 
-        <!-- 🔥 완벽 매핑된 InputTable -->
+        <!-- InputTable -->
         <InputTable
-          :key="`clean-input-table-${cleanConvertedData?.length || 0}`"
+          :key="`purchase-table-${actualUserType}`"
           :columns="inputTableColumns"
           :data="cleanConvertedData"
-          :scroll-height="'50vh'" 
-          :height="'60vh'"
+          :scroll-height="'40vh'" 
+          :height="'50vh'"
           :title="`발주 목록 조회 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
           dataKey="purcCd"
           :buttons="materialTableButtons"
@@ -430,7 +468,7 @@ onMounted(async () => {
           :enableSelection="false"
           @rowClick="handleRowClick"
           :enableRowClick="true"
-          @dataChange="(newData) => console.log('🎯 깔끔한 InputTable 데이터 변경:', newData)"
+          @dataChange="(newData) => console.log('InputTable 데이터 변경:', newData)"
         />
       </div>
     </div>

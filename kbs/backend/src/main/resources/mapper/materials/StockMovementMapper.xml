@@ -64,14 +64,14 @@
     <select id="getLastMoveReqSequence" parameterType="string" resultType="int">
         SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(move_req_cd, -3))), 0) as last_seq
         FROM move_req
-        WHERE move_req_cd LIKE CONCAT('MR-', #{datePattern}, '-%')
+        WHERE move_req_cd LIKE 'MR-' || #{datePattern} || '-%'
     </select>
 
     <!-- 이동요청상세코드 시퀀스 조회 -->
     <select id="getLastMoveReqDetailSequence" parameterType="string" resultType="int">
         SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(mrdcode, -3))), 0) as last_seq
         FROM move_req_d
-        WHERE mrdcode LIKE CONCAT('MRD-', #{datePattern}, '-%')
+        WHERE mrdcode LIKE 'MRD-' || #{datePattern} || '-%'
     </select>
 
     <!-- 이동요청 목록 전체 조회 -->
@@ -475,6 +475,33 @@
         WHERE TO_CHAR(req_dt, 'YYYY') = #{year}
         GROUP BY TO_CHAR(req_dt, 'MM')
         ORDER BY month
+    </select>
+
+    <!-- 이동요청 중인 자재 배치 정보 조회 (move_status = 'd1') -->
+    <select id="getPendingMoveRequestPlacements" resultType="com.kimbap.kbs.materials.service.StockMovementVO">
+        SELECT 
+            mrd.move_req_cd,
+            mrd.mcode,
+            m.mate_name,
+            mrd.lot_no,
+            mrd.move_qty,
+            mrd.item_type,
+            mrd.unit,
+            mrd.depa_area_cd,
+            mrd.arr_area_cd,
+            mr.move_status,
+            f.fac_name,
+            w.ware_name,
+            wd_arr.ware_area_cd
+        FROM move_req_d mrd
+        INNER JOIN move_req mr ON mrd.move_req_cd = mr.move_req_cd
+        LEFT JOIN material m ON mrd.mcode = m.mcode AND mrd.mate_ver_cd = m.mate_ver_cd
+        LEFT JOIN ware_d wd_arr ON mrd.arr_area_cd = wd_arr.ware_area_cd
+        LEFT JOIN warehouse w ON wd_arr.wcode = w.wcode AND wd_arr.ware_ver_cd = w.ware_ver_cd
+        LEFT JOIN factory f ON w.fcode = f.fcode AND w.fac_ver_cd = f.fac_ver_cd
+        WHERE mr.move_status = 'd1'
+        AND mrd.arr_area_cd IS NOT NULL
+        ORDER BY mr.req_dt DESC, mrd.move_req_cd
     </select>
 
 </mapper>

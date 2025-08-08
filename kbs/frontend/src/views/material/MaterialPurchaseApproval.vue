@@ -45,15 +45,12 @@ const purcCd = ref('');
 // 선택 상태 관리
 const localSelectedItems = ref([]);
 
-// 임시 상태 변경 관리 (핵심!)
+// 임시 상태 변경 관리
 const pendingChanges = ref([]); // 저장 대기 중인 변경사항들
 const hasUnsavedChanges = computed(() => pendingChanges.value.length > 0);
 
 // InputTable에서 선택 상태 변경 시 호출되는 핸들러
-const handleSelectionChange = (selectedItems) => {
-  console.log('🎉 부모에서 선택 상태 받음!')
-  console.log('  - 받은 선택:', selectedItems?.length || 0, '개')
-  
+const handleSelectionChange = (selectedItems) => {  
   localSelectedItems.value = [...selectedItems]
   materialStore.setSelectedApprovalItems([...selectedItems])
 }
@@ -126,7 +123,7 @@ const detailTableColumns = computed(() => [
     align: 'center'
   },
   {
-    field: 'purcDStatusText',  // 변경된 상태 텍스트 표시
+    field: 'purcDStatusText',
     header: '상태',
     type: 'readonly',
     align: 'center'
@@ -196,14 +193,14 @@ const totalApprovalAmount = computed(() => {
 const canApprove = computed(() => {
   return localSelectedItems.value.length > 0 && 
          localSelectedItems.value.every(item => 
-           item.purcDStatus === 'c1' || item.tempStatus === 'c1' // 🔥 임시상태도 체크
+           item.purcDStatus === 'c1' || item.tempStatus === 'c1'
          );
 });
 
 const canReject = computed(() => {
   return localSelectedItems.value.length > 0 && 
          localSelectedItems.value.every(item => 
-           item.purcDStatus === 'c1' || item.tempStatus === 'c1' // 🔥 임시상태도 체크
+           item.purcDStatus === 'c1' || item.tempStatus === 'c1'
          );
 });
 
@@ -211,10 +208,10 @@ const canReject = computed(() => {
 const loadOrderDetails = async (orderCode) => {
   try {
     isLoading.value = true;
-    console.log('🔍 발주 상세 정보 로드 시작:', orderCode);
+    console.log('발주 상세 정보 로드 시작:', orderCode);
     
     const response = await getPurcOrderWithDetails(orderCode);
-    console.log('📄 API 응답 데이터:', response.data);
+    console.log('API 응답 데이터:', response.data);
     
     if (response.data && response.data.header && response.data.details) {
       const { header, details } = response.data;
@@ -227,7 +224,7 @@ const loadOrderDetails = async (orderCode) => {
         purcStatus: getStatusText(header.purcStatus),
         ordTotalAmount: header.ordTotalAmount ? 
           `${Number(header.ordTotalAmount).toLocaleString()}원` : '0원',
-        approver: memberStore.user?.empName || '현재 로그인 사용자'
+        approver: memberStore.user?.cpName || '현재 로그인 사용자'
       });
       
       // 상세 정보 설정 (임시 상태 필드 추가!)
@@ -254,21 +251,21 @@ const loadOrderDetails = async (orderCode) => {
       localSelectedItems.value = [];
       pendingChanges.value = [];
       
-      console.log('✅ 발주 정보 로드 완료!');
+      console.log('발주 정보 불러오기 완료');
       
       toast.add({
         severity: 'success',
-        summary: '로드 완료! 🎉',
-        detail: `발주서 ${orderCode} 정보를 성공적으로 불러왔어! (${details.length}건)`,
+        summary: '불러오기 완료',
+        detail: `발주서 ${orderCode} 정보를 성공적으로 불러왔습니다. (${details.length}건)`,
         life: 3000
       });
       
     } else {
-      throw new Error('발주서 데이터 구조가 올바르지 않아요 ㅠㅠ');
+      throw new Error('발주서 데이터 구조가 올바르지 않습니다.');
     }
     
   } catch (error) {
-    console.error('❌ 발주 정보 로드 실패:', error);
+    console.error('발주 정보 로드 실패:', error);
     loadSampleData(orderCode);
   } finally {
     isLoading.value = false;
@@ -289,7 +286,7 @@ const resetOrderHeader = () => {
 
 // 샘플 데이터 로드
 const loadSampleData = (orderCode) => {
-  console.log('🧪 샘플 데이터 로드:', orderCode);
+  console.log('샘플 데이터 로드:', orderCode);
   
   materialStore.setApprovalOrderHeader({
     purcCd: orderCode || 'PURC-001',
@@ -312,7 +309,7 @@ const loadSampleData = (orderCode) => {
       totalAmount: 1500000,
       exDeliDt: '2025-08-01',
       purcDStatus: 'c1',
-      tempStatus: null,  // 🔥 임시 상태
+      tempStatus: null,
       purcDStatusText: '요청',
       note: '긴급 발주 건',
       _original: {
@@ -327,8 +324,8 @@ const loadSampleData = (orderCode) => {
   
   toast.add({
     severity: 'info',
-    summary: '샘플 데이터 로드 📋',
-    detail: '서버 연결이 안 되어서 샘플 데이터로 보여줄게!',
+    summary: '샘플 데이터 로드',
+    detail: '서버 연결이 되지 않아 샘플 데이터를 불러옵니다.',
     life: 3000
   });
 };
@@ -371,18 +368,18 @@ const updateTempStatus = (items, newStatus, reason = '') => {
     }
   });
   
-  console.log('🎯 임시 상태 변경 완료:', pendingChanges.value.length, '건 대기중');
+  console.log('임시 상태 변경 완료:', pendingChanges.value.length, '건 대기중');
 };
 
 // 임시 승인 처리 (웹페이지에서만!)
 const handleTempApprove = () => {
-  console.log('🎉 임시 승인 처리!')
+  console.log('임시 승인 처리!')
   
   if (!canApprove.value) {
     toast.add({
       severity: 'warn',
-      summary: '승인 불가 ⚠️',
-      detail: '승인할 항목을 선택해주세요!',
+      summary: '승인 불가',
+      detail: '승인할 항목을 선택해 주세요.',
       life: 3000
     });
     return;
@@ -393,8 +390,8 @@ const handleTempApprove = () => {
   
   toast.add({
     severity: 'info',
-    summary: '임시 승인 완료! 📝',
-    detail: `${localSelectedItems.value.length}건이 승인 대기 상태로 변경됐어! "저장" 버튼을 눌러서 실제 저장해줘~`,
+    summary: '임시 승인 완료',
+    detail: `${localSelectedItems.value.length}건이 승인 대기 상태로 변경되었습니다. "저장" 버튼을 눌러서 실제 저장해 주세요.`,
     life: 4000
   });
   
@@ -407,8 +404,8 @@ const openRejectModal = () => {
   if (!canReject.value) {
     toast.add({
       severity: 'warn',
-      summary: '거절 불가 ⚠️',
-      detail: '거절할 항목을 선택해주세요!',
+      summary: '거절 불가',
+      detail: '거절할 항목을 선택해 주세요.',
       life: 3000
     });
     return;
@@ -423,8 +420,8 @@ const handleTempReject = () => {
   if (!rejectReason.value.trim()) {
     toast.add({
       severity: 'warn',
-      summary: '거절 사유 필요 📝',
-      detail: '거절 사유를 입력해줘야 해!',
+      summary: '거절 사유 필요',
+      detail: '거절 사유를 입력해 주세요.',
       life: 3000
     });
     return;
@@ -435,8 +432,8 @@ const handleTempReject = () => {
   
   toast.add({
     severity: 'info',
-    summary: '임시 거절 완료! 📝',
-    detail: `${localSelectedItems.value.length}건이 거절 대기 상태로 변경됐어! "저장" 버튼을 눌러서 실제 저장해줘~`,
+    summary: '임시 거절 완료',
+    detail: `${localSelectedItems.value.length}건이 거절 대기 상태로 변경되었습니다. "저장" 버튼을 눌러서 실제 저장해 주세요.`,
     life: 4000
   });
   
@@ -451,8 +448,8 @@ const handleSaveChanges = async () => {
   if (!hasUnsavedChanges.value) {
     toast.add({
       severity: 'info',
-      summary: '저장할 변경사항 없음 🤷‍♀️',
-      detail: '변경된 내용이 없어서 저장할 게 없어!',
+      summary: '저장할 변경사항 없음',
+      detail: '변경된 내용이 없습니다.',
       life: 3000
     });
     return;
@@ -460,7 +457,7 @@ const handleSaveChanges = async () => {
   
   try {
     isLoading.value = true;
-    console.log('💾 실제 저장 시작:', pendingChanges.value.length, '건');
+    console.log('실제 저장 시작:', pendingChanges.value.length, '건');
     
     // 각 변경사항에 대해 실제 API 호출!
     for (const change of pendingChanges.value) {
@@ -473,15 +470,15 @@ const handleSaveChanges = async () => {
           : `${memberStore.user?.empName || '시스템'}에 의해 ${change.newStatus === 'c2' ? '승인' : '처리'}됨`
       };
       
-      console.log('🔥 실제 API 호출:', statusData);
+      console.log('실제 API 호출:', statusData);
       await updatePurchaseOrderStatus(statusData);
-      console.log(`✅ ${change.purcDCd} 저장 완료!`);
+      console.log(`${change.purcDCd} 저장 완료`);
     }
     
     toast.add({
       severity: 'success', 
-      summary: '저장 완료! 🎉',
-      detail: `${pendingChanges.value.length}건의 변경사항이 성공적으로 저장됐어! 진짜 완료! 👏`,
+      summary: '저장 완료',
+      detail: `${pendingChanges.value.length}건의 변경사항이 성공적으로 저장되었습니다.`,
       life: 4000
     });
     
@@ -489,11 +486,11 @@ const handleSaveChanges = async () => {
     await loadOrderDetails(purcCd.value);
     
   } catch (error) {
-    console.error('❌ 저장 실패:', error);
+    console.error('저장 실패:', error);
     toast.add({
       severity: 'error',
-      summary: '저장 실패 ㅠㅠ',
-      detail: '저장 중 문제가 생겼어! 다시 시도해줘~',
+      summary: '저장 실패',
+      detail: '저장 중 문제가 생겼습니다.',
       life: 3000
     });
   } finally {
@@ -506,8 +503,8 @@ const handleResetChanges = () => {
   if (!hasUnsavedChanges.value) {
     toast.add({
       severity: 'info',
-      summary: '초기화할 변경사항 없음 🤷‍♀️',
-      detail: '변경된 내용이 없어서 초기화할 게 없어!',
+      summary: '초기화할 변경사항 없음',
+      detail: '변경된 내용이 없습니다.',
       life: 3000
     });
     return;
@@ -528,8 +525,8 @@ const handleResetChanges = () => {
   
   toast.add({
     severity: 'info',
-    summary: '변경사항 초기화 완료! 🔄',
-    detail: '모든 임시 변경사항이 되돌려졌어!',
+    summary: '변경사항 초기화 완료',
+    detail: '모든 임시 변경사항이 초기화되었습니다.',
     life: 3000
   });
 };
@@ -537,7 +534,7 @@ const handleResetChanges = () => {
 // 목록으로 돌아가기
 const goBackToList = () => {
   if (hasUnsavedChanges.value) {
-    if (confirm('저장하지 않은 변경사항이 있어! 정말 나갈래?')) {
+    if (confirm('저장하지 않은 변경사항이 있습니다.')) {
       router.push('/material/MaterialPurchaseView');
     }
   } else {
@@ -547,15 +544,13 @@ const goBackToList = () => {
 
 // 초기화
 onMounted(async () => {
-  console.log('🚀 MaterialPurchaseApproval 마운트됨!');
-  
   purcCd.value = route.query.purcCd || route.params.purcCd || '';
   
   if (!purcCd.value) {
     toast.add({
       severity: 'warn',
-      summary: '발주번호 없음 😅',
-      detail: '발주번호가 없어서 목록으로 돌아갈게!',
+      summary: '발주번호 없음',
+      detail: '발주번호가 없어서 목록으로 돌아갑니다.',
       life: 3000
     });
     
@@ -565,7 +560,7 @@ onMounted(async () => {
     return;
   }
   
-  console.log('📋 처리할 발주번호:', purcCd.value);
+  console.log('처리할 발주번호:', purcCd.value);
   await loadOrderDetails(purcCd.value);
 });
 
@@ -577,9 +572,7 @@ watch(() => route.query.purcCd, (newPurcCd) => {
   }
 });
 
-onUnmounted(async () => {
-  console.log('👋 MaterialPurchaseApproval 언마운트됨!');
-  
+onUnmounted(async () => {  
   // 컴포넌트 언마운트 시 선택 상태 초기화
   resetOrderHeader();
   materialStore.setApprovalOrderDetails([]);
@@ -592,7 +585,7 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="p-4">
+  <div class="p-4 pb-0">
     <Toast />
     
     <!-- 페이지 헤더 -->
@@ -602,9 +595,7 @@ onUnmounted(async () => {
         <p class="text-gray-600">
           {{ approvalOrderHeader.purcCd || '발주번호 로딩중...' }} 
           <span class="mx-2">|</span>
-          👤 {{ memberStore.user?.empName || '김승인' }}
-          <span class="mx-2">|</span>
-          🏢 {{ memberStore.user?.deptName || '구매승인팀' }}
+          👤 {{ memberStore.user?.cpName || '회사이름나와야함' }}
         </p>
       </div>
       
@@ -653,7 +644,7 @@ onUnmounted(async () => {
         <div>
           <span class="text-gray-600">처리 가능:</span>
           <span :class="canApprove ? 'text-green-600 font-bold' : 'text-red-600'" class="ml-2">
-            {{ canApprove ? '승인 가능 ✅' : '승인 불가 ❌' }}
+            {{ canApprove ? '승인 가능' : '승인 불가' }}
           </span>
         </div>
       </div>
@@ -662,25 +653,25 @@ onUnmounted(async () => {
     <!-- 변경사항 요약 -->
     <div v-if="hasUnsavedChanges" 
          class="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-      <h3 class="text-lg font-semibold text-yellow-800 mb-2">💾 저장 대기 중인 변경사항</h3>
+      <h3 class="text-lg font-semibold text-yellow-800 mb-2">저장 대기 중인 변경사항</h3>
       <div class="space-y-2">
         <div v-for="change in pendingChanges" :key="change.purcDCd" class="text-sm">
           • <strong>{{ change.purcDCd }}</strong>: 
-          {{ change.newStatus === 'c2' ? '✅ 승인' : '❌ 거절' }}
+          {{ change.newStatus === 'c2' ? '승인' : '거절' }}
           <span v-if="change.reason" class="text-gray-600 ml-2">({{ change.reason }})</span>
         </div>
       </div>
       
       <div class="flex gap-2 mt-3">
         <Button 
-          label="💾 지금 저장하기" 
+          label="지금 저장하기" 
           severity="success" 
           @click="handleSaveChanges"
           :disabled="isLoading"
           :loading="isLoading"
         />
         <Button 
-          label="🔄 변경사항 취소" 
+          label="변경사항 취소" 
           severity="secondary" 
           @click="handleResetChanges"
           :disabled="isLoading"
@@ -694,8 +685,8 @@ onUnmounted(async () => {
         ref="inputTableRef"
         :columns="detailTableColumns"
         :data="approvalOrderDetails"
-        :scroll-height="'40vh'"
-        :height="'50vh'"
+        :scroll-height="'35vh'"
+        :height="'47vh'"
         title="발주 상세 목록"
         dataKey="purcDCd"
         :buttons="tableButtons"

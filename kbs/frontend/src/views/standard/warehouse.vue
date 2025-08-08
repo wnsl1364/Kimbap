@@ -26,14 +26,6 @@ const isAdmin = computed(() => user.value?.memType === 'p5');
 // 오늘 날짜 포맷 (등록일자 default 값에 사용)
 const today = format(new Date(), 'yyyy-MM-dd');
 
-const wareRes = await getWareList(ordCd);
-warehouseList.value = wareRes.data || [];
-
-const warehouseField = formFields1.value.find(f => f.field === 'wcode');
-if (warehouseField) {
-  warehouseField.options = warehouseList.value; // ✅ 핵심!
-}
-
 // 공통코드 가져오기
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common);
@@ -56,6 +48,8 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const warehouseColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
+const selectedWarehouse = ref({});
+const exportColumns = ref([]);
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -69,6 +63,7 @@ const changeColumns = [
     { field: 'changeReason', header: '변경사유' },
     { field: 'regDt', header: '등록일자' }
 ];
+
 
 // 함수 내용만 교체
 const fetchHistoryItems = async () => {
@@ -85,9 +80,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedCpcode.value = rowData.wcode;
+    selectedWarehouse.value = { wareName: rowData.wareName, wcode: rowData.wcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.wcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -116,49 +110,67 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    exportColumns.value = [
+        { field: 'wcode', header: '창고코드' },
+        { field: 'wareName', header: '창고명' },
+        { field: 'wareType', header: '유형' },
+        { key: 'maxRow', label: '최대 행'},
+        { key: 'maxCol', label: '최대 열'},
+        { key: 'maxFloor', label: '최대 층'},
+        { field: 'address', header: '주소' },
+        { key: 'fcode', label: '공장명'},
+    ]
 });
 
+// ✅ factoryOptions 수정
+const factoryOptions = computed(() =>
+  factoryList.value.map((f) => ({
+    label: f.facName,  // 🔄 공장은 facName
+    value: f.fcode
+  }))
+);
+
 onMounted(async () => {
-    await common.fetchCommonCodes('0Q'); // 창고 유형
-    await fetchFactoryList();
-    await fetchWarehouses();
-    inputColumns.value = [
-        { key: 'wcode', label: '창고코드', type: 'readonly' },
-        { key: 'wareName', label: '창고명', type: 'text' },
-        {
-            key: 'wareType',
-            label: '창고유형',
-            type: 'dropdown',
-            options: [
-                { label: '상온 창고', value: 'q1' },
-                { label: '냉장 창고', value: 'q2' },
-                { label: '냉동 창고', value: 'q3' }
-            ]
-        },
-        { key: 'address', label: '주소', type: 'text' },
-        { key: 'maxRow', label: '최대 행', type: 'number', disabled: (row) => !!row.wcode },
-        { key: 'maxCol', label: '최대 열', type: 'number', disabled: (row) => !!row.wcode },
-        { key: 'maxFloor', label: '최대 층', type: 'number', disabled: (row) => !!row.wcode },
-        { key: 'fcode', label: '공장명', type: 'dropdown', options: factoryOptions.value },
-        {
-            key: 'isUsed',
-            label: '사용여부',
-            type: 'radio',
-            options: [
-                { label: '활성화', value: 'f1' },
-                { label: '비활성화', value: 'f2' }
-            ]
-        },
-        {
-            key: 'chaRea',
-            label: '변경사유',
-            type: 'text',
-            disabled: (row) => !row.wcode
-        },
-        { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
-        { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
-    ];
-    console.log('[DEBUG] warehouseList:', warehouseList.value);
+  await common.fetchCommonCodes('0Q'); // 창고 유형
+  await fetchFactoryList();
+  await fetchWarehouses();
+
+  inputColumns.value = [
+    { key: 'wcode', label: '창고코드', type: 'readonly' },
+    { key: 'wareName', label: '창고명', type: 'text' },
+    {
+      key: 'wareType',
+      label: '창고유형',
+      type: 'dropdown',
+      options: [
+        { label: '상온 창고', value: 'q1' },
+        { label: '냉장 창고', value: 'q2' },
+        { label: '냉동 창고', value: 'q3' }
+      ]
+    },
+    { key: 'address', label: '주소', type: 'text' },
+    { key: 'maxRow', label: '최대 행', type: 'number',min: 0, max :12, disabled: (row) => !!row.wcode },
+    { key: 'maxCol', label: '최대 열', type: 'number', min: 0, max :12, disabled: (row) => !!row.wcode },
+    { key: 'maxFloor', label: '최대 층', type: 'number', min: 0, max :4, disabled: (row) => !!row.wcode },
+    { key: 'fcode', label: '공장명', type: 'dropdown', options: factoryOptions.value },
+    {
+      key: 'isUsed',
+      label: '사용여부',
+      type: 'radio',
+      options: [
+        { label: '활성화', value: 'f1' },
+        { label: '비활성화', value: 'f2' }
+      ]
+    },
+    {
+      key: 'chaRea',
+      label: '변경사유',
+      type: 'text',
+      disabled: (row) => !row.wcode
+    },
+    { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
+    { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
+  ];
 });
 
 // 창고기준정보 등록 처리
@@ -188,19 +200,19 @@ const handleSaveWarehouse = async () => {
         formData.value.modi = user.value.empCd;
     }
     const result = await saveWarehouse();
-    if (result === '등록 성공') {
+    if (result === '등록 성공' || result === '수정 성공') {
         toast.add({
-            severity: 'success',
-            summary: '등록 완료',
-            detail: '거래처가 정상적으로 등록되었습니다.',
-            life: 3000
+        severity: 'success',
+        summary: result,
+        detail: `창고가 정상적으로 ${result.replace('성공', '')}되었습니다.`,
+        life: 3000
         });
     } else {
         toast.add({
-            severity: 'error',
-            summary: '등록 실패',
-            detail: result,
-            life: 3000
+        severity: 'error',
+        summary: result.includes('예외') ? '예외 발생' : '저장 실패',
+        detail: result,
+        life: 3000
         });
     }
 };
@@ -254,13 +266,6 @@ const handleSearch = async (searchData) => {
     }
 };
 
-// 공장 옵션 (label: 공장명, value: 공장코드)
-const factoryOptions = computed(() =>
-    factoryList.value.map((f) => ({
-        label: f.facName,
-        value: f.fcode
-    }))
-);
 
 // fcode 변경 시 facVerCd 자동 세팅
 watch(
@@ -291,6 +296,8 @@ watch(
                 :scrollable="true"
                 scrollHeight="530px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
                 height="630px"
             />
         </div>
@@ -298,5 +305,6 @@ watch(
             <InputForm title="창고정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveWarehouse" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems"
+    :selectedItem="selectedWarehouse" :titleName="selectedWarehouse.wareName" :titleCode="selectedWarehouse.wcode" />
 </template>

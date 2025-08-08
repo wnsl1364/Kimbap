@@ -11,12 +11,22 @@ export const getMaterialInboundById = (mateInboCd) => {
   return axios.get(`/api/materials/inbound/${mateInboCd}`);
 };
 
+// 특정 발주번호의 자재입고 데이터 조회
+export const getMaterialInboundByPurcCd = (purcCd) => {
+  return axios.get(`/api/materials/inbound/by-purc/${purcCd}`);
+};
+
 export const saveMaterialInbound = (inboundData) => {
   return axios.post('/api/materials/inbound', inboundData);
 };
 
 export const updateMaterialInbound = (inboundData) => {
   return axios.put('/api/materials/inbound', inboundData);
+};
+
+// 🔥 자재입고 신규 등록 (mate_inbo 테이블에 INSERT)
+export const insertMateInbo = (mateInboData) => {
+  return axios.post('/api/materials/inbound', mateInboData);
 };
 
 // ========== 발주 목록 조회 (권한별 + 검색 조건) ==========
@@ -380,4 +390,119 @@ export const getSameMaterialAreas = (mcode, fcode, excludeAreaCd = '') => {
 // 자재 입출고 내역 조회
 export const getMaterialFlowList = (params) => {
   return axios.get('/api/materials/flow', { params });
+};
+
+// 이동요청 상태가 d1(요청)인 모든 자재의 배치 정보 조회
+// MOVE_REQ 테이블의 MOVE_STATUS = 'd1'인 요청들의
+// MOVE_REQ_D 테이블에서 ARR_AREA_CD (도착구역코드) 정보를 조회
+export const getPendingMoveRequestPlacements = () => {
+  return axios.get('/api/materials/stockMovement/stock-movement/pending-placements');
+};
+// 입출고내역 하루
+export async function getTodayMaterialFlowList() {
+  return axios.get('/api/materials/flow/today');
+}
+
+// ========== 자재 재고 현황 관련 API 함수들 ==========
+
+/**
+ * 🏭 자재 재고 현황 조회 API
+ * 
+ * 📌 프론트엔드 API 설계 철학:
+ * - 백엔드 API와 1:1 매핑
+ * - 검색 조건을 객체로 전달하여 유연성 확보
+ * - null/undefined 값 자동 제거로 불필요한 파라미터 방지
+ * 
+ * @param {Object} searchParams 검색 조건 객체
+ * @param {string} searchParams.mcode - 자재코드 (정확 매칭)
+ * @param {string} searchParams.mateName - 자재명 (부분 검색)
+ * @param {string} searchParams.mateType - 자재유형 (h1:원자재, h2:부자재)
+ * @param {string} searchParams.facName - 공장명 (부분 검색)
+ * @returns {Promise} axios 응답 객체 (data, statistics, alertCount 포함)
+ */
+export const getMaterialStockStatus = (searchParams = {}) => {
+  console.log('🔍 API 호출: 자재 재고 현황 조회', searchParams);
+  
+  // 검색 파라미터 정리 (null, undefined, 빈 문자열 제거)
+  const params = {
+    mcode: searchParams.mcode,
+    mateName: searchParams.mateName, 
+    mateType: searchParams.mateType,
+    facName: searchParams.facName
+  };
+  
+  // 🧹 빈 값 제거 (백엔드에 불필요한 파라미터 전송 방지)
+  Object.keys(params).forEach(key => 
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  console.log('📤 전송 파라미터:', params);
+  
+  return axios.get('/api/materials/stock-status', { params });
+};
+
+/**
+ * 🏷️ 특정 자재의 LOT별 상세 재고 조회
+ * 
+ * @param {string} mcode - 자재코드 (필수)
+ * @param {string} fcode - 공장코드 (선택)
+ * @returns {Promise} LOT별 상세 재고 정보
+ */
+export const getMaterialLotDetails = (mcode, fcode = null) => {
+  console.log(`🏷️ API 호출: LOT별 상세 조회 (${mcode})`);
+  
+  const params = {};
+  if (fcode) params.fcode = fcode;
+  
+  return axios.get(`/api/materials/stock-status/${mcode}/lots`, { params });
+};
+
+/**
+ * 📊 재고 현황 엑셀 다운로드
+ * 
+ * @param {Object} searchParams - 동일한 검색 조건
+ * @returns {Promise} 엑셀 파일 다운로드 응답
+ */
+export const exportStockStatusToExcel = (searchParams = {}) => {
+  console.log('📊 API 호출: 재고 현황 엑셀 다운로드');
+  
+  const params = {
+    mcode: searchParams.mcode,
+    mateName: searchParams.mateName,
+    mateType: searchParams.mateType,
+    facName: searchParams.facName
+  };
+  
+  Object.keys(params).forEach(key => 
+    (params[key] === null || params[key] === undefined || params[key] === '') && delete params[key]
+  );
+  
+  return axios.get('/api/materials/stock-status/export', { 
+    params,
+    responseType: 'blob' // 🔥 엑셀 파일 다운로드를 위한 blob 타입
+  });
+};
+
+/**
+ * ⚠️ 재고 부족/과다 알림 조회
+ * 
+ * @param {string} alertType - 알림 유형 (shortage, overstock, all)
+ * @returns {Promise} 알림 대상 자재 목록
+ */
+export const getStockAlerts = (alertType = 'all') => {
+  console.log(`⚠️ API 호출: 재고 알림 조회 (${alertType})`);
+  
+  return axios.get('/api/materials/stock-alerts', {
+    params: { alertType }
+  });
+};
+
+
+// 🎯 버전 2: 최소 로깅
+export const getMaterialLotStock = (mcode) => {
+  return axios.get(`/api/materials/${mcode}/lots`)
+    .then(response => {
+      console.log(`✅ LOT 조회: ${response.data.totalCount}건`);
+      return response;
+    });
 };

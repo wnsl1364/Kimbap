@@ -464,12 +464,30 @@ const handleOutboundComplete = async () => {
       })
 
       // Store에 처리 내역 저장
-      materialStore.setOutboundData({
-        completedMaterials: [...validMaterials],
-        processedAt: new Date(),
-        processedBy: memberStore.user?.empName || '공급업체',
-        processedCount: validMaterials.length
-      })
+      try {
+        // Store에 출고 데이터 저장 (올바른 필드명 사용!)
+        materialStore.setOutboundData({
+          completedMaterials: [...validMaterials],
+          processedAt: new Date(),
+          processedBy: memberStore.user?.empName || '공급업체',
+          totalProcessedCount: validMaterials.length  // 🔥 totalProcessedCount로 수정!
+        })
+
+        // 추가로 처리된 자재 히스토리도 저장
+        materialStore.addProcessedOutboundMaterials(validMaterials)
+
+        // 출고 통계도 업데이트 
+        materialStore.updateOutboundStatistics({
+          completedRequests: validMaterials.length,
+          todayProcessed: validMaterials.length
+        })
+
+        console.log('✅ Store에 출고 처리 내역 저장 완료!')
+
+      } catch (storeError) {
+        console.warn('⚠️ Store 저장 실패 (중요하지 않음):', storeError)
+        // Store 저장 실패해도 출고 자체는 성공했으니까 무시해도 OK!
+      }
 
     } catch (apiError) {
       console.error('❌ API 호출 실패:', apiError)

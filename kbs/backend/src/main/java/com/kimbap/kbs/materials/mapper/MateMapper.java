@@ -28,6 +28,9 @@ public interface MateMapper {
 
     MaterialsVO getMateInboById(String mateInboCd);
 
+    // 특정 발주번호의 자재입고 데이터 조회
+    List<MaterialsVO> getMateInboByPurcCd(String purcCd);
+
     List<MaterialsVO> getMateRelList();
 
     void insertMateRel(MaterialsVO mateRel);
@@ -168,10 +171,33 @@ public interface MateMapper {
 
     // 자재 입출고 내역 조회
     List<MaterialsVO> selectMaterialFlowList(MaterialsVO search);
+    List<MaterialsVO> selectTodayMaterialFlowList();
 
     /**
      * @param searchParams 검색 조건이 담긴 MaterialsVO
      * @return 자재 재고 목록
      */
     List<MaterialsVO> getMaterialStockList(MaterialsVO searchParams);
+    
+    /**
+     * @param searchParams 검색 조건이 담긴 MaterialsVO
+     * @return 자재 재고 상태 목록
+     */
+    List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams);
+
+    /**
+     * 🔍 LOT별 재고 조회
+     * @param mcode 자재코드
+     * @return LOT별 재고 목록
+     */
+    List<MaterialsVO> getMaterialLotStock(@Param("mcode") String mcode);
+
+    /**
+     *  동시성 제어를 위한 LOT 번호 생성 (FOR UPDATE)
+     * @param lotTypeCode LOT 타입 코드 (100, 200)
+     * @param dateStr 날짜 문자열 (yyyyMMdd)
+     * @return 다음 시퀀스 번호
+     */
+    int getNextLotSequenceWithLock(@Param("lotTypeCode") String lotTypeCode, 
+                                   @Param("dateStr") String dateStr);
 }

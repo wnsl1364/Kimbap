@@ -19,4 +19,7 @@ public class MrpDetailVO {
   private String unit;            // 단위
   private BigDecimal requiredQty; // 부족 수량
   private String field;           // 생성 사유 (예: 생산계획)
+
+  // JOIN
+  private String mateName;        // 자재명
 }

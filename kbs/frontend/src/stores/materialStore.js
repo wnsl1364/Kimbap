@@ -76,10 +76,13 @@ export const useMaterialStore = defineStore('material', () => {
 
   // 구매/발주 상태 옵션 (실제 DB 값에 맞게 수정)
   const purchaseStatusOptions = ref([
-    { label: '주문완료', value: 'c1' },
-    { label: '제작중', value: 'c2' },
-    { label: '배송완료', value: 'c3' },
-    { label: '취소', value: 'c4' }
+    { label: '요청', value: 'c1' },
+    { label: '승인', value: 'c2' },
+    { label: '입고 대기', value: 'c3' },
+    { label: '부분 입고', value: 'c4' },
+    { label: '입고 완료', value: 'c5' },
+    { label: '거절', value: 'c6' },
+    { label: '반품', value: 'c7' }
   ]);
 
   const materialSearchColumns = ref([
@@ -132,6 +135,13 @@ export const useMaterialStore = defineStore('material', () => {
       startPlaceholder: '시작일',
       endPlaceholder: '종료일'
     }
+  ]);
+  
+  // 자재유형 옵션
+  const materialTypeOptions = ref([
+    { label: '원자재', value: 'h1' },
+    { label: '부자재', value: 'h2' },
+    { label: '완제품', value: 'h3' }
   ]);
 
   // 🎯 승인 관련 state 추가
@@ -389,6 +399,166 @@ export const useMaterialStore = defineStore('material', () => {
     };
   };
 
+  // ========== 자재 재고 현황 관련 상태 및 액션 ==========
+  
+  // 📊 재고 현황 데이터 상태
+  const stockStatusData = ref([]);              // 재고 현황 목록
+  const stockStatistics = ref({});             // 재고 통계 (상태별 개수)
+  const stockAlerts = ref([]);                 // 재고 알림 목록 (부족/과다)
+  const stockStatusLoading = ref(false);       // 로딩 상태
+  const selectedStockItems = ref([]);          // 선택된 재고 항목들
+  
+  // 🔍 재고 현황 검색 컬럼 설정
+  const stockStatusSearchColumns = ref([
+    {
+      field: 'mcode',
+      label: '자재코드',
+      type: 'text',
+      placeholder: '자재코드를 입력하세요',
+      gridColumn: 'col-12 md:col-3'
+    },
+    {
+      field: 'mateName', 
+      label: '자재명',
+      type: 'text',
+      placeholder: '자재명을 입력하세요 (부분검색)',
+      gridColumn: 'col-12 md:col-3'
+    },
+    {
+      field: 'mateType',
+      label: '자재유형',
+      type: 'dropdown',
+      options: [
+        { label: '전체', value: '' },
+        { label: '원자재', value: 'h1' },
+        { label: '부자재', value: 'h2' }
+      ],
+      gridColumn: 'col-12 md:col-3'
+    },
+    {
+      field: 'facName',
+      label: '공장명',
+      type: 'text', 
+      placeholder: '공장명을 입력하세요 (부분검색)',
+      gridColumn: 'col-12 md:col-3'
+    }
+  ]);
+  
+  // 📋 재고 현황 테이블 컬럼 설정
+  const stockStatusDisplayColumns = ref([
+    { field: 'materialCode', header: '자재코드', sortable: true, width: '120px' },
+    { field: 'materialName', header: '자재명', sortable: true, width: '200px' },
+    { field: 'materialTypeText', header: '자재유형', sortable: true, width: '100px' },
+    { field: 'factoryName', header: '공장명', sortable: true, width: '150px' },
+    { field: 'totalQuantity', header: '현재재고', sortable: true, width: '100px', dataType: 'numeric' },
+    { field: 'unitText', header: '단위', sortable: false, width: '80px' },
+    { field: 'safeStock', header: '안전재고', sortable: true, width: '100px', dataType: 'numeric' },
+    { field: 'stockStatus', header: '재고상태', sortable: true, width: '100px' },
+    { field: 'stockDifference', header: '재고차이', sortable: true, width: '100px', dataType: 'numeric' },
+    { field: 'stockPercentage', header: '재고비율(%)', sortable: true, width: '120px', dataType: 'numeric' },
+    { field: 'lotDetailLink', header: 'LOT정보', sortable: false, width: '120px' },
+    { field: 'lastInboundDate', header: '최근입고일', sortable: true, width: '120px', dataType: 'date' }
+  ]);
+  
+  // 🎯 재고 현황 데이터 설정
+  const setStockStatusData = (data) => {
+    stockStatusData.value = data || [];
+    console.log('📊 재고 현황 데이터 설정:', stockStatusData.value.length + '건');
+  };
+  
+  // 📈 재고 통계 설정
+  const setStockStatistics = (statistics) => {
+    stockStatistics.value = statistics || {};
+    console.log('📈 재고 통계 설정:', statistics);
+  };
+  
+  // ⚠️ 재고 알림 설정
+  const setStockAlerts = (alerts) => {
+    stockAlerts.value = alerts || [];
+    console.log('⚠️ 재고 알림 설정:', alerts?.length + '건');
+  };
+  
+  // 🔄 로딩 상태 설정
+  const setStockStatusLoading = (loading) => {
+    stockStatusLoading.value = loading;
+  };
+  
+  // ✅ 선택된 재고 항목 설정
+  const setSelectedStockItems = (items) => {
+    selectedStockItems.value = items || [];
+  };
+  
+  // 🧹 재고 현황 데이터 초기화
+  const clearStockStatusData = () => {
+    stockStatusData.value = [];
+    stockStatistics.value = {};
+    stockAlerts.value = [];
+    selectedStockItems.value = [];
+    stockStatusLoading.value = false;
+    console.log('🧹 재고 현황 데이터 초기화 완료');
+  };
+  
+  // 🔄 특정 재고 항목 업데이트
+  const updateStockItem = (materialCode, factoryCode, updatedItem) => {
+    const index = stockStatusData.value.findIndex(
+      item => item.materialCode === materialCode && item.factoryCode === factoryCode
+    );
+    
+    if (index !== -1) {
+      stockStatusData.value[index] = { ...stockStatusData.value[index], ...updatedItem };
+      console.log(`🔄 재고 항목 업데이트: ${materialCode} at ${factoryCode}`);
+    }
+  };
+
+  // 🔍 LOT별 재고 모달용 컬럼 설정
+  const lotStockModalColumns = ref([
+    { field: 'lotNo', header: 'LOT번호' },
+    { field: 'supplierLotNo', header: '공급업체LOT' },
+    { field: 'quantity', header: '재고수량' },
+    { field: 'unitText', header: '단위' },
+    { field: 'inboundDate', header: '입고일자' },
+    { field: 'expiryDate', header: '유효기간' },
+    { field: 'warehouseName', header: '창고명' },
+    { field: 'location', header: '위치' },
+    { field: 'storageConditionText', header: '보관조건' },
+    { field: 'supplierName', header: '공급업체' },
+    { field: 'managerName', header: '담당자' },
+    { field: 'note', header: '비고' }
+  ]);
+
+  // 🔍 LOT별 재고 관련 반응형 데이터
+  const lotStockData = ref([]);
+  const lotStockModalVisible = ref(false);
+  const selectedMaterialForLot = ref({
+    materialCode: '',
+    materialName: ''
+  });
+
+  // 🔍 LOT별 재고 관련 함수들
+  const setLotStockData = (data) => {
+    lotStockData.value = data;
+  };
+
+  const setLotStockModalVisible = (visible) => {
+    lotStockModalVisible.value = visible;
+  };
+
+  const setSelectedMaterialForLot = (materialCode, materialName) => {
+    selectedMaterialForLot.value = {
+      materialCode,
+      materialName
+    };
+  };
+
+  const clearLotStockData = () => {
+    lotStockData.value = [];
+    lotStockModalVisible.value = false;
+    selectedMaterialForLot.value = {
+      materialCode: '',
+      materialName: ''
+    };
+  };
+
   return {
     materials,
     setMaterials,
@@ -432,12 +602,44 @@ export const useMaterialStore = defineStore('material', () => {
     selectedOutboundMaterials,
     processedOutboundMaterials,
     outboundStatistics,
+    resetOutboundData,
+    getOutboundProcessStatus,
+    materialSearchColumns,
+    
+    // ========== 자재 재고 현황 관련 ==========
+    stockStatusData,
+    stockStatistics,
+    stockAlerts,
+    stockStatusLoading,
+    selectedStockItems,
+    stockStatusSearchColumns,
+    stockStatusDisplayColumns,
+    setStockStatusData,
+    setStockStatistics,
+    setStockAlerts,
+    setStockStatusLoading,
+    setSelectedStockItems,
+    clearStockStatusData,
+    updateStockItem,
+    materialTypeOptions,
+    lotStockModalColumns,
+    lotStockData,
+    lotStockModalVisible,
+    selectedMaterialForLot,
+    setLotStockData,
+    setLotStockModalVisible,
+    setSelectedMaterialForLot,
+    clearLotStockData,
+    formatDate,
+    lotStockData,
+    lotStockModalVisible,
+    setLotStockData,
+    setLotStockModalVisible,
+    setSelectedMaterialForLot,
+    clearLotStockData,
     setOutboundData,
     setSelectedOutboundMaterials,
     addProcessedOutboundMaterials,
-    updateOutboundStatistics,
-    resetOutboundData,
-    getOutboundProcessStatus,
-    materialSearchColumns
+    updateOutboundStatistics
   };
 });

@@ -70,12 +70,7 @@ const returnColumns = [
   { field: 'returnEndDt', header: '처리일자', type: 'readonly' },
   { field: 'managerName', header: '담당자', type: 'readonly' },
   { field: 'returnRea', header: '요청사유', type: 'readonly' },
-  {
-    field: 'rejectRea',
-    header: '거절사유',
-    type: 'readonly',
-    formatter: (row) => row.returnStatusInternal === 'w2' ? row.rejectRea : ''
-  },
+  {field: 'rejectRea', header: '거절사유', type: 'readonly'},
 ];
 
 // 버튼 설정
@@ -126,12 +121,17 @@ const handleApprove = async () => {
     const payload = {
       prodReturnCd: selectedRows.value.prodReturnCd,
       manager: user.value.memCd,
-      rejectRea: rejectReason.value
+      rejectRea: '',
+      ordDCd: selectedRows.value.ord_d_cd,
+      returnQty: selectedRows.value.returnQty,
+      unitPrice: selectedRows.value.unitPrice
     };
     
     await approveReturn(payload);
     alert('승인 처리되었습니다.');
-    router.push({ path: '/order/orderList', query: { refresh: true } });
+    // router.push({ path: '/order/orderList', query: { refresh: true } });
+    fetchReturnList();
+    selectedRows.value = null;
   } catch (err) {
     console.error('승인 처리 실패:', err);
     alert('승인 처리 중 오류 발생');

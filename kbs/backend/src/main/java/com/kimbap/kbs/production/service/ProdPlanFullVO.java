@@ -14,4 +14,5 @@ import lombok.NoArgsConstructor;
 public class ProdPlanFullVO {
   private ProdPlanVO plan;
   private List<ProdPlanDetailVO> planDetails;
+  private UserInfoVO userInfo;
 }

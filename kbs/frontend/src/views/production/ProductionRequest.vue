@@ -100,7 +100,7 @@ const factoryOptions = computed(() =>
 const fields = [
   { key: 'produReqCd', label: '생산요청번호', type: 'readonly' },
   { key: 'produPlanCd', label: '생산계획번호', type: 'readonlyModal', clickable: true, placeholder: '클릭 시 검색모달' },
-  { key: 'reqDt', label: '생산요청일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'reqDt', label: '생산요청일자', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
   {
     key: 'factory',
     label: '공장',
@@ -109,19 +109,19 @@ const fields = [
     placeholder: '공장을 선택하세요'
   },
   { key: 'empName', label: '요청자', type: 'readonly' },
-  { key: 'deliDt', label: '납기일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
-  { key: 'note', label: '비고', type: 'textarea' }
+  { key: 'deliDt', label: '납기일자', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
+  { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
 ]
 
 const prodReqFormButtons = ref({
-  save: { show: true, label: '저장', severity: 'success' },
+  save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' },
   reset: { show: true, label: '초기화', severity: 'secondary' },
-  delete: { show: true, label: '삭제', severity: 'danger' },
+  delete: { show: isAdmin.value || isManager.value, label: '삭제', severity: 'danger' },
   load: { show: true, label: '생산요청 불러오기', severity: 'info' }
 })
 const prodPlanDetailButtons = ref({
-  save: { show: false, label: '저장', severity: 'success' },
-  reset: { show: false, label: '초기화', severity: 'secondary' }
+  save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' },
+  reset: { show: isAdmin.value || isManager.value, label: '초기화', severity: 'secondary' }
 })
 
 // 제품 테이블 컬럼 정의
@@ -143,6 +143,24 @@ const productColumns = [
 ]
 // 생산요청과 관련 상세 저장(등록, 수정)
 const handleSave = async (data) => {
+  if (!isAdmin.value && !isManager.value) {
+    toast.add({
+      severity: 'error',
+      summary: '등록/수정 실패',
+      detail: '등록/수정 권한이 없습니다.',
+      life: 3000
+    });
+    return;
+  }
+  if (!user.value?.empCd) {
+    toast.add({
+        severity: 'warn',
+        summary: '경고',
+        detail: '로그인 정보가 없습니다.',
+        life: 3000
+    });
+    return;
+  }
   try {
     const isNew = !formData.value.produReqCd; // 등록/수정 여부 판별
 
@@ -277,57 +295,77 @@ const modalDataSets = computed(() => ({
 </script>
 
 <template>
-  <Toast />
+  <div class="grid">
+    <div class="col-12">
+      <div class="card">
+        <h5>생산요청 관리</h5>
 
-    <!-- 👑 페이지 헤더 -->
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">생산요청 등록</h1>
-      <div class="flex items-center gap-4 text-sm text-gray-600">
-        <span>👤 {{ user?.empName || '로그로그' }}</span>
-        <span>🏢 {{ user?.deptName || '생산팀' }}</span>
-        <span>{{ user }}</span>
+        <!-- 현재 사용자 정보 -->
+        <div class="mb-4 p-3 border-round surface-100">
+          <div class="flex align-items-center gap-3">
+            <i class="pi pi-user text-primary"></i>
+            <div>
+              <strong>
+                {{ 
+                  user?.memType === 'p1' 
+                    ? (user?.empName || '테스트 사용자')
+                    : user?.memType === 'p3'
+                    ? (user?.cpName || '테스트 거래처')
+                    : '테스트 사용자'
+                }}
+              </strong>
+              <span class="ml-2 text-500">
+                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
+              </span>
+            </div>
+          </div>
+        </div>  
+
+        <div class="space-y-8">
+          <!-- 생산계획 입력 폼 -->
+          <InputForm
+            v-model:data="formData"
+            :columns="fields"
+            @fieldClick="handleFieldClick"
+            title="생산계획 기본 정보"
+            :buttons="prodReqFormButtons"
+            buttonPosition="top"
+            @submit="handleSave"
+            @reset="handleReset"
+            @delete="handleDelete"
+            @load="handleLoad"
+          />
+          <!-- 제품 목록 테이블 -->
+          <div>
+            <InputTable
+              v-model:data="prodDetailList"
+              :columns="productColumns"
+              :title="'제품 목록'"
+              :dataKey="'pcode'"
+              :modalDataSets="modalDataSets"
+              buttonPosition="top"
+              :buttons="prodPlanDetailButtons"
+              enableRowActions
+              enableSelection
+              :scroll-height="'50vh'" 
+              :height="'60vh'"
+            />
+          </div>
+          <!-- 생산계획 불러오기 모달 -->
+          <ProdPlanSelectModal
+            v-model:visible="planModalvisible"
+            mode="basic"
+            @select="handlePlanSelect"
+          />
+          <!-- 생산요청 불러오기 모달 -->
+          <ProdReqSelectModal
+            v-model:visible="requestModalvisible"
+            mode="full"
+            @select="handleReqSelect"
+          />
+          <Toast />
+        </div>
       </div>
     </div>
-  <div class="space-y-8">
-    <!-- 생산계획 입력 폼 -->
-    <InputForm
-      v-model:data="formData"
-      :columns="fields"
-      @fieldClick="handleFieldClick"
-      title="생산계획 기본 정보"
-      :buttons="prodReqFormButtons"
-      buttonPosition="top"
-      @submit="handleSave"
-      @reset="handleReset"
-      @delete="handleDelete"
-      @load="handleLoad"
-    />
-    <!-- 제품 목록 테이블 -->
-    <div>
-      <InputTable
-        v-model:data="prodDetailList"
-        :columns="productColumns"
-        :title="'제품 목록'"
-        :dataKey="'pcode'"
-        :modalDataSets="modalDataSets"
-        buttonPosition="top"
-        :buttons="prodPlanDetailButtons"
-        enableRowActions
-        enableSelection
-        scrollHeight="300px"
-      />
-    </div>
-    <!-- 생산계획 불러오기 모달 -->
-    <ProdPlanSelectModal
-      v-model:visible="planModalvisible"
-      mode="basic"
-      @select="handlePlanSelect"
-    />
-    <!-- 생산요청 불러오기 모달 -->
-    <ProdReqSelectModal
-      v-model:visible="requestModalvisible"
-      mode="full"
-      @select="handleReqSelect"
-    />
-  </div>
+  </div> 
 </template>

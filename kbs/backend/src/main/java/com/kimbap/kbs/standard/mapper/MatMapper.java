@@ -2,6 +2,8 @@ package com.kimbap.kbs.standard.mapper;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Param;
+
 import com.kimbap.kbs.standard.service.MatSupplierVO;
 import com.kimbap.kbs.standard.service.MatVO;
 
@@ -20,4 +22,5 @@ public interface MatMapper  {
 	int getSupplierCountByMcode(String mcode); // 자재별공급사 코드
 	List<MatSupplierVO> selectAllSuppliersByMcode(String mcode); // 
 	void updateIsUsedOnly(String mcode, String mateVerCd, String isUsed, String modi);
+	void deleteMatSuppliersByMaterial(@Param("mcode") String mcode, @Param("mateVerCd") String mateVerCd);
 }

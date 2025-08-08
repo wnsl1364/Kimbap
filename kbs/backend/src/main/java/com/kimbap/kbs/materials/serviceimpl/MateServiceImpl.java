@@ -32,11 +32,11 @@ public class MateServiceImpl implements MateService {
     @Override
     public void insertMateInbo(MaterialsVO mateInbo) {
         try {
-            // ✅ INSERT 시에도 LOT 번호가 없으면 자동 생성
+            // ✅ INSERT 시에도 LOT 번호가 없으면 자동 생성 (동시성 제어 적용)
             if (mateInbo.getLotNo() == null || mateInbo.getLotNo().trim().isEmpty()) {
-                String lotNumber = generateMaterialLotNumber(mateInbo.getMcode());
+                String lotNumber = generateMaterialLotNumberWithLock(mateInbo.getMcode());
                 mateInbo.setLotNo(lotNumber);
-                System.out.println("INSERT 시 LOT 번호 자동 생성: " + lotNumber);
+                System.out.println("INSERT 시 LOT 번호 자동 생성 (동시성 제어): " + lotNumber);
             }
 
             mateMapper.insertMateInbo(mateInbo);  // ✅ 올바른 INSERT 호출
@@ -50,11 +50,11 @@ public class MateServiceImpl implements MateService {
     @Override
     public void updateMateInbo(MaterialsVO mateInbo) {
         try {
-            // ✅ UPDATE 시에도 LOT 번호가 없으면 자동 생성 (입고처리 시)
+            // ✅ UPDATE 시에도 LOT 번호가 없으면 자동 생성 (입고처리 시, 동시성 제어 적용)
             if (mateInbo.getLotNo() == null || mateInbo.getLotNo().trim().isEmpty()) {
-                String lotNumber = generateMaterialLotNumber(mateInbo.getMcode());
+                String lotNumber = generateMaterialLotNumberWithLock(mateInbo.getMcode());
                 mateInbo.setLotNo(lotNumber);
-                System.out.println("UPDATE 시 LOT 번호 자동 생성: " + lotNumber);
+                System.out.println("UPDATE 시 LOT 번호 자동 생성 (동시성 제어): " + lotNumber);
             }
 
             System.out.println("=== 자재입고 수정 요청 ===");
@@ -63,9 +63,46 @@ public class MateServiceImpl implements MateService {
             System.out.println("facVerCd: " + mateInbo.getFacVerCd());
             System.out.println("inboStatus: " + mateInbo.getInboStatus());
             System.out.println("lotNo: " + mateInbo.getLotNo());
+            System.out.println("purcDCd: " + mateInbo.getPurcDCd());
 
-            mateMapper.updateMateInbo(mateInbo);  // ✅ 올바른 UPDATE 호출
+            // 자재입고 정보 업데이트
+            mateMapper.updateMateInbo(mateInbo);
             System.out.println("자재입고 수정 완료: " + mateInbo.getMateInboCd());
+
+            if ("c5".equals(mateInbo.getInboStatus()) && mateInbo.getPurcDCd() != null) {
+                System.out.println("=== 입고완료 처리 - 발주상태 업데이트 시작 ===");
+
+                // 현재 발주 상세 정보 조회
+                MaterialsVO purcOrderDetail = mateMapper.getPurcOrderDetailByCode(mateInbo.getPurcDCd());
+                if (purcOrderDetail != null) {
+                    Integer currentCurrQty = purcOrderDetail.getCurrQty() != null ? purcOrderDetail.getCurrQty() : 0;
+                    Integer purcQty = purcOrderDetail.getPurcQty() != null ? purcOrderDetail.getPurcQty() : 0;
+                    String newPurcDStatus = "";
+
+                    if (currentCurrQty >= purcQty) {
+                        newPurcDStatus = "c5"; // 입고완료 
+                        System.out.println("✅ 발주 입고완료: 기존 curr_qty " + currentCurrQty + " >= purc_qty " + purcQty);
+                    } else {
+                        newPurcDStatus = "c3"; // 입고대기 
+                        System.out.println("🔄 발주 입고대기 유지: 기존 curr_qty " + currentCurrQty + " < purc_qty " + purcQty);
+                    }
+
+                    // 발주 상세 상태만 업데이트 (CURR_QTY는 변경하지 않음)
+                    MaterialsVO purcUpdateData = MaterialsVO.builder()
+                            .purcDCd(mateInbo.getPurcDCd())
+                            .purcDStatus(newPurcDStatus)
+                            .build();
+
+                    // 발주 상세 상태만 업데이트
+                    mateMapper.updatePurcOrderDetailStatus(purcUpdateData);
+
+                    System.out.println("✅ 발주상태만 업데이트 완료: " + mateInbo.getPurcDCd()
+                            + " → 상태: " + newPurcDStatus + " (curr_qty는 변경하지 않음)");
+                } else {
+                    System.err.println("⚠️ 발주상세 정보를 찾을 수 없음: " + mateInbo.getPurcDCd());
+                }
+            }
+
         } catch (Exception e) {
             System.err.println("자재입고 수정 실패: " + e.getMessage());
             e.printStackTrace();
@@ -74,7 +111,13 @@ public class MateServiceImpl implements MateService {
     }
 
     /**
-     * 자재 LOT 번호 생성 (원자재 100, 부자재 200만)
+     * 자재 LOT 번호 생성 (원자재 100, 부자재 200)
+     * 
+     * 📋 LOT 번호 규칙:
+     * - 형식: LOT-품목유형-연월일-순번
+     * - 품목유형: 100(원자재), 200(부자재)
+     * - 순번: 3자리 형식, 날짜별로 1부터 시작, 자재 입고처리 시마다 증가
+     * - 예시: LOT-100-20250530-001, LOT-200-20250530-002
      */
     private String generateMaterialLotNumber(String mcode) {
         try {
@@ -85,34 +128,86 @@ public class MateServiceImpl implements MateService {
             String mateType = getMaterialType(mcode);
             String lotTypeCode = getLotTypeByMaterialType(mateType);
 
-            // 3. 오늘 날짜의 해당 품목유형 LOT 개수 조회
+            // 3. 🔍 오늘 날짜의 해당 품목유형 LOT 개수 조회 (동시성 고려)
             String lotPattern = "LOT-" + lotTypeCode + "-" + today + "-%";
             int existingCount = mateMapper.countLotsByPattern(lotPattern);
 
             // 4. 다음 시퀀스 = 기존 개수 + 1 (날짜별로 1부터 시작)
             int nextSequence = existingCount + 1;
 
-            // 5. LOT 번호 생성: LOT-품목유형-연월일-순번
-            String lotNumber = String.format("LOT-%s-%s-%d", lotTypeCode, today, nextSequence);
+            // 5. 🎯 LOT 번호 생성: LOT-품목유형-연월일-순번 (3자리 형식)
+            String lotNumber = String.format("LOT-%s-%s-%03d", lotTypeCode, today, nextSequence);
 
-            System.out.println("=== LOT 번호 생성 과정 ===");
-            System.out.println("자재코드: " + mcode);
-            System.out.println("품목유형: " + mateType + " → 코드: " + lotTypeCode);
-            System.out.println("오늘날짜: " + today);
-            System.out.println("기존개수: " + existingCount + "개");
-            System.out.println("다음순번: " + nextSequence);
-            System.out.println("생성결과: " + lotNumber);
+            System.out.println("=== 📦 LOT 번호 생성 과정 ===");
+            System.out.println("🏷️  자재코드: " + mcode);
+            System.out.println("📂 품목유형: " + mateType + " → LOT코드: " + lotTypeCode);
+            System.out.println("📅 오늘날짜: " + today);
+            System.out.println("🔢 기존LOT수: " + existingCount + "개");
+            System.out.println("⬆️  다음순번: " + nextSequence);
+            System.out.println("✨ 생성결과: " + lotNumber);
+            System.out.println("===============================");
 
             return lotNumber;
 
         } catch (Exception e) {
-            System.err.println("LOT 생성 실패, 임시 번호 사용: " + e.getMessage());
+            System.err.println("❌ LOT 번호 생성 실패, 임시 번호 사용: " + e.getMessage());
             e.printStackTrace();
 
-            // 실패 시 임시 번호 생성
+            // 실패 시 임시 번호 생성 (3자리 형식 유지)
             String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             long timestamp = System.currentTimeMillis() % 1000;
-            return String.format("LOT-TMP-%s-%d", today, timestamp);
+            return String.format("LOT-TMP-%s-%03d", today, timestamp);
+        }
+    }
+
+    /**
+     * 🔒 동시성 제어가 적용된 LOT 번호 생성 (여러 건 동시 입력 시 사용)
+     * 
+     * @param mcode 자재코드
+     * @return 생성된 LOT 번호
+     */
+    @Transactional
+    private String generateMaterialLotNumberWithLock(String mcode) {
+        try {
+            // 1. 현재 날짜 (yyyyMMdd)
+            String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+            // 2. 자재 정보 조회해서 품목 유형 확인
+            String mateType = getMaterialType(mcode);
+            String lotTypeCode = getLotTypeByMaterialType(mateType);
+
+            // 3. 🔒 DB 레벨에서 동시성 제어하여 다음 시퀀스 조회
+            int nextSequence = mateMapper.getNextLotSequenceWithLock(lotTypeCode, today);
+
+            // 4. 🎯 LOT 번호 생성: LOT-품목유형-연월일-순번 (3자리 형식)
+            String lotNumber = String.format("LOT-%s-%s-%03d", lotTypeCode, today, nextSequence);
+
+            System.out.println("=== 🔒 동시성 제어 LOT 번호 생성 ===");
+            System.out.println("🏷️  자재코드: " + mcode);
+            System.out.println("📂 품목유형: " + mateType + " → LOT코드: " + lotTypeCode);
+            System.out.println("📅 오늘날짜: " + today);
+            System.out.println("🔢 다음순번: " + nextSequence + " (DB 락 적용)");
+            System.out.println("✨ 생성결과: " + lotNumber);
+            System.out.println("===================================");
+
+            return lotNumber;
+
+        } catch (Exception e) {
+            System.err.println("❌ 동시성 제어 LOT 번호 생성 실패: " + e.getMessage());
+            System.err.println("🔄 기본 방식으로 폴백 처리 시작...");
+            e.printStackTrace();
+
+            // 실패 시 기본 LOT 생성 방식으로 폴백
+            try {
+                return generateMaterialLotNumber(mcode);
+            } catch (Exception fallbackException) {
+                System.err.println("❌ 폴백 LOT 생성도 실패, 응급 임시 번호 생성: " + fallbackException.getMessage());
+                
+                // 최종 응급처리: 타임스탬프 기반 고유 번호
+                String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+                long timestamp = System.currentTimeMillis() % 10000; // 4자리로 제한
+                return String.format("LOT-EMG-%s-%04d", today, timestamp);
+            }
         }
     }
 
@@ -226,6 +321,19 @@ public class MateServiceImpl implements MateService {
         } catch (Exception e) {
             System.err.println("자재입고 단건 조회 실패: " + e.getMessage());
             throw new RuntimeException("자재입고 단건 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<MaterialsVO> getMateInboByPurcCd(String purcCd) {
+        try {
+            System.out.println("발주번호별 자재입고 데이터 조회 서비스: " + purcCd);
+            List<MaterialsVO> list = mateMapper.getMateInboByPurcCd(purcCd);
+            System.out.println("발주번호별 자재입고 데이터 조회 완료: " + list.size() + "건");
+            return list;
+        } catch (Exception e) {
+            System.err.println("발주번호별 자재입고 데이터 조회 실패: " + e.getMessage());
+            throw new RuntimeException("발주번호별 자재입고 데이터 조회 실패: " + e.getMessage(), e);
         }
     }
 
@@ -1077,10 +1185,100 @@ public class MateServiceImpl implements MateService {
             throw new RuntimeException("curr_qty 및 상태 업데이트 실패: " + e.getMessage(), e);
         }
     }
-    
+
     // 자재 입출고 목록 조회
     @Override
     public List<MaterialsVO> getMaterialFlowList(MaterialsVO search) {
         return mateMapper.selectMaterialFlowList(search);
+    }
+
+    @Override
+    public List<MaterialsVO> getTodayMaterialFlowList() {
+        return mateMapper.selectTodayMaterialFlowList();
+    }
+
+    @Override
+    public List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams) {
+        try {
+            System.out.println("=== 자재 재고 현황 조회 시작 ===");
+            System.out.println("검색 조건:");
+            if (searchParams != null) {
+                System.out.println("  - mcode: " + searchParams.getMcode());
+                System.out.println("  - mateName: " + searchParams.getMateName());
+                System.out.println("  - mateType: " + searchParams.getMateType());
+                System.out.println("  - facName: " + searchParams.getFacName());
+            }
+
+            List<MaterialsVO> stockStatusList = mateMapper.getMaterialStockStatus(searchParams);
+
+            // 🔧 stockPercentage 후처리 (DB에서 null인 경우 직접 계산)
+            if (stockStatusList != null) {
+                for (MaterialsVO item : stockStatusList) {
+                    if (item.getStockPercentage() == null
+                            && item.getSafeStock() != null
+                            && item.getSafeStock() > 0
+                            && item.getTotalQuantity() != null) {
+
+                        double calculatedPercentage = (item.getTotalQuantity().doubleValue() / item.getSafeStock()) * 100;
+                        item.setStockPercentage(Math.round(calculatedPercentage * 100.0) / 100.0); // 소수점 둘째 자리까지
+
+                        System.out.println("🔧 stockPercentage 보정: " + item.getMaterialCode()
+                                + " -> " + item.getStockPercentage() + "%");
+                    }
+                }
+            }
+
+            System.out.println("✅ 자재 재고 현황 조회 완료: " + stockStatusList.size() + "건");
+
+            if (stockStatusList != null && !stockStatusList.isEmpty()) {
+                // 첫 번째 데이터 로깅
+                MaterialsVO firstItem = stockStatusList.get(0);
+                System.out.println("🔍 첫 번째 데이터 상세:");
+                System.out.println("  - materialCode: " + firstItem.getMaterialCode());
+                System.out.println("  - materialName: " + firstItem.getMaterialName());
+                System.out.println("  - factoryName: " + firstItem.getFactoryName());
+                System.out.println("  - totalQuantity: " + firstItem.getTotalQuantity());
+                System.out.println("  - safeStock: " + firstItem.getSafeStock());
+                System.out.println("  - stockDifference: " + firstItem.getStockDifference());
+                System.out.println("  - stockPercentage: " + firstItem.getStockPercentage());
+                System.out.println("  - stockStatus: " + firstItem.getStockStatus());
+
+                // stockPercentage 계산 검증
+                if (firstItem.getSafeStock() != null && firstItem.getSafeStock() > 0 && firstItem.getTotalQuantity() != null) {
+                    double calculatedPercentage = (firstItem.getTotalQuantity().doubleValue() / firstItem.getSafeStock()) * 100;
+                    System.out.println("  - 계산된 stockPercentage: " + calculatedPercentage);
+                    System.out.println("  - DB에서 온 stockPercentage: " + firstItem.getStockPercentage());
+                }
+            }
+
+            return stockStatusList;
+
+        } catch (Exception e) {
+            System.err.println("❌ 자재 재고 현황 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("자재 재고 현황 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 🔍 LOT별 재고 조회
+     *
+     * @param mcode 자재코드
+     * @return LOT별 재고 목록
+     */
+    @Override
+    public List<MaterialsVO> getMaterialLotStock(String mcode) {
+        try {
+            List<MaterialsVO> lotStockList = mateMapper.getMaterialLotStock(mcode);
+
+            // 간단한 로그만
+            System.out.println("✅ LOT별 재고 조회 완료 - 자재: " + mcode + ", 건수: " + lotStockList.size());
+
+            return lotStockList;
+
+        } catch (Exception e) {
+            System.err.println("❌ LOT별 재고 조회 실패: " + mcode + " - " + e.getMessage());
+            throw new RuntimeException("LOT별 재고 조회 실패", e);
+        }
     }
 }

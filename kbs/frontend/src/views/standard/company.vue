@@ -10,6 +10,7 @@ import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 
+
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardCpStore();
 const { companyList, formData, changeHistory } = storeToRefs(store);
@@ -49,6 +50,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const productColumns = ref([]); // 거래처목록 테이블 컬럼
 const inputFormButtons = ref({}); // 거래처 등록 버튼
+const exportColumns = ref([]); 
 
 // UI 구성 정의
 onBeforeMount(() => {
@@ -86,7 +88,7 @@ onBeforeMount(() => {
         { key: 'address', label: '주소', type: 'text' },
         { key: 'faxNum', label: '팩스번호', type: 'text' },
         { key: 'mname', label: '담당자명', type: 'text' },
-        { key: 'loanTerm', label: '여신기간(일)', type: 'number' },
+        { key: 'loanTerm', label: '여신기간(일)', type: 'number',min: 0 },
         { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
         {
             key: 'isUsed',
@@ -110,12 +112,22 @@ onBeforeMount(() => {
         { field: 'cpName', header: '거래처명' },
         { field: 'cpType', header: '거래처유형' },
         { field: 'repname', header: '대표자명' },
-        { field: 'loanTerm', header: '여신기간(일)' }
+        { field: 'loanTerm', header: '여신기간(일)', align: 'right', slot: true }
     ];
 
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    exportColumns.value = [
+      { field: 'cpCd', header: '거래처코드' },
+      { field: 'cpName', header: '거래처명' },
+      { field: 'cpType', header: '거래처유형' },
+      { field: 'crnumber', header: '사업자번호' },
+      { field: 'repname', header: '대표자명' },
+      { field: 'tel', header: '연락처(-포함)' },
+      { field: 'mname', header: '담당자명' },
+      { field: 'loanTerm', header: '여신기간(일)' },
+    ]
 });
 
 onMounted(async () => {
@@ -124,7 +136,6 @@ onMounted(async () => {
     await fetchCompanys();
 });
 
-// 거래처기준정보 등록 처리
 const handleSaveCompany = async () => {
   if (!isAdmin.value && !isManager.value) {
     toast.add({
@@ -154,17 +165,18 @@ const handleSaveCompany = async () => {
 
   const result = await saveCompany();
 
-  if (result === '등록 성공') {
+  // ✅ 성공 케이스 구분
+  if (result === '등록 성공' || result === '수정 성공') {
     toast.add({
       severity: 'success',
-      summary: '등록 완료',
-      detail: '거래처가 정상적으로 등록되었습니다.',
+      summary: result,
+      detail: `거래처가 정상적으로 ${result.replace('성공', '')}되었습니다.`,
       life: 3000
     });
   } else {
     toast.add({
       severity: 'error',
-      summary: '등록 실패',
+      summary: result.includes('예외') ? '예외 발생' : '저장 실패',
       detail: result,
       life: 3000
     });
@@ -238,6 +250,8 @@ const handleSearch = async (searchData) => {
                 scrollHeight="530px"
                 height="630px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
             />
         </div>
         <div class="w-full md:basis-[45%]">

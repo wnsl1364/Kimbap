@@ -105,6 +105,58 @@
         WHERE mi.mate_inbo_cd = #{mateInboCd}
     </select>
     
+    <!-- 특정 발주번호의 자재입고 데이터 조회 -->
+    <select id="getMateInboByPurcCd" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            mi.mate_inbo_cd,
+            mi.mcode,
+            mi.mate_ver_cd,
+            mi.wcode,
+            mi.ware_ver_cd,
+            mi.fcode,          
+            mi.fac_ver_cd,    
+            mi.purc_d_cd,
+            mi.lot_no,
+            mi.supplier_lot_no,
+            mi.inbo_dt,
+            mi.inbo_status,
+            mi.total_qty,
+            mi.mname,
+            mi.note,
+            mi.cp_cd,
+            mi.deli_dt,
+            
+            -- 발주상세 정보
+            pod.ex_deli_dt,
+            pod.purc_qty,
+            pod.unit_price,
+            pod.purc_d_status,
+            
+            -- 발주 기본 정보
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            e.emp_name AS regiName,
+            
+            -- company 테이블에서 회사명 가져오기
+            c.cp_name,
+            
+            -- material 테이블에서 단위, 보관조건, 자재명 가져오기
+            m.unit,
+            m.sto_con,
+            m.mate_name
+            
+        FROM mate_inbo mi
+        LEFT JOIN purc_ord_d pod ON mi.purc_d_cd = pod.purc_d_cd
+        LEFT JOIN purc_ord po ON pod.purc_cd = po.purc_cd
+        LEFT JOIN company c ON mi.cp_cd = c.cp_cd
+        LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+        LEFT JOIN employee e ON po.regi = e.emp_cd
+        WHERE po.purc_cd = #{purcCd}
+        ORDER BY mi.inbo_dt DESC, pod.purc_d_cd
+    </select>
+    
     <!-- 자재입고 등록 -->
     <insert id="insertMateInbo" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         INSERT INTO mate_inbo (
@@ -168,12 +220,29 @@
         WHERE mate_inbo_cd = #{mateInboCd}
     </update>
 
-    <!-- LOT 패턴별 개수 조회 -->
+    <!-- LOT 패턴별 개수 조회 (개선된 버전) -->
     <select id="countLotsByPattern" parameterType="String" resultType="int">
         SELECT COUNT(*)
         FROM mate_inbo 
         WHERE lot_no LIKE #{lotPattern}
-        AND TO_CHAR(inbo_dt, 'YYYYMMDD') = SUBSTR(#{lotPattern}, 5, 8)
+        AND lot_no != 'TEMP-LOT'
+        AND inbo_status != 'RESERVED'
+    </select>
+
+    <!-- 🔒 동시성 제어를 위한 LOT 시퀀스 생성 -->
+    <select id="getNextLotSequenceWithLock" resultType="int">
+        SELECT NVL(MAX(
+            CASE 
+                WHEN REGEXP_LIKE(SUBSTR(lot_no, -3), '^[0-9]{3}$') THEN 
+                    TO_NUMBER(SUBSTR(lot_no, -3))
+                ELSE 0 
+            END
+        ), 0) + 1
+        FROM mate_inbo 
+        WHERE lot_no LIKE 'LOT-' || #{lotTypeCode} || '-' || #{dateStr} || '-%'
+        AND lot_no != 'TEMP-LOT'
+        AND inbo_status != 'RESERVED'
+        FOR UPDATE
     </select>
 
     <!-- 자재 코드로 품목 유형 조회 -->
@@ -1094,6 +1163,7 @@
         )
     </insert>
     
+    <!--  자재입출고 내역 -->
     <select id="selectMaterialFlowList" parameterType="map" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT *
         FROM (
@@ -1109,12 +1179,14 @@
                 i.lot_no,
                 i.note
             FROM mate_inbo i
-            JOIN material m ON i.mcode = m.mcode
+            JOIN material m 
+            ON i.mcode = m.mcode 
+            AND i.mate_ver_cd = m.mate_ver_cd
             LEFT JOIN warehouse wh ON i.wcode = wh.wcode
 
             UNION ALL
 
-            SELECT 
+            SELECT DISTINCT
                 TRUNC(r.cre_dt) AS reg_dt,
                 '출고' AS movement_type,
                 r.rel_type AS movement_category,
@@ -1126,7 +1198,9 @@
                 r.lot_no,
                 r.note
             FROM mate_rel r
-            JOIN material m ON r.mcode = m.mcode
+            JOIN material m 
+            ON r.mcode = m.mcode
+            AND r.mate_ver_cd = m.mate_ver_cd
             LEFT JOIN ware_stock ws ON r.wslcode = ws.wslcode
             LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
             LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
@@ -1144,13 +1218,128 @@
             <if test="lotNo != null and lotNo != ''">
                 AND t.lot_no LIKE '%' || #{lotNo} || '%'
             </if>
-            <if test="regDtStart != null">
-                AND t.reg_dt &gt;= #{regDtStart}
+            <if test="regDtStart != null and regDtStart != ''">
+                AND t.reg_dt &gt;= TO_DATE(#{regDtStart}, 'YYYY-MM-DD')
             </if>
-            <if test="regDtEnd != null">
-                AND t.reg_dt &lt;= #{regDtEnd}
+            <if test="regDtEnd != null and regDtEnd != ''">
+                AND t.reg_dt &lt;= TO_DATE(#{regDtEnd}, 'YYYY-MM-DD')
             </if>
         </where>
         ORDER BY t.reg_dt DESC
     </select>
+
+
+    <!-- 하루치  -->
+    <select id="selectTodayMaterialFlowList" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT *
+        FROM (
+            SELECT 
+                TRUNC(i.inbo_dt) AS reg_dt,
+                '입고' AS movement_type,
+                '발주' AS movement_category,
+                m.mate_name,
+                m.mcode,
+                i.total_qty AS qty,
+                m.unit,
+                wh.ware_name,
+                i.lot_no,
+                i.note
+            FROM mate_inbo i
+            JOIN material m ON i.mcode = m.mcode
+            AND i.mate_ver_cd = m.mate_ver_cd
+            LEFT JOIN warehouse wh ON i.wcode = wh.wcode
+
+            UNION ALL
+
+            SELECT 
+                TRUNC(r.cre_dt) AS reg_dt,
+                '출고' AS movement_type,
+                r.rel_type AS movement_category,
+                m.mate_name,
+                m.mcode,
+                r.rel_qty AS qty,
+                m.unit,
+                wh.ware_name,
+                r.lot_no,
+                r.note
+            FROM mate_rel r
+            JOIN material m ON r.mcode = m.mcode
+            AND r.mate_ver_cd = m.mate_ver_cd
+            LEFT JOIN ware_stock ws ON r.wslcode = ws.wslcode
+            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+            LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
+        ) t
+        WHERE t.reg_dt = TRUNC(SYSDATE)
+        ORDER BY t.reg_dt DESC
+        </select>
+    <!-- 자재 재고 현황 조회 -->
+    <select id="getMaterialStockStatus" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            material_code,
+            material_name,
+            material_type,
+            material_type_text,
+            factory_code,
+            factory_name,
+            total_quantity,
+            unit,
+            unit_text,
+            specification,
+            stock_status,
+            safe_stock,
+            stock_difference,
+            stock_percentage,
+            lot_detail_link,
+            storage_condition,
+            storage_condition_text,
+            origin,
+            expiry_days,
+            material_note,
+            last_inbound_date,
+            warehouse_count
+        FROM V_MATERIAL_STOCK_STATUS
+        WHERE 1=1
+        
+        <!-- 동적 조건들은 여전히 필요해! -->
+        <if test="mcode != null and mcode != ''">
+            AND material_code LIKE '%' || #{mcode} || '%'
+        </if>
+        
+        <if test="mateName != null and mateName != ''">
+            AND material_name LIKE '%' || #{mateName} || '%'
+        </if>
+        
+        <if test="mateType != null and mateType != ''">
+            AND material_type = #{mateType}
+        </if>
+        
+        <if test="facName != null and facName != ''">
+            AND factory_name LIKE '%' || #{facName} || '%'
+        </if>
+    </select>
+
+        <select id="getMaterialLotStock" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+            SELECT 
+                mi.lot_no AS lotNo,
+                m.mate_name AS materialName,
+                ws.qty AS quantity,
+                COALESCE(dc_unit.cd_info, ws.unit, 'ea') AS unit,
+                -- 🎯 새로 추가된 창고 정보들!
+                w.ware_name AS warehouseName,
+                wd.area_row || '-' || wd.area_col || '-' || wd.area_floor AS location
+            FROM ware_stock ws
+                INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+                LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+                -- 🚀 여기가 핵심! ware_area_cd로 ware_d와 조인
+                LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+                -- 🏭 ware_d의 wcode로 warehouse와 조인해서 창고명 가져오기
+                LEFT JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
+                LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0G') dc_unit 
+                    ON ws.unit = dc_unit.d_cd
+            WHERE 1=1
+                AND mi.mcode = #{mcode}
+                AND ws.qty &gt; 0
+                AND m.is_used IN ('f1', 'f2')
+            ORDER BY mi.inbo_dt DESC, mi.lot_no ASC
+        </select>
 </mapper>

@@ -10,6 +10,9 @@ import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useMemberStore } from '@/stores/memberStore'
 import { getOrderList } from '@/api/order'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { registerKoreanFont } from '@/utils/pdf-font'
 
 // 날짜 포맷팅을 위한 date-fns
 import { format, addDays, isValid, parse, parseISO } from 'date-fns'
@@ -87,6 +90,7 @@ const infoFormButtons = ref({
   save: { show: true, label: '저장', severity: 'info' },
   delete: { show: false, label: '삭제', severity: 'danger' },
   load: { show: true, label: '주문정보 불러오기', severity: 'success' },
+  pdf: { show: true, label: 'PDF 다운로드', severity: 'help' }
 });
 
 // 제품 추가 영역 버튼 설정
@@ -276,14 +280,114 @@ const updateInfoFormButtons = () => {
   const isNewOrder = !ordCd
   const isWaiting = ordStatus === STATUS_WAITING
 
-  // 핵심 포인트! 새 객체로 완전히 재할당해야 LeftAlignTable에서 감지함
   infoFormButtons.value = {
     reset: { show: isNewOrder, label: '초기화', severity: 'secondary' },
     save: { show: isNewOrder || isWaiting, label: '저장', severity: 'info' },
     delete: { show: !isNewOrder && isWaiting, label: '삭제', severity: 'danger' },
-    load: { show: isNewOrder, label: '주문정보 불러오기', severity: 'success' }
+    load: { show: isNewOrder, label: '주문정보 불러오기', severity: 'success' },
+    pdf: { show: !isNewOrder, label: 'PDF 다운로드', severity: 'help' }
   }
 }
+
+// const handleDownloadPDF = () => {
+//   const doc = new jsPDF()
+//   doc.setFontSize(16)
+//   doc.text('주문서', 105, 15, { align: 'center' })
+
+//   const info = [
+//     ['주문코드', formData.value.ordCd || '-'],
+//     ['주문일자', formData.value.ordDt || '-'],
+//     ['거래처명', formData.value.cpName || '-'],
+//     ['배송지주소', formData.value.deliAdd || '-'],
+//     ['납기요청일자', formData.value.deliReqDt || '-'],
+//     ['입금일자', formData.value.exPayDt || '-'],
+//     ['비고', formData.value.note || '-']
+//   ]
+//   autoTable(doc, {
+//     startY: 25,
+//     body: info,
+//     theme: 'grid',
+//     styles: { fontSize: 10 },
+//     columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 150 } }
+//   })
+
+//   const productTable = products.value.map(p => [
+//     p.pcode,
+//     p.prodName,
+//     p.ordQty,
+//     p.unitPrice?.toLocaleString(),
+//     p.totalAmount?.toLocaleString()
+//   ])
+//   autoTable(doc, {
+//     head: [['제품코드', '제품명', '수량(box)', '단가(원)', '총금액(원)']],
+//     body: productTable,
+//     startY: doc.lastAutoTable.finalY + 10,
+//     theme: 'grid',
+//     styles: { fontSize: 10 }
+//   })
+
+//   doc.save(`주문서_${formData.value.ordCd || '신규주문'}.pdf`)
+// }
+
+const handleDownloadPDF = () => {
+  const doc = new jsPDF()
+
+  registerKoreanFont(doc)
+  doc.setFont('NotoSansKR')
+  doc.setFontSize(16)
+  doc.text('주문서', 105, 15, { align: 'center' })
+
+  const info = [
+    ['주문코드', formData.value.ordCd || '-'],
+    ['주문일자', formData.value.ordDt || '-'],
+    ['거래처명', formData.value.cpName || '-'],
+    ['배송지주소', formData.value.deliAdd || '-'],
+    ['납기요청일자', formData.value.deliReqDt || '-'],
+    ['입금일자', formData.value.exPayDt || '-'],
+    ['비고', formData.value.note || '-']
+  ]
+
+  autoTable(doc, {
+    startY: 25,
+    body: info,
+    theme: 'grid',
+    styles: {
+      font: 'NotoSansKR',
+      fontSize: 10
+    },
+    columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 150 } }
+  })
+
+  const productTable = products.value.map(p => [
+    p.pcode,
+    p.prodName,
+    p.ordQty,
+    p.unitPrice?.toLocaleString(),
+    p.totalAmount?.toLocaleString()
+  ])
+  autoTable(doc, {
+    head: [['제품코드', '제품명', '수량(box)', '단가(원)', '총금액(원)']],
+    body: productTable,
+    startY: doc.lastAutoTable.finalY + 10,
+    theme: 'grid',
+    styles: {
+      font: 'NotoSansKR',
+      fontSize: 10
+    },
+    headStyles: {
+      font: 'NotoSansKR',
+      fontStyle: 'normal',       // 👈 추가 추천 (기본)
+      fontSize: 10
+    },
+    bodyStyles: {
+      font: 'NotoSansKR',         // 👈 이 부분 꼭 있어야 함!
+      fontSize: 10
+    }
+  })
+
+  doc.save(`주문서_${formData.value.ordCd || '신규주문'}.pdf`)
+}
+
 
 watch(
   () => [formData.value.ordCd, formData.value.ordStatusCustomer],
@@ -322,13 +426,16 @@ const modalDataSets = ref({})
 
 const loadOrderListForModal = async () => {
   try {
-    const res = await getOrderList()
+    const { cpCd, memType } = user.value
+    const res = await getOrderList({ cpCd, memType })
+    // console.log('모달용 cpCd:', cpCd)
+    // console.log('모달용 memType:', memType)
 
     const items = res.data.data.map(order => ({
       ordCd: order.ordCd,
       cpName: order.cpName,
       ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
-      prodName: order.prodName  // 백에서 가공된 데이터 그대로 사용!
+      prodName: order.prodName
     }))
 
     modalDataSets.value = {
@@ -534,7 +641,7 @@ onUnmounted(() => {
 <template>
     <div class="space-y-4">
         <!-- 기본정보 영역 -->
-        <LeftAlignTable v-if="infoFormButtons" v-model:data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset" @save="handleSave"  @delete="handleDelete" @load="handleLoadOrder" :modalDataSets="modalDataSets" :dataKey="'ordCd'"/>
+        <LeftAlignTable v-if="infoFormButtons" v-model:data="formData" :fields="formFields" :title="'기본정보'" :buttons="infoFormButtons" button-position="top" @reset="handleReset" @save="handleSave"  @delete="handleDelete" @load="handleLoadOrder" @pdf="handleDownloadPDF" :modalDataSets="modalDataSets" :dataKey="'ordCd'"/>
     </div>
     <div class="space-y-4 mt-8">
         <!-- 제품추가 영역 -->

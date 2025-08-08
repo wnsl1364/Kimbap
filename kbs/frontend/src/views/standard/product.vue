@@ -55,6 +55,7 @@ const searchColumns = ref([]); // 검색 컬럼
 const inputColumns = ref([]); // 입력 폼 컬럼
 const productColumns = ref([]); // 제품목록 테이블 컬럼
 const inputFormButtons = ref({}); // 제품 등록 버튼
+const selectedProduct = ref({});
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -84,9 +85,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedPcode.value = rowData.pcode;
+    selectedProduct.value = { prodName: rowData.prodName, pcode: rowData.pcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.pcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -118,12 +118,12 @@ onBeforeMount(() => {
                 { label: '240', value: 'n2' }
             ]
         },
-        { key: 'edate', label: '소비기한(일)', type: 'number' },
+        { key: 'edate', label: '소비기한(일)', type: 'number',min: 0 },
         { key: 'stoTemp', label: '보관온도', type: 'text' },
-        { key: 'safeStock', label: '안전재고', type: 'number' },
+        { key: 'safeStock', label: '안전재고', type: 'number',min: 0 },
         { key: 'pacUnit', label: '포장단위', type: 'dropdown', options: [{ label: '40ea,1box', value: 'l1' }] },
-        { key: 'primeCost', label: '원가(원)', type: 'number' },
-        { key: 'prodUnitPrice', label: '제품단가(원)', type: 'number' },
+        { key: 'primeCost', label: '원가(원)', type: 'number',min: 0 ,step: 100 },
+        { key: 'prodUnitPrice', label: '제품단가(원)', type: 'number',min: 0 ,step: 100},
         {
             key: 'isUsed',
             label: '사용여부',
@@ -204,19 +204,19 @@ const handleSaveProduct = async () => {
         formData.value.modi = user.value.empCd;
     }
     const result = await saveProduct();
-    if (result === '등록 성공') {
+    if (result === '등록 성공' || result === '수정 성공') {
         toast.add({
-            severity: 'success',
-            summary: '등록 완료',
-            detail: '거래처가 정상적으로 등록되었습니다.',
-            life: 3000
+        severity: 'success',
+        summary: result,
+        detail: `제품이 정상적으로 ${result.replace('성공', '')}되었습니다.`,
+        life: 3000
         });
     } else {
         toast.add({
-            severity: 'error',
-            summary: '등록 실패',
-            detail: result,
-            life: 3000
+        severity: 'error',
+        summary: result.includes('예외') ? '예외 발생' : '저장 실패',
+        detail: result,
+        life: 3000
         });
     }
 };
@@ -289,6 +289,7 @@ const handleSearch = async (searchData) => {
                 :scrollable="true"
                 scrollHeight="470px"
                 :showRowCount="true"
+                :showExcelDownload="true"
                 height="560px"
             />
         </div>
@@ -296,5 +297,6 @@ const handleSearch = async (searchData) => {
             <InputForm title="제품정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveProduct" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" 
+    :selectedItem="selectedProduct" :titleName="selectedProduct.prodName" :titleCode="selectedProduct.pcode"/>
 </template>

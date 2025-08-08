@@ -12,7 +12,6 @@ import InputTable from '@/components/kimbap/table/InputTable.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 
-
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardFacStore();
 const { factoryList, facMaxList, formData, changeHistory, facMaxData } = storeToRefs(store);
@@ -53,7 +52,8 @@ const facMaxColumns = ref([]); // 공장별 최대생산량 테이블 컬럼
 const factoryColumns = ref([]); // 공장목록 테이블 컬럼
 const inputFormButtons = ref({}); // 공장 등록 버튼
 const rowButtons = ref({}); // 공장별 최대생산량 테이블용 버튼
-
+const selectedFactory = ref({});
+const exportColumns = ref([]);
 
 // 이력조회 모달 관련
 const selectedHistoryItems = ref([]);
@@ -83,9 +83,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedfcode.value = rowData.fcode;
+    selectedFactory.value = { facName: rowData.facName, fcode: rowData.fcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.fcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -93,12 +92,12 @@ const modalDataSets = computed(() => ({
     pcode: {
         items: facMaxList.value,
         columns: [
-            { field: 'pcode', header: '제품코드'},
-            { field: 'prodName', header: '제품명'},
-            { field: 'prodVerCd', header: '제품버전'},
+            { field: 'pcode', header: '제품코드' },
+            { field: 'prodName', header: '제품명' },
+            { field: 'prodVerCd', header: '제품버전' }
         ],
         displayField: 'pcode',
-        mappingFields: { pcode: 'pcode', prodName: 'prodName', prodVerCd: 'prodVerCd'}
+        mappingFields: { pcode: 'pcode', prodName: 'prodName', prodVerCd: 'prodVerCd' }
     }
 }));
 
@@ -107,7 +106,7 @@ onBeforeMount(() => {
     searchColumns.value = [
         { key: 'fcode', label: '공장코드', type: 'text', placeholder: '공장코드를 입력하세요' },
         { key: 'facName', label: '공장명', type: 'text', placeholder: '공장명 입력하세요' },
-        { key: 'regDt', label: '등록일자', type: 'dateRange'},
+        { key: 'regDt', label: '등록일자', type: 'dateRange' }
     ];
     inputColumns.value = [
         { key: 'fcode', label: '공장코드', type: 'readonly' },
@@ -115,34 +114,47 @@ onBeforeMount(() => {
         { key: 'address', label: '주소', type: 'text' },
         { key: 'tel', label: '연락처(-포함)', type: 'text' },
         { key: 'mname', label: '담당자명', type: 'text' },
-        { key: 'opStatus', label: '가동상태', type: 'radio',options: [
+        {
+            key: 'opStatus',
+            label: '가동상태',
+            type: 'radio',
+            options: [
                 { label: '활성화', value: 'r1' },
                 { label: '비활성화', value: 'r2' }
-            ] },
+            ]
+        },
         { key: 'chaRea', label: '변경사유', type: 'text', disabled: (row) => !row.fcode },
         { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
-        { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 },
+        { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
     ];
     factoryColumns.value = [
         { field: 'fcode', header: '공장코드' },
         { field: 'facName', header: '공장명' },
         { field: 'address', header: '주소' },
-        { field: 'regDt', header: '등록일자' },
+        { field: 'regDt', header: '등록일자' }
     ];
     facMaxColumns.value = [
-        { field: 'pcode', header: '제품코드', type: 'inputsearch', width: '200px',align: "left" ,placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
-        { field: 'prodName', header: '제품명',  type: 'input', width: '200px'  },
-        { field: 'prodVerCd', header: '제품버전',  type: 'input', width: '50px' },
-        { field: 'mpqty', header: '최대생산량(EA)',  type: 'input',width: '150px' ,align: "right", inputType: 'number', placeholder: '최대생산량을 입력하세요' },
-    ]
+        { field: 'pcode', header: '제품코드', type: 'inputsearch', width: '200px', align: 'left', placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
+        { field: 'prodName', header: '제품명', type: 'input', width: '200px' },
+        { field: 'prodVerCd', header: '제품버전', type: 'input', width: '50px' },
+        { field: 'mpqty', header: '최대생산량(EA)', type: 'input', width: '150px', align: 'right', inputType: 'number', min: 0 }
+    ];
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
-})
+    // 엑셀 다운로드용 컬럼
+    exportColumns.value = [
+        { field: 'fcode', header: '공장코드' },
+        { field: 'facName', header: '공장명' },
+        { field: 'address', header: '주소' },
+        { field: 'mname', header: '담당자명' },
+        { field: 'pcode', header: '제품코드' },
+        { field: 'prodName', header: '제품명' },
+        { field: 'mpqty', header: '최대생산량' },
+    ]
+});
 
-const visibleFacMaxColumns = computed(() =>
-  facMaxColumns.value.filter(col => col.field !== 'prodVerCd')
-);
+const visibleFacMaxColumns = computed(() => facMaxColumns.value.filter((col) => col.field !== 'prodVerCd'));
 
 onMounted(async () => {
     await common.fetchCommonCodes('0R'); // 가동상태
@@ -153,13 +165,13 @@ onMounted(async () => {
 // 공장기준정보 등록 처리
 const handleSaveFactory = async () => {
     if (!isAdmin.value && !isManager.value) {
-    toast.add({
-      severity: 'error',
-      summary: '등록 실패',
-      detail: '등록 권한이 없습니다.',
-      life: 3000
-    });
-    return;
+        toast.add({
+            severity: 'error',
+            summary: '등록 실패',
+            detail: '등록 권한이 없습니다.',
+            life: 3000
+        });
+        return;
     }
     if (!user.value?.empCd) {
         toast.add({
@@ -177,21 +189,22 @@ const handleSaveFactory = async () => {
         formData.value.modi = user.value.empCd;
     }
     const result = await saveFactory();
-    if (result === '등록 성공') {
-    toast.add({
-      severity: 'success',
-      summary: '등록 완료',
-      detail: '공장이 정상적으로 등록되었습니다.',
-      life: 3000
-    });
-  } else {
-    toast.add({
-      severity: 'error',
-      summary: '등록 실패',
-      detail: result,
-      life: 3000
-    });
-  }
+
+    if (result === '등록 성공' || result === '수정 성공') {
+        toast.add({
+        severity: 'success',
+        summary: result,
+        detail: `공장이 정상적으로 ${result.replace('성공', '')}되었습니다.`,
+        life: 3000
+        });
+    } else {
+        toast.add({
+        severity: 'error',
+        summary: result.includes('예외') ? '예외 발생' : '저장 실패',
+        detail: result,
+        life: 3000
+        });
+    }
 };
 
 // 공장 단건 조회 처리
@@ -227,8 +240,8 @@ const handleSearch = async (searchData) => {
         const endDate = searchData.regDt?.end;
 
         if (startDate && endDate && item.regDt) {
-        const reg = new Date(item.regDt);
-        matchregDt = reg >= new Date(startDate) && reg <= new Date(endDate);
+            const reg = new Date(item.regDt);
+            matchregDt = reg >= new Date(startDate) && reg <= new Date(endDate);
         }
 
         return matchfcode && matchfacName && matchregDt;
@@ -250,11 +263,32 @@ const handleSearch = async (searchData) => {
         });
     }
 };
+
+const mergedExportData = computed(() => {
+  // 공장 정보가 있는 경우에만
+  return factoryList.value.flatMap(factory => {
+    const facMaxForFactory = facMaxData.value.filter(fm => fm.fcode === factory.fcode);
+
+    // 공장별 최대생산량이 있으면 각각 매핑, 없으면 공장 단독 1건 반환
+    return facMaxForFactory.length > 0
+      ? facMaxForFactory.map(fm => ({
+          ...factory,
+          ...fm  // mpqty, pcode, prodName, prodVerCd 등
+        }))
+      : [{
+          ...factory,
+          pcode: '',
+          prodName: '',
+          prodVerCd: '',
+          mpqty: ''
+        }];
+  });
+});
 </script>
 
 <template>
     <!-- 검색 영역 -->
-    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3"/>
+    <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3" />
 
     <!-- 메인 영역 -->
     <div class="flex flex-col md:flex-row gap-4 mt-6">
@@ -271,8 +305,10 @@ const handleSearch = async (searchData) => {
                 scrollHeight="230px"
                 height="320px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportData="mergedExportData"  
+                :exportColumns="exportColumns"
                 class="mb-2"
-
             />
             <InputTable title="공장별최대생산량" v-model:data="facMaxData" :columns="visibleFacMaxColumns" :buttons="rowButtons" dataKey="pcode" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
         </div>
@@ -280,5 +316,6 @@ const handleSearch = async (searchData) => {
             <InputForm title="공장정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveFactory" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" 
+    :selectedItem="selectedFactory" :titleName="selectedFactory.facName" :titleCode="selectedFactory.fcode" />
 </template>

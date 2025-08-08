@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onBeforeMount, onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { format } from 'date-fns';
+import { format, min } from 'date-fns';
 import { useStandardMatStore } from '@/stores/standardMatStore';
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore';
@@ -32,15 +32,18 @@ const isAdmin = computed(() => user.value?.memType === 'p5');
 const convertUnitCodes = (list) => {
   const mateTypeCodes = common.getCodes('0H'); // 자재유형
   const stoConCodes = common.getCodes('0O');   // 보관조건
+  const UnitCodes = common.getCodes('0G');   // 보관조건
 
   return list.map(item => {
     const matchedMateType = mateTypeCodes.find(code => code.dcd === item.mateType);
     const matchedStoCon = stoConCodes.find(code => code.dcd === item.stoCon);
+    const matchedUnit = UnitCodes.find(code => code.dcd === item.unit);
 
     return {
       ...item,
       mateType: matchedMateType ? matchedMateType.cdInfo : item.mateType,
       stoCon: matchedStoCon ? matchedStoCon.cdInfo : item.stoCon,
+      unit: matchedUnit ? matchedUnit.cdInfo : item.unit,
     };
   });
 };
@@ -57,6 +60,8 @@ const cpColumns = ref([]); // 공급처 테이블 컬럼
 const mataerialColumns = ref([]); // 자재목록 테이블 컬럼
 const inputFormButtons = ref({}); // 자재 등록 버튼
 const rowButtons = ref({}); // 공급처 테이블용 버튼
+const selectedMaterial = ref({});
+const exportColumns = ref([]);
 
 // 이력조회 모달 관련 상태 및 핸들러
 const selectedHistoryItems = ref([]);
@@ -91,9 +96,8 @@ const fetchHistoryItems = async () => {
 // 테이블에서 "이력조회" 버튼 클릭 시 실행되는 핸들러
 const handleViewHistory = async (rowData) => {
     selectedMcode.value = rowData.mcode;
+    selectedMaterial.value = { mateName: rowData.mateName, mcode: rowData.mcode }; // ✅ 안전하게 저장
     await store.fetchChangeHistory(rowData.mcode);
-
-    console.log('[DEBUG] changeHistory:', changeHistory.value);
     historyModalVisible.value = true;
 };
 
@@ -184,11 +188,12 @@ onBeforeMount(() => {
             key: 'converQty',
             label: '환산수량',
             type: 'number',
+            min: 0,
             disabled: (row) => row.unit !== 'g6'
         },
-        { key: 'moqty', label: '최소발주단위', type: 'number' },
-        { key: 'edate', label: '소비기한(일)', type: 'text' },
-        { key: 'safeStock', label: '안전재고', type: 'number' },
+        { key: 'moqty', label: '최소발주단위', type: 'number', min: 0 },
+        { key: 'edate', label: '소비기한(일)', type: 'text'  },
+        { key: 'safeStock', label: '안전재고', type: 'number',min: 0 },
         { key: 'corigin', label: '원산지', type: 'text' },
         {
             key: 'isUsed',
@@ -212,8 +217,8 @@ onBeforeMount(() => {
     cpColumns.value = [
         { field: 'cpCd', header: '거래처코드', type: 'inputsearch', width: '100px',align: "left" ,placeholder: '거래처 선택', suffixIcon: 'pi pi-search' },
         { field: 'cpName', header: '거래처명', width: '140px', type: 'input' },
-        { field: 'unitPrice', header: '단가(원)', width: '100px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
-        { field: 'ltime', header: '리드타임(일)', width: '60px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
+        { field: 'unitPrice', header: '단가(원)', width: '80px', type: 'input',align: "right", inputType: 'number', placeholder: '단가를 입력하세요' },
+        { field: 'ltime', header: '리드타임(일)', width: '80px', type: 'input', align: "right",inputType: 'number', placeholder: '리드타임을 입력하세요' }
     ];
 
     mataerialColumns.value = [
@@ -221,18 +226,35 @@ onBeforeMount(() => {
         { field: 'mateName', header: '자재명' },
         { field: 'mateType', header: '유형' },
         { field: 'stoCon', header: '보관조건' },
-        { field: 'edate', header: '소비기한(일)' }
+        { field: 'edate', header: '소비기한(일)', align: 'right', slot: true }
     ];
 
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    // 엑셀 다운로드용 컬럼
+    exportColumns.value = [
+        { field: 'mcode', header: '자재코드' },
+        { field: 'mateName', header: '자재명' },
+        { field: 'mateType', header: '자재유형' },
+        { field: 'stoCon', header: '보관조건' },
+        { field: 'unit', header: '단위' },
+        { field: 'moqty', header: '최소발주단위' },
+        { field: 'edate', header: '소비기한(일)' },
+        { field: 'safeStock', header: '안전재고(일)' },
+        { field: 'cpCd', header: '거래처코드' },
+        { field: 'cpName', header: '거래처명' },
+        { field: 'unitPrice', header: '단가' },
+        { field: 'ltime', header: '리드타임(일)' },
+        
+    ]
 });
 
 // ⚙️ 8. 데이터 fetch (초기 자재/공급처 목록)
 onMounted(async() => {
     await common.fetchCommonCodes('0H')  // 자재유형
     await common.fetchCommonCodes('0O')  // 보관조건
+    await common.fetchCommonCodes('0G')  // 단위
     await fetchSuppliers();
     await fetchMaterials();
 });
@@ -264,19 +286,20 @@ const handleSaveMaterial = async () => {
         formData.value.modi = user.value.empCd;
     }
     const result = await saveMaterial();
-    if (result === '등록 성공') {
+
+    if (result === '등록 성공' || result === '수정 성공') {
         toast.add({
-            severity: 'success',
-            summary: '등록 완료',
-            detail: '거래처가 정상적으로 등록되었습니다.',
-            life: 3000
+        severity: 'success',
+        summary: result,
+        detail: `자재가 정상적으로 ${result.replace('성공', '')}되었습니다.`,
+        life: 3000
         });
     } else {
         toast.add({
-            severity: 'error',
-            summary: '등록 실패',
-            detail: result,
-            life: 3000
+        severity: 'error',
+        summary: result.includes('예외') ? '예외 발생' : '저장 실패',
+        detail: result,
+        life: 3000
         });
     }
 };
@@ -329,7 +352,28 @@ const handleReset = async () => {
         life: 3000
     });
 };
+
+const mergedExportData = computed(() => {
+  return convertedMaterialList.value.flatMap(material => {
+    const relatedSuppliers = supplierData.value.filter(s => s.mcode === material.mcode);
+
+    return relatedSuppliers.length > 0
+      ? relatedSuppliers.map(supplier => ({
+          ...material,
+          ...supplier
+        }))
+      : [{
+          ...material,
+          cpCd: '',
+          cpName: '',
+          unitPrice: '',
+          ltime: ''
+        }];
+  });
+});
+
 </script>
+
 <template>
     <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" />
 
@@ -347,6 +391,9 @@ const handleReset = async () => {
                 scrollHeight="230px"
                 height="320px"
                 :showRowCount="true"
+                :showExcelDownload="true"
+                :exportColumns="exportColumns"
+                :exportData="mergedExportData" 
                 class="mb-2"
             />
             <InputTable title="자재별 공급처" v-model:data="supplierData" :columns="cpColumns" :buttons="rowButtons" dataKey="cpCd" :modalDataSets="modalDataSets" button-position="top" scrollHeight="205px" height="300px" />
@@ -355,7 +402,8 @@ const handleReset = async () => {
         <div class="w-full md:basis-[45%]">
             <InputForm title="자재정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveMaterial" />
         </div>
-        <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" />
+        <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems"
+        :selectedItem="selectedMaterial" :titleName="selectedMaterial.mateName" :titleCode="selectedMaterial.mcode"  />
     </div>
 </template>
 

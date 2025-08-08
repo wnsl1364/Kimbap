@@ -54,10 +54,6 @@ const model = ref([
                 to: '/order/orderList'
             },
             {
-                label: '거래내역',
-                to: '/order/transactionDetails'
-            },
-            {
                 label: '거래처원장',
                 to: '/order/orderLedger'
             },
@@ -76,7 +72,7 @@ const model = ref([
             },
             {
                 label: '자재 입고',
-                to: '/material/materialInbound'
+                to: '/material/MaterialPurchaseView?from=inbound'
             },
             {
                 label: '자재 적재 대기 목록',
@@ -88,7 +84,7 @@ const model = ref([
             },
             {
                 label: '자재 이동 요청 목록',
-                to: '/material/transferRequestList'
+                to: '/material/stockMovementList'
             },
             {
                 label: '자재 입출고 내역',

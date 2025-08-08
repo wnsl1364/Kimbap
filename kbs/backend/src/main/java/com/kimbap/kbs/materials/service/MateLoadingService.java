@@ -14,8 +14,6 @@ public interface MateLoadingService {
   String processMateLoadingBatch(List<MateLoadingVO> mateLoadingList);
   // 활성화된 공장 목록 조회 (드롭다운)
   List<MateLoadingVO> getActiveFactoryList();
-  // 창고 구역별 wslcode 조회
-  String getWslCodeByArea(String wareAreaCd);
   
 
   // 특정 공장의 창고 목록 조회 (창고 유형별)

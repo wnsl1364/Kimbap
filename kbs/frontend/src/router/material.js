@@ -28,9 +28,9 @@ export default [
         component: () => import('@/views/material/StockMovementRegister.vue'),
     },
     {
-        path: '/material/transferRequestList',
-        name: 'transferRequestList',
-        component: () => import('@/views/material/TransferRequestList.vue'),
+        path: '/material/stockMovementList',
+        name: 'stockMovementList',
+        component: () => import('@/views/material/StockMovementList.vue'),
     },
     {
         path: '/material/materialInOutHistory',

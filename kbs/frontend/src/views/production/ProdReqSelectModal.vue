@@ -5,9 +5,12 @@ import { format } from 'date-fns';
 import { useProductStore } from '@/stores/productStore';
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
+import { useToast } from 'primevue/usetoast';
 import Dialog from 'primevue/dialog';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import StandartTable from '@/components/kimbap/table/StandardTable.vue';
+
+const toast = useToast();
 
 const props = defineProps({
   visible: Boolean,
@@ -51,19 +54,46 @@ const searchColumns = [
 ];
 // 생산요청 조건 검색
 const handleSearch = async (searchData) => {
-  // 전처리: 날짜 객체를 yyyy-MM-dd로 변환
-  const formatted = {
-    produReqCd: searchData.produReqCd,
-    reqDtStart: searchData.reqDtRange?.start ? format(searchData.reqDtRange.start, 'yyyy-MM-dd') : null,
-    reqDtEnd: searchData.reqDtRange?.end ? format(searchData.reqDtRange.end, 'yyyy-MM-dd') : null,
-    fcode: searchData.factory?.fcode || null,
-    facVerCd: searchData.factory?.facVerCd || null,
-  };
+  try {
+    // 전처리: 날짜 객체를 yyyy-MM-dd로 변환
+    const formatted = {
+      produReqCd: searchData.produReqCd,
+      reqDtStart: searchData.reqDtRange?.start ? format(searchData.reqDtRange.start, 'yyyy-MM-dd') : null,
+      reqDtEnd: searchData.reqDtRange?.end ? format(searchData.reqDtRange.end, 'yyyy-MM-dd') : null,
+      fcode: searchData.factory?.fcode || null,
+      facVerCd: searchData.factory?.facVerCd || null,
+    };
 
-  await store.fetchProdRequestListByCondition(formatted);
-  console.log(condProdRequestList.value)
-  // 조건 검색 결과 후 단위 변환
-  condProdRequestList.value = convertUnitCodes(condProdRequestList.value);
+    await store.fetchProdRequestListByCondition(formatted);
+    // 조건 검색 결과 후 단위 변환
+    condProdRequestList.value = convertUnitCodes(condProdRequestList.value);
+
+    const resultCount = condProdRequestList.value.length;
+    
+    if (resultCount > 0) {
+      toast.add({
+        severity: 'success',
+        summary: '조회 완료',
+        detail: `${resultCount}건의 생산요청이 조회되었습니다.`,
+        life: 3000
+      });
+    } else {
+      toast.add({
+        severity: 'warn',
+        summary: '조회 결과 없음',
+        detail: '조건에 맞는 생산요청이 없습니다.',
+        life: 3000
+      });
+    }
+  } catch (error) {
+    console.error('검색 중 오류 발생:', error);
+    toast.add({
+      severity: 'error',
+      summary: '조회 실패',
+      detail: '생산요청 조회 중 오류가 발생했습니다.',
+      life: 3000
+    });
+  }
 };
 // 생산요청 행 클릭 시 해당 정보 전달
 const handleRowClick = async (row) => {
@@ -84,7 +114,7 @@ const prodReqColumns = [
   { field: 'reqDt', header: '요청일자' },
   { field: 'deliDt', header: '납기일자' },
   { field: 'facName', header: '공장' },
-  { field: 'sumReqQty', header: '총요청수량' },
+  { field: 'sumReqQty', header: '총요청수량', align: 'right', slot: true  },
   { field: 'firstUnit', header: '단위' },
   { field: 'note', header: '비고' },
   { field: 'prReqStatus', header: '상태' }
