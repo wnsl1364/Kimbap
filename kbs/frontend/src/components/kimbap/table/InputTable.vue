@@ -399,7 +399,7 @@ const downloadExcel = () => {
                 <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 57px"> </Column>
 
                 <!-- 데이터 컬럼들 -->
-                <Column v-for="column in columns" :key="column.field" :header="column.header" :headerClass="getAlignClass(column.align)" :bodyClass="getAlignClass(column.align)" :style="column.width ? { width: column.width } : {}">
+                <Column v-for="column in columns" :key="column.field" :header="column.header" headerClass="text-center" :bodyClass="getAlignClass(column.align)" :style="column.width ? { width: column.width } : {}">
                     <template #body="slotProps">
                         <!-- <template v-if="column.type === 'readonly'">
                             <span>
