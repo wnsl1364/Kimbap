@@ -70,7 +70,7 @@ const lotStockColumns = ref([
   }
 ]);
 
-// 🔍 SearchForm 설정
+// SearchForm 설정
 const searchColumns = computed(() => [
   {
     key: 'mcode',
@@ -102,7 +102,7 @@ const searchColumns = computed(() => [
   }
 ]);
 
-// 📋 InputTable 컬럼 설정
+// InputTable 컬럼 설정
 const stockStatusColumns = ref([
   {
     field: 'materialCode',
@@ -192,7 +192,7 @@ const stockStatusColumns = ref([
   }
 ]);
 
-// 🛠️ InputTable 버튼 설정
+// InputTable 버튼 설정
 const tableButtons = ref({
   save: { show: false },
   reset: { show: false },
@@ -204,7 +204,7 @@ const tableButtons = ref({
   custom2: { show: true, label: '재고알림', severity: 'warning' }
 });
 
-// 📈 계산된 속성들
+// 계산된 속성들
 const totalStockItems = computed(() => stockStatusData.value?.length || 0);
 
 const criticalAlertCount = computed(() => {
@@ -214,7 +214,7 @@ const criticalAlertCount = computed(() => {
   ).length;
 });
 
-// 🎨 재고 상태별 텍스트 변환
+// 재고 상태별 텍스트 변환
 const getStockStatusText = (status) => {
   const textMap = {
     'empty': '재고없음',
@@ -225,7 +225,7 @@ const getStockStatusText = (status) => {
   return textMap[status] || status;
 };
 
-// 📏 단위 변환 함수 (백엔드에서 이미 변환된 경우 우선 사용)
+// 단위 변환 함수 (백엔드에서 이미 변환된 경우 우선 사용)
 const getUnitText = (unitCode, unitText) => {
   if (unitText && unitText !== unitCode) {
     return unitText;
@@ -239,7 +239,7 @@ const getUnitText = (unitCode, unitText) => {
   return unitItem ? unitItem.detailNm : unitCode;
 };
 
-// 🏭 자재유형 변환 함수 (백엔드에서 이미 변환된 경우 우선 사용)
+// 자재유형 변환 함수 (백엔드에서 이미 변환된 경우 우선 사용)
 const getMaterialTypeText = (typeCode, typeText) => {
   if (typeText && typeText !== typeCode) {
     return typeText;
@@ -253,16 +253,16 @@ const getMaterialTypeText = (typeCode, typeText) => {
   return typeItem ? typeItem.detailNm : typeCode;
 };
 
-// 🔍 검색 기능
+// 검색 기능
 const onSearch = async (searchConditions) => {
-  console.log('🔍 재고 현황 검색 실행:', searchConditions);
+  console.log('재고 현황 검색 실행:', searchConditions);
 
   searchParams.value = { ...searchConditions };
   await loadStockStatusData();
 };
 
 const onReset = async () => {
-  console.log('🔄 검색 조건 초기화');
+  console.log('검색 조건 초기화');
 
   searchParams.value = {};
   await loadStockStatusData();
@@ -271,18 +271,18 @@ const onReset = async () => {
 const emit = defineEmits(['lotAction']);
 
 const handleLotAction = (rowData, column) => {
-  console.log('🎯 LOT조회 버튼 클릭:', rowData);
+  console.log('LOT조회 버튼 클릭:', rowData);
 
   // LOT별 재고 조회 실행!
   viewMaterialLotStock(rowData.materialCode, rowData.materialName);
 };
 
-// 📊 데이터 로딩 함수
+// 데이터 로딩 함수
 const loadStockStatusData = async () => {
   try {
     stockStatusLoading.value = true;
 
-    console.log('📊 재고 현황 데이터 로딩 시작');
+    console.log('재고 현황 데이터 로딩 시작');
 
     const response = await getMaterialStockStatus(searchParams.value);
 
@@ -290,10 +290,10 @@ const loadStockStatusData = async () => {
       stockStatusData.value = response.data.data || [];
       stockStatistics.value = response.data.statistics || {};
 
-      // 🔍 디버깅: 첫 번째 아이템의 stockPercentage 확인
+      // 디버깅: 첫 번째 아이템의 stockPercentage 확인
       if (stockStatusData.value.length > 0) {
         const firstItem = stockStatusData.value[0];
-        console.log('🔍 첫 번째 아이템 stockPercentage 디버깅:', {
+        console.log('첫 번째 아이템 stockPercentage 디버깅:', {
           materialCode: firstItem.materialCode,
           materialName: firstItem.materialName,
           stockPercentage: firstItem.stockPercentage,
@@ -324,7 +324,7 @@ const loadStockStatusData = async () => {
         materialType: item.materialTypeText || getMaterialTypeText(item.materialType, item.materialTypeText)
       }));
 
-      console.log('✅ 재고 현황 로딩 완료:', response.data.totalCount + '건');
+      console.log('재고 현황 로딩 완료:', response.data.totalCount + '건');
 
       toast.add({
         severity: 'success',
@@ -334,12 +334,12 @@ const loadStockStatusData = async () => {
       });
 
     } else {
-      console.warn('⚠️ 응답 데이터가 없습니다.');
+      console.warn('응답 데이터가 없습니다.');
       stockStatusData.value = [];
     }
 
   } catch (error) {
-    console.error('❌ 재고 현황 로딩 실패:', error);
+    console.error('재고 현황 로딩 실패:', error);
 
     toast.add({
       severity: 'error',
@@ -355,23 +355,23 @@ const loadStockStatusData = async () => {
   }
 };
 
-// 🔍 LOT별 재고 조회 - 수정된 버전
+// LOT별 재고 조회 - 수정된 버전
 const viewMaterialLotStock = async (materialCode, materialName) => {
   try {
-    // 🎯 선택된 자재 정보 설정
+    // 선택된 자재 정보 설정
     selectedMaterialInfo.value = {
       materialCode: materialCode,
       materialName: materialName
     };
 
-    // 🚀 실제 API 호출
+    // 실제 API 호출
     const response = await getMaterialLotStock(materialCode);
 
-    // 🔧 응답 구조에 맞춰 데이터 접근
+    // 응답 구조에 맞춰 데이터 접근
     const lotData = response.data.data || []; // response.data.data로 접근!
 
     if (lotData.length > 0) {
-      // 🔥 LOT 데이터 가공 - 필수 정보만!
+      // LOT 데이터 가공 - 필수 정보만!
       lotStockData.value = lotData.map(lot => ({
         materialName: lot.materialName || materialName,
         lotNo: lot.lotNo || '-',
@@ -381,7 +381,7 @@ const viewMaterialLotStock = async (materialCode, materialName) => {
         unit: lot.unit || '-'  // unitText 대신 unit 사용 (심플 쿼리)
       }));
 
-      // 🎯 모달 열기!
+      // 모달 열기!
       lotStockModalVisible.value = true;
 
       // 성공 토스트
@@ -393,7 +393,7 @@ const viewMaterialLotStock = async (materialCode, materialName) => {
       });
 
     } else {
-      // 📝 LOT 정보가 없는 경우
+      // LOT 정보가 없는 경우
       lotStockData.value = [];
       lotStockModalVisible.value = true;
 
@@ -406,7 +406,7 @@ const viewMaterialLotStock = async (materialCode, materialName) => {
     }
 
   } catch (error) {
-    console.error('❌ LOT별 재고 조회 실패:', error);
+    console.error('LOT별 재고 조회 실패:', error);
 
     toast.add({
       severity: 'error',
@@ -417,10 +417,10 @@ const viewMaterialLotStock = async (materialCode, materialName) => {
   }
 };
 
-// ⚠️ 재고 알림 조회
+// 재고 알림 조회
 const loadStockAlerts = async () => {
   try {
-    console.log('⚠️ 재고 알림 조회');
+    console.log('재고 알림 조회');
 
     const response = await getStockAlerts('all');
 
@@ -449,11 +449,9 @@ const loadStockAlerts = async () => {
   }
 };
 
-// 📊 엑셀 다운로드
+// 엑셀 다운로드
 const downloadExcel = async () => {
   try {
-    console.log('📊 엑셀 다운로드 시작');
-
     const response = await exportStockStatusToExcel(searchParams.value);
 
     toast.add({
@@ -464,7 +462,7 @@ const downloadExcel = async () => {
     });
 
   } catch (error) {
-    console.error('❌ 엑셀 다운로드 실패:', error);
+    console.error('엑셀 다운로드 실패:', error);
 
     toast.add({
       severity: 'error',
@@ -475,12 +473,12 @@ const downloadExcel = async () => {
   }
 };
 
-// 🔄 데이터 새로고침
+// 데이터 새로고침
 const refreshData = async () => {
   await loadStockStatusData();
 };
 
-// 🎯 InputTable 버튼 및 액션 핸들러
+// InputTable 버튼 및 액션 핸들러
 const handleTableAction = (action, data) => {
   console.log('📋 테이블 액션:', action, data);
 
@@ -499,17 +497,17 @@ const handleTableAction = (action, data) => {
   }
 };
 
-// 🎯 행별 액션 핸들러 (새로 추가!!)
+// 행별 액션 핸들러 (새로 추가!!)
 const handleRowAction = (action, rowData) => {
-  console.log('🎯 행 액션 실행:', action, rowData);
+  console.log('행 액션 실행:', action, rowData);
 
   switch (action) {
     case 'lot':
-      // 🔍 LOT별 재고 조회 (자재코드와 자재명 함께 전달!)
+      // LOT별 재고 조회
       viewMaterialLotStock(rowData.materialCode, rowData.materialName);
       break;
     case 'view':
-      // 🔍 상세 보기
+      // 상세 보기
       toast.add({
         severity: 'info',
         summary: '상세 보기',
@@ -531,10 +529,8 @@ const handleRowAction = (action, rowData) => {
   }
 };
 
-// 🎯 컴포넌트 마운트 시 초기 데이터 로딩
+// 컴포넌트 마운트 시 초기 데이터 로딩
 onMounted(async () => {
-  console.log('🎯 MaterialStockView 컴포넌트 마운트');
-
   try {
     await Promise.all([
       commonStore.fetchCommonCodes('0H'), // 자재유형
@@ -542,12 +538,10 @@ onMounted(async () => {
       commonStore.fetchCommonCodes('0E')  // 상태
     ]);
 
-    console.log('✅ 공통코드 로딩 완료');
-
     await loadStockStatusData();
 
   } catch (error) {
-    console.error('❌ 초기 데이터 로딩 실패:', error);
+    console.error('초기 데이터 로딩 실패:', error);
 
     toast.add({
       severity: 'error',
