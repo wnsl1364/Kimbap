@@ -35,6 +35,8 @@ const detailModalVisible = ref(false)
 const detailList = ref([])
 const selectedPlanCd = ref('')
 
+const exportColumns = ref([]); // 엑셀 다운로드
+
 // 공장 목록 조회
 onMounted(async () => {
   await fetchFactoryList() // 공장정보 가져오기
@@ -65,6 +67,17 @@ const searchColumns = [
   },
 ];
 const prodPlanColumns = [
+  { field: 'produPlanCd', header: '생산계획번호' },
+  { field: 'planDt', header: '계획일자' },
+  { field: 'planStartDt', header: '계획기간(시작)' },
+  { field: 'planEndDt', header: '계획기간(종료)' },
+  { field: 'facName', header: '공장' },
+  { field: 'sumPlanQty', header: '총생산수량', align: 'right', slot: true  },
+  { field: 'firstUnit', header: '단위' },
+  { field: 'note', header: '비고' }
+]
+// 엑셀 다운로드용 컬럼
+exportColumns.value = [
   { field: 'produPlanCd', header: '생산계획번호' },
   { field: 'planDt', header: '계획일자' },
   { field: 'planStartDt', header: '계획기간(시작)' },
@@ -147,7 +160,7 @@ const detailColumns = [
   { field: 'ppdcode', header: '상세코드' },
   { field: 'produPlanCd', header: '계획번호' },
   { field: 'prodName', header: '제품명' },
-  { field: 'planQty', header: '계획수량' },
+  { field: 'planQty', header: '계획수량', align: 'right', slot: true  },
   { field: 'unit', header: '단위' },
   { field: 'exProduDt', header: '생산예정일자' },
   { field: 'seq', header: '우선순위' }
@@ -169,6 +182,7 @@ const convertDetailUnitCodes = (list) => {
 const handleReset = async () => {
   condProdPlanList.value = [];
 };
+
 </script>
 <template>
   <div class="grid">
@@ -218,6 +232,9 @@ const handleReset = async () => {
             :hoverable="true"
             :showRowCount="true"
             @row-click="row => openDetailModal(row.produPlanCd)"
+            :showExcelDownload="true"
+            :exportColumns="exportColumns"
+            :exportData="mergedExportData" 
           />
           <!-- 상세정보 모달 -->
           <ProdPlanDetailModal

@@ -30,8 +30,15 @@ const {
     filteredProdLoadingList
 } = storeToRefs(productLoadingStore);
 
-// 🔥 사용자 정보 가져오기
+// 로그인 정보 가져오기 ====================================================
 const { user } = storeToRefs(memberStore);
+const isEmployee = computed(() => user.value?.memType === 'p1')       // 사원
+const isCustomer = computed(() => user.value?.memType === 'p2')       // 매출업체
+const isSupplier = computed(() => user.value?.memType === 'p3')       // 공급업체
+const isManager = computed(() => user.value?.memType === 'p4')        // 담당자
+const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스템 관리자
+// ========================================================================
+
 
 // 🔥 디버깅: 검색 필터 상태 감시
 watch(searchFilter, (newFilter) => {
@@ -308,6 +315,12 @@ const handleWarehouseAreaConfirm = (selectionData) => {
         });
     }
 };
+const formButtons = ref({
+    save: { show: isAdmin.value || isManager.value, label: '적재처리', severity: 'success' },
+    reset: { show: false, label: '초기화', severity: 'secondary' },
+    delete: { show: false, label: '삭제', severity: 'danger' },
+    load: { show: false, label: '불러오기', severity: 'info' }
+})
 
 // 적재처리 버튼 클릭
 const handleProcessLoading = async () => {
@@ -460,12 +473,7 @@ watch(selectedItems, (newSelection) => {
                 :scrollHeight="'500px'"
                 :showRowCount="true"
                 :dateFields="dateFields"
-                :buttons="{ 
-                save: { show: true, label: '적재처리', severity: 'success' },
-                reset: { show: false, label: '초기화', severity: 'secondary' },
-                delete: { show: false, label: '삭제', severity: 'danger' },
-                load: { show: false, label: '불러오기', severity: 'info' },
-                }"
+                :buttons="formButtons"
                 @dataChange="handleDataChange"
                 @rowClick="handleRowClick"
                 @locationSelect="handleLocationSelect"

@@ -114,7 +114,7 @@ const prodReqColumns = [
   { field: 'reqDt', header: '요청일자' },
   { field: 'deliDt', header: '납기일자' },
   { field: 'facName', header: '공장' },
-  { field: 'sumReqQty', header: '총요청수량' },
+  { field: 'sumReqQty', header: '총요청수량', align: 'right', slot: true  },
   { field: 'firstUnit', header: '단위' },
   { field: 'note', header: '비고' },
   { field: 'prReqStatus', header: '상태' }

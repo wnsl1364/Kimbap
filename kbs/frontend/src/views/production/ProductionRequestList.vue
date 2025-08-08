@@ -35,6 +35,8 @@ const detailModalVisible = ref(false)
 const detailList = ref([])
 const selectedReqCd = ref('')
 
+const exportColumns = ref([]); // 엑셀 다운로드
+
 // 공장 목록 조회
 onMounted(async () => {
   await fetchFactoryList() // 공장정보 가져오기
@@ -65,6 +67,17 @@ const searchColumns = [
   },
 ];
 const prodRequestColumns = [
+  { field: 'produReqCd', header: '생산요청번호' },
+  { field: 'reqDt', header: '요청일자' },
+  { field: 'deliDt', header: '납기일자' },
+  { field: 'facName', header: '공장' },
+  { field: 'sumReqQty', header: '총요청수량', align: 'right', slot: true  },
+  { field: 'firstUnit', header: '단위' },
+  { field: 'note', header: '비고' },
+  { field: 'prReqStatus', header: '상태' }
+]
+// 엑셀 다운로드용 컬럼
+exportColumns.value = [
   { field: 'produReqCd', header: '생산요청번호' },
   { field: 'reqDt', header: '요청일자' },
   { field: 'deliDt', header: '납기일자' },
@@ -146,10 +159,10 @@ const detailColumns = [
   { field: 'produProdCd', header: '요청상세번호' },
   { field: 'produReqCd', header: '요청번호' },
   { field: 'prodName', header: '제품명' },
-  { field: 'reqQty', header: '요청수량' },
+  { field: 'reqQty', header: '요청수량', align: 'right', slot: true  },
   { field: 'unit', header: '단위' },
   { field: 'exProduDt', header: '생산예정일자' },
-  { field: 'seq', header: '우선순위' }
+  { field: 'seq', header: '우선순위', align: 'right', slot: true  }
 ]
 // 공통코드 변환
 const convertDetailUnitCodes = (list) => {
@@ -216,6 +229,9 @@ const handleReset = async () => {
             :hoverable="true"
             :showRowCount="true"
             @row-click="row => openDetailModal(row.produReqCd)"
+            :showExcelDownload="true"
+            :exportColumns="exportColumns"
+            :exportData="mergedExportData" 
           />
           <!-- 상세정보 모달 -->
           <ProdRequestDetailModal
