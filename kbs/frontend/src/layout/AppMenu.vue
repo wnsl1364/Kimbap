@@ -72,7 +72,7 @@ const model = ref([
             },
             {
                 label: '자재 입고',
-                to: '/material/materialInbound'
+                to: '/material/MaterialPurchaseView?from=inbound'
             },
             {
                 label: '자재 적재 대기 목록',

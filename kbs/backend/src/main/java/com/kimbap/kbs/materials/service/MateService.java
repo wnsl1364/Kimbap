@@ -108,6 +108,14 @@ public interface MateService {
 
     void updatePurchaseOrderCurrQtyAndStatus(MaterialsVO updateData);
 
+    /**
+     * 🔥 특정 발주번호의 입고대기(c3) 상태 자재 조회 (자재입고 페이지용)
+     * 
+     * @param purcCd 발주번호
+     * @return 입고대기 상태의 발주상세 목록
+     */
+    List<PurchaseOrderViewVO> getPurchaseOrderDetailsForInbound(String purcCd);
+
     // 자재 입출고 목록 조회
     List<MaterialsVO> getMaterialFlowList(MaterialsVO search);
     List<MaterialsVO> getTodayMaterialFlowList();
