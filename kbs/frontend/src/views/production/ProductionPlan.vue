@@ -88,9 +88,9 @@ const factoryOptions = computed(() =>
 // 폼 필드 정의 (InputForm.vue 기준 key 속성 사용)
 const fields = [
   { key: 'produPlanCd', label: '생산계획번호', type: 'readonly' },
-  { key: 'planDt', label: '계획일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
-  { key: 'planStartDt', label: '계획기간(시작)', type: 'calendar', placeholder: 'MM/DD/YYYY' },
-  { key: 'planEndDt', label: '계획기간(종료)', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'planDt', label: '계획일자', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
+  { key: 'planStartDt', label: '계획기간(시작)', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
+  { key: 'planEndDt', label: '계획기간(종료)', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
   {
     key: 'factory',
     label: '공장',
