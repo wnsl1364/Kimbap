@@ -22,8 +22,8 @@ const isSupplier = computed(() => user.value?.memType === 'p3')       // 공급�
 const isManager = computed(() => user.value?.memType === 'p4')        // 담당자
 const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스템 관리자
 // ========================================================================
-const toast = useToast();
 
+const toast = useToast();
 const store = useProductStore()
 const { 
   factoryList,      // 공장 목록
@@ -102,9 +102,9 @@ const fields = [
 ]
 
 const prodPlanFormButtons = ref({
-  save: { show: true, label: '저장', severity: 'success' },
+  save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' },
   reset: { show: true, label: '초기화', severity: 'secondary' },
-  delete: { show: true, label: '삭제', severity: 'danger' },
+  delete: { show: isAdmin.value || isManager.value, label: '삭제', severity: 'danger' },
   load: { show: true, label: '생산계획 불러오기', severity: 'info' }
 })
 const prodPlanDetailButtons = ref({
@@ -129,8 +129,28 @@ const productColumns = [
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
   { field: 'seq', header: '우선순위', type: 'input', align: 'center' }
 ]
+
 // 생산계획과 관련 상세 저장(등록, 수정)
 const handleSave = async (data) => {
+
+  if (!isAdmin.value && !isManager.value) {
+    toast.add({
+      severity: 'error',
+      summary: '등록/수정 실패',
+      detail: '등록/수정 권한이 없습니다.',
+      life: 3000
+    });
+  return;
+  }
+  if (!user.value?.empCd) {
+    toast.add({
+        severity: 'warn',
+        summary: '경고',
+        detail: '로그인 정보가 없습니다.',
+        life: 3000
+    });
+    return;
+  }
   try {
     const isNew = !formData.value.produPlanCd; // 등록/수정 여부 판별
 
@@ -142,7 +162,7 @@ const handleSave = async (data) => {
         planEndDt: format(formData.value.planEndDt, 'yyyy-MM-dd'),
         fcode: formData.value.factory?.fcode,
         facVerCd: formData.value.factory?.facVerCd,
-        mname: 'EMP-10001',  
+        mname: user.value?.empCd || 'SYSTEM',  
         note: formData.value.note
       },
       planDetails: prodDetailList.value.map(item => ({
@@ -153,10 +173,16 @@ const handleSave = async (data) => {
         unit: item.unit,
         exProduDt: item.exProduDt,
         seq: item.seq
-      }))
+      })),
+      // 사용자 정보 추가
+      userInfo: {
+        empCd: user.value?.empCd || 'SYSTEM',
+        empName: user.value?.empName || '시스템',
+        deptName: user.value?.deptName || ''
+      }
     }
 
-    console.log('📦 최종 payload (생산계획 저장용)', JSON.stringify(payload, null, 2))
+    console.log('최종 payload (생산계획 저장용)', JSON.stringify(payload, null, 2))
 
     // 신규 등록이고 제품이 있는 경우에만 MRP 미리보기 표시
     if (isNew && prodDetailList.value.length > 0) {

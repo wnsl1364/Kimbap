@@ -114,14 +114,14 @@ const fields = [
 ]
 
 const prodReqFormButtons = ref({
-  save: { show: true, label: '저장', severity: 'success' },
+  save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' },
   reset: { show: true, label: '초기화', severity: 'secondary' },
-  delete: { show: true, label: '삭제', severity: 'danger' },
+  delete: { show: isAdmin.value || isManager.value, label: '삭제', severity: 'danger' },
   load: { show: true, label: '생산요청 불러오기', severity: 'info' }
 })
 const prodPlanDetailButtons = ref({
-  save: { show: false, label: '저장', severity: 'success' },
-  reset: { show: false, label: '초기화', severity: 'secondary' }
+  save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' },
+  reset: { show: isAdmin.value || isManager.value, label: '초기화', severity: 'secondary' }
 })
 
 // 제품 테이블 컬럼 정의
@@ -143,6 +143,24 @@ const productColumns = [
 ]
 // 생산요청과 관련 상세 저장(등록, 수정)
 const handleSave = async (data) => {
+  if (!isAdmin.value && !isManager.value) {
+    toast.add({
+      severity: 'error',
+      summary: '등록/수정 실패',
+      detail: '등록/수정 권한이 없습니다.',
+      life: 3000
+    });
+    return;
+  }
+  if (!user.value?.empCd) {
+    toast.add({
+        severity: 'warn',
+        summary: '경고',
+        detail: '로그인 정보가 없습니다.',
+        life: 3000
+    });
+    return;
+  }
   try {
     const isNew = !formData.value.produReqCd; // 등록/수정 여부 판별
 
