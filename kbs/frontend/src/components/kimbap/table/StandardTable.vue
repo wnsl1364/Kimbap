@@ -116,8 +116,8 @@ const downloadExcel = () => {
 
             <!-- 일반/슬롯 컬럼 렌더링 -->
             <template v-for="col in columns" :key="col.field">
-                <Column v-if="!col.slot" :field="col.field" :header="col.header" :headerClass="getAlignClass(col)" :bodyClass="getAlignClass(col)" />
-                <Column v-else :header="col.header" :headerClass="getAlignClass(col)" :bodyClass="getAlignClass(col)">
+                <Column v-if="!col.slot" :field="col.field" :header="col.header" headerClass="text-center" :bodyClass="getAlignClass(col)" />
+                <Column v-else :header="col.header" headerClass="text-center" :bodyClass="getAlignClass(col)">
                     <template #body="slotProps">
                         <!-- 기본 text 정렬용 slot -->
                         <div :class="getAlignClass(col)">
