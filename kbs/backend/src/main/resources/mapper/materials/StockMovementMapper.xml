@@ -64,14 +64,14 @@
     <select id="getLastMoveReqSequence" parameterType="string" resultType="int">
         SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(move_req_cd, -3))), 0) as last_seq
         FROM move_req
-        WHERE move_req_cd LIKE CONCAT('MR-', #{datePattern}, '-%')
+        WHERE move_req_cd LIKE 'MR-' || #{datePattern} || '-%'
     </select>
 
     <!-- 이동요청상세코드 시퀀스 조회 -->
     <select id="getLastMoveReqDetailSequence" parameterType="string" resultType="int">
         SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(mrdcode, -3))), 0) as last_seq
         FROM move_req_d
-        WHERE mrdcode LIKE CONCAT('MRD-', #{datePattern}, '-%')
+        WHERE mrdcode LIKE 'MRD-' || #{datePattern} || '-%'
     </select>
 
     <!-- 이동요청 목록 전체 조회 -->

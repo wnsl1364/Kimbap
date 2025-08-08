@@ -281,21 +281,22 @@ public class MateLoadingController {
     }
 
 
-//  창고 구역별 wslcode 조회 (기존 메서드 - 호환성 유지)
+//  창고재고목록코드 생성 (새로운 순번 생성)
     @GetMapping("/wslcode")
     public ResponseEntity<Map<String, String>> getWslCodeByArea(@RequestParam String wareAreaCd) {
         try {
-            String wslCode = mateLoadingService.getWslCodeByArea(wareAreaCd);
+            // 새로운 순번으로 창고재고목록코드 생성
+            String wslCode = mateLoadingService.generateWareStockCode();
             
             Map<String, String> response = new HashMap<>();
             response.put("wareAreaCd", wareAreaCd);
             response.put("wslCode", wslCode);
             
-            System.out.println("wslcode 조회 완료: " + wareAreaCd + " -> " + wslCode);
+            System.out.println("새로운 wslcode 생성 완료: " + wareAreaCd + " -> " + wslCode);
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
-            System.err.println("wslcode 조회 실패: " + e.getMessage());
+            System.err.println("wslcode 생성 실패: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
