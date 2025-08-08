@@ -218,13 +218,17 @@ const handleFieldClick = (field) => {
                 </div>
                 
                 <!-- 숫자 입력 -->
+                <!-- 숫자 입력 (min/max/step 지원) -->
                 <InputText 
                 v-else-if="field.type === 'number'" 
                 v-model="formData[field.key]" 
                 :placeholder="field.placeholder" 
                 :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                 type="number" 
-                class="w-full" 
+                class="w-full"
+                :min="field.min !== undefined ? field.min : null"
+                :max="field.max !== undefined ? field.max : null"
+                :step="field.step !== undefined ? field.step : null"
                 />
                 
                 <!-- 읽기 전용 -->

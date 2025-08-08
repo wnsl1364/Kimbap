@@ -149,9 +149,9 @@ onMounted(async () => {
       ]
     },
     { key: 'address', label: '주소', type: 'text' },
-    { key: 'maxRow', label: '최대 행', type: 'number', disabled: (row) => !!row.wcode },
-    { key: 'maxCol', label: '최대 열', type: 'number', disabled: (row) => !!row.wcode },
-    { key: 'maxFloor', label: '최대 층', type: 'number', disabled: (row) => !!row.wcode },
+    { key: 'maxRow', label: '최대 행', type: 'number',min: 0, max :12, disabled: (row) => !!row.wcode },
+    { key: 'maxCol', label: '최대 열', type: 'number', min: 0, max :12, disabled: (row) => !!row.wcode },
+    { key: 'maxFloor', label: '최대 층', type: 'number', min: 0, max :4, disabled: (row) => !!row.wcode },
     { key: 'fcode', label: '공장명', type: 'dropdown', options: factoryOptions.value },
     {
       key: 'isUsed',

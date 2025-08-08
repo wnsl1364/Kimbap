@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onBeforeMount, onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { format } from 'date-fns';
+import { format, min } from 'date-fns';
 import { useStandardMatStore } from '@/stores/standardMatStore';
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore';
@@ -188,11 +188,12 @@ onBeforeMount(() => {
             key: 'converQty',
             label: '환산수량',
             type: 'number',
+            min: 0,
             disabled: (row) => row.unit !== 'g6'
         },
-        { key: 'moqty', label: '최소발주단위', type: 'number' },
-        { key: 'edate', label: '소비기한(일)', type: 'text' },
-        { key: 'safeStock', label: '안전재고', type: 'number' },
+        { key: 'moqty', label: '최소발주단위', type: 'number', min: 0 },
+        { key: 'edate', label: '소비기한(일)', type: 'text'  },
+        { key: 'safeStock', label: '안전재고', type: 'number',min: 0 },
         { key: 'corigin', label: '원산지', type: 'text' },
         {
             key: 'isUsed',
