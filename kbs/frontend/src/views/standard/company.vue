@@ -136,7 +136,6 @@ onMounted(async () => {
     await fetchCompanys();
 });
 
-// 거래처기준정보 등록 처리
 const handleSaveCompany = async () => {
   if (!isAdmin.value && !isManager.value) {
     toast.add({
@@ -166,17 +165,18 @@ const handleSaveCompany = async () => {
 
   const result = await saveCompany();
 
-  if (result === '등록 성공') {
+  // ✅ 성공 케이스 구분
+  if (result === '등록 성공' || result === '수정 성공') {
     toast.add({
       severity: 'success',
-      summary: '등록 완료',
-      detail: '거래처가 정상적으로 등록되었습니다.',
+      summary: result,
+      detail: `거래처가 정상적으로 ${result.replace('성공', '')}되었습니다.`,
       life: 3000
     });
   } else {
     toast.add({
       severity: 'error',
-      summary: '등록 실패',
+      summary: result.includes('예외') ? '예외 발생' : '저장 실패',
       detail: result,
       life: 3000
     });
