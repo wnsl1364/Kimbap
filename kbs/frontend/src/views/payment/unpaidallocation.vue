@@ -202,7 +202,16 @@ onUnmounted(() => {
 
     <div class="space-y-4 mt-8">
         <!-- 📎 입출금 상세 입력 테이블 -->
-        <InputTable :columns="columns"  v-model:data="unpaidDetails" :title="'미수금 내역'" scrollHeight="360px" height="460px" :dataKey="'cpCd'" :enableSelection="false" :buttons="inputFormButtons" :enableRowActions="false"  />
+        <InputTable :columns="columns"  
+          v-model:data="unpaidDetails" 
+          :title="'미수금 내역'" 
+          scrollHeight="360px" 
+          height="460px" 
+          :dataKey="'cpCd'" 
+          :enableSelection="false" 
+          :buttons="inputFormButtons" 
+          :enableRowActions="false"  
+        />
     </div>
 
     <!-- 💬 입금 내역 선택 모달 -->

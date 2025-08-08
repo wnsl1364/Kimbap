@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kimbap.kbs.distribution.mapper.DistributionMapper;
 import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
+import com.kimbap.kbs.distribution.service.RelDetailVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
 import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
@@ -82,4 +83,16 @@ public class DistributionServiceImpl implements DistributionService {
         // 5. 출고지시서 리스트 insert
         distributionMapper.insertReleaseOrdList(detailList);
     }
+
+    @Override
+    public List<RelOrderAndResultVO> getRelOrdListWaiting() {
+        return distributionMapper.getRelOrdListWaiting();
+    }
+
+    @Override
+    public List<RelDetailVO> getRelDetails(String relMasCd) {
+        return distributionMapper.getRelDetails(relMasCd);
+    }
+
+
 }

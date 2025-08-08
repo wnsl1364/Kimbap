@@ -22,5 +22,8 @@ public interface DistributionService {
   // 출고지시 전체 저장
   void saveReleaseOrder(ReleaseMasterOrdVO masterVO, List<ReleaseOrdVO> detailList);
 
-
+  // 출고지시서 불러오기 
+  List<RelOrderAndResultVO> getRelOrdListWaiting();
+  // 출고지시서 단건조회 
+  List<RelDetailVO> getRelDetails(String relMasCd);
 }

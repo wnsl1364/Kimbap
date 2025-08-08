@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
+import com.kimbap.kbs.distribution.service.RelDetailVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
 import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
@@ -60,6 +62,16 @@ public class DistributionController {
     ) {
         distributionService.saveReleaseOrder(request.getMaster(), request.getDetailList());
         return ResponseEntity.ok("출고지시서 저장 완료");
+    }
+
+    @GetMapping("/waiting")
+    public List<RelOrderAndResultVO> getRelOrdListWaiting() {
+        return distributionService.getRelOrdListWaiting();
+    }
+
+    @GetMapping("/details/{relMasCd}")
+    public List<RelDetailVO> getRelDetails(@PathVariable String relMasCd) {
+        return distributionService.getRelDetails(relMasCd);
     }
 
     // 요청 DTO

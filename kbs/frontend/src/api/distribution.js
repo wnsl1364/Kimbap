@@ -29,3 +29,13 @@ export const getWareList = (ordCd) => {
 export const insertRelOrd = (data) => {
   return axios.post('/api/distribution/insertReleaseOrders', data);
 };
+
+// 출고 지시서 불러오기 
+export const getRelOrdListWaiting = () => {
+  return axios.get('/api/distribution/waiting', );
+};
+
+// 출고지시서 상세조회
+export const getRelDetails = (relMasCd) => {
+  return axios.get(`/api/distribution/details/${relMasCd}`);
+};

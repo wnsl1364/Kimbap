@@ -3,8 +3,10 @@ package com.kimbap.kbs.distribution.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.kimbap.kbs.distribution.service.DistributionVO;
+import com.kimbap.kbs.distribution.service.RelDetailVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
 import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
@@ -37,4 +39,10 @@ public interface DistributionMapper {
   String selectNewRelMasCd();
 
    int selectMaxRelOrdSeqToday();
+
+  // 출고지시서 불러오기 모달
+  List<RelOrderAndResultVO> getRelOrdListWaiting();
+
+  // 출고처리 상세
+  List<RelDetailVO> getRelDetails(@Param("relMasCd") String relMasCd);
 }
