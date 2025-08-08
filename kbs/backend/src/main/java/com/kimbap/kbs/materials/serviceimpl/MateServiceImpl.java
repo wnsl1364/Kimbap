@@ -48,28 +48,6 @@ public class MateServiceImpl implements MateService {
     }
 
     @Override
-    public List<PurchaseOrderViewVO> getPurchaseOrderDetailsForInbound(String purcCd) {
-        try {
-            System.out.println("🔍 입고대기 자재 조회 - 발주번호: " + purcCd);
-            
-            // SearchCriteria 생성
-            SearchCriteria criteria = SearchCriteria.builder()
-                    .purcCd(purcCd)
-                    .purcDStatus("c3") // 입고대기 상태만
-                    .build();
-            
-            // Mapper 호출 (기존 메서드 재사용)
-            List<PurchaseOrderViewVO> result = mateMapper.getPurchaseOrdersForView(criteria);
-            
-            System.out.println("✅ 입고대기 자재 조회 완료: " + result.size() + "건");
-            return result;
-            
-        } catch (Exception e) {
-            System.err.println("❌ 입고대기 자재 조회 실패: " + e.getMessage());
-            throw new RuntimeException("입고대기 자재 조회 실패: " + e.getMessage(), e);
-        }
-    }
-    @Override
     public void updateMateInbo(MaterialsVO mateInbo) {
         try {
             // ✅ UPDATE 시에도 LOT 번호가 없으면 자동 생성 (입고처리 시)
@@ -1210,6 +1188,7 @@ public class MateServiceImpl implements MateService {
             throw new RuntimeException("자재 재고 현황 조회 실패: " + e.getMessage(), e);
         }
     }
+<<<<<<< Updated upstream
 
     /**
      * 🔍 LOT별 재고 조회
@@ -1244,3 +1223,6 @@ public class MateServiceImpl implements MateService {
         }
     }
 }
+=======
+}
+>>>>>>> Stashed changes
