@@ -2,12 +2,15 @@
 import { ref, onMounted, computed } from 'vue'
 import { format } from 'date-fns';
 import { storeToRefs } from 'pinia'
+import { useToast } from 'primevue/usetoast';
 import { useProductStore } from '@/stores/productStore'
 import { useCommonStore } from '@/stores/commonStore'
 import { useMemberStore } from '@/stores/memberStore'
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue'
 import StandartTable from '@/components/kimbap/table/StandardTable.vue'
 import ProdPlanDetailModal from '@/views/production/ProdPlanDetailModal.vue'
+
+const toast = useToast();
 
 // 로그인 정보 가져오기 ====================================================
 const memberStore = useMemberStore()
@@ -74,21 +77,51 @@ const prodPlanColumns = [
 // 생산계획 목록 검색
 const handleSearch = async (searchData) => {
 
-  // 전처리: 날짜 객체를 yyyy-MM-dd로 변환
-  const formatted = {
-    produPlanCd: searchData.produPlanCd,
-    planDtStart: searchData.planDtRange?.start ? format(searchData.planDtRange.start, 'yyyy-MM-dd') : null,
-    planDtEnd: searchData.planDtRange?.end ? format(searchData.planDtRange.end, 'yyyy-MM-dd') : null,
-    periodStartDt: searchData.planRange?.start ? format(searchData.planRange.start, 'yyyy-MM-dd') : null,
-    periodEndDt: searchData.planRange?.end ? format(searchData.planRange.end, 'yyyy-MM-dd') : null,
-    fcode: searchData.factory?.fcode || null,
-    facVerCd: searchData.factory?.facVerCd || null,
-  };
+try {
+    // 전처리: 날짜 객체를 yyyy-MM-dd로 변환
+    const formatted = {
+      produPlanCd: searchData.produPlanCd,
+      planDtStart: searchData.planDtRange?.start ? format(searchData.planDtRange.start, 'yyyy-MM-dd') : null,
+      planDtEnd: searchData.planDtRange?.end ? format(searchData.planDtRange.end, 'yyyy-MM-dd') : null,
+      periodStartDt: searchData.planRange?.start ? format(searchData.planRange.start, 'yyyy-MM-dd') : null,
+      periodEndDt: searchData.planRange?.end ? format(searchData.planRange.end, 'yyyy-MM-dd') : null,
+      fcode: searchData.factory?.fcode || null,
+      facVerCd: searchData.factory?.facVerCd || null,
+    };
 
-  await store.fetchProdPlanListByCondition(formatted);
+    await store.fetchProdPlanListByCondition(formatted);
 
-  // 조건 검색 결과 후 단위 변환
-  condProdPlanList.value = convertUnitCodes(condProdPlanList.value);
+    // 조건 검색 결과 후 단위 변환
+    condProdPlanList.value = convertUnitCodes(condProdPlanList.value);
+
+    // 조회 결과 건수 toast 표시
+    const resultCount = condProdPlanList.value.length;
+    
+    if (resultCount > 0) {
+      toast.add({
+        severity: 'success',
+        summary: '조회 완료',
+        detail: `${resultCount}건의 생산계획이 조회되었습니다.`,
+        life: 3000
+      });
+    } else {
+      toast.add({
+        severity: 'warn',
+        summary: '조회 결과 없음',
+        detail: '조건에 맞는 생산계획이 없습니다.',
+        life: 3000
+      });
+    }
+
+  } catch (error) {
+    console.error('검색 중 오류 발생:', error);
+    toast.add({
+      severity: 'error',
+      summary: '조회 실패',
+      detail: '생산계획 조회 중 오류가 발생했습니다.',
+      life: 3000
+    });
+  }
 };
 // 공통코드 형변환
 const convertUnitCodes = (list) => {
@@ -138,43 +171,64 @@ const handleReset = async () => {
 };
 </script>
 <template>
-  <!-- 👑 페이지 헤더 -->
-  <div class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">생산계획 조회</h1>
-    <div class="flex items-center gap-4 text-sm text-gray-600">
-      <span>👤 {{ user?.empName || '로그로그' }}</span>
-      <span>🏢 {{ user?.deptName || '생산팀' }}</span>
-      <span>{{ user }}</span>
-    </div>
-  </div>
-  <div>
-    <!-- 검색 모달 -->
-    <SearchForm
-      :columns="searchColumns"
-      @search="handleSearch"
-      @reset="handleReset"
-    />
+  <div class="grid">
+    <div class="col-12">
+      <div class="card">
+        <h5>생산계획 조회</h5>
 
-    <!-- 검색 결과 테이블 표시 -->
-    <StandartTable
-      :title="'생산계획 목록'"
-      :data="condProdPlanList"
-      :columns="prodPlanColumns"
-      dataKey="produPlanCd"
-      scrollHeight="55vh"
-      :selectable="false"
-      :showHistoryButton="false"
-      :hoverable="true"
-      :showRowCount="true"
-      @row-click="row => openDetailModal(row.produPlanCd)"
-    />
-    <!-- 상세정보 모달 -->
-    <ProdPlanDetailModal
-      :visible="detailModalVisible"
-      :title="`생산계획 상세 : ${selectedPlanCd}`"
-      :detailList="detailList"
-      :columns="detailColumns"
-      @update:visible="detailModalVisible = $event"
-    />
-  </div>
+        <!-- 현재 사용자 정보 -->
+        <div class="mb-4 p-3 border-round surface-100">
+          <div class="flex align-items-center gap-3">
+            <i class="pi pi-user text-primary"></i>
+            <div>
+              <strong>
+                {{ 
+                  user?.memType === 'p1' 
+                    ? (user?.empName || '테스트 사용자')
+                    : user?.memType === 'p3'
+                    ? (user?.cpName || '테스트 거래처')
+                    : '테스트 사용자'
+                }}
+              </strong>
+              <span class="ml-2 text-500">
+                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
+              </span>
+            </div>
+          </div>
+        </div>  
+
+        <div>
+          <!-- 검색 모달 -->
+          <SearchForm
+            :columns="searchColumns"
+            @search="handleSearch"
+            @reset="handleReset"
+          />
+          <p></p>
+          <!-- 검색 결과 테이블 표시 -->
+          <StandartTable
+            :title="'생산계획 목록'"
+            :data="condProdPlanList"
+            :columns="prodPlanColumns"
+            dataKey="produPlanCd"
+            :height="'60vh'"
+            scrollHeight="50vh"
+            :selectable="false"
+            :showHistoryButton="false"
+            :hoverable="true"
+            :showRowCount="true"
+            @row-click="row => openDetailModal(row.produPlanCd)"
+          />
+          <!-- 상세정보 모달 -->
+          <ProdPlanDetailModal
+            :visible="detailModalVisible"
+            :title="`생산계획 상세 : ${selectedPlanCd}`"
+            :detailList="detailList"
+            :columns="detailColumns"
+            @update:visible="detailModalVisible = $event"
+          />
+        </div>
+      </div>
+    </div>
+  </div>  
 </template>

@@ -308,10 +308,10 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     private List<PurcOrdDetailVO> simulatePurchaseOrderGeneration(List<MrpDetailVO> mrpDetails, String virtualPurcCd) {
         List<PurcOrdDetailVO> purchaseOrderDetails = new ArrayList<>();
         
-        System.out.println("🔍 MRP 상세 개수: " + mrpDetails.size());
+        System.out.println("MRP 상세 개수: " + mrpDetails.size());
         
         for (MrpDetailVO mrpDetail : mrpDetails) {
-            System.out.println("🔍 처리 중인 자재: " + mrpDetail.getMcode() + " (버전: " + mrpDetail.getMateVerCd() + ")");
+            System.out.println("처리 중인 자재: " + mrpDetail.getMcode() + " (버전: " + mrpDetail.getMateVerCd() + ")");
             
             // 1. 공급업체 조회
             MateSupplierVO bestSupplier = mapper.selectBestSupplierByMaterial(
@@ -320,11 +320,11 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             );
             
             if (bestSupplier == null) {
-                System.out.println("❌ 공급업체 없음: " + mrpDetail.getMcode());
+                System.out.println("공급업체 없음: " + mrpDetail.getMcode());
                 continue;
             }
             
-            System.out.println("✅ 공급업체 발견: " + bestSupplier.getCpName() + " (단가: " + bestSupplier.getUnitPrice() + ")");
+            System.out.println("공급업체 발견: " + bestSupplier.getCpName() + " (단가: " + bestSupplier.getUnitPrice() + ")");
             
             // 2. 자재 기본정보 조회
             MaterVO material = mapper.selectMaterialInfo(
@@ -333,11 +333,11 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             );
             
             if (material == null) {
-                System.out.println("❌ 자재 정보 없음: " + mrpDetail.getMcode());
+                System.out.println("자재 정보 없음: " + mrpDetail.getMcode());
                 continue;
             }
             
-            System.out.println("✅ 자재 정보: " + material.getMateName() + " (MOQ: " + material.getMoqty() + ")");
+            System.out.println("자재 정보: " + material.getMateName() + " (MOQ: " + material.getMoqty() + ")");
             
             // 3. 발주수량 계산
             BigDecimal requiredQty = mrpDetail.getRequiredQty();
@@ -370,10 +370,10 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             orderDetail.setCurrQty(BigDecimal.ZERO);
             
             purchaseOrderDetails.add(orderDetail);
-            System.out.println("✅ 발주서 상세 추가 완료");
+            System.out.println("발주서 상세 추가 완료");
         }
         
-        System.out.println("🎯 최종 발주서 상세 개수: " + purchaseOrderDetails.size());
+        System.out.println("최종 발주서 상세 개수: " + purchaseOrderDetails.size());
         return purchaseOrderDetails;
     }
 

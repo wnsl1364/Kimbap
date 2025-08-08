@@ -98,7 +98,7 @@ const fields = [
     options: factoryOptions,
     placeholder: '공장을 선택하세요'
   },
-  { key: 'note', label: '비고', type: 'textarea' }
+  { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20}
 ]
 
 const prodPlanFormButtons = ref({
@@ -329,57 +329,76 @@ const modalDataSets = computed(() => ({
 </script>
 
 <template>
-  <Toast />
+  <div class="grid">
+    <div class="col-12">
+      <div class="card">
+        <h5>생산계획 관리</h5>
 
-    <!-- 👑 페이지 헤더 -->
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">생산계획 등록</h1>
-      <div class="flex items-center gap-4 text-sm text-gray-600">
-        <span>👤 {{ user?.empName || '로그로그' }}</span>
-        <span>🏢 {{ user?.deptName || '생산팀' }}</span>
-        <span>{{ user }}</span>
+        <!-- 현재 사용자 정보 -->
+        <div class="mb-4 p-3 border-round surface-100">
+          <div class="flex align-items-center gap-3">
+            <i class="pi pi-user text-primary"></i>
+            <div>
+              <strong>
+                {{ 
+                  user?.memType === 'p1' 
+                    ? (user?.empName || '테스트 사용자')
+                    : user?.memType === 'p3'
+                    ? (user?.cpName || '테스트 거래처')
+                    : '테스트 사용자'
+                }}
+              </strong>
+              <span class="ml-2 text-500">
+                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
+              </span>
+            </div>
+          </div>
+        </div>  
+        <div class="space-y-8">
+          <!-- 생산계획 입력 폼 -->
+          <InputForm
+            v-model:data="formData"
+            :columns="fields"
+            title="생산계획 기본 정보"
+            :buttons="prodPlanFormButtons"
+            buttonPosition="top"
+            @submit="handleSave"
+            @reset="handleReset"
+            @delete="handleDelete"
+            @load="handleLoad"
+          />
+          <!-- 제품 목록 테이블 -->
+          <div>
+            <InputTable
+              v-model:data="prodDetailList"
+              :columns="productColumns"
+              :title="'제품 목록'"
+              :dataKey="'pcode'"
+              :modalDataSets="modalDataSets"
+              buttonPosition="top"
+              :buttons="prodPlanDetailButtons"
+              enableRowActions
+              enableSelection
+              :scroll-height="'50vh'" 
+              :height="'60vh'"
+            />
+          </div>
+          <!-- 생산계획 불러오기 모달 -->
+          <ProdPlanSelectModal
+            v-model:visible="modalVisible"
+            @select="handlePlanSelect"
+          />
+          <!-- MRP 미리보기 모달 -->
+          <MrpPreviewModal
+            v-model:visible="mrpPreviewVisible"
+            :mrp-preview="mrpPreviewData"
+            :loading="mrpPreviewLoading"
+            @confirm="handleMrpPreviewConfirm"
+            @cancel="handleMrpPreviewCancel"
+          />
+          <Toast />
+        </div>
       </div>
     </div>
-  <div class="space-y-8">
-    <!-- 생산계획 입력 폼 -->
-    <InputForm
-      v-model:data="formData"
-      :columns="fields"
-      title="생산계획 기본 정보"
-      :buttons="prodPlanFormButtons"
-      buttonPosition="top"
-      @submit="handleSave"
-      @reset="handleReset"
-      @delete="handleDelete"
-      @load="handleLoad"
-    />
-    <!-- 제품 목록 테이블 -->
-    <div>
-      <InputTable
-        v-model:data="prodDetailList"
-        :columns="productColumns"
-        :title="'제품 목록'"
-        :dataKey="'pcode'"
-        :modalDataSets="modalDataSets"
-        buttonPosition="top"
-        :buttons="prodPlanDetailButtons"
-        enableRowActions
-        enableSelection
-        scrollHeight="300px"
-      />
-    </div>
-    <!-- 생산계획 불러오기 모달 -->
-    <ProdPlanSelectModal
-      v-model:visible="modalVisible"
-      @select="handlePlanSelect"
-    />
-    <!-- MRP 미리보기 모달 -->
-    <MrpPreviewModal
-      v-model:visible="mrpPreviewVisible"
-      :mrp-preview="mrpPreviewData"
-      :loading="mrpPreviewLoading"
-      @confirm="handleMrpPreviewConfirm"
-      @cancel="handleMrpPreviewCancel"
-    />
   </div>
 </template>
