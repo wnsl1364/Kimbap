@@ -1,5 +1,7 @@
 package com.kimbap.kbs.distribution.serviceimpl;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -47,7 +49,7 @@ public class DistributionServiceImpl implements DistributionService {
     }
 
     // 창고 목록 조회
-        @Override
+    @Override
     public List<WarehouseVO> getWarehouseListByOrdCd(String ordCd) {
         return distributionMapper.getWarehouseListByOrdCd(ordCd);
     }
@@ -56,21 +58,26 @@ public class DistributionServiceImpl implements DistributionService {
     @Transactional
     @Override
     public void saveReleaseOrder(ReleaseMasterOrdVO master, List<ReleaseOrdVO> detailList) {
-    // 1. 출고마스터코드 생성 (쿼리 호출)
-    String relMasCd = distributionMapper.selectNewRelMasCd();
+        // 1. 출고마스터코드 생성
+        String relMasCd = distributionMapper.selectNewRelMasCd();
+        master.setRelMasCd(relMasCd);
 
-    // 2. 생성한 relMasCd 를 master VO 에 세팅
-    master.setRelMasCd(relMasCd);
+        // 2. 마스터 insert
+        distributionMapper.insertReleaseOrdMaster(master);
 
-    // 3. 마스터 insert
-    distributionMapper.insertReleaseOrdMaster(master);
+        // 3. 출고지시서코드 생성 준비
+        int maxSeq = distributionMapper.selectMaxRelOrdSeqToday(); // 오늘 최대 시퀀스
+        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        int nextSeq = maxSeq + 1;
 
-    // 4. detailList에 모두 relMasCd 세팅
-    for (ReleaseOrdVO item : detailList) {
-        item.setRelMasCd(relMasCd);
+        // 4. detailList에 코드 할당
+        for (ReleaseOrdVO item : detailList) {
+            String relOrdCd = "REL-" + today + "-" + String.format("%04d", nextSeq++);
+            item.setNewRelOrdCd(relOrdCd); // 출고지시서 코드
+            item.setRelMasCd(relMasCd); // 출고마스터 코드
+        }
+
+        // 5. 출고지시서 리스트 insert
+        distributionMapper.insertReleaseOrdList(detailList);
     }
-
-    // 5. 출고지시서 리스트 insert
-    distributionMapper.insertReleaseOrdList(detailList);
-}
 }

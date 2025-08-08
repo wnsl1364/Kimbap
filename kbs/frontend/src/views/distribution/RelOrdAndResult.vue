@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { getRelOrdModal, getRelOrdSelect, getWareList, insertRelOrd } from '@/api/distribution'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
@@ -24,7 +24,7 @@ const formStore = useOrderFormStore()
 const productStore = useOrderProductStore()
 
 // 반응형 상태
-const { formData } = storeToRefs(formStore)
+const { formData , resetForm } = storeToRefs(formStore)
 const { products } = storeToRefs(productStore)
 
 //창고 목록 상태
@@ -34,24 +34,24 @@ const showArrearsModal = ref(false)
 
 // form 필드
 const formFields1 = [
-  { label: '출고지시번호', field: 'newRelOrdCd', type: 'text', disabled: false },
+  { label: '출고지시번호', field: 'newRelMasCd', type: 'text', disabled: false },
   { label: '작성자', field: 'regi', type: 'text', disabled: true },
   { label: '출고일자', field: 'relDt', type: 'calendar', disabled: true },
   { label: '비고', field: 'note', type: 'input', disabled: false },
-  ];
-  const formFields2 = [
-    { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
-    { label: '거래처 담당자', field: 'mName', type: 'text', disabled: true },
-    { label: '납품지 주소', field: 'deliAdd', type: 'text', disabled: true },
-    { label: '납기요청일', field: 'deliReqDt', type: 'text', disabled: true },
-  ]
-  
-  // 제품 테이블
-  const columns = computed(() => [
-    { field: 'prodName', header: '제품명', type: 'input', readonly: true },
-    { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-    { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-    { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
+];
+const formFields2 = [
+  { label: '거래처명', field: 'cpName', type: 'input', disabled: true },
+  { label: '거래처 담당자', field: 'mName', type: 'text', disabled: true },
+  { label: '납품지 주소', field: 'deliAdd', type: 'text', disabled: true },
+  { label: '납기요청일', field: 'deliReqDt', type: 'text', disabled: true },
+]
+
+// 제품 테이블
+const columns = computed(() => [
+  { field: 'prodName', header: '제품명', type: 'input', readonly: true },
+  { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
   {
     field: 'wcode', // 창고코드
     header: '창고',
@@ -70,39 +70,60 @@ const handleSave = async () => {
 
     // master VO
     const master = {
-      relMasCd,
+      // relMasCd,
       regi,
       relDt,
       note,
-      cp_cd: cpCd,
+      cpCd,
       mName,
-      deli_add: deliAdd,
-      deli_req_dt: deliReqDt,
+      deliAdd,
+      deliReqDt,
       relOrdStatus: 'm1'
     };
 
     // detailList
-    const detailList = products.value.map(product => ({
-      newRelOrdCd: product.newRelOrdCd,
-      wcode: product.wcode,
-      wareVerCd: product.wareVerCd,
-      ordDCd: product.ordDCd,
-      relQty: product.relQty,
-      relMasCd: master.relMasCd
-    }));
-
+    const detailList = (products.value || [])
+      .filter(p => p.relQty > 0)
+      .map(p => ({
+        wcode: p.wcode,
+        wareVerCd: p.wareVerCd,
+        ordDCd: p.ordDCd,
+        relQty: p.relQty,
+        newRelOrdCd: p.newRelOrdCd
+      }))
+      
+    if (detailList.length === 0) {
+      alert('출고지시수량이 입력된 제품이 없습니다.');
+      return;
+    }
+    
     const payload = {
       master,
       detailList
     };
-
+    
+    console.log('products.value =', products.value)
     console.log('📦 등록할 출고지시 payload:', payload);
+    
+    // ✅ API 호출
     await insertRelOrd(payload);
-
+    
+    // ✅ 성공 처리
     alert('출고지시 저장 완료!');
+    formStore.$reset();
+    productStore.$reset();
+    
+    // ✅ 라우터 이동을 try-catch 밖으로 이동하거나 별도 처리
+    setTimeout(() => {
+      router.push('/distribution/relOrdList');
+    }, 100);
+    
   } catch (err) {
-    console.error('❌ 출고지시 저장 실패:', err.response?.data || err.message);
-    alert('저장 중 오류 발생: ' + (err.response?.data || err.message));
+    console.error('❌ 출고지시 저장 실패:', err);
+    
+    // ✅ 실제 오류인 경우만 오류 메시지 표시
+    const errorMessage = err.response?.data?.message || err.message || '알 수 없는 오류가 발생했습니다.';
+    alert('저장 중 오류 발생: ' + errorMessage);
   }
 };
 
@@ -127,7 +148,7 @@ const modalDataSets = ref({})
 const loadOrderListForModal = async () => {
   try {
     const res = await getRelOrdModal({}) // ✅ 파라미터가 있으면 추가
-    
+
     const items = res.data.map(order => ({
       ordCd: order.ordCd,
       cpName: order.cpName,
@@ -149,7 +170,7 @@ const loadOrderListForModal = async () => {
           cpName: 'cpName',
           ordDt: 'ordDt'
         },
-        emitEvent: 'load' 
+        emitEvent: 'load'
       }
     }
   } catch (err) {
@@ -173,7 +194,7 @@ const handleLoadOrder = async (selectedRow) => {
     // 담당자명, 거래처명은 productList[0]에서 바로 꺼내기
     const mName = productList[0]?.mname || '';
     const cpName = productList[0]?.mcpName || '';
-    const newRelOrdCd = productList[0]?.newRelOrdCd || '';
+    const newRelMasCd = productList[0]?.newRelMasCd || '';
 
     // 3. 창고 리스트
     const wareRes = await getWareList(ordCd)
@@ -189,14 +210,14 @@ const handleLoadOrder = async (selectedRow) => {
       ordCd: order.ordCd,
       ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
       cpCd: order.cpCd,
-      cpName: cpName,         
+      cpName: cpName,
       deliAdd: order.deliAdd,
       deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
       exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
       note: order.note,
       mName: mName,
-      regi : user.value.empName || '',
-      newRelOrdCd: newRelOrdCd,
+      regi: user.value.empName || '',
+      newRelMasCd: newRelMasCd,
       wName: '',
     });
     console.log('넘겨줄 데이터:', order);
@@ -230,48 +251,19 @@ onUnmounted(() => {
 
 <template>
   <div class="space-y-4 mb-3">
-    <LeftAlignTable
-      v-model:data="formData"
-      :fields="formFields1"
-      :title="'출고 지시서'"
-      :buttons="infoFormButtons"
-      button-position="top"
-      :modalDataSets="modalDataSets"
-      :dataKey="'ordCd'"
-      @save="handleSave"
-      @showArrearsModal="showArrearsModal = true"
-      @load="handleLoadOrder"
-      @reset="handleApprove"
-      @delete="handleReject"
-    />
+    <LeftAlignTable v-model:data="formData" :fields="formFields1" :title="'출고 지시서'" :buttons="infoFormButtons"
+      button-position="top" :modalDataSets="modalDataSets" :dataKey="'ordCd'" @save="handleSave"
+      @showArrearsModal="showArrearsModal = true" @load="handleLoadOrder" @reset="handleApprove"
+      @delete="handleReject" />
   </div>
-    <div class="space-y-4">
-    <LeftAlignTable
-      v-model:data="formData"
-      :fields="formFields2"
-      :title="'출고처'"
-      :buttons="false"
-      button-position="top"
-      :modalDataSets="modalDataSets"
-      :dataKey="'ordCd'"
-      @showArrearsModal="showArrearsModal = true"
-      @load="handleLoadOrder"
-      @reset="handleApprove"
-      @delete="handleReject"
-    />
+  <div class="space-y-4">
+    <LeftAlignTable v-model:data="formData" :fields="formFields2" :title="'출고처'" :buttons="false" button-position="top"
+      :modalDataSets="modalDataSets" :dataKey="'ordCd'" @showArrearsModal="showArrearsModal = true"
+      @load="handleLoadOrder" @reset="handleApprove" @delete="handleReject" />
   </div>
 
   <div class="space-y-4 mt-3">
-    <InputTable
-      :data="products"
-      :columns="columns"
-      :title="''"
-      scrollHeight="360px"
-      height="460px"
-      :dataKey="'pcode'"
-      :buttons="purchaseFormButtons"
-      :enableRowActions="false"
-      :enableSelection="false"
-    />
+    <InputTable :data="products" :columns="columns" :title="''" scrollHeight="360px" height="460px" :dataKey="'pcode'"
+      :buttons="purchaseFormButtons" :enableRowActions="false" :enableSelection="false" />
   </div>
 </template>

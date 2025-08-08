@@ -35,4 +35,6 @@ public interface DistributionMapper {
 
   // 출고마스터코드 자동 생성
   String selectNewRelMasCd();
+
+   int selectMaxRelOrdSeqToday();
 }

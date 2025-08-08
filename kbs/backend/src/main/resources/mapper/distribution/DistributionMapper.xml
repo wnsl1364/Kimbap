@@ -122,7 +122,7 @@
   FROM order_list o
   JOIN company c ON o.cp_cd = c.cp_cd
 
-  WHERE o.is_used = 'f1'
+  WHERE o.ord_status_customer = 's2'
     AND EXISTS (
       SELECT 1
       FROM order_d od
@@ -243,23 +243,24 @@ INSERT INTO release_ord_master (
   SYSDATE,
   #{note},
   #{cpCd},
-  #{mname},
+  #{mName},
   #{deliAdd},
   #{deliReqDt},
-  'm1');
+  'm1')
 </insert>
 
 <insert id="insertReleaseOrdList" parameterType="java.util.List">
-  INSERT INTO release_ord (
-    rel_ord_cd,
-    wcode,
-    ware_ver_cd,
-    ord_d_cd,
-    rel_ord_qty,
-    rel_mas_cd
-  ) VALUES
-  <foreach collection="list" item="item" separator=",">
-    (
+  INSERT ALL
+  <foreach collection="list" item="item" separator="">
+    INTO release_ord (
+      rel_ord_cd,
+      wcode,
+      ware_ver_cd,
+      ord_d_cd,
+      rel_ord_qty,
+      rel_mas_cd
+    )
+    VALUES (
       #{item.newRelOrdCd},
       #{item.wcode},
       #{item.wareVerCd},
@@ -268,14 +269,23 @@ INSERT INTO release_ord_master (
       #{item.relMasCd}
     )
   </foreach>
+  SELECT 1 FROM DUAL
 </insert>
+
+
 
 <select id="selectNewRelMasCd" resultType="String">
   SELECT 
     'REL-M-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' ||
     LPAD(NVL(MAX(TO_NUMBER(SUBSTR(rel_mas_cd, -4))), 0) + 1, 4, '0')
   FROM release_ord_master
-  WHERE SUBSTR(rel_mas_cd, 7, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD');
+  WHERE SUBSTR(rel_mas_cd, 7, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
 </select>
 
+<select id="selectMaxRelOrdSeqToday" resultType="int">
+  SELECT 
+    NVL(MAX(TO_NUMBER(SUBSTR(rel_ord_cd, -4))), 0)
+  FROM release_ord
+  WHERE SUBSTR(rel_ord_cd, 5, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+</select>
 </mapper>
