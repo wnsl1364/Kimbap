@@ -105,6 +105,58 @@
         WHERE mi.mate_inbo_cd = #{mateInboCd}
     </select>
     
+    <!-- 특정 발주번호의 자재입고 데이터 조회 -->
+    <select id="getMateInboByPurcCd" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            mi.mate_inbo_cd,
+            mi.mcode,
+            mi.mate_ver_cd,
+            mi.wcode,
+            mi.ware_ver_cd,
+            mi.fcode,          
+            mi.fac_ver_cd,    
+            mi.purc_d_cd,
+            mi.lot_no,
+            mi.supplier_lot_no,
+            mi.inbo_dt,
+            mi.inbo_status,
+            mi.total_qty,
+            mi.mname,
+            mi.note,
+            mi.cp_cd,
+            mi.deli_dt,
+            
+            -- 발주상세 정보
+            pod.ex_deli_dt,
+            pod.purc_qty,
+            pod.unit_price,
+            pod.purc_d_status,
+            
+            -- 발주 기본 정보
+            po.purc_cd,
+            po.ord_dt,
+            po.regi,
+            po.purc_status,
+            e.emp_name AS regiName,
+            
+            -- company 테이블에서 회사명 가져오기
+            c.cp_name,
+            
+            -- material 테이블에서 단위, 보관조건, 자재명 가져오기
+            m.unit,
+            m.sto_con,
+            m.mate_name
+            
+        FROM mate_inbo mi
+        LEFT JOIN purc_ord_d pod ON mi.purc_d_cd = pod.purc_d_cd
+        LEFT JOIN purc_ord po ON pod.purc_cd = po.purc_cd
+        LEFT JOIN company c ON mi.cp_cd = c.cp_cd
+        LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+        LEFT JOIN employee e ON po.regi = e.emp_cd
+        WHERE po.purc_cd = #{purcCd}
+        ORDER BY mi.inbo_dt DESC, pod.purc_d_cd
+    </select>
+    
     <!-- 자재입고 등록 -->
     <insert id="insertMateInbo" parameterType="com.kimbap.kbs.materials.service.MaterialsVO">
         INSERT INTO mate_inbo (

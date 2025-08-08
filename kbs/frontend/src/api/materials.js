@@ -11,6 +11,11 @@ export const getMaterialInboundById = (mateInboCd) => {
   return axios.get(`/api/materials/inbound/${mateInboCd}`);
 };
 
+// 특정 발주번호의 자재입고 데이터 조회
+export const getMaterialInboundByPurcCd = (purcCd) => {
+  return axios.get(`/api/materials/inbound/by-purc/${purcCd}`);
+};
+
 export const saveMaterialInbound = (inboundData) => {
   return axios.post('/api/materials/inbound', inboundData);
 };

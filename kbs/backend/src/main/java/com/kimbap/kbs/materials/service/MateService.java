@@ -14,6 +14,9 @@ public interface MateService {
 
     MaterialsVO getMateInboById(String mateInboCd);
 
+    // 특정 발주번호의 자재입고 데이터 조회
+    List<MaterialsVO> getMateInboByPurcCd(String purcCd);
+
     // 발주 관련 메서드
     List<MaterialsVO> getPurcOrdList();
 

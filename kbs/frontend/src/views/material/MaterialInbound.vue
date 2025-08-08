@@ -1,11 +1,15 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useMaterialStore } from '@/stores/materialStore'
+import { useMemberStore } from '@/stores/memberStore'
+import { useRoute } from 'vue-router'
 import BasicTable from '@/components/kimbap/table/BasicTable.vue'
 import InputForm from '@/components/kimbap/searchform/inputForm.vue'
-import { getMaterialInboundList, updateMaterialInbound } from '@/api/materials'
+import { getMaterialInboundList, getMaterialInboundByPurcCd, updateMaterialInbound } from '@/api/materials'
 
 const materialStore = useMaterialStore()
+const memberStore = useMemberStore()
+const route = useRoute()
 
 onMounted(async () => {
     await loadFactoryList();
@@ -63,6 +67,7 @@ const loadFactoryList = async () => {
 }
 
 materialStore.inMaterialColumns = [
+    { field: 'purcDCd', header: '발주상세번호'},
     { field: 'mname', header: '자재명'},
     { field: 'cpName', header: '거래처명' },
     { field: 'purcQty', header: '입고요청수량', align: 'right' },
@@ -86,53 +91,77 @@ const formData = ref({
 const material = ref([])
 
 const fetchMaterialInboundData = async () => {
-    const response = await getMaterialInboundList();
-    
-    const filteredData = response.data.filter(item => item.inboStatus === 'c3');
-    
-    if (filteredData && filteredData.length > 0) {
-        const firstData = filteredData[0];
-        formData.value = {
-            purcCd: firstData.purcCd || '',
-            ordDt: firstData.ordDt ? formatDateForTable(firstData.ordDt) : '',
-            regi: firstData.regiName || firstData.regi || '담당자 정보 없음',
-            purcStatus: getInboStatusText(firstData.inboStatus),
-            deliDt: firstData.deliDt ? formatDateForTable(firstData.deliDt) : '',
-            fcode: ''
-        };
+    try {
+        // URL에서 발주번호(purcCd) 가져오기
+        const purcCd = route.query.purcCd;
         
-        materialStore.inboundData = { ...formData.value };
+        let response;
+        let filteredData;
+        
+        if (purcCd) {
+            // 특정 발주번호의 데이터 조회
+            console.log('선택된 발주번호로 데이터 조회:', purcCd);
+            response = await getMaterialInboundByPurcCd(purcCd);
+            filteredData = response.data.filter(item => item.inboStatus === 'c3');
+        } else {
+            // 전체 데이터에서 입고대기 상태만 조회
+            response = await getMaterialInboundList();
+            filteredData = response.data.filter(item => item.inboStatus === 'c3');
+        }
+        
+        if (filteredData && filteredData.length > 0) {
+            const firstData = filteredData[0];
+            
+            // 현재 로그인된 사용자 정보 가져오기
+            const currentUser = memberStore.user;
+            const userDisplayName = currentUser?.empName || currentUser?.name || '담당자 정보 없음';
+            
+            formData.value = {
+                purcCd: firstData.purcCd || '',
+                ordDt: firstData.ordDt ? formatDateForTable(firstData.ordDt) : '',
+                regi: userDisplayName, // 현재 로그인된 사용자 이름 사용
+                purcStatus: getInboStatusText(firstData.inboStatus),
+                deliDt: firstData.deliDt ? formatDateForTable(firstData.deliDt) : '',
+                fcode: ''
+            };
+            
+            materialStore.inboundData = { ...formData.value };
+        }
+        
+        material.value = filteredData.map((item, index) => ({
+            id: index + 1,
+            mateInboCd: item.mateInboCd,
+            mcode: item.mcode,
+            mateVerCd: item.mateVerCd,
+            purcDCd: item.purcDCd,
+            lotNo: item.lotNo,
+            supplierLotNo: item.supplierLotNo,
+            wcode: item.wcode,
+            wareVerCd: item.wareVerCd,
+            fcode: item.fcode,
+            facVerCd: item.facVerCd,
+            mname: item.mateName || item.mname,
+            cpName: item.cpName,
+            purcQty: item.purcQty || item.totalQty,
+            unit: getUnitText(item.unit),
+            totalQty: item.totalQty,
+            stoCon: getStorageConditionText(item.stoCon),
+            exDeliDt: item.exDeliDt ? formatDateForTable(item.exDeliDt) : '',
+            deliDt: item.deliDt ? formatDateForTable(item.deliDt) : '',
+            note: item.note,
+            inboDt: '',
+            inboStatus: item.inboStatus,
+            purcStatus: item.purcStatus,
+            cpCd: item.cpCd,
+            purcCd: item.purcCd,
+            ordDt: item.ordDt,
+            regi: item.regi
+        }));
+        
+    } catch (error) {
+        console.error('자재입고 데이터 조회 실패:', error);
+        alert('자재입고 데이터를 불러오는데 실패했습니다.');
     }
-    
-    material.value = filteredData.map((item, index) => ({
-        id: index + 1,
-        mateInboCd: item.mateInboCd,
-        mcode: item.mcode,
-        mateVerCd: item.mateVerCd,
-        purcDCd: item.purcDCd,
-        lotNo: item.lotNo,
-        supplierLotNo: item.supplierLotNo,
-        wcode: item.wcode,
-        wareVerCd: item.wareVerCd,
-        fcode: item.fcode,
-        facVerCd: item.facVerCd,
-        mname: item.mateName || item.mname,
-        cpName: item.cpName,
-        purcQty: item.purcQty || item.totalQty,
-        unit: getUnitText(item.unit),
-        totalQty: item.totalQty,
-        stoCon: getStorageConditionText(item.stoCon),
-        exDeliDt: item.exDeliDt ? formatDateForTable(item.exDeliDt) : '',
-        deliDt: item.deliDt ? formatDateForTable(item.deliDt) : '',
-        note: item.note,
-        inboDt: '',
-        inboStatus: item.inboStatus,
-        purcStatus: item.purcStatus,
-        cpCd: item.cpCd,
-        purcCd: item.purcCd,
-        ordDt: item.ordDt,
-        regi: item.regi
-    }));
 }
 
 const formatDateForTable = (dateInput) => {
@@ -206,6 +235,14 @@ const selectedMaterials = ref([])
 watch(selectedMaterials, (newSelection) => {
     materialStore.setSelectedInboundMaterials([...newSelection]);
 }, { deep: true })
+
+// URL query parameter 변화 감지
+watch(() => route.query.purcCd, async (newPurcCd, oldPurcCd) => {
+    if (newPurcCd !== oldPurcCd) {
+        console.log('발주번호 변경 감지:', newPurcCd);
+        await fetchMaterialInboundData();
+    }
+}, { immediate: false })
 
 const handleInboundComplete = async () => {
     if (!formData.value.fcode || formData.value.fcode === '') {  
