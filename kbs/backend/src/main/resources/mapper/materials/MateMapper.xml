@@ -220,12 +220,29 @@
         WHERE mate_inbo_cd = #{mateInboCd}
     </update>
 
-    <!-- LOT 패턴별 개수 조회 -->
+    <!-- LOT 패턴별 개수 조회 (개선된 버전) -->
     <select id="countLotsByPattern" parameterType="String" resultType="int">
         SELECT COUNT(*)
         FROM mate_inbo 
         WHERE lot_no LIKE #{lotPattern}
-        AND TO_CHAR(inbo_dt, 'YYYYMMDD') = SUBSTR(#{lotPattern}, 5, 8)
+        AND lot_no != 'TEMP-LOT'
+        AND inbo_status != 'RESERVED'
+    </select>
+
+    <!-- 🔒 동시성 제어를 위한 LOT 시퀀스 생성 -->
+    <select id="getNextLotSequenceWithLock" resultType="int">
+        SELECT NVL(MAX(
+            CASE 
+                WHEN REGEXP_LIKE(SUBSTR(lot_no, -3), '^[0-9]{3}$') THEN 
+                    TO_NUMBER(SUBSTR(lot_no, -3))
+                ELSE 0 
+            END
+        ), 0) + 1
+        FROM mate_inbo 
+        WHERE lot_no LIKE 'LOT-' || #{lotTypeCode} || '-' || #{dateStr} || '-%'
+        AND lot_no != 'TEMP-LOT'
+        AND inbo_status != 'RESERVED'
+        FOR UPDATE
     </select>
 
     <!-- 자재 코드로 품목 유형 조회 -->

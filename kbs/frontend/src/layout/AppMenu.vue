@@ -84,7 +84,7 @@ const model = ref([
             },
             {
                 label: '자재 이동 요청 목록',
-                to: '/material/transferRequestList'
+                to: '/material/stockMovementList'
             },
             {
                 label: '자재 입출고 내역',

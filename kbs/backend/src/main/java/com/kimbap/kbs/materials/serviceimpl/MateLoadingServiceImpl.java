@@ -182,11 +182,6 @@ public class MateLoadingServiceImpl implements MateLoadingService {
         return factoryList;
     }
 
-    @Override
-    public String getWslCodeByArea(String wareAreaCd) {
-        String wslCode = mateLoadingMapper.getWslCodeByArea(wareAreaCd);
-        return wslCode;
-    }
         @Override
     public List<MateLoadingVO> getWarehousesByFactory(String fcode) {
         try {

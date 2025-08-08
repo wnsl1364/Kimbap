@@ -412,7 +412,7 @@ onMounted(async () => {
     toast.add({
       severity: 'info',
       summary: '자재 입고 안내',
-      detail: '입고대기 상태(c3)의 발주를 선택하여 자재 입고를 진행해주세요.',
+      detail: '자재 발주 조회 페이지로 이동합니다. 입고대기 상태의 자재를 선택해주세요.',
       life: 6000
     });
   }

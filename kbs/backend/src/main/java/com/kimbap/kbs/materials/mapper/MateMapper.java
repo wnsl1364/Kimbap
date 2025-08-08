@@ -191,4 +191,13 @@ public interface MateMapper {
      * @return LOT별 재고 목록
      */
     List<MaterialsVO> getMaterialLotStock(@Param("mcode") String mcode);
+
+    /**
+     *  동시성 제어를 위한 LOT 번호 생성 (FOR UPDATE)
+     * @param lotTypeCode LOT 타입 코드 (100, 200)
+     * @param dateStr 날짜 문자열 (yyyyMMdd)
+     * @return 다음 시퀀스 번호
+     */
+    int getNextLotSequenceWithLock(@Param("lotTypeCode") String lotTypeCode, 
+                                   @Param("dateStr") String dateStr);
 }
