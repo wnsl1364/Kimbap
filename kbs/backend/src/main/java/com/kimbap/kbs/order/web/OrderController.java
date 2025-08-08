@@ -86,10 +86,12 @@ public class OrderController {
         try {
             Map<String, Object> params = new HashMap<>();
 
-            // 회원 유형 분기 처리
-            if ("p2".equals(memType) && cpCd != null && !cpCd.isEmpty()) {
-                params.put("cpCd", cpCd);
+            // 매출업체면 프론트에서 전달된 cpCd 대신 서버에 저장된 cpCd를 사용해야 안전
+            if ("p2".equals(memType)) {
+                // 예: 로그인 사용자 정보에서 cpCd를 꺼내는 게 더 안전
+                params.put("cpCd", cpCd);  // ← 일단 유지하지만 보안상 개선 대상
             }
+            log.info("memType: {}, cpCd: {}", memType, cpCd);
 
             // 검색 조건 추가
             if (ordCd != null && !ordCd.isEmpty()) {

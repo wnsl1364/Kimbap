@@ -43,7 +43,8 @@ const emit = defineEmits([
   'delete',
   'reset',
   'save',
-  'load'
+  'load',
+  'pdf'
 ])
 
 const updateField = (field, value) => {
@@ -124,6 +125,7 @@ const handleButtonClick = (type) => {
         <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
         <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('save')" />
         <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="handleButtonClick('load')" />
+        <Button v-if="buttons.pdf?.show" :label="buttons.pdf.label" :severity="buttons.pdf.severity" @click="$emit('pdf')"/>
       </div>
     </div>
 
