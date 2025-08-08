@@ -100,7 +100,7 @@ const factoryOptions = computed(() =>
 const fields = [
   { key: 'produReqCd', label: '생산요청번호', type: 'readonly' },
   { key: 'produPlanCd', label: '생산계획번호', type: 'readonlyModal', clickable: true, placeholder: '클릭 시 검색모달' },
-  { key: 'reqDt', label: '생산요청일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'reqDt', label: '생산요청일자', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
   {
     key: 'factory',
     label: '공장',
@@ -109,7 +109,7 @@ const fields = [
     placeholder: '공장을 선택하세요'
   },
   { key: 'empName', label: '요청자', type: 'readonly' },
-  { key: 'deliDt', label: '납기일자', type: 'calendar', placeholder: 'MM/DD/YYYY' },
+  { key: 'deliDt', label: '납기일자', type: 'calendar2', placeholder: 'YYYY-MM-DD' },
   { key: 'note', label: '비고', type: 'textarea', rows: 1, cols: 20 }
 ]
 

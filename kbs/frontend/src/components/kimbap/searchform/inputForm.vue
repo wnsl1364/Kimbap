@@ -179,6 +179,15 @@ const handleFieldClick = (field) => {
                     :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
                     class="w-full" 
                 />
+                <Calendar 
+                    v-else-if="field.type === 'calendar2'" 
+                    v-model="formData[field.key]" 
+                    :placeholder="field.placeholder" 
+                    :class="{ 'p-invalid': field.required && !formData[field.key] }"
+                    :disabled="typeof field.disabled === 'function' ? field.disabled(formData) : field.disabled"
+                    class="w-full" 
+                    dateFormat="yy-mm-dd"
+                />
 
                 <!-- 드롭다운 -->
                 <Dropdown 
