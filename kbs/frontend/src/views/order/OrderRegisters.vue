@@ -322,13 +322,16 @@ const modalDataSets = ref({})
 
 const loadOrderListForModal = async () => {
   try {
-    const res = await getOrderList()
+    const { cpCd, memType } = user.value
+    const res = await getOrderList({ cpCd, memType })
+    // console.log('모달용 cpCd:', cpCd)
+    // console.log('모달용 memType:', memType)
 
     const items = res.data.data.map(order => ({
       ordCd: order.ordCd,
       cpName: order.cpName,
       ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
-      prodName: order.prodName  // 백에서 가공된 데이터 그대로 사용!
+      prodName: order.prodName
     }))
 
     modalDataSets.value = {
