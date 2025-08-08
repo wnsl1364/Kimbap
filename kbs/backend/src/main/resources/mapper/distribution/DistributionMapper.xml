@@ -304,4 +304,45 @@ INSERT INTO release_ord_master (
   FROM release_ord
   WHERE SUBSTR(rel_ord_cd, 5, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
 </select>
+
+<!--출고마스터테이블 단건조회-->
+<select id="getRelOrdDetail" parameterType="String" resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
+  SELECT
+      rom.rel_mas_cd       AS relMasCd,
+      rom.rel_dt           AS relDt,
+      cp.cp_name           AS cpName,
+      rom.note             AS note,
+      (
+        SELECT MIN(p.prod_name) || CASE WHEN COUNT(*) > 1 THEN ' 외 ' || (COUNT(*) - 1) || '개' ELSE '' END
+        FROM release_ord ro
+        JOIN order_d od ON ro.ord_d_cd = od.ord_d_cd
+        JOIN product p ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
+        WHERE ro.rel_mas_cd = rom.rel_mas_cd
+      ) AS prodNameSummary
+  FROM release_ord_master rom
+  JOIN order_list ol ON rom.rel_mas_cd = ol.rel_mas_cd
+  JOIN company cp ON ol.cp_cd = cp.cp_cd
+  WHERE rom.rel_mas_cd = #{relMasCd}
+</select>
+
+<!-- 출고지시서 제품목록 조회 (relMasCd 기준) -->
+<select id="getRelOrdProductList" parameterType="String" resultType="com.kimbap.kbs.distribution.service.ReleaseOrdVO">
+    SELECT
+        ro.rel_ord_cd       AS newRelOrdCd,
+        ro.wcode            AS wcode,
+        ro.ware_ver_cd      AS wareVerCd,
+        ro.ord_d_cd         AS ordDCd,
+        ro.rel_ord_qty      AS relQty,
+        ro.rel_mas_cd       AS relMasCd,
+        od.pcode            AS pCode,
+        od.prod_ver_cd      AS prodVerCd,
+        od.ord_qty          AS ordQty,
+        p.prod_name         AS prodName,
+        -- 필요하다면 추가 필드
+        od.ord_cd           AS ordCd
+    FROM release_ord ro
+    JOIN order_d od ON ro.ord_d_cd = od.ord_d_cd
+    JOIN product p ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
+    WHERE ro.rel_mas_cd = #{relMasCd}
+</select>
 </mapper>

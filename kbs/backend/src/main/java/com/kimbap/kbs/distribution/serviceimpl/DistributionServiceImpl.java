@@ -82,4 +82,15 @@ public class DistributionServiceImpl implements DistributionService {
         // 5. 출고지시서 리스트 insert
         distributionMapper.insertReleaseOrdList(detailList);
     }
+
+    @Override
+    public RelOrderAndResultVO getRelOrdDetail(String relMasCd) {
+        return distributionMapper.getRelOrdDetail(relMasCd);
+    }
+
+    @Override
+    public List<ReleaseOrdVO> getRelOrdProductList(String relMasCd) {
+        return distributionMapper.getRelOrdProductList(relMasCd);
+    }
+
 }

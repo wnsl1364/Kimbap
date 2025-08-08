@@ -29,3 +29,8 @@ export const getWareList = (ordCd) => {
 export const insertRelOrd = (data) => {
   return axios.post('/api/distribution/insertReleaseOrders', data);
 };
+
+// 마스터 단건조회
+export const getMasterInfo = (relMasCd) => {
+  return axios.get('/api/distribution/relOrdDetail', { params: { relMasCd } });
+};

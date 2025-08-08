@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import { getRelOrdModal, getRelOrdSelect, getWareList, insertRelOrd } from '@/api/distribution'
+import { getRelOrdModal, getRelOrdSelect, getWareList, insertRelOrd, getRelOrdList, getMasterInfo } from '@/api/distribution'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
@@ -9,6 +9,10 @@ import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useRoute } from 'vue-router';
+import { useMemberStore } from '@/stores/memberStore';
+
+const memberStore = useMemberStore();
+const { user } = storeToRefs(memberStore);
 
 const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -22,7 +26,6 @@ const productStore = useOrderProductStore()
 
 // 반응형 상태
 const { formData } = storeToRefs(formStore)
-const { products } = storeToRefs(productStore)
 
 //창고 목록 상태
 const warehouseList = ref([])
@@ -53,9 +56,7 @@ const handleSave = async () => {
   try {
     const { newRelOrdCd, relDt, regi, note, cpCd, mname, deliAdd, deliReqDt } = formData.value;
 
-    // master VO
     const master = {
-      // relMasCd,
       regi,
       relDt,
       note,
@@ -98,10 +99,6 @@ const handleSave = async () => {
     formStore.$reset();
     productStore.$reset();
     
-    // ✅ 라우터 이동을 try-catch 밖으로 이동하거나 별도 처리
-    setTimeout(() => {
-      router.push('/distribution/relOrdList');
-    }, 100);
     
   } catch (err) {
     console.error('❌ 출고지시 저장 실패:', err);
@@ -132,28 +129,28 @@ const modalDataSets = ref({})
 
 const loadOrderListForModal = async () => {
   try {
-    const res = await getRelOrdModal({}) // ✅ 파라미터가 있으면 추가
+    const res = await getRelOrdList({}) // ✅ 파라미터가 있으면 추가
 
-    const items = res.data.map(order => ({
-      ordCd: order.ordCd,
-      cpName: order.cpName,
-      ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
-      prodName: order.prodNameSummary  // ✅ 필드명 주의!
+    const items = res.data.map(relOrdList => ({
+      relMasCd: relOrdList.relMasCd,
+      cpName: relOrdList.cpName,
+      prodName: relOrdList.prodName,
+      relDt:relOrdList.relDt
     }))
     modalDataSets.value = {
       load: {
         items,
         columns: [
-          { field: 'ordCd', header: '주문코드' },
-          { field: 'prodName', header: '제품명' },
+          { field: 'relMasCd', header: '출고지시번호' },
           { field: 'cpName', header: '거래처명' },
-          { field: 'ordDt', header: '주문일자' }
+          { field: 'prodName', header: '제품명' },
+          { field: 'relDt', header: '지시일자' }
         ],
         mappingFields: {
-          ordCd: 'ordCd',
-          prodName: 'prodName',
+          relMasCd: 'relMasCd',
           cpName: 'cpName',
-          ordDt: 'ordDt'
+          prodName: 'prodName',
+          relDt: 'relDt'
         },
         emitEvent: 'load'
       }
@@ -164,50 +161,37 @@ const loadOrderListForModal = async () => {
 }
 
 const handleLoadOrder = async (selectedRow) => {
-  console.log('🟢 모달에서 선택된 row:', selectedRow);
   try {
-    const ordCd = selectedRow.ordCd;
+    const relMasCd = selectedRow.relMasCd;
 
-    // 1. 주문 상세 정보 (기존대로 불러오기)
-    const orderRes = await axios.get(`/api/order/${ordCd}`);
-    const order = orderRes.data.data;
+    // 1. 마스터 + 제품목록을 한 번에 GET!
+    const res = await axios.get('/api/distribution/relOrdDetail', { params: { relMasCd } });
+    const master = res.data.master;
+    const products = res.data.products;
 
-    // 2. 출고지시용 제품 리스트
-    const prodRes = await getRelOrdSelect(ordCd);
-    const productList = prodRes.data;
+    // 2. formData에 마스터 정보 세팅
+    formStore.setFormData({
+      ...master,
+      regi: user.value.empName || '',
+      // 필요하면 추가 필드 변환/매핑
+    });
 
-    // 담당자명, 거래처명은 productList[0]에서 바로 꺼내기
-    const mname = productList[0]?.mname || '';
-    const cpName = productList[0]?.mcpName || '';
-    const newRelMasCd = productList[0]?.newRelMasCd || '';
+    // 3. 제품리스트 store에 세팅
+    productStore.setProducts(products);
 
-    // 3. 창고 리스트
-    const wareRes = await getWareList(ordCd)
-    warehouseList.value = wareRes.data || []
-
-    // 🔥 formFields1 내 '창고' 필드의 options 갱신
-    const wareField = formFields1.find(f => f.field === 'wcode');
-    if (wareField) {
-      wareField.options = [...warehouseList.value]; // ⭐️ 여기가 핵심
+    // 4. (필요하다면) 창고 목록 조회
+    if (products && products.length > 0) {
+      const ordCd = products[0].ordCd; // 제품 목록에서 주문코드 꺼내기
+      const wareRes = await getWareList(ordCd);
+      warehouseList.value = wareRes.data || [];
+      const wareField = formFields1.find(f => f.field === 'wcode');
+      if (wareField) {
+        wareField.options = [...warehouseList.value];
+      }
     }
 
-    formStore.setFormData({
-      ordCd: order.ordCd,
-      ordDt: format(parseISO(order.ordDt), 'yyyy-MM-dd'),
-      cpCd: order.cpCd,
-      cpName: cpName,
-      deliAdd: order.deliAdd,
-      deliReqDt: format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
-      exPayDt: format(parseISO(order.exPayDt), 'yyyy-MM-dd'),
-      note: order.note,
-      mname: mname,
-      regi: user.value.empName || '',
-      newRelMasCd: newRelMasCd,
-      wName: '',
-    });
-    console.log('넘겨줄 데이터:', order);
-    productStore.setProducts(productList);
-    console.log('✅ 출고지시 제품 리스트:', productList)
+    console.log('넘겨줄 데이터:', master);
+    console.log('✅ 출고지시 제품 리스트:', products);
   } catch (err) {
     console.error('출고지시 주문 데이터 로딩 실패:', err);
   }
@@ -229,14 +213,13 @@ onMounted(async () => {
 // 피니아 리셋
 onUnmounted(() => {
   formStore.$reset();
-  productStore.$reset();
 });
 </script>
 
 <template>
   <div class="space-y-4 mb-3">
     <LeftAlignTable v-model:data="formData" :fields="formFields1" :title="'출고 지시서'" :buttons="infoFormButtons"
-      button-position="top" :modalDataSets="modalDataSets" :dataKey="'ordCd'" @save="handleSave"
+      button-position="top" :modalDataSets="modalDataSets" :dataKey="'relCd'" @save="handleSave"
       @showArrearsModal="showArrearsModal = true" @load="handleLoadOrder" @reset="handleApprove"
       @delete="handleReject" />
   </div>

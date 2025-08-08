@@ -1,6 +1,7 @@
 package com.kimbap.kbs.distribution.web;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -82,5 +83,13 @@ public class DistributionController {
         public void setDetailList(List<ReleaseOrdVO> detailList) {
             this.detailList = detailList;
         }
+    }
+
+    // 출고 지시서 단건 조회
+    @GetMapping("/relOrdDetail")
+    public Map<String, Object> getRelOrderDetailFull(@RequestParam("relMasCd") String relMasCd) {
+        RelOrderAndResultVO master = distributionService.getRelOrdDetail(relMasCd);
+        List<ReleaseOrdVO> products = distributionService.getRelOrdProductList(relMasCd);
+        return Map.of("master", master, "products", products);
     }
 }

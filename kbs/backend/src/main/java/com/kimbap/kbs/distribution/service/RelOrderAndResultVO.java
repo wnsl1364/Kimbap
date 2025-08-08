@@ -21,6 +21,9 @@ public class RelOrderAndResultVO {
   private String relOrdStatus;   // 출고지시상태
   private String note;        // 비고
 
+  // 마스터테이블 단건조회 
+  private int ordQty; // 주문수량
+  
   // 검색 VO
   private String type;          // 타입 (요청, 부분출고, 출고완료 등)
   private Date startDate;       // 시작일
