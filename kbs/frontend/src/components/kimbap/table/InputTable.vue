@@ -352,8 +352,8 @@ const downloadExcel = () => {
 
 <template>
     <div>
-        <div class="border p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
-            <div class="flex justify-between items-center mb-4">
+        <div class="border mb-0 p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
+            <div class="flex mb-0 p-0 justify-between items-center">
                 <div>
                     <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
                     <h3 v-if="showRowCount" class="text-base text-gray-600 mb-0 mt-0">검색결과 {{ rowCount }}건</h3>
@@ -496,3 +496,8 @@ const downloadExcel = () => {
         />
     </div>
 </template>
+<style>
+ .layout-main {
+    padding: 0;
+}
+</style>

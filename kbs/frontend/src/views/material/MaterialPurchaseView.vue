@@ -178,13 +178,13 @@ const inputTableColumns = computed(() => {
       width: '100px'
     });
     
-    baseColumns.splice(2, 0, {
-      field: 'regiName',
-      header: '등록자',
-      type: 'readonly',
-      align: 'center',
-      width: '80px'
-    });
+    // baseColumns.splice(2, 0, {
+    //   field: 'regiName',
+    //   header: '등록자',
+    //   type: 'readonly',
+    //   align: 'center',
+    //   width: '80px'
+    // });
     
     baseColumns.splice(11, 0, {
       field: 'deliDt',
@@ -463,17 +463,17 @@ onMounted(async () => {
         <SearchForm 
           :columns="searchColumns"
           @search="onSearch"
-          :gridColumns="5"
+          :gridColumns="4"
           @reset="onReset"
         />
 
         <!-- 🔥 완벽 매핑된 InputTable -->
         <InputTable
-          :key="`clean-input-table-${cleanConvertedData?.length || 0}`"
+          :key="`purchase-table-${actualUserType}`"
           :columns="inputTableColumns"
           :data="cleanConvertedData"
-          :scroll-height="'50vh'" 
-          :height="'60vh'"
+          :scroll-height="'40vh'" 
+          :height="'50vh'"
           :title="`발주 목록 조회 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
           dataKey="purcCd"
           :buttons="materialTableButtons"

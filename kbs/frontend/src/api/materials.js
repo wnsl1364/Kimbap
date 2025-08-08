@@ -498,21 +498,11 @@ export const getStockAlerts = (alertType = 'all') => {
 };
 
 
-/**
- * 🔍 LOT별 재고 조회
- * @param {string} mcode - 자재코드
- * @returns {Promise} LOT별 재고 목록
- */
+// 🎯 버전 2: 최소 로깅
 export const getMaterialLotStock = (mcode) => {
-  console.log('🔍 LOT별 재고 조회 API 호출:', mcode);
-  
   return axios.get(`/api/materials/${mcode}/lots`)
     .then(response => {
-      console.log('✅ LOT별 재고 조회 API 응답:', response.data);
+      console.log(`✅ LOT 조회: ${response.data.totalCount}건`);
       return response;
-    })
-    .catch(error => {
-      console.error('❌ LOT별 재고 조회 API 실패:', error);
-      throw error;
     });
 };

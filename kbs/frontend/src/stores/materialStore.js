@@ -76,10 +76,13 @@ export const useMaterialStore = defineStore('material', () => {
 
   // 구매/발주 상태 옵션 (실제 DB 값에 맞게 수정)
   const purchaseStatusOptions = ref([
-    { label: '주문완료', value: 'c1' },
-    { label: '제작중', value: 'c2' },
-    { label: '배송완료', value: 'c3' },
-    { label: '취소', value: 'c4' }
+    { label: '요청', value: 'c1' },
+    { label: '승인', value: 'c2' },
+    { label: '입고 대기', value: 'c3' },
+    { label: '부분 입고', value: 'c4' },
+    { label: '입고 완료', value: 'c5' },
+    { label: '거절', value: 'c6' },
+    { label: '반품', value: 'c7' }
   ]);
 
   const materialSearchColumns = ref([
@@ -626,6 +629,17 @@ export const useMaterialStore = defineStore('material', () => {
     setLotStockData,
     setLotStockModalVisible,
     setSelectedMaterialForLot,
-    clearLotStockData
+    clearLotStockData,
+    formatDate,
+    lotStockData,
+    lotStockModalVisible,
+    setLotStockData,
+    setLotStockModalVisible,
+    setSelectedMaterialForLot,
+    clearLotStockData,
+    setOutboundData,
+    setSelectedOutboundMaterials,
+    addProcessedOutboundMaterials,
+    updateOutboundStatistics
   };
 });
