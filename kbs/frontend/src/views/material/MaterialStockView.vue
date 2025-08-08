@@ -136,7 +136,22 @@ const stockStatusColumns = ref([
     header: '재고상태',
     type: 'readonly',
     width: '100px',
-    align: 'center'
+    align: 'center',
+    textColor: (rowData) => {
+      // Ensure property names match your data structure
+      const stock = rowData.totalQuantity !== undefined ? Number(rowData.totalQuantity.toString().replace(/,/g, '')) : 0;
+      const minStock = rowData.safeStock !== undefined ? Number(rowData.safeStock.toString().replace(/,/g, '')) : 0;
+      
+      if (stock <= 0) {
+        return 'text-red-700 font-bold'; // 재고 없음: 빨간색 + 굵게
+      } else if (stock <= minStock) {
+        return 'text-orange-600'; // 최소재고 이하: 주황색
+      } else if (stock <= minStock * 2) {
+        return 'text-yellow-600'; // 재고 부족: 노란색
+      } else {
+        return 'text-green-600'; // 충분한 재고: 초록색
+      }
+    }
   },
   {
     field: 'totalQuantity',
