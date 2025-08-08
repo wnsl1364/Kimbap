@@ -118,12 +118,12 @@ onBeforeMount(() => {
                 { label: '240', value: 'n2' }
             ]
         },
-        { key: 'edate', label: '소비기한(일)', type: 'number' },
+        { key: 'edate', label: '소비기한(일)', type: 'number',min: 0 },
         { key: 'stoTemp', label: '보관온도', type: 'text' },
-        { key: 'safeStock', label: '안전재고', type: 'number' },
+        { key: 'safeStock', label: '안전재고', type: 'number',min: 0 },
         { key: 'pacUnit', label: '포장단위', type: 'dropdown', options: [{ label: '40ea,1box', value: 'l1' }] },
-        { key: 'primeCost', label: '원가(원)', type: 'number' },
-        { key: 'prodUnitPrice', label: '제품단가(원)', type: 'number' },
+        { key: 'primeCost', label: '원가(원)', type: 'number',min: 0 ,step: 100 },
+        { key: 'prodUnitPrice', label: '제품단가(원)', type: 'number',min: 0 ,step: 100},
         {
             key: 'isUsed',
             label: '사용여부',

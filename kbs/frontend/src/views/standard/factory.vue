@@ -137,7 +137,7 @@ onBeforeMount(() => {
         { field: 'pcode', header: '제품코드', type: 'inputsearch', width: '200px', align: 'left', placeholder: '제품 선택', suffixIcon: 'pi pi-search' },
         { field: 'prodName', header: '제품명', type: 'input', width: '200px' },
         { field: 'prodVerCd', header: '제품버전', type: 'input', width: '50px' },
-        { field: 'mpqty', header: '최대생산량(EA)', type: 'input', width: '150px', align: 'right', inputType: 'number', placeholder: '최대생산량을 입력하세요' }
+        { field: 'mpqty', header: '최대생산량(EA)', type: 'input', width: '150px', align: 'right', inputType: 'number', min: 0 }
     ];
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }

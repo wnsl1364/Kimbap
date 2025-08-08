@@ -88,7 +88,7 @@ onBeforeMount(() => {
         { key: 'address', label: '주소', type: 'text' },
         { key: 'faxNum', label: '팩스번호', type: 'text' },
         { key: 'mname', label: '담당자명', type: 'text' },
-        { key: 'loanTerm', label: '여신기간(일)', type: 'number' },
+        { key: 'loanTerm', label: '여신기간(일)', type: 'number',min: 0 },
         { key: 'regDt', label: '등록일자', type: 'readonly', defaultValue: today },
         {
             key: 'isUsed',
