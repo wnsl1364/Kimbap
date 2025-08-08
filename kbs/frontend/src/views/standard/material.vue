@@ -286,19 +286,20 @@ const handleSaveMaterial = async () => {
         formData.value.modi = user.value.empCd;
     }
     const result = await saveMaterial();
-    if (result === '등록 성공') {
+
+    if (result === '등록 성공' || result === '수정 성공') {
         toast.add({
-            severity: 'success',
-            summary: '등록 완료',
-            detail: '거래처가 정상적으로 등록되었습니다.',
-            life: 3000
+        severity: 'success',
+        summary: result,
+        detail: `자재가 정상적으로 ${result.replace('성공', '')}되었습니다.`,
+        life: 3000
         });
     } else {
         toast.add({
-            severity: 'error',
-            summary: '등록 실패',
-            detail: result,
-            life: 3000
+        severity: 'error',
+        summary: result.includes('예외') ? '예외 발생' : '저장 실패',
+        detail: result,
+        life: 3000
         });
     }
 };
