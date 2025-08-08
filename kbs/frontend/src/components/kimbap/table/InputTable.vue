@@ -290,6 +290,48 @@ const getAlignClass = (align) => {
     return 'text-left';
 };
 
+// 컬럼별 글자색 클래스 반환 함수
+const getTextColorClass = (column, rowData = null) => {
+    if (!column.textColor) return '';
+    
+    // 문자열인 경우 (고정 색상)
+    if (typeof column.textColor === 'string') {
+        return column.textColor;
+    }
+    
+    // 함수인 경우 (동적 색상)
+    if (typeof column.textColor === 'function') {
+        return column.textColor(rowData);
+    }
+    
+    return '';
+};
+
+// 컬럼별 인라인 스타일 생성 함수
+const getTextColorStyle = (column, rowData = null) => {
+    if (!column.textColor) return {};
+    
+    // 문자열인 경우
+    if (typeof column.textColor === 'string') {
+        // CSS 클래스가 아닌 직접적인 색상값인 경우 (예: #ff0000, rgb(255,0,0))
+        if (column.textColor.startsWith('#') || column.textColor.startsWith('rgb') || column.textColor.startsWith('hsl')) {
+            return { color: column.textColor };
+        }
+        return {}; // CSS 클래스인 경우 스타일 반환하지 않음
+    }
+    
+    // 함수인 경우
+    if (typeof column.textColor === 'function') {
+        const result = column.textColor(rowData);
+        if (result && (result.startsWith('#') || result.startsWith('rgb') || result.startsWith('hsl'))) {
+            return { color: result };
+        }
+        return {};
+    }
+    
+    return {};
+};
+
 const rowCount = computed(() => internalData.value.length);
 
 defineExpose({
@@ -412,7 +454,10 @@ const downloadExcel = () => {
                         </template> -->
 
                         <template v-if="column.type === 'readonly'">
-                            <span>
+                            <span 
+                                :class="getTextColorClass(column, slotProps.data)"
+                                :style="getTextColorStyle(column, slotProps.data)"
+                            >
                                 {{
                                     props.dateFields.includes(column.field)
                                         ? formatDate(slotProps.data[column.field])
@@ -435,7 +480,8 @@ const downloadExcel = () => {
                                     :disabled="column.disabled"
                                     :placeholder="column.placeholder"
                                     :min="column.inputType === 'number' ? 0 : undefined"
-                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align)]"
+                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align), getTextColorClass(column, slotProps.data)]"
+                                    :style="getTextColorStyle(column, slotProps.data)"
                                 />
                             </div>
                         </template>
@@ -450,7 +496,8 @@ const downloadExcel = () => {
                                     :readonly="column.readonly"
                                     :disabled="column.disabled"
                                     :placeholder="column.placeholder"
-                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align)]"
+                                    :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align), getTextColorClass(column, slotProps.data)]"
+                                    :style="getTextColorStyle(column, slotProps.data)"
                                 />
                                 <div v-if="column.suffixIcon" class="flex items-center justify-center px-2 cursor-pointer text-gray-400 hover:text-blue-500 flex-shrink-0" @click.stop="openModal(slotProps.data, column.field)">
                                     <i :class="[column.suffixIcon, 'text-xs']" />
@@ -459,7 +506,11 @@ const downloadExcel = () => {
                         </template>
                         <template v-else-if="column.type === 'select'">
                             <div class="flex items-center border rounded w-full h-10">
-                                <select v-model="slotProps.data[column.field]" class="flex-1 bg-transparent px-3 py-2 outline-none">
+                                <select 
+                                    v-model="slotProps.data[column.field]" 
+                                    :class="['flex-1 bg-transparent px-3 py-2 outline-none', getTextColorClass(column, slotProps.data)]"
+                                    :style="getTextColorStyle(column, slotProps.data)"
+                                >
                                     <option v-for="opt in column.options" :key="opt[column.optionValue]" :value="opt[column.optionValue]">
                                         {{ opt[column.optionLabel] }}
                                     </option>
@@ -471,7 +522,11 @@ const downloadExcel = () => {
                         </template>
 
                         <template v-else-if="column.type === 'clickable'">
-                            <span class="text-blue-600 underline cursor-pointer" @click.stop="emit('rowClick', slotProps.data)">
+                            <span 
+                                :class="['text-blue-600 underline cursor-pointer', getTextColorClass(column, slotProps.data)]" 
+                                :style="getTextColorStyle(column, slotProps.data)"
+                                @click.stop="emit('rowClick', slotProps.data)"
+                            >
                                 {{ props.dateFields.includes(column.field) ? formatDate(slotProps.data[column.field]) : slotProps.data[column.field] }}
                             </span>
                         </template>
