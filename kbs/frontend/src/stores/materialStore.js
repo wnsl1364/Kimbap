@@ -133,6 +133,13 @@ export const useMaterialStore = defineStore('material', () => {
       endPlaceholder: '종료일'
     }
   ]);
+  
+  // 자재유형 옵션
+  const materialTypeOptions = ref([
+    { label: '원자재', value: 'h1' },
+    { label: '부자재', value: 'h2' },
+    { label: '완제품', value: 'h3' }
+  ]);
 
   // 🎯 승인 관련 state 추가
   const approvalOrderHeader = ref({});
@@ -500,6 +507,55 @@ export const useMaterialStore = defineStore('material', () => {
     }
   };
 
+  // 🔍 LOT별 재고 모달용 컬럼 설정
+  const lotStockModalColumns = ref([
+    { field: 'lotNo', header: 'LOT번호' },
+    { field: 'supplierLotNo', header: '공급업체LOT' },
+    { field: 'quantity', header: '재고수량' },
+    { field: 'unitText', header: '단위' },
+    { field: 'inboundDate', header: '입고일자' },
+    { field: 'expiryDate', header: '유효기간' },
+    { field: 'warehouseName', header: '창고명' },
+    { field: 'location', header: '위치' },
+    { field: 'storageConditionText', header: '보관조건' },
+    { field: 'supplierName', header: '공급업체' },
+    { field: 'managerName', header: '담당자' },
+    { field: 'note', header: '비고' }
+  ]);
+
+  // 🔍 LOT별 재고 관련 반응형 데이터
+  const lotStockData = ref([]);
+  const lotStockModalVisible = ref(false);
+  const selectedMaterialForLot = ref({
+    materialCode: '',
+    materialName: ''
+  });
+
+  // 🔍 LOT별 재고 관련 함수들
+  const setLotStockData = (data) => {
+    lotStockData.value = data;
+  };
+
+  const setLotStockModalVisible = (visible) => {
+    lotStockModalVisible.value = visible;
+  };
+
+  const setSelectedMaterialForLot = (materialCode, materialName) => {
+    selectedMaterialForLot.value = {
+      materialCode,
+      materialName
+    };
+  };
+
+  const clearLotStockData = () => {
+    lotStockData.value = [];
+    lotStockModalVisible.value = false;
+    selectedMaterialForLot.value = {
+      materialCode: '',
+      materialName: ''
+    };
+  };
+
   return {
     materials,
     setMaterials,
@@ -561,6 +617,15 @@ export const useMaterialStore = defineStore('material', () => {
     setStockStatusLoading,
     setSelectedStockItems,
     clearStockStatusData,
-    updateStockItem
+    updateStockItem,
+    materialTypeOptions,
+    lotStockModalColumns,
+    lotStockData,
+    lotStockModalVisible,
+    selectedMaterialForLot,
+    setLotStockData,
+    setLotStockModalVisible,
+    setSelectedMaterialForLot,
+    clearLotStockData
   };
 });

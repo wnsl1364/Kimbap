@@ -83,9 +83,8 @@ public interface MateService {
     MaterialsVO getPurcOrderDetailByCode(String purcDCd);
 
     /**
-     * 🔢 mate_inbo 테이블에서 가장 마지막 입고코드 조회
-     * MATI-202508-XXXX 형태에서 마지막 번호를 찾기 위함
-     * 
+     * 🔢 mate_inbo 테이블에서 가장 마지막 입고코드 조회 MATI-202508-XXXX 형태에서 마지막 번호를 찾기 위함
+     *
      * @param yearMonth YYYYMM 형태 (예: 202508)
      * @return 해당 년월의 마지막 입고코드
      */
@@ -93,14 +92,14 @@ public interface MateService {
 
     /**
      * 🔄 발주상세의 curr_qty 업데이트 (누적)
-     * 
+     *
      * @param updateData purcDCd와 새로운 currQty 포함
      */
     void updatePurchaseOrderCurrQty(MaterialsVO updateData);
 
     /**
      * 🎯 DB에서 원자적으로 다음 입고코드 생성 (동시성 안전)
-     * 
+     *
      * @param yearMonth YYYYMM 형태
      * @return 다음 입고코드 (MATI-YYYYMM-XXXX)
      */
@@ -118,6 +117,16 @@ public interface MateService {
 
     // 자재 입출고 목록 조회
     List<MaterialsVO> getMaterialFlowList(MaterialsVO search);
+
     List<MaterialsVO> getTodayMaterialFlowList();
+
     List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams);
+
+    /**
+     * 🔍 LOT별 재고 조회
+     *
+     * @param mcode 자재코드
+     * @return LOT별 재고 목록
+     */
+    public List<MaterialsVO> getMaterialLotStock(String mcode);
 }

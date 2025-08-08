@@ -142,6 +142,18 @@ public class MaterialsVO {
     private String regDtEnd;
     private Integer qty;
 
+    // ========== LOT별 재고 조회 추가 필드 ==========
+    private Integer quantity;               // 재고수량
+    private Date inboundDate;               // 입고일자
+    private String inboundStatus;           // 입고상태
+    private String inboundStatusText;       // 입고상태명
+    private Date expiryDate;                // 유효기간
+    private String warehouseName;           // 창고명
+    private String location;                // 창고위치 (행-열-층)
+    private String supplierName;            // 공급업체명
+    private String managerName;             // 담당자명
+    private Date sortDate;                  // 정렬용 날짜
+
     // ========== 편의 메서드들 ==========
     /**
      * 현재 재고량 자동 계산해주는 메서드

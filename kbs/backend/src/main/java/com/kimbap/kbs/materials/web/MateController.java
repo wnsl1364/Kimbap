@@ -3,6 +3,7 @@ package com.kimbap.kbs.materials.web;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -649,11 +650,11 @@ public class MateController {
     // getCurrentUserCpCd
     private String getCurrentUserCpCd(HttpServletRequest request) {
         System.out.println("🔍==================== getCurrentUserCpCd 시작 ====================");
-        
+
         // 🎯 방법 1: JWT 토큰에서 cpCd 추출
         String authHeader = request.getHeader("Authorization");
         System.out.println("🔍 Authorization 헤더: " + authHeader);
-        
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
                 String token = authHeader.substring(7);
@@ -680,7 +681,7 @@ public class MateController {
                     if (parts.length >= 2) {
                         String payload = new String(java.util.Base64.getDecoder().decode(parts[1]));
                         System.out.println("🔍 JWT 페이로드 원본: " + payload);
-                        
+
                         // JSON 파싱 시도
                         if (payload.contains("\"cpCd\"")) {
                             System.out.println("✅ JWT 페이로드에 cpCd 필드 발견!");
@@ -1044,40 +1045,30 @@ public class MateController {
         }
     }
 
-
-
     // 자재 입출고 내역 조회
     @GetMapping("/flow")
     public List<MaterialsVO> getMaterialFlowList(MaterialsVO search) {
         return mateService.getMaterialFlowList(search);
     }
+
     @GetMapping("/flow/today")
     public List<MaterialsVO> getTodayMaterialFlowList() {
         return mateService.getTodayMaterialFlowList();
     }
 
     // ========== 자재 재고 현황 관련 API ==========
-    
     /**
      * 🏭 자재 재고 현황 조회 API
-     * 
-     * 📌 API 설계 개념:
-     * - URL: GET /api/materials/stock-status
-     * - 목적: 공장별, 자재별 재고 현황을 안전재고 기준으로 분석하여 제공
-     * - 주요 기능: 재고 부족/과다/정상 상태 판정, LOT 관리, 안전재고 대비 분석
-     * 
-     * 🎯 비즈니스 로직:
-     * 1. 검색 조건에 따른 자재 필터링 (자재코드, 자재명, 자재유형, 공장명)
-     * 2. 창고 재고 데이터 집계 (같은 자재의 모든 LOT 합계)
-     * 3. 안전재고 기준 상태 판정 (empty/shortage/overstock/normal)
-     * 4. 재고 부족 우선순위로 정렬하여 반환
-     * 
-     * 📊 프론트엔드 활용:
-     * - 재고 현황 대시보드
-     * - 재고 부족 알림 시스템  
-     * - 발주 계획 수립 지원
-     * - LOT별 상세 조회 링크
-     * 
+     *
+     * 📌 API 설계 개념: - URL: GET /api/materials/stock-status - 목적: 공장별, 자재별 재고
+     * 현황을 안전재고 기준으로 분석하여 제공 - 주요 기능: 재고 부족/과다/정상 상태 판정, LOT 관리, 안전재고 대비 분석
+     *
+     * 🎯 비즈니스 로직: 1. 검색 조건에 따른 자재 필터링 (자재코드, 자재명, 자재유형, 공장명) 2. 창고 재고 데이터 집계
+     * (같은 자재의 모든 LOT 합계) 3. 안전재고 기준 상태 판정 (empty/shortage/overstock/normal) 4.
+     * 재고 부족 우선순위로 정렬하여 반환
+     *
+     * 📊 프론트엔드 활용: - 재고 현황 대시보드 - 재고 부족 알림 시스템 - 발주 계획 수립 지원 - LOT별 상세 조회 링크
+     *
      * @param mcode 자재코드 (선택)
      * @param mateName 자재명 (부분 검색, 선택)
      * @param mateType 자재유형 (h1:원자재, h2:부자재, 선택)
@@ -1087,12 +1078,12 @@ public class MateController {
      */
     @GetMapping("/stock-status")
     public ResponseEntity<Map<String, Object>> getMaterialStockStatus(
-            @RequestParam(required = false) String mcode,           // 자재코드
-            @RequestParam(required = false) String mateName,        // 자재명 (LIKE 검색)
-            @RequestParam(required = false) String mateType,        // 자재유형 
-            @RequestParam(required = false) String facName,         // 공장명 (LIKE 검색)
+            @RequestParam(required = false) String mcode, // 자재코드
+            @RequestParam(required = false) String mateName, // 자재명 (LIKE 검색)
+            @RequestParam(required = false) String mateType, // 자재유형 
+            @RequestParam(required = false) String facName, // 공장명 (LIKE 검색)
             HttpServletRequest request) {
-        
+
         try {
             // 🔍 1단계: 요청 파라미터 로깅 및 검증
             System.out.println("=== 📊 자재 재고 현황 조회 API 호출 ===");
@@ -1102,46 +1093,46 @@ public class MateController {
             System.out.println("  - mateName: " + mateName);
             System.out.println("  - mateType: " + mateType);
             System.out.println("  - facName: " + facName);
-            
+
             // 🏗️ 2단계: 검색 조건 객체 구성
             // MaterialsVO를 검색 파라미터로 활용하는 방식
             MaterialsVO searchParams = MaterialsVO.builder()
-                    .mcode(mcode)                   // 정확히 일치하는 자재코드
-                    .mateName(mateName)             // 부분 검색용 자재명
-                    .mateType(mateType)             // 자재유형 필터
-                    .facName(facName)               // 부분 검색용 공장명
+                    .mcode(mcode) // 정확히 일치하는 자재코드
+                    .mateName(mateName) // 부분 검색용 자재명
+                    .mateType(mateType) // 자재유형 필터
+                    .facName(facName) // 부분 검색용 공장명
                     .build();
-            
+
             System.out.println("🎯 검색 객체 생성 완료");
-            
+
             // 🚀 3단계: 서비스 계층 호출
             // 실제 비즈니스 로직은 Service Layer에서 처리
             List<MaterialsVO> stockStatusList = mateService.getMaterialStockStatus(searchParams);
-            
+
             // 📊 4단계: 응답 데이터 가공 및 메타데이터 추가
             Map<String, Object> response = new HashMap<>();
-            
+
             // 메인 데이터
             response.put("data", stockStatusList);
             response.put("totalCount", stockStatusList.size());
-            
+
             // 📈 통계 정보 계산
             long emptyCount = stockStatusList.stream()
                     .filter(item -> "empty".equals(item.getStockStatus()))
                     .count();
-            
+
             long shortageCount = stockStatusList.stream()
                     .filter(item -> "shortage".equals(item.getStockStatus()))
                     .count();
-            
+
             long overstockCount = stockStatusList.stream()
                     .filter(item -> "overstock".equals(item.getStockStatus()))
                     .count();
-            
+
             long normalCount = stockStatusList.stream()
                     .filter(item -> "normal".equals(item.getStockStatus()))
                     .count();
-            
+
             // 📊 상태별 통계
             Map<String, Object> statistics = new HashMap<>();
             statistics.put("empty", emptyCount);           // 재고 없음
@@ -1149,44 +1140,42 @@ public class MateController {
             statistics.put("overstock", overstockCount);   // 재고 과다
             statistics.put("normal", normalCount);         // 정상
             statistics.put("total", stockStatusList.size());
-            
+
             response.put("statistics", statistics);
-            
+
             // 🔔 알림 정보 (재고 부족 건수)
             response.put("alertCount", emptyCount + shortageCount);
-            
+
             // 📅 메타데이터
             response.put("timestamp", new Date());
             response.put("searchConditions", searchParams);
-            
+
             // ✅ 5단계: 성공 응답 반환
             System.out.println("✅ 재고 현황 조회 완료: " + stockStatusList.size() + "건");
-            System.out.println("📈 상태별 통계 - 재고없음:" + emptyCount + ", 부족:" + shortageCount + 
-                             ", 과다:" + overstockCount + ", 정상:" + normalCount);
-            
+            System.out.println("📈 상태별 통계 - 재고없음:" + emptyCount + ", 부족:" + shortageCount
+                    + ", 과다:" + overstockCount + ", 정상:" + normalCount);
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             // 🚨 6단계: 예외 처리
             System.err.println("❌ 자재 재고 현황 조회 실패: " + e.getMessage());
             e.printStackTrace();
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("message", e.getMessage());
             errorResponse.put("timestamp", new Date());
-            
+
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 
     /**
-     * 🏷️ 특정 자재의 LOT별 상세 재고 조회 API 
-     * 
-     * 📌 API 설계 개념:
-     * - URL: GET /api/materials/stock-status/{mcode}/lots  
-     * - 목적: 특정 자재의 LOT별 상세 재고 정보 제공
-     * - 활용: 재고 현황에서 "LOT별조회(X건)" 링크 클릭 시 호출
-     * 
+     * 🏷️ 특정 자재의 LOT별 상세 재고 조회 API
+     *
+     * 📌 API 설계 개념: - URL: GET /api/materials/stock-status/{mcode}/lots - 목적:
+     * 특정 자재의 LOT별 상세 재고 정보 제공 - 활용: 재고 현황에서 "LOT별조회(X건)" 링크 클릭 시 호출
+     *
      * @param mcode 자재코드 (필수)
      * @param fcode 공장코드 (선택, 특정 공장만 조회)
      * @return ResponseEntity<Map<String, Object>> LOT별 상세 재고 정보
@@ -1195,48 +1184,45 @@ public class MateController {
     public ResponseEntity<Map<String, Object>> getMaterialLotDetails(
             @PathVariable String mcode,
             @RequestParam(required = false) String fcode) {
-        
+
         try {
             System.out.println("=== 🏷️ LOT별 상세 재고 조회 ===");
             System.out.println("자재코드: " + mcode);
             System.out.println("공장코드: " + fcode);
-            
+
             // 검색 조건 설정
             MaterialsVO searchParams = MaterialsVO.builder()
                     .mcode(mcode)
                     .fcode(fcode)
                     .build();
-            
+
             // TODO: LOT별 상세 조회 로직 구현 (별도 Mapper 메서드 필요)
             // List<MaterialsVO> lotDetails = mateService.getMaterialLotDetails(searchParams);
-            
             Map<String, Object> response = new HashMap<>();
             response.put("mcode", mcode);
             response.put("fcode", fcode);
             response.put("message", "LOT별 상세 조회 기능 구현 예정");
             response.put("timestamp", new Date());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("❌ LOT별 상세 조회 실패: " + e.getMessage());
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "LOT별 상세 조회 중 오류가 발생했습니다.");
             errorResponse.put("message", e.getMessage());
-            
+
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 
     /**
      * 📊 재고 현황 엑셀 다운로드 API
-     * 
-     * 📌 API 설계 개념:
-     * - URL: GET /api/materials/stock-status/export
-     * - 목적: 재고 현황 데이터를 엑셀 파일로 다운로드
-     * - 활용: 재고 보고서, 데이터 백업, 외부 시스템 연동
-     * 
+     *
+     * 📌 API 설계 개념: - URL: GET /api/materials/stock-status/export - 목적: 재고 현황
+     * 데이터를 엑셀 파일로 다운로드 - 활용: 재고 보고서, 데이터 백업, 외부 시스템 연동
+     *
      * @param mcode 자재코드 (선택)
      * @param mateName 자재명 (선택)
      * @param mateType 자재유형 (선택)
@@ -1249,10 +1235,10 @@ public class MateController {
             @RequestParam(required = false) String mateName,
             @RequestParam(required = false) String mateType,
             @RequestParam(required = false) String facName) {
-        
+
         try {
             System.out.println("=== 📊 재고 현황 엑셀 다운로드 ===");
-            
+
             // 동일한 검색 조건으로 데이터 조회
             MaterialsVO searchParams = MaterialsVO.builder()
                     .mcode(mcode)
@@ -1260,52 +1246,49 @@ public class MateController {
                     .mateType(mateType)
                     .facName(facName)
                     .build();
-            
+
             List<MaterialsVO> stockStatusList = mateService.getMaterialStockStatus(searchParams);
-            
+
             // TODO: Apache POI를 사용한 엑셀 파일 생성 로직 구현
             // byte[] excelData = createExcelFile(stockStatusList);
-            
             Map<String, Object> response = new HashMap<>();
             response.put("message", "엑셀 다운로드 기능 구현 예정");
             response.put("dataCount", stockStatusList.size());
             response.put("timestamp", new Date());
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("❌ 엑셀 다운로드 실패: " + e.getMessage());
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "엑셀 다운로드 중 오류가 발생했습니다.");
             errorResponse.put("message", e.getMessage());
-            
+
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
 
     /**
      * ⚠️ 재고 부족 알림 API
-     * 
-     * 📌 API 설계 개념:
-     * - URL: GET /api/materials/stock-alerts
-     * - 목적: 재고 부족/과다 상황의 자재만 필터링하여 알림용 데이터 제공
-     * - 활용: 대시보드 알림, 자동 발주 시스템, 모바일 푸시 알림
-     * 
+     *
+     * 📌 API 설계 개념: - URL: GET /api/materials/stock-alerts - 목적: 재고 부족/과다 상황의
+     * 자재만 필터링하여 알림용 데이터 제공 - 활용: 대시보드 알림, 자동 발주 시스템, 모바일 푸시 알림
+     *
      * @param alertType 알림 유형 (shortage: 부족, overstock: 과다, all: 전체)
      * @return ResponseEntity<Map<String, Object>> 알림 대상 자재 목록
      */
     @GetMapping("/stock-alerts")
     public ResponseEntity<Map<String, Object>> getStockAlerts(
             @RequestParam(defaultValue = "all") String alertType) {
-        
+
         try {
             System.out.println("=== ⚠️ 재고 알림 조회 ===");
             System.out.println("알림 유형: " + alertType);
-            
+
             // 전체 재고 현황 조회
             List<MaterialsVO> allStockStatus = mateService.getMaterialStockStatus(new MaterialsVO());
-            
+
             // 알림 유형에 따른 필터링
             List<MaterialsVO> alertItems = allStockStatus.stream()
                     .filter(item -> {
@@ -1322,13 +1305,13 @@ public class MateController {
                         }
                     })
                     .collect(Collectors.toList());
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("alertType", alertType);
             response.put("alerts", alertItems);
             response.put("alertCount", alertItems.size());
             response.put("timestamp", new Date());
-            
+
             // 우선순위별 카운트
             Map<String, Long> priorityCount = alertItems.stream()
                     .collect(Collectors.groupingBy(
@@ -1336,19 +1319,61 @@ public class MateController {
                             Collectors.counting()
                     ));
             response.put("priorityCount", priorityCount);
-            
+
             System.out.println("✅ 알림 조회 완료: " + alertItems.size() + "건");
-            
+
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             System.err.println("❌ 재고 알림 조회 실패: " + e.getMessage());
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "재고 알림 조회 중 오류가 발생했습니다.");
             errorResponse.put("message", e.getMessage());
-            
+
             return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * 🔍 LOT별 재고 조회 API
+     *
+     * @param mcode 자재코드
+     * @return LOT별 재고 목록
+     */
+    @GetMapping("/{mcode}/lots")
+    public ResponseEntity<Map<String, Object>> getMaterialLotStock(@PathVariable String mcode) {
+
+        System.out.println("🔍 LOT별 재고 조회 API 호출 - 자재코드: " + mcode);
+
+        try {
+            // 🚀 Service를 통한 LOT별 재고 조회
+            List<MaterialsVO> lotStockList = mateService.getMaterialLotStock(mcode);
+
+            // 📊 응답 데이터 구성
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "LOT별 재고 조회가 완료되었습니다.");
+            response.put("data", lotStockList);
+            response.put("totalCount", lotStockList.size());
+            response.put("timestamp", new Date());
+
+            System.out.println("✅ LOT별 재고 조회 API 완료 - 자재코드: " + mcode + ", 조회건수: " + lotStockList.size());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("❌ LOT별 재고 조회 API 실패 - 자재코드: " + mcode + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "LOT별 재고 조회 중 오류가 발생했습니다: " + e.getMessage());
+            errorResponse.put("data", new ArrayList<>());
+            errorResponse.put("totalCount", 0);
+            errorResponse.put("timestamp", new Date());
+
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
 }
@@ -1419,4 +1444,4 @@ public class MateController {
 - 민감 정보 로깅 제외
 
 이것이 바로 Spring Boot로 엔터프라이즈급 REST API를 개발하는 완전한 과정입니다! 🎉
-*/
+ */

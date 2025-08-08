@@ -4,11 +4,12 @@ import { storeToRefs } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useMaterialStore } from '@/stores/materialStore';
 import { useCommonStore } from '@/stores/commonStore';
-import { getMaterialStockStatus, getStockAlerts, exportStockStatusToExcel } from '@/api/materials';
+import { getMaterialStockStatus, getStockAlerts, exportStockStatusToExcel, getMaterialLotStock } from '@/api/materials';
 
 // 🎯 기존 프로젝트 컴포넌트만 사용!
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
+import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 
 // 🏪 Store 설정
 const materialStore = useMaterialStore();
@@ -20,6 +21,28 @@ const stockStatusData = ref([]);
 const stockStatistics = ref({});
 const stockStatusLoading = ref(false);
 const searchParams = ref({});
+const { materialTypeOptions } = storeToRefs(materialStore);
+
+// 🔍 LOT별 재고 모달 관련 데이터 (BasicModal 사용!)
+const lotStockModalVisible = ref(false);
+const lotStockData = ref([]);
+const selectedMaterialInfo = ref({
+  materialCode: '',
+  materialName: ''
+});
+
+// 🏷️ LOT별 재고 모달 컬럼 설정
+const lotStockColumns = ref([
+  { field: 'lotNo', header: 'LOT번호' },
+  { field: 'supplierLotNo', header: '공급업체LOT' },
+  { field: 'quantity', header: '재고수량' },
+  { field: 'unit', header: '단위' },
+  { field: 'inboundDate', header: '입고일자' },
+  { field: 'expiryDate', header: '유효기간' },
+  { field: 'warehouseName', header: '창고명' },
+  { field: 'storageCondition', header: '보관조건' },
+  { field: 'note', header: '비고' }
+]);
 
 // 🔍 SearchForm 설정
 const searchColumns = computed(() => [
@@ -41,10 +64,7 @@ const searchColumns = computed(() => [
     type: 'dropdown',
     options: [
       { label: '전체', value: '' },
-      ...commonStore.getCodes('0H').map(item => ({
-        label: item.detailNm,
-        value: item.detailCd
-      }))
+      ...materialTypeOptions.value
     ],
     placeholder: '자재유형을 선택하세요'
   },
@@ -69,7 +89,7 @@ const stockStatusColumns = ref([
     field: 'materialName',
     header: '자재명',
     type: 'readonly',
-    width: '200px'
+    width: '170px'
   },
   {
     field: 'materialType',
@@ -117,7 +137,7 @@ const stockStatusColumns = ref([
     field: 'stockPercentage',
     header: '재고비율(%)',
     type: 'readonly',
-    width: '120px',
+    width: '100px',
     align: 'right'
   },
   {
@@ -133,6 +153,16 @@ const stockStatusColumns = ref([
     type: 'readonly',
     width: '80px',
     align: 'center'
+  },
+  {
+    field: 'lotAction',
+    header: 'LOT조회',
+    type: 'button',
+    width: '100px',
+    align: 'center',
+    buttonLabel: 'LOT조회',
+    buttonSeverity: 'info',
+    buttonEvent: 'lotAction'
   }
 ]);
 
@@ -171,12 +201,10 @@ const getStockStatusText = (status) => {
 
 // 📏 단위 변환 함수 (백엔드에서 이미 변환된 경우 우선 사용)
 const getUnitText = (unitCode, unitText) => {
-  // 백엔드에서 이미 변환된 unitText가 있으면 우선 사용
   if (unitText && unitText !== unitCode) {
     return unitText;
   }
   
-  // 백엔드에서 변환되지 않은 경우에만 commonStore 사용
   if (!unitCode) return '-';
   
   const unitCodes = commonStore.getCodes('0G');
@@ -187,12 +215,10 @@ const getUnitText = (unitCode, unitText) => {
 
 // 🏭 자재유형 변환 함수 (백엔드에서 이미 변환된 경우 우선 사용)
 const getMaterialTypeText = (typeCode, typeText) => {
-  // 백엔드에서 이미 변환된 typeText가 있으면 우선 사용
   if (typeText && typeText !== typeCode) {
     return typeText;
   }
   
-  // 백엔드에서 변환되지 않은 경우에만 commonStore 사용
   if (!typeCode) return '-';
   
   const typeCodes = commonStore.getCodes('0H');
@@ -216,6 +242,15 @@ const onReset = async () => {
   await loadStockStatusData();
 };
 
+const emit = defineEmits(['lotAction']);
+
+const handleLotAction = (rowData, column) => {
+  console.log('🎯 LOT조회 버튼 클릭:', rowData);
+  
+  // LOT별 재고 조회 실행!
+  viewMaterialLotStock(rowData.materialCode, rowData.materialName);
+};
+
 // 📊 데이터 로딩 함수
 const loadStockStatusData = async () => {
   try {
@@ -226,7 +261,6 @@ const loadStockStatusData = async () => {
     const response = await getMaterialStockStatus(searchParams.value);
     
     if (response.data) {
-      // 실제 데이터 처리
       stockStatusData.value = response.data.data || [];
       stockStatistics.value = response.data.statistics || {};
       
@@ -240,7 +274,6 @@ const loadStockStatusData = async () => {
           type: typeof firstItem.stockPercentage,
           safeStock: firstItem.safeStock,
           totalQuantity: firstItem.totalQuantity,
-          // 프론트엔드에서 직접 계산
           calculatedPercentage: firstItem.safeStock && firstItem.safeStock > 0 
             ? ((firstItem.totalQuantity / firstItem.safeStock) * 100).toFixed(2) 
             : 'N/A'
@@ -261,7 +294,6 @@ const loadStockStatusData = async () => {
             : '-',
         lastInboundDate: item.lastInboundDate ? 
           new Date(item.lastInboundDate).toLocaleDateString('ko-KR') : '-',
-        // 백엔드에서 이미 변환된 값이 있으면 우선 사용, 없으면 commonStore로 변환
         unit: item.unitText || getUnitText(item.unit, item.unitText),
         materialType: item.materialTypeText || getMaterialTypeText(item.materialType, item.materialTypeText)
       }));
@@ -297,6 +329,65 @@ const loadStockStatusData = async () => {
   }
 };
 
+// 🔍 LOT별 재고 조회 (BasicModal로 변경!!)
+const viewMaterialLotStock = async (materialCode, materialName) => {
+  try {
+    console.log('🔍 LOT별 재고 조회 시작:', materialCode);
+    
+    // 🎯 선택된 자재 정보 설정
+    selectedMaterialInfo.value = {
+      materialCode: materialCode,
+      materialName: materialName
+    };
+    
+    // 🚀 실제 API 호출
+    const response = await getMaterialLotStock(materialCode);
+    
+    if (response.data && response.data.length > 0) {
+      // 🔥 LOT 데이터 가공 (날짜 포맷팅 등)
+      lotStockData.value = response.data.map(lot => ({
+        ...lot,
+        quantity: lot.quantity?.toLocaleString() || '0',
+        inboundDate: lot.inboundDate ? 
+          new Date(lot.inboundDate).toLocaleDateString('ko-KR') : '-',
+        expiryDate: lot.expiryDate ? 
+          new Date(lot.expiryDate).toLocaleDateString('ko-KR') : '-',
+        unit: lot.unitText || lot.unit || '-',
+        storageCondition: lot.storageConditionText || lot.storageCondition || '-',
+        warehouseName: lot.warehouseName || '-',
+        note: lot.note || '-'
+      }));
+      
+      // 🎯 모달 열기!
+      lotStockModalVisible.value = true;
+      
+      console.log('✅ LOT별 재고 조회 완료:', response.data.length + '건');
+      
+    } else {
+      // 📝 LOT 정보가 없는 경우
+      lotStockData.value = [];
+      lotStockModalVisible.value = true; // 빈 모달이라도 보여주기
+      
+      toast.add({
+        severity: 'warn',
+        summary: 'LOT 정보 없음',
+        detail: `${materialName}(${materialCode})에 대한 LOT별 재고 정보가 없습니다.`,
+        life: 4000
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ LOT별 재고 조회 실패:', error);
+    
+    toast.add({
+      severity: 'error',
+      summary: 'LOT 조회 실패',
+      detail: `${materialName}(${materialCode})의 LOT별 재고 조회에 실패했습니다.`,
+      life: 5000
+    });
+  }
+};
+
 // ⚠️ 재고 알림 조회
 const loadStockAlerts = async () => {
   try {
@@ -305,7 +396,6 @@ const loadStockAlerts = async () => {
     const response = await getStockAlerts('all');
     
     if (response.data) {
-      // 간단한 알림 표시
       const alertCount = response.data.alertCount || 0;
       
       toast.add({
@@ -335,7 +425,6 @@ const downloadExcel = async () => {
   try {
     console.log('📊 엑셀 다운로드 시작');
     
-    // TODO: 실제 엑셀 다운로드 API 구현
     const response = await exportStockStatusToExcel(searchParams.value);
     
     toast.add({
@@ -362,7 +451,7 @@ const refreshData = async () => {
   await loadStockStatusData();
 };
 
-// 🎯 InputTable 버튼 핸들러
+// 🎯 InputTable 버튼 및 액션 핸들러
 const handleTableAction = (action, data) => {
   console.log('📋 테이블 액션:', action, data);
   
@@ -381,12 +470,43 @@ const handleTableAction = (action, data) => {
   }
 };
 
+// 🎯 행별 액션 핸들러 (새로 추가!!)
+const handleRowAction = (action, rowData) => {
+  console.log('🎯 행 액션 실행:', action, rowData);
+  
+  switch (action) {
+    case 'lot':
+      // 🔍 LOT별 재고 조회 (자재코드와 자재명 함께 전달!)
+      viewMaterialLotStock(rowData.materialCode, rowData.materialName);
+      break;
+    case 'view':
+      // 🔍 상세 보기
+      toast.add({
+        severity: 'info',
+        summary: '상세 보기',
+        detail: `${rowData.materialName}(${rowData.materialCode})의 상세 정보를 조회합니다.`,
+        life: 3000
+      });
+      break;
+    case 'edit':
+      // ✏️ 수정
+      toast.add({
+        severity: 'info',
+        summary: '수정',
+        detail: `${rowData.materialName}(${rowData.materialCode})를 수정합니다.`,
+        life: 3000
+      });
+      break;
+    default:
+      console.log('처리되지 않은 행 액션:', action);
+  }
+};
+
 // 🎯 컴포넌트 마운트 시 초기 데이터 로딩
 onMounted(async () => {
   console.log('🎯 MaterialStockView 컴포넌트 마운트');
   
   try {
-    // 공통 코드 로딩
     await Promise.all([
       commonStore.fetchCommonCodes('0H'), // 자재유형
       commonStore.fetchCommonCodes('0G'), // 단위
@@ -395,7 +515,6 @@ onMounted(async () => {
     
     console.log('✅ 공통코드 로딩 완료');
     
-    // 초기 재고 현황 로딩
     await loadStockStatusData();
     
   } catch (error) {
@@ -427,9 +546,22 @@ onMounted(async () => {
       :columns="stockStatusColumns"
       :title="`재고 현황 목록 (${totalStockItems}건 / 긴급알림: ${criticalAlertCount}건)`"
       :buttons="tableButtons"
-      :height="'60vh'"
+      :scrollHeight="'55vh'"
+      :height="'65vh'"
       :loading="stockStatusLoading"
+      :enableRowActions="true"
       @action="handleTableAction"
+      @lotAction="handleLotAction"
+      @rowAction="handleRowAction"
+    />
+
+    <!-- 🔍 LOT별 재고 조회 모달 (BasicModal 사용!) -->
+    <BasicModal
+      v-model:visible="lotStockModalVisible"
+      :items="lotStockData"
+      :columns="lotStockColumns"
+      :titleName="selectedMaterialInfo.materialName"
+      :titleCode="selectedMaterialInfo.materialCode"
     />
   </div>
 </template>
