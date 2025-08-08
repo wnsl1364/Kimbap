@@ -1206,124 +1206,123 @@
     <!-- 자재 재고 현황 조회 -->
     <select id="getMaterialStockStatus" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
         SELECT 
-        m.mcode AS material_code,
-        -- 최신 버전의 자재명 사용 (서브쿼리로 정확히!)
-        (SELECT m2.mate_name 
-        FROM material m2 
-        WHERE m2.mcode = m.mcode 
-        AND m2.mate_ver_cd = (SELECT MAX(m3.mate_ver_cd) FROM material m3 WHERE m3.mcode = m.mcode)
-        AND ROWNUM = 1) AS material_name,
-        -- 최신 버전의 자재유형 사용
-        (SELECT m2.mate_type 
-        FROM material m2 
-        WHERE m2.mcode = m.mcode 
-        AND m2.mate_ver_cd = (SELECT MAX(m3.mate_ver_cd) FROM material m3 WHERE m3.mcode = m.mcode)
-        AND ROWNUM = 1) AS material_type,
-        -- 최신 버전의 자재유형 한글명
-        (SELECT dc.cd_info
-        FROM material m2
-        LEFT JOIN detail_cd dc ON m2.mate_type = dc.d_cd AND dc.group_cd = '0H'
-        WHERE m2.mcode = m.mcode 
-        AND m2.mate_ver_cd = (SELECT MAX(m3.mate_ver_cd) FROM material m3 WHERE m3.mcode = m.mcode)
-        AND ROWNUM = 1) AS material_type_text,
+            material_code,
+            material_name,
+            material_type,
+            material_type_text,
+            factory_code,
+            factory_name,
+            total_quantity,
+            unit,
+            unit_text,
+            specification,
+            stock_status,
+            safe_stock,
+            stock_difference,
+            stock_percentage,
+            lot_detail_link,
+            storage_condition,
+            storage_condition_text,
+            origin,
+            expiry_days,
+            material_note,
+            last_inbound_date,
+            warehouse_count
+        FROM V_MATERIAL_STOCK_STATUS
+        WHERE 1=1
         
-        -- 공장 정보
-        f.fcode AS factory_code,                     
-        f.fac_name AS factory_name,                  
-        
-        -- 집계된 재고 정보
-        SUM(ws.qty) AS total_quantity,               
-        MAX(m.unit) AS unit,                         
-        MAX(unit_cd.cd_info) AS unit_text,           
-        MAX(m.std) AS specification,                 
-        
-        -- 집계된 재고 기준 상태 판정
-        CASE 
-            WHEN SUM(ws.qty) &lt;= 0 THEN 'empty'
-            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &lt; MAX(m.safe_stock) THEN 'shortage'
-            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &gt; (MAX(m.safe_stock) * 2) THEN 'overstock'
-            ELSE 'normal'
-        END AS stock_status,
-        
-        -- 안전재고 대비 정보
-        MAX(m.safe_stock) AS safe_stock,
-        CASE 
-            WHEN MAX(m.safe_stock) IS NOT NULL THEN (SUM(ws.qty) - MAX(m.safe_stock))
-            ELSE NULL 
-        END AS stock_difference,
-        CASE 
-            WHEN MAX(m.safe_stock) IS NOT NULL AND MAX(m.safe_stock) &gt; 0 THEN 
-                ROUND((SUM(ws.qty) / MAX(m.safe_stock)) * 100, 2)
-            ELSE NULL 
-        END AS stock_percentage,
-        
-        -- DISTINCT mi.lot_no AS lot_count,      -- LOT 개수
-        'LOT별조회(' || COUNT(DISTINCT mi.lot_no) || '건)' AS lot_detail_link,  -- 링크 텍스트
-        
-        -- 기타 정보
-        MAX(m.sto_con) AS storage_condition,
-        MAX(condition_cd.cd_info) AS storage_condition_text,
-        MAX(m.corigin) AS origin,                    
-        MAX(m.edate) AS expiry_days,                 
-        MAX(m.note) AS material_note,                
-        
-        -- 최신 입고일 정보
-        MAX(ws.inbo_dt) AS last_inbound_date,
-        
-        -- 창고 정보 (집계)
-        COUNT(DISTINCT w.wcode) AS warehouse_count
-        -- 창고명 목록은 일단 제거 (DISTINCT 지원 안 됨)
-
-    FROM ware_stock ws
-        -- 핵심 조인들
-        INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
-        INNER JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
-        INNER JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
-        INNER JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
-        INNER JOIN factory f ON w.fcode = f.fcode AND w.fac_ver_cd = f.fac_ver_cd
-        
-        -- 공통코드 조인들
-        LEFT JOIN detail_cd type_cd ON m.mate_type = type_cd.d_cd AND type_cd.group_cd = '0H'
-        LEFT JOIN detail_cd unit_cd ON m.unit = unit_cd.d_cd AND unit_cd.group_cd = '0G'
-        LEFT JOIN detail_cd condition_cd ON m.sto_con = condition_cd.d_cd AND condition_cd.group_cd = '0O'
-        
-    WHERE 1=1
-        -- 기본 필터 조건
-        AND (ws.item_type = 'h1' OR (ws.item_type IS NULL AND ws.mate_inbo_cd IS NOT NULL))
-        AND m.is_used IN ('f1', 'f2')               -- 사용중인 자재 (활성+구버전)
-        AND w.is_used IN ('f1', 'f2')               -- 사용중인 창고 (활성+구버전)
-        
-        -- 동적 검색 조건들 (MyBatis에서 처리)
+        <!-- 동적 조건들은 여전히 필요해! -->
         <if test="mcode != null and mcode != ''">
-            AND m.mcode = #{mcode}
+            AND material_code LIKE '%' || #{mcode} || '%'
         </if>
         
         <if test="mateName != null and mateName != ''">
-            AND m.mate_name LIKE '%' || #{mate_name} || '%'
+            AND material_name LIKE '%' || #{mateName} || '%'
         </if>
         
         <if test="mateType != null and mateType != ''">
-            AND m.mate_type = #{mate_type}
+            AND material_type = #{mateType}
         </if>
         
         <if test="facName != null and facName != ''">
-            AND f.fac_name LIKE '%' || #{fac_name} || '%'
+            AND factory_name LIKE '%' || #{facName} || '%'
         </if>
+    </select>
 
-    -- 그룹화: 자재코드별, 공장별 집계 (버전 무관!)
-    GROUP BY 
-        m.mcode,                                     -- 자재코드만! 버전 제외!
-        f.fcode, f.fac_name                          -- 공장 정보만
+    
+    <!-- 🔍 LOT별 재고 조회 -->
+    <select id="getMaterialLotStock" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+        SELECT 
+            -- 기본 LOT 정보
+            mi.lot_no AS lotNo,
+            mi.supplier_lot_no AS supplierLotNo,
+            
+            -- 재고 수량 정보
+            ws.qty AS quantity,
+            ws.unit,
+            NVL(dc_unit.cd_info, ws.unit) AS unitText,
+            
+            -- 입고 관련 정보  
+            mi.inbo_dt AS inboundDate,
+            mi.inbo_status AS inboundStatus,
+            NVL(dc_status.cd_info, mi.inbo_status) AS inboundStatusText,
+            
+            -- 유효기간 계산 (입고일 + 자재 유효기간)
+            CASE 
+                WHEN m.edate > 0 THEN 
+                    mi.inbo_dt + INTERVAL m.edate DAY
+                ELSE NULL 
+            END AS expiryDate,
+            
+            -- 창고 정보
+            w.ware_name AS warehouseName,
+            wd.area_row || '-' || wd.area_col || '-' || wd.area_floor AS location,
+            
+            -- 보관조건
+            m.sto_con AS storageCondition,
+            NVL(dc_condition.cd_info, m.sto_con) AS storageConditionText,
+            
+            -- 자재 기본 정보
+            m.mate_name AS materialName,
+            m.mate_type AS materialType,
+            NVL(dc_type.cd_info, m.mate_type) AS materialTypeText,
+            m.std AS specification,
+            
+            -- 공급업체 정보
+            c.cp_name AS supplierName,
+            
+            -- 기타 정보
+            mi.note,
+            mi.mname AS managerName,
+            
+            -- 정렬용 (최신 입고순)
+            mi.inbo_dt AS sortDate
 
-    -- 정렬: 상태별 우선순위 → 공장명 → 자재명
-    ORDER BY 
-        CASE 
-            WHEN SUM(ws.qty) &lt;= 0 THEN 1                    -- empty 최우선
-            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &lt; MAX(m.safe_stock) THEN 2  -- shortage
-            WHEN MAX(m.safe_stock) IS NOT NULL AND SUM(ws.qty) &gt; (MAX(m.safe_stock) * 2) THEN 3  -- overstock
-            ELSE 4                                           -- normal
-        END,
-        f.fac_name,                                          -- 공장명
-        MAX(m.mate_name)                                 -- 자재명 (MAX로)
-        </select>
+        FROM ware_stock ws
+            INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+            LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+            LEFT JOIN warehouse w ON mi.wcode = w.wcode AND mi.ware_ver_cd = w.ware_ver_cd
+            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+            LEFT JOIN company c ON mi.cp_cd = c.cp_cd
+            
+            -- 🎯 공통코드 조인 (성능 최적화)
+            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0G') dc_unit 
+                ON ws.unit = dc_unit.d_cd
+            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0E') dc_status 
+                ON mi.inbo_status = dc_status.d_cd
+            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0O') dc_condition 
+                ON m.sto_con = dc_condition.d_cd
+            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0H') dc_type 
+                ON m.mate_type = dc_type.d_cd
+
+        WHERE 1=1
+            AND mi.mcode = #{mcode}
+            AND (ws.item_type = 'h1' OR (ws.item_type IS NULL AND ws.mate_inbo_cd IS NOT NULL))
+            AND ws.qty > 0
+            AND m.is_used IN ('f1', 'f2')
+
+        ORDER BY 
+            mi.inbo_dt DESC,
+            mi.lot_no ASC
+    </select>
 </mapper>

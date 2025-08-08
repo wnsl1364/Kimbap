@@ -181,4 +181,11 @@ public interface MateMapper {
      * @return 자재 재고 상태 목록
      */
     List<MaterialsVO> getMaterialStockStatus(MaterialsVO searchParams);
+
+    /**
+     * 🔍 LOT별 재고 조회
+     * @param mcode 자재코드
+     * @return LOT별 재고 목록
+     */
+    List<MaterialsVO> getMaterialLotStock(@Param("mcode") String mcode);
 }

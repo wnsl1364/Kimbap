@@ -496,3 +496,23 @@ export const getStockAlerts = (alertType = 'all') => {
     params: { alertType }
   });
 };
+
+
+/**
+ * 🔍 LOT별 재고 조회
+ * @param {string} mcode - 자재코드
+ * @returns {Promise} LOT별 재고 목록
+ */
+export const getMaterialLotStock = (mcode) => {
+  console.log('🔍 LOT별 재고 조회 API 호출:', mcode);
+  
+  return axios.get(`/api/materials/${mcode}/lots`)
+    .then(response => {
+      console.log('✅ LOT별 재고 조회 API 응답:', response.data);
+      return response;
+    })
+    .catch(error => {
+      console.error('❌ LOT별 재고 조회 API 실패:', error);
+      throw error;
+    });
+};

@@ -88,19 +88,19 @@ public class MateServiceImpl implements MateService {
             System.out.println("purcDCd: " + mateInbo.getPurcDCd());
 
             // 자재입고 정보 업데이트
-            mateMapper.updateMateInbo(mateInbo);  
+            mateMapper.updateMateInbo(mateInbo);
             System.out.println("자재입고 수정 완료: " + mateInbo.getMateInboCd());
 
             if ("c5".equals(mateInbo.getInboStatus()) && mateInbo.getPurcDCd() != null) {
                 System.out.println("=== 입고완료 처리 - 발주상태 업데이트 시작 ===");
-                
+
                 // 현재 발주 상세 정보 조회
                 MaterialsVO purcOrderDetail = mateMapper.getPurcOrderDetailByCode(mateInbo.getPurcDCd());
                 if (purcOrderDetail != null) {
                     Integer currentCurrQty = purcOrderDetail.getCurrQty() != null ? purcOrderDetail.getCurrQty() : 0;
                     Integer purcQty = purcOrderDetail.getPurcQty() != null ? purcOrderDetail.getPurcQty() : 0;
                     String newPurcDStatus = "";
-                    
+
                     if (currentCurrQty >= purcQty) {
                         newPurcDStatus = "c5"; // 입고완료 
                         System.out.println("✅ 발주 입고완료: 기존 curr_qty " + currentCurrQty + " >= purc_qty " + purcQty);
@@ -108,23 +108,23 @@ public class MateServiceImpl implements MateService {
                         newPurcDStatus = "c3"; // 입고대기 
                         System.out.println("🔄 발주 입고대기 유지: 기존 curr_qty " + currentCurrQty + " < purc_qty " + purcQty);
                     }
-                    
+
                     // 발주 상세 상태만 업데이트 (CURR_QTY는 변경하지 않음)
                     MaterialsVO purcUpdateData = MaterialsVO.builder()
                             .purcDCd(mateInbo.getPurcDCd())
                             .purcDStatus(newPurcDStatus)
                             .build();
-                    
+
                     // 발주 상세 상태만 업데이트
                     mateMapper.updatePurcOrderDetailStatus(purcUpdateData);
-                    
-                    System.out.println("✅ 발주상태만 업데이트 완료: " + mateInbo.getPurcDCd() 
+
+                    System.out.println("✅ 발주상태만 업데이트 완료: " + mateInbo.getPurcDCd()
                             + " → 상태: " + newPurcDStatus + " (curr_qty는 변경하지 않음)");
                 } else {
                     System.err.println("⚠️ 발주상세 정보를 찾을 수 없음: " + mateInbo.getPurcDCd());
                 }
             }
-            
+
         } catch (Exception e) {
             System.err.println("자재입고 수정 실패: " + e.getMessage());
             e.printStackTrace();
@@ -1136,12 +1136,13 @@ public class MateServiceImpl implements MateService {
             throw new RuntimeException("curr_qty 및 상태 업데이트 실패: " + e.getMessage(), e);
         }
     }
-    
+
     // 자재 입출고 목록 조회
     @Override
     public List<MaterialsVO> getMaterialFlowList(MaterialsVO search) {
         return mateMapper.selectMaterialFlowList(search);
     }
+
     @Override
     public List<MaterialsVO> getTodayMaterialFlowList() {
         return mateMapper.selectTodayMaterialFlowList();
@@ -1158,28 +1159,28 @@ public class MateServiceImpl implements MateService {
                 System.out.println("  - mateType: " + searchParams.getMateType());
                 System.out.println("  - facName: " + searchParams.getFacName());
             }
-            
+
             List<MaterialsVO> stockStatusList = mateMapper.getMaterialStockStatus(searchParams);
-            
+
             // 🔧 stockPercentage 후처리 (DB에서 null인 경우 직접 계산)
             if (stockStatusList != null) {
                 for (MaterialsVO item : stockStatusList) {
-                    if (item.getStockPercentage() == null && 
-                        item.getSafeStock() != null && 
-                        item.getSafeStock() > 0 && 
-                        item.getTotalQuantity() != null) {
-                        
+                    if (item.getStockPercentage() == null
+                            && item.getSafeStock() != null
+                            && item.getSafeStock() > 0
+                            && item.getTotalQuantity() != null) {
+
                         double calculatedPercentage = (item.getTotalQuantity().doubleValue() / item.getSafeStock()) * 100;
                         item.setStockPercentage(Math.round(calculatedPercentage * 100.0) / 100.0); // 소수점 둘째 자리까지
-                        
-                        System.out.println("🔧 stockPercentage 보정: " + item.getMaterialCode() + 
-                                         " -> " + item.getStockPercentage() + "%");
+
+                        System.out.println("🔧 stockPercentage 보정: " + item.getMaterialCode()
+                                + " -> " + item.getStockPercentage() + "%");
                     }
                 }
             }
-            
+
             System.out.println("✅ 자재 재고 현황 조회 완료: " + stockStatusList.size() + "건");
-            
+
             if (stockStatusList != null && !stockStatusList.isEmpty()) {
                 // 첫 번째 데이터 로깅
                 MaterialsVO firstItem = stockStatusList.get(0);
@@ -1192,7 +1193,7 @@ public class MateServiceImpl implements MateService {
                 System.out.println("  - stockDifference: " + firstItem.getStockDifference());
                 System.out.println("  - stockPercentage: " + firstItem.getStockPercentage());
                 System.out.println("  - stockStatus: " + firstItem.getStockStatus());
-                
+
                 // stockPercentage 계산 검증
                 if (firstItem.getSafeStock() != null && firstItem.getSafeStock() > 0 && firstItem.getTotalQuantity() != null) {
                     double calculatedPercentage = (firstItem.getTotalQuantity().doubleValue() / firstItem.getSafeStock()) * 100;
@@ -1200,13 +1201,46 @@ public class MateServiceImpl implements MateService {
                     System.out.println("  - DB에서 온 stockPercentage: " + firstItem.getStockPercentage());
                 }
             }
-            
+
             return stockStatusList;
-            
+
         } catch (Exception e) {
             System.err.println("❌ 자재 재고 현황 조회 실패: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("자재 재고 현황 조회 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 🔍 LOT별 재고 조회
+     *
+     * @param mcode 자재코드
+     * @return LOT별 재고 목록
+     */
+    @Override
+    public List<MaterialsVO> getMaterialLotStock(String mcode) {
+        System.out.println("🔍 LOT별 재고 조회 시작 - 자재코드: " + mcode);
+
+        try {
+            // 🚀 Mapper를 통한 LOT별 재고 조회
+            List<MaterialsVO> lotStockList = mateMapper.getMaterialLotStock(mcode);
+
+            System.out.println("✅ LOT별 재고 조회 완료 - 자재코드: " + mcode + ", 조회건수: " + lotStockList.size());
+
+            // 🔍 디버깅용 로그
+            if (!lotStockList.isEmpty()) {
+                MaterialsVO firstLot = lotStockList.get(0);
+                System.out.println("📊 첫 번째 LOT 정보 - LOT: " + firstLot.getLotNo()
+                        + ", 수량: " + firstLot.getQuantity()
+                        + ", 입고일: " + firstLot.getInboundDate());
+            }
+
+            return lotStockList;
+
+        } catch (Exception e) {
+            System.err.println("❌ LOT별 재고 조회 실패 - 자재코드: " + mcode + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("LOT별 재고 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 }

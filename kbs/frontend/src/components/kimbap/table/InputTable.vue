@@ -93,7 +93,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal', 'delete', 'reset', 'save', 'load', 'refund', 'handleProductDeleteList', 'rowClick', 'selectionChange', 'locationSelect', 'update:selection']);
+const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal', 'delete', 'reset', 'save', 'load', 'refund', 'handleProductDeleteList', 'rowClick', 'selectionChange', 'locationSelect', 'update:selection', 'lotAction']);
 
 // console.log('[InputTable.vue] 실제 columns:', props.columns)
 
