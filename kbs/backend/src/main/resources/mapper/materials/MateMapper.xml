@@ -1318,80 +1318,28 @@
         </if>
     </select>
 
-    
-    <!-- 🔍 LOT별 재고 조회 -->
-    <select id="getMaterialLotStock" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
-        SELECT 
-            -- 기본 LOT 정보
-            mi.lot_no AS lotNo,
-            mi.supplier_lot_no AS supplierLotNo,
-            
-            -- 재고 수량 정보
-            ws.qty AS quantity,
-            ws.unit,
-            NVL(dc_unit.cd_info, ws.unit) AS unitText,
-            
-            -- 입고 관련 정보  
-            mi.inbo_dt AS inboundDate,
-            mi.inbo_status AS inboundStatus,
-            NVL(dc_status.cd_info, mi.inbo_status) AS inboundStatusText,
-            
-            -- 유효기간 계산 (입고일 + 자재 유효기간)
-            CASE 
-                WHEN m.edate > 0 THEN 
-                    mi.inbo_dt + INTERVAL m.edate DAY
-                ELSE NULL 
-            END AS expiryDate,
-            
-            -- 창고 정보
-            w.ware_name AS warehouseName,
-            wd.area_row || '-' || wd.area_col || '-' || wd.area_floor AS location,
-            
-            -- 보관조건
-            m.sto_con AS storageCondition,
-            NVL(dc_condition.cd_info, m.sto_con) AS storageConditionText,
-            
-            -- 자재 기본 정보
-            m.mate_name AS materialName,
-            m.mate_type AS materialType,
-            NVL(dc_type.cd_info, m.mate_type) AS materialTypeText,
-            m.std AS specification,
-            
-            -- 공급업체 정보
-            c.cp_name AS supplierName,
-            
-            -- 기타 정보
-            mi.note,
-            mi.mname AS managerName,
-            
-            -- 정렬용 (최신 입고순)
-            mi.inbo_dt AS sortDate
-
-        FROM ware_stock ws
-            INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
-            LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
-            LEFT JOIN warehouse w ON mi.wcode = w.wcode AND mi.ware_ver_cd = w.ware_ver_cd
-            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
-            LEFT JOIN company c ON mi.cp_cd = c.cp_cd
-            
-            -- 🎯 공통코드 조인 (성능 최적화)
-            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0G') dc_unit 
-                ON ws.unit = dc_unit.d_cd
-            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0E') dc_status 
-                ON mi.inbo_status = dc_status.d_cd
-            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0O') dc_condition 
-                ON m.sto_con = dc_condition.d_cd
-            LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0H') dc_type 
-                ON m.mate_type = dc_type.d_cd
-
-        WHERE 1=1
-            AND mi.mcode = #{mcode}
-            AND (ws.item_type = 'h1' OR (ws.item_type IS NULL AND ws.mate_inbo_cd IS NOT NULL))
-            AND ws.qty > 0
-            AND m.is_used IN ('f1', 'f2')
-
-        ORDER BY 
-            mi.inbo_dt DESC,
-            mi.lot_no ASC
-    </select>
+        <select id="getMaterialLotStock" parameterType="String" resultType="com.kimbap.kbs.materials.service.MaterialsVO">
+            SELECT 
+                mi.lot_no AS lotNo,
+                m.mate_name AS materialName,
+                ws.qty AS quantity,
+                COALESCE(dc_unit.cd_info, ws.unit, 'ea') AS unit,
+                -- 🎯 새로 추가된 창고 정보들!
+                w.ware_name AS warehouseName,
+                wd.area_row || '-' || wd.area_col || '-' || wd.area_floor AS location
+            FROM ware_stock ws
+                INNER JOIN mate_inbo mi ON ws.mate_inbo_cd = mi.mate_inbo_cd
+                LEFT JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
+                -- 🚀 여기가 핵심! ware_area_cd로 ware_d와 조인
+                LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+                -- 🏭 ware_d의 wcode로 warehouse와 조인해서 창고명 가져오기
+                LEFT JOIN warehouse w ON wd.wcode = w.wcode AND wd.ware_ver_cd = w.ware_ver_cd
+                LEFT JOIN (SELECT d_cd, cd_info FROM detail_cd WHERE group_cd = '0G') dc_unit 
+                    ON ws.unit = dc_unit.d_cd
+            WHERE 1=1
+                AND mi.mcode = #{mcode}
+                AND ws.qty &gt; 0
+                AND m.is_used IN ('f1', 'f2')
+            ORDER BY mi.inbo_dt DESC, mi.lot_no ASC
+        </select>
 </mapper>

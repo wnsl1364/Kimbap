@@ -1332,20 +1332,12 @@ public class MateController {
 
     /**
      * 🔍 LOT별 재고 조회 API
-     *
-     * @param mcode 자재코드
-     * @return LOT별 재고 목록
      */
     @GetMapping("/{mcode}/lots")
     public ResponseEntity<Map<String, Object>> getMaterialLotStock(@PathVariable String mcode) {
-
-        System.out.println("🔍 LOT별 재고 조회 API 호출 - 자재코드: " + mcode);
-
         try {
-            // 🚀 Service를 통한 LOT별 재고 조회
             List<MaterialsVO> lotStockList = mateService.getMaterialLotStock(mcode);
 
-            // 📊 응답 데이터 구성
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "LOT별 재고 조회가 완료되었습니다.");
@@ -1353,17 +1345,12 @@ public class MateController {
             response.put("totalCount", lotStockList.size());
             response.put("timestamp", new Date());
 
-            System.out.println("✅ LOT별 재고 조회 API 완료 - 자재코드: " + mcode + ", 조회건수: " + lotStockList.size());
-
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            System.err.println("❌ LOT별 재고 조회 API 실패 - 자재코드: " + mcode + ", 오류: " + e.getMessage());
-            e.printStackTrace();
-
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
-            errorResponse.put("message", "LOT별 재고 조회 중 오류가 발생했습니다: " + e.getMessage());
+            errorResponse.put("message", "LOT별 재고 조회에 실패했습니다.");
             errorResponse.put("data", new ArrayList<>());
             errorResponse.put("totalCount", 0);
             errorResponse.put("timestamp", new Date());
@@ -1373,7 +1360,7 @@ public class MateController {
     }
 }
 
-/*
+    /*
 🎓 Spring Boot REST API 개발 완전 가이드 총정리
 ================================================================
 
@@ -1439,4 +1426,4 @@ public class MateController {
 - 민감 정보 로깅 제외
 
 이것이 바로 Spring Boot로 엔터프라이즈급 REST API를 개발하는 완전한 과정입니다! 🎉
- */
+     */

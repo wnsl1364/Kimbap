@@ -481,7 +481,8 @@ const handleSavePurchaseOrder = async (formData) => {
 
     if (response.data.success) {
       orderBasicInfo.value.purcCd = response.data.purcCd;
-
+      // 저장 성공시 데이터 비우기
+      purchaseData.value = [];
       toast.add({
         severity: 'success',
         summary: '저장 완료!',

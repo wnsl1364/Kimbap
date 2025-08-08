@@ -227,7 +227,7 @@ const loadOrderDetails = async (orderCode) => {
         purcStatus: getStatusText(header.purcStatus),
         ordTotalAmount: header.ordTotalAmount ? 
           `${Number(header.ordTotalAmount).toLocaleString()}원` : '0원',
-        approver: memberStore.user?.empName || '현재 로그인 사용자'
+        approver: memberStore.user?.cpName || '현재 로그인 사용자'
       });
       
       // 상세 정보 설정 (임시 상태 필드 추가!)
@@ -592,7 +592,7 @@ onUnmounted(async () => {
 </script>
 
 <template>
-  <div class="p-4">
+  <div class="p-4 pb-0">
     <Toast />
     
     <!-- 페이지 헤더 -->
@@ -602,9 +602,7 @@ onUnmounted(async () => {
         <p class="text-gray-600">
           {{ approvalOrderHeader.purcCd || '발주번호 로딩중...' }} 
           <span class="mx-2">|</span>
-          👤 {{ memberStore.user?.empName || '김승인' }}
-          <span class="mx-2">|</span>
-          🏢 {{ memberStore.user?.deptName || '구매승인팀' }}
+          👤 {{ memberStore.user?.cpName || '회사이름나와야함' }}
         </p>
       </div>
       
@@ -694,8 +692,8 @@ onUnmounted(async () => {
         ref="inputTableRef"
         :columns="detailTableColumns"
         :data="approvalOrderDetails"
-        :scroll-height="'40vh'"
-        :height="'50vh'"
+        :scroll-height="'35vh'"
+        :height="'47vh'"
         title="발주 상세 목록"
         dataKey="purcDCd"
         :buttons="tableButtons"

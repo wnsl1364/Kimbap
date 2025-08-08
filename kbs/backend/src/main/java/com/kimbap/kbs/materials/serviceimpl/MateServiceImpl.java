@@ -1268,28 +1268,17 @@ public class MateServiceImpl implements MateService {
      */
     @Override
     public List<MaterialsVO> getMaterialLotStock(String mcode) {
-        System.out.println("🔍 LOT별 재고 조회 시작 - 자재코드: " + mcode);
-
         try {
-            // 🚀 Mapper를 통한 LOT별 재고 조회
             List<MaterialsVO> lotStockList = mateMapper.getMaterialLotStock(mcode);
 
-            System.out.println("✅ LOT별 재고 조회 완료 - 자재코드: " + mcode + ", 조회건수: " + lotStockList.size());
-
-            // 🔍 디버깅용 로그
-            if (!lotStockList.isEmpty()) {
-                MaterialsVO firstLot = lotStockList.get(0);
-                System.out.println("📊 첫 번째 LOT 정보 - LOT: " + firstLot.getLotNo()
-                        + ", 수량: " + firstLot.getQuantity()
-                        + ", 입고일: " + firstLot.getInboundDate());
-            }
+            // 간단한 로그만
+            System.out.println("✅ LOT별 재고 조회 완료 - 자재: " + mcode + ", 건수: " + lotStockList.size());
 
             return lotStockList;
 
         } catch (Exception e) {
-            System.err.println("❌ LOT별 재고 조회 실패 - 자재코드: " + mcode + ", 오류: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("LOT별 재고 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
+            System.err.println("❌ LOT별 재고 조회 실패: " + mcode + " - " + e.getMessage());
+            throw new RuntimeException("LOT별 재고 조회 실패", e);
         }
     }
 }
