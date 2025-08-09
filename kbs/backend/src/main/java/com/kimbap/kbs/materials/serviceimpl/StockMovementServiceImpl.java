@@ -230,35 +230,82 @@ public class StockMovementServiceImpl implements StockMovementService {
 
     @Override
     public String approveMoveRequest(String moveReqCd, String approver, String comment) {
+        System.out.println("=== 이동요청 승인 처리 시작: " + moveReqCd + " ===");
+        
         try {
-            System.out.println("=== 이동요청 승인 처리 시작 ===");
+            // 1. 이동요청 상태를 승인(d2)으로 변경
+            StockMovementVO approvalData = new StockMovementVO();
+            approvalData.setMoveReqCd(moveReqCd);
+            approvalData.setMoveStatus("d2");
+            approvalData.setAppr(approver);
+            approvalData.setAppDt(Timestamp.valueOf(LocalDateTime.now()));
+            approvalData.setNote(comment);
             
-            stockMovementMapper.updateMoveRequestStatus(moveReqCd, "d2", approver, null);
+            stockMovementMapper.approveMoveRequest(approvalData);
+            System.out.println("이동요청 상태 변경 완료: " + moveReqCd);
             
-            String result = "이동요청 승인 완료: " + moveReqCd;
-            System.out.println(result);
-            return result;
+            // 2. 이동요청 상세 목록 조회
+            List<StockMovementVO> moveRequestDetails = stockMovementMapper.getMoveRequestDetailList(moveReqCd);
+            System.out.println("이동요청 상세 목록 조회 완료: " + moveRequestDetails.size() + "건");
+            
+            // 3. 각 상세 항목별로 실제 재고 이동 처리
+            for (StockMovementVO detail : moveRequestDetails) {
+                System.out.println("재고 이동 처리 중: " + detail.getMrdcode());
+                
+                // 3-1. 창고이동이력 코드 생성
+                String wareMoveCode = generateWareMoveCode();
+                detail.setWareMoveCd(wareMoveCode);
+                detail.setMoveDt(Timestamp.valueOf(LocalDateTime.now()));
+                
+                // 원본 이동요청 정보 조회하여 이동사유 설정
+                StockMovementVO originalRequest = stockMovementMapper.getMoveRequestById(moveReqCd);
+                detail.setMoveRea(originalRequest.getMoveRea());
+                detail.setMname(approver);
+                detail.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+                
+                // 3-2. 창고이동이력 테이블에 INSERT
+                stockMovementMapper.insertWareMoveHistory(detail);
+                System.out.println("창고이동이력 등록 완료: " + wareMoveCode);
+                
+                // 3-3. 출발지 재고 차감
+                stockMovementMapper.updateStockDecrease(detail);
+                System.out.println("출발지 재고 차감 완료");
+                
+                // 3-4. 도착지 재고 증가 (기존 재고가 있으면 수량 증가, 없으면 새로 INSERT)
+                stockMovementMapper.updateStockIncrease(detail);
+                System.out.println("도착지 재고 증가 완료");
+            }
+            
+            System.out.println("=== 이동요청 승인 처리 완료: " + moveReqCd + " ===");
+            return "이동요청 승인 및 재고 이동 처리 완료: " + moveReqCd;
             
         } catch (Exception e) {
-            System.err.println("이동요청 승인 실패: " + e.getMessage());
-            throw new RuntimeException("이동요청 승인 중 오류가 발생했습니다: " + e.getMessage(), e);
+            System.err.println("이동요청 승인 처리 실패: " + e.getMessage());
+            throw new RuntimeException("이동요청 승인 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
     @Override
     public String rejectMoveRequest(String moveReqCd, String approver, String rejectReason) {
+        System.out.println("=== 이동요청 거절 처리 시작: " + moveReqCd + " ===");
+        
         try {
-            System.out.println("=== 이동요청 거절 처리 시작 ===");
+            // 이동요청 상태를 거절(d3)으로 변경
+            StockMovementVO rejectionData = new StockMovementVO();
+            rejectionData.setMoveReqCd(moveReqCd);
+            rejectionData.setMoveStatus("d3");
+            rejectionData.setAppr(approver);
+            rejectionData.setAppDt(Timestamp.valueOf(LocalDateTime.now()));
+            rejectionData.setRetuRea(rejectReason);
             
-            stockMovementMapper.updateMoveRequestStatus(moveReqCd, "d3", approver, rejectReason);
+            stockMovementMapper.rejectMoveRequest(rejectionData);
             
-            String result = "이동요청 거절 완료: " + moveReqCd;
-            System.out.println(result);
-            return result;
+            System.out.println("=== 이동요청 거절 처리 완료: " + moveReqCd + " ===");
+            return "이동요청 거절 처리 완료: " + moveReqCd;
             
         } catch (Exception e) {
-            System.err.println("이동요청 거절 실패: " + e.getMessage());
-            throw new RuntimeException("이동요청 거절 중 오류가 발생했습니다: " + e.getMessage(), e);
+            System.err.println("이동요청 거절 처리 실패: " + e.getMessage());
+            throw new RuntimeException("이동요청 거절 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -392,6 +439,28 @@ public class StockMovementServiceImpl implements StockMovementService {
             long timestamp = System.currentTimeMillis() % 1000;
             String fallbackCode = String.format("MRD-%s-%03d", datePattern, (int) timestamp);
             System.out.println("임시 이동요청상세코드 생성: " + fallbackCode);
+            return fallbackCode;
+        }
+    }
+
+    /**
+     * 창고이동코드 생성 (WMH-yyMMdd-001 형식)
+     */
+    private String generateWareMoveCode() {
+        try {
+            String datePattern = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+            int lastSequence = stockMovementMapper.getLastWareMoveSequence(datePattern);
+            int nextSequence = lastSequence + 1;
+            
+            String wareMoveCd = String.format("WMH-%s-%03d", datePattern, nextSequence);
+            System.out.println("창고이동코드 생성: " + wareMoveCd);
+            return wareMoveCd;
+            
+        } catch (Exception e) {
+            String datePattern = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+            long timestamp = System.currentTimeMillis() % 1000;
+            String fallbackCode = String.format("WMH-%s-%03d", datePattern, (int) timestamp);
+            System.out.println("임시 창고이동코드 생성: " + fallbackCode);
             return fallbackCode;
         }
     }

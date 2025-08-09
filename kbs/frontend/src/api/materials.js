@@ -506,3 +506,76 @@ export const getMaterialLotStock = (mcode) => {
       return response;
     });
 };
+
+// ========== 이동요청 목록 관련 API 함수들 ==========
+
+/**
+ * 이동요청 목록 전체 조회
+ */
+export const getAllMoveRequestList = () => {
+  console.log('🔍 API 호출: 이동요청 목록 전체 조회');
+  return axios.get('/api/materials/stockMovement/list');
+};
+
+/**
+ * 이동요청 목록 검색 조회
+ */
+export const searchMoveRequestList = (searchParam) => {
+  console.log('🔍 API 호출: 이동요청 목록 검색', searchParam);
+  return axios.post('/api/materials/stockMovement/search', searchParam);
+};
+
+/**
+ * 이동요청 단건 조회
+ */
+export const getMoveRequestById = (moveReqCd) => {
+  console.log('🔍 API 호출: 이동요청 단건 조회', moveReqCd);
+  return axios.get(`/api/materials/stockMovement/detail/${moveReqCd}`);
+};
+
+/**
+ * 이동요청 상세 목록 조회
+ */
+export const getMoveRequestDetailList = (moveReqCd) => {
+  console.log('🔍 API 호출: 이동요청 상세 목록 조회', moveReqCd);
+  return axios.get(`/api/materials/stockMovement/details/${moveReqCd}`);
+};
+
+/**
+ * 이동요청 승인 처리
+ */
+export const approveMoveRequest = (moveReqCd, approver, comment = '') => {
+  console.log('✅ API 호출: 이동요청 승인 처리', moveReqCd);
+  return axios.put(`/api/materials/stockMovement/approve/${moveReqCd}`, {
+    approver,
+    comment
+  });
+};
+
+/**
+ * 이동요청 거절 처리
+ */
+export const rejectMoveRequest = (moveReqCd, approver, rejectReason) => {
+  console.log('❌ API 호출: 이동요청 거절 처리', moveReqCd);
+  return axios.put(`/api/materials/stockMovement/reject/${moveReqCd}`, {
+    approver,
+    rejectReason
+  });
+};
+
+/**
+ * 다중 이동요청 승인 처리
+ */
+export const approveBatchMoveRequest = (moveReqCdList, approver, comment = '') => {
+  console.log('✅ API 호출: 다중 이동요청 승인 처리', moveReqCdList);
+  return axios.put('/api/materials/stockMovement/approve-batch', {
+    moveReqCdList,
+    approver,
+    comment
+  });
+};
+
+// 🔥 대기 중인 적재 계획 조회 (현재 등록 중인 자재들의 구역 선택 정보)
+export const getPendingLoadingPlacements = () => {
+  return axios.get('/api/materials/mateLoading/pending-placements');
+};

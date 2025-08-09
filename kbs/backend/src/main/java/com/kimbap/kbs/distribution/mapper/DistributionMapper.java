@@ -3,8 +3,11 @@ package com.kimbap.kbs.distribution.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.kimbap.kbs.distribution.service.DistributionVO;
+import com.kimbap.kbs.distribution.service.LotStockVO;
+import com.kimbap.kbs.distribution.service.RelDetailVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
 import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
@@ -40,5 +43,54 @@ public interface DistributionMapper {
   // 출고마스터코드 자동 생성
   String selectNewRelMasCd();
 
-   int selectMaxRelOrdSeqToday();
+  int selectMaxRelOrdSeqToday();
+
+  // 출고지시서 불러오기 모달
+  List<RelOrderAndResultVO> getRelOrdListWaiting();
+
+  // 출고처리 상세
+  List<RelDetailVO> getRelDetails(@Param("relMasCd") String relMasCd);
+
+  // lot
+  List<LotStockVO> getLotsByPcode(@Param("pcode") String pcode);
+
+  // 출고처리 코드
+  String nextProdRelCd();
+
+  // 재고 잠금 & 차감
+  Integer selectLotQtyForUpdate(@Param("lotNo") String lotNo,
+                                @Param("wareAreaCd") String wareAreaCd);
+
+  int decreaseLotQty(@Param("lotNo") String lotNo,
+                   @Param("wareAreaCd") String wareAreaCd,
+                   @Param("qty") Integer qty);
+
+  // 지시 상태 갱신 및 합계
+  int updateRelOrderStatus(@Param("relMasCd") String relMasCd,
+      @Param("status") String status);
+
+  int selectTotalRelOrdQty(@Param("relMasCd") String relMasCd);
+
+  int selectTotalReleasedQty(@Param("relMasCd") String relMasCd);
+
+  // (선택) 주문상세 상태 갱신
+  int updateOrderDetailStatus(@Param("ord_d_cd") String ordDCd,
+      @Param("status") String status);
+
+  // 최신 제품버전 조회 (없으면 null)
+  String selectLatestProdVerCd(@Param("pcode") String pcode);
+
+  // prod_rel 한 행 INSERT (LOT 1건 = 행 1건)
+  int insertProdRel(@Param("prodRelCd") String prodRelCd,
+                    @Param("lotNo") String lotNo,
+                    @Param("relQty") Integer relQty,
+                    @Param("relOrdCd") String relOrdCd,
+                    @Param("ordDCd") String ordDCd,
+                    @Param("pcode") String pcode,
+                    @Param("prodVerCd") String prodVerCd);
+
+  java.math.BigDecimal selectUnitPriceByOrdDCd(@Param("ord_d_cd") String ordDCd);     
+  
+  int increaseCompanyUnsettledAmount(@Param("cpCd") String cpCd,
+                                   @Param("amount") java.math.BigDecimal amount);
 }

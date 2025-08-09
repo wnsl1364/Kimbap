@@ -8,6 +8,7 @@ import { useToast } from 'primevue/usetoast';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import WarehouseAreaSelectModal from '@/views/material/AreaSelectModal.vue';
+import { getPendingLoadingPlacements } from '@/api/materials';
 
 // Store 및 Toast
 const mateLoadingStore = useMateLoadingStore();
@@ -43,6 +44,8 @@ watch(searchFilter, (newFilter) => {
 const selectedItems = ref([]);
 const warehouseAreaModalVisible = ref(false);
 const currentSelectedMaterial = ref(null);
+// 🔥 대기 중인 적재 계획 정보 (다른 입고건들의 선택된 구역)
+const pendingLoadingPlacements = ref([]);
 
 // 공통코드 형변환
 const convertUnitCodes = (list) => {
@@ -97,6 +100,9 @@ onMounted(async () => {
         // 공장 목록 및 자재 적재 대기 목록 조회
         await mateLoadingStore.fetchFactoryList();
         await mateLoadingStore.fetchMateLoadingList();
+        
+        // 🔥 대기 중인 적재 계획 로드
+        await loadPendingLoadingPlacements();
         
         console.log('MateLoading 컴포넌트 초기화 완료');
     } catch (error) {
@@ -214,8 +220,14 @@ const handleLocationSelect = (rowData) => {
         existingPlacementPlan: rowData.placementPlan || [],
         // 공통코드 원본값으로 변환 (API 호출용)
         stoCon: getOriginalStoConCode(rowData.stoCon),
-        unit: getOriginalUnitCode(rowData.unit)
+        unit: getOriginalUnitCode(rowData.unit),
+        // 🔥 입고코드 추가 (동일 자재 구분용)
+        mateInboCd: rowData.mateInboCd,
+        mcode: rowData.mcode
     };
+    
+    // 🔥 다른 입고건들의 구역 선택 정보도 함께 전달
+    const existingPlacements = getPendingPlacementsForArea();
     
     // 모달 열기
     warehouseAreaModalVisible.value = true;
@@ -417,6 +429,54 @@ watch(selectedItems, (newSelection) => {
         console.log(`선택된 자재 ${index + 1}: ${item.mateInboCd} - 구역설정여부: ${hasArea}`);
     });
 }, { deep: true });
+
+// 🔥 대기 중인 적재 계획 로드 함수
+const loadPendingLoadingPlacements = async () => {
+    try {
+        // 현재 화면에서 선택된 자재들의 계획 정보 수집
+        const currentPlacements = selectedItems.value
+            .filter(item => item.placementPlan && item.placementPlan.length > 0)
+            .flatMap(item => 
+                item.placementPlan.map(plan => ({
+                    wareAreaCd: plan.wareAreaCd,
+                    mateInboCd: item.mateInboCd,
+                    mcode: item.mcode,
+                    mateName: item.mateName,
+                    allocateQty: plan.allocateQty,
+                    source: 'current'
+                }))
+            );
+        
+        pendingLoadingPlacements.value = currentPlacements;
+        console.log('대기 중인 적재 계획 로드 완료:', pendingLoadingPlacements.value.length, '개');
+    } catch (error) {
+        console.error('대기 중인 적재 계획 로드 실패:', error);
+        pendingLoadingPlacements.value = [];
+    }
+};
+
+// 🔥 구역 선택 시 사용할 기존 배치 정보 생성
+const getPendingPlacementsForArea = () => {
+    // 현재 선택된 자재를 제외한 다른 자재들의 배치 계획
+    const otherMaterialPlacements = selectedItems.value
+        .filter(item => 
+            item.mateInboCd !== currentSelectedMaterial.value?.mateInboCd &&
+            item.placementPlan && 
+            item.placementPlan.length > 0
+        )
+        .flatMap(item => 
+            item.placementPlan.map(plan => ({
+                wareAreaCd: plan.wareAreaCd,
+                mateInboCd: item.mateInboCd,
+                mcode: item.mcode,
+                mateName: item.mateName,
+                allocateQty: plan.allocateQty,
+                source: 'pending'
+            }))
+        );
+    
+    return otherMaterialPlacements;
+};
 </script>
 
 <template>
@@ -464,6 +524,7 @@ watch(selectedItems, (newSelection) => {
         v-model:visible="warehouseAreaModalVisible"
         :selectedMaterial="currentSelectedMaterial"
         :loadingQuantity="currentSelectedMaterial?.qty || 0"
+        :existingPlacements="getPendingPlacementsForArea()"
         @confirm="handleWarehouseAreaConfirm"
     />
 </template>

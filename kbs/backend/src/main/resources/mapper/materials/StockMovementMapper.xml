@@ -74,6 +74,13 @@
         WHERE mrdcode LIKE 'MRD-' || #{datePattern} || '-%'
     </select>
 
+    <!-- 창고이동코드 시퀀스 조회 -->
+    <select id="getLastWareMoveSequence" parameterType="string" resultType="int">
+        SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(ware_move_cd, -3))), 0) as last_seq
+        FROM ware_move_his
+        WHERE ware_move_cd LIKE 'WMH-' || #{datePattern} || '-%'
+    </select>
+
     <!-- 이동요청 목록 전체 조회 -->
     <select id="getAllMoveRequestList" resultType="com.kimbap.kbs.materials.service.StockMovementVO">
         SELECT 
@@ -86,8 +93,24 @@
             mr.appr,
             mr.app_dt,
             mr.retu_rea,
-            mr.note
+            mr.note,
+            e1.emp_name as requ_name,
+            e2.emp_name as appr_name,
+            CASE mr.move_type
+                WHEN 'z1' THEN '내부이동'
+                WHEN 'z2' THEN '외부이동'
+                ELSE mr.move_type
+            END as move_type_text,
+            CASE mr.move_status
+                WHEN 'd1' THEN '요청'
+                WHEN 'd2' THEN '승인'
+                WHEN 'd3' THEN '거절'
+                ELSE mr.move_status
+            END as move_status_text
         FROM move_req mr
+        LEFT JOIN employee e1 ON mr.requ = e1.emp_cd
+        LEFT JOIN employee e2 ON mr.appr = e2.emp_cd
+        WHERE mr.move_status = 'd1'
         ORDER BY mr.req_dt DESC, mr.move_req_cd DESC
     </select>
 
@@ -108,7 +131,7 @@
         FROM move_req mr
         WHERE 1=1
         <if test="moveReqCd != null and moveReqCd != ''">
-            AND mr.move_req_cd LIKE CONCAT('%', #{moveReqCd}, '%')
+            AND mr.move_req_cd LIKE '%' || #{moveReqCd} || '%'
         </if>
         <if test="requ != null and requ != ''">
             AND mr.requ = #{requ}
@@ -137,8 +160,23 @@
             mr.appr,
             mr.app_dt,
             mr.retu_rea,
-            mr.note
+            mr.note,
+            e1.emp_name as requ_name,
+            e2.emp_name as appr_name,
+            CASE mr.move_type
+                WHEN 'z1' THEN '내부이동'
+                WHEN 'z2' THEN '외부이동'
+                ELSE mr.move_type
+            END as move_type_text,
+            CASE mr.move_status
+                WHEN 'd1' THEN '요청'
+                WHEN 'd2' THEN '승인'
+                WHEN 'd3' THEN '거절'
+                ELSE mr.move_status
+            END as move_status_text
         FROM move_req mr
+        LEFT JOIN employee e1 ON mr.requ = e1.emp_cd
+        LEFT JOIN employee e2 ON mr.appr = e2.emp_cd
         WHERE mr.move_req_cd = #{moveReqCd}
     </select>
 
@@ -158,8 +196,34 @@
             mrd.depa_ware_cd,
             mrd.depa_area_cd,
             mrd.arr_ware_cd,
-            mrd.arr_area_cd
+            mrd.arr_area_cd,
+            -- 자재/제품 정보
+            COALESCE(m.mate_name, p.prod_name) as item_name,
+            COALESCE(m.mate_name, p.prod_name) as mate_name,
+            COALESCE(mrd.mcode, mrd.pcode) as item_code,
+            -- 출발위치 정보
+            df.fac_name as depa_fac_name,
+            dw.ware_name as depa_ware_name,
+            dwd.area_row || '-' || dwd.area_col || '-' || dwd.area_floor as depa_area_name,
+            df.fac_name || '-' || dw.ware_name || '-' || dwd.area_row || '-' || dwd.area_col || '-' || dwd.area_floor as depa_location,
+            -- 도착위치 정보
+            af.fac_name as arr_fac_name,
+            aw.ware_name as arr_ware_name,
+            awd.area_row || '-' || awd.area_col || '-' || awd.area_floor as arr_area_name,
+            af.fac_name || '-' || aw.ware_name || '-' || awd.area_row || '-' || awd.area_col || '-' || awd.area_floor as arr_location
         FROM move_req_d mrd
+        -- 자재 정보 조인
+        LEFT JOIN material m ON mrd.mcode = m.mcode AND mrd.mate_ver_cd = m.mate_ver_cd
+        -- 제품 정보 조인
+        LEFT JOIN product p ON mrd.pcode = p.pcode AND mrd.prod_ver_cd = p.prod_ver_cd
+        -- 출발지 정보 조인
+        LEFT JOIN ware_d dwd ON mrd.depa_area_cd = dwd.ware_area_cd
+        LEFT JOIN warehouse dw ON dwd.wcode = dw.wcode AND dwd.ware_ver_cd = dw.ware_ver_cd
+        LEFT JOIN factory df ON dw.fcode = df.fcode AND dw.fac_ver_cd = df.fac_ver_cd
+        -- 도착지 정보 조인
+        LEFT JOIN ware_d awd ON mrd.arr_area_cd = awd.ware_area_cd
+        LEFT JOIN warehouse aw ON awd.wcode = aw.wcode AND awd.ware_ver_cd = aw.ware_ver_cd
+        LEFT JOIN factory af ON aw.fcode = af.fcode AND aw.fac_ver_cd = af.fac_ver_cd
         WHERE mrd.move_req_cd = #{moveReqCd}
         ORDER BY mrd.mrdcode
     </select>
@@ -317,6 +381,177 @@
                 , retu_rea = #{retuRea}
             </if>
         WHERE move_req_cd = #{moveReqCd}
+    </update>
+
+    <!-- 이동요청 승인 처리 -->
+    <update id="approveMoveRequest" parameterType="com.kimbap.kbs.materials.service.StockMovementVO">
+        UPDATE move_req 
+        SET move_status = #{moveStatus},
+            appr = #{appr},
+            app_dt = #{appDt}
+        <if test="note != null and note != ''">
+            , note = #{note}
+        </if>
+        WHERE move_req_cd = #{moveReqCd}
+    </update>
+
+    <!-- 이동요청 거절 처리 -->
+    <update id="rejectMoveRequest" parameterType="com.kimbap.kbs.materials.service.StockMovementVO">
+        UPDATE move_req 
+        SET move_status = #{moveStatus},
+            appr = #{appr},
+            app_dt = #{appDt},
+            retu_rea = #{retuRea}
+        WHERE move_req_cd = #{moveReqCd}
+    </update>
+
+    <!-- 창고이동이력 등록 -->
+    <insert id="insertWareMoveHistory" parameterType="com.kimbap.kbs.materials.service.StockMovementVO">
+        INSERT INTO ware_move_his (
+            ware_move_cd,
+            mcode,
+            mate_ver_cd,
+            pcode,
+            prod_ver_cd,
+            lot_no,
+            move_qty,
+            depa_ware_cd,
+            depa_area_cd,
+            arr_ware_cd,
+            arr_area_cd,
+            move_dt,
+            move_rea,
+            mname,
+            reg_dt,
+            mrdcode
+        ) VALUES (
+            #{wareMoveCd},
+            #{mcode},
+            #{mateVerCd},
+            #{pcode},
+            #{prodVerCd},
+            #{lotNo},
+            #{moveQty},
+            #{depaWareCd},
+            #{depaAreaCd},
+            #{arrWareCd},
+            #{arrAreaCd},
+            #{moveDt},
+            #{moveRea},
+            #{mname},
+            #{regDt},
+            #{mrdcode}
+        )
+    </insert>
+
+    <!-- 출발지 재고 차감 -->
+    <update id="updateStockDecrease" parameterType="com.kimbap.kbs.materials.service.StockMovementVO">
+        UPDATE ware_stock 
+        SET qty = qty - #{moveQty}
+        WHERE 1=1
+        <choose>
+            <when test="itemType == 'h1' or itemType == 'h2'">
+                AND mate_inbo_cd IN (
+                    SELECT mate_inbo_cd 
+                    FROM mate_inbo 
+                    WHERE mcode = #{mcode} 
+                    AND mate_ver_cd = #{mateVerCd}
+                    AND lot_no = #{lotNo}
+                )
+            </when>
+            <when test="itemType == 'h3'">
+                AND prod_inbo_cd IN (
+                    SELECT prod_inbo_cd 
+                    FROM prod_inbo 
+                    WHERE pcode = #{pcode} 
+                    AND prod_ver_cd = #{prodVerCd}
+                    AND lot_no = #{lotNo}
+                )
+            </when>
+        </choose>
+        AND ware_area_cd = #{depaAreaCd}
+    </update>
+
+    <!-- 도착지 재고 증가 (Oracle MERGE 문 사용) -->
+    <update id="updateStockIncrease" parameterType="com.kimbap.kbs.materials.service.StockMovementVO">
+        <choose>
+            <when test="itemType == 'h1' or itemType == 'h2'">
+                <!-- 자재의 경우 -->
+                MERGE INTO ware_stock ws
+                USING (
+                    SELECT 
+                        mi.mate_inbo_cd,
+                        #{arrAreaCd} as ware_area_cd,
+                        #{moveQty} as move_qty,
+                        #{mname} as mname
+                    FROM mate_inbo mi
+                    WHERE mi.mcode = #{mcode} 
+                    AND mi.mate_ver_cd = #{mateVerCd}
+                    AND mi.lot_no = #{lotNo}
+                ) src
+                ON (ws.mate_inbo_cd = src.mate_inbo_cd AND ws.ware_area_cd = src.ware_area_cd)
+                WHEN MATCHED THEN
+                    UPDATE SET qty = qty + src.move_qty
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        wslcode,
+                        mate_inbo_cd,
+                        ware_area_cd,
+                        qty,
+                        regi,
+                        inbo_dt,
+                        unit,
+                        item_type
+                    ) VALUES (
+                        'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-001',
+                        src.mate_inbo_cd,
+                        src.ware_area_cd,
+                        src.move_qty,
+                        src.mname,
+                        CURRENT_TIMESTAMP,
+                        #{unit},
+                        #{itemType}
+                    )
+            </when>
+            <when test="itemType == 'h3'">
+                <!-- 제품의 경우 -->
+                MERGE INTO ware_stock ws
+                USING (
+                    SELECT 
+                        pi.prod_inbo_cd,
+                        #{arrAreaCd} as ware_area_cd,
+                        #{moveQty} as move_qty,
+                        #{mname} as mname
+                    FROM prod_inbo pi
+                    WHERE pi.pcode = #{pcode} 
+                    AND pi.prod_ver_cd = #{prodVerCd}
+                    AND pi.lot_no = #{lotNo}
+                ) src
+                ON (ws.prod_inbo_cd = src.prod_inbo_cd AND ws.ware_area_cd = src.ware_area_cd)
+                WHEN MATCHED THEN
+                    UPDATE SET qty = qty + src.move_qty
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        wslcode,
+                        prod_inbo_cd,
+                        ware_area_cd,
+                        qty,
+                        regi,
+                        inbo_dt,
+                        unit,
+                        item_type
+                    ) VALUES (
+                        'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-001',
+                        src.prod_inbo_cd,
+                        src.ware_area_cd,
+                        src.move_qty,
+                        src.mname,
+                        CURRENT_TIMESTAMP,
+                        #{unit},
+                        #{itemType}
+                    )
+            </when>
+        </choose>
     </update>
 
     <!-- 현재 재고량 조회 -->

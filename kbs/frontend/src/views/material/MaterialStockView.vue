@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useMaterialStore } from '@/stores/materialStore';
@@ -23,7 +24,11 @@ const stockStatusLoading = ref(false);
 const searchParams = ref({});
 const { materialTypeOptions } = storeToRefs(materialStore);
 
-// 🔍 LOT별 재고 모달 관련 데이터 (BasicModal 사용!)
+// � Router & Table Ref
+const router = useRouter();
+const stockTableRef = ref(null); // InputTable ref to access selected rows
+
+// �🔍 LOT별 재고 모달 관련 데이터 (BasicModal 사용!)
 const lotStockModalVisible = ref(false);
 const lotStockData = ref([]);
 const selectedMaterialInfo = ref({
@@ -136,7 +141,22 @@ const stockStatusColumns = ref([
     header: '재고상태',
     type: 'readonly',
     width: '100px',
-    align: 'center'
+    align: 'center',
+    textColor: (rowData) => {
+      // Ensure property names match your data structure
+      const stock = rowData.totalQuantity !== undefined ? Number(rowData.totalQuantity.toString().replace(/,/g, '')) : 0;
+      const minStock = rowData.safeStock !== undefined ? Number(rowData.safeStock.toString().replace(/,/g, '')) : 0;
+      
+      if (stock <= 0) {
+        return 'text-red-700 font-bold'; // 재고 없음: 빨간색 + 굵게
+      } else if (stock <= minStock) {
+        return 'text-orange-600'; // 최소재고 이하: 주황색
+      } else if (stock <= minStock * 2) {
+        return 'text-yellow-600'; // 재고 부족: 노란색
+      } else {
+        return 'text-green-600'; // 충분한 재고: 초록색
+      }
+    }
   },
   {
     field: 'totalQuantity',
@@ -355,6 +375,93 @@ const loadStockStatusData = async () => {
   }
 };
 
+// 숫자 문자열(천단위 콤마 포함) → number 변환
+const toNumber = (val) => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return val;
+  const cleaned = String(val).replace(/,/g, '').trim();
+  const num = Number(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+// 재고 부족 시, 자재 발주 페이지로 이동 (쿼리로 전달)
+const navigateToOrderPage = (row) => {
+  if (!row) return;
+
+  const current = toNumber(row.totalQuantity);
+  const safe = toNumber(row.safeStock);
+  const shortageQty = current < safe ? safe - current : 0;
+
+  if (shortageQty <= 0) {
+    toast.add({
+      severity: 'info',
+      summary: '부족 아님',
+      detail: '선택한 자재는 부족 상태가 아닙니다.',
+      life: 2500
+    });
+    return;
+  }
+
+  router.push({
+    name: 'materialPurchase',
+    query: {
+      mcode: row.materialCode,
+      mateName: row.materialName,
+  mateVerCd: row.mateVerCd || '',
+      unit: row.unit, // 이미 텍스트 단위로 변환됨
+      qty: shortageQty
+    }
+  });
+};
+
+// 슬롯 버튼 핸들러: 선택된 부족 행들 기준으로 발주 이동 (여러 건 지원)
+const handleShortageOrderButton = () => {
+  const selected = stockTableRef.value?.selectedRows || [];
+  if (!selected.length) {
+    toast.add({
+      severity: 'warn',
+      summary: '행 선택 필요',
+      detail: '부족 자재를 한 개 이상 선택해주세요.',
+      life: 2500
+    });
+    return;
+  }
+
+  // 부족 항목만 필터링하고 발주 데이터 구성
+  const rows = selected
+    .map((row, idx) => {
+      const current = toNumber(row.totalQuantity);
+      const safe = toNumber(row.safeStock);
+      const shortageQty = current < safe ? safe - current : 0;
+      if (shortageQty <= 0) return null;
+
+      return {
+        id: Date.now() + idx,
+        mcode: row.materialCode,
+        mateVerCd: row.mateVerCd || '',
+        materialName: row.materialName,
+        buyer: '',
+        cpCd: '',
+        number: shortageQty,
+        unit: row.unit,
+        price: 0,
+        totalPrice: 0,
+        date: new Date().toISOString().split('T')[0],
+        memo: '재고부족 자동생성'
+      };
+    })
+    .filter(Boolean);
+
+  if (!rows.length) {
+    toast.add({ severity: 'info', summary: '부족 항목 없음', detail: '선택한 행들 중 부족 상태가 없습니다.', life: 2500 });
+    return;
+  }
+
+  // 스토어에 세팅 후, 쿼리 없이 발주 페이지 이동 (여러 건 지원)
+  materialStore.purchaseData = rows;
+  router.push({ name: 'materialPurchase' });
+};
+
 // LOT별 재고 조회 - 수정된 버전
 const viewMaterialLotStock = async (materialCode, materialName) => {
   try {
@@ -559,10 +666,14 @@ onMounted(async () => {
     <SearchForm :columns="searchColumns" :gridColumns="4" @search="onSearch" @reset="onReset" />
 
     <!-- 재고 현황 테이블 (기존 InputTable.vue 사용) -->
-    <InputTable :data="stockStatusData" :columns="stockStatusColumns"
+    <InputTable ref="stockTableRef" :data="stockStatusData" :columns="stockStatusColumns"
       :title="`재고 현황 목록 (${totalStockItems}건 / 긴급알림: ${criticalAlertCount}건)`" :buttons="tableButtons"
       :scrollHeight="'55vh'" :height="'65vh'" :loading="stockStatusLoading" :enableRowActions="false"
-      @action="handleTableAction" @lotAction="handleLotAction" @rowAction="handleRowAction" />
+      @action="handleTableAction" @lotAction="handleLotAction" @rowAction="handleRowAction">
+      <template #top-buttons>
+        <Button label="선택 자재 발주" severity="help" icon="pi pi-shopping-cart" @click="handleShortageOrderButton" />
+      </template>
+    </InputTable>
 
     <!-- LOT별 재고 조회 모달 (BasicModal 사용!) -->
     <BasicModal v-model:visible="lotStockModalVisible" :items="lotStockData" :columns="lotStockColumns" itemKey="lotNo"
