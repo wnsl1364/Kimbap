@@ -48,3 +48,4 @@ export const getLotsByPcode = (pcode) => {
 // 출고처리 저장
 export const saveReleaseProcess = (payload) =>
   axios.post('/api/distribution/release', payload);
+

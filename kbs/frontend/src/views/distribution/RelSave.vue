@@ -31,6 +31,7 @@ const convertCompanyCodes = (list) => {
             // 💥 여기!
         };
     });
+
 };
 
 // 🟨 입력 필드 정의
@@ -106,6 +107,7 @@ onBeforeMount(() => {
         { field: 'allocQty', header: '출고수량', type: 'input' },
         { field: 'remainQty', header: '잔여수량', type: 'input', disabled: true }
     ];
+
 });
 </script>
 
@@ -128,6 +130,7 @@ onBeforeMount(() => {
     <div class="space-y-4 mt-3">
         <InputTable :data="products" :columns="columns" :title="'출고 제품'" scrollHeight="250px" height="305px" :dataKey="'relOrdCd'" :buttons="inputFormButtons" :enableRowActions="false" :enableSelection="false" />
     </div>
+
     <div class="space-y-4 mt-3">
         <div class="flex gap-2 justify-end mb-2">
             <Button label="전체 자동배분" @click="autoDistributeAll" />

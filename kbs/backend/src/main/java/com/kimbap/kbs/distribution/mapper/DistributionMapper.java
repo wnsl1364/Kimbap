@@ -28,6 +28,10 @@ public interface DistributionMapper {
   // 모달 선택 후 주문 상세 출력
   List<RelOrdModalVO> getRelOrdSelect(String ordCd);
 
+  // 출고 지시서 상세 조회
+   RelOrderAndResultVO getRelOrdDetail(String relMasCd);
+   List<ReleaseOrdVO> getRelOrdProductList(String relMasCd); 
+
   // 창고 목록 조회
   List<WarehouseVO> getWarehouseListByOrdCd(String ordCd);
 

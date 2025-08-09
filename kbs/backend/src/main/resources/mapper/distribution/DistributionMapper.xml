@@ -176,6 +176,7 @@ SELECT
     cp.mname AS mName,
     w.wcode AS wcode,
     w.ware_ver_cd AS wareVerCd,
+    ol.ord_cd AS ordCd,
 
     NVL((
         SELECT SUM(pr.rel_qty)
@@ -242,6 +243,7 @@ SELECT
   WHERE  f.ord_cd = #{ordCd}
 </select>
 
+<!-- 출고지시서 등록 (마스터)-->
 <insert id="insertReleaseOrdMaster" parameterType="com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO">
 INSERT INTO release_ord_master (
   rel_mas_cd,
@@ -264,7 +266,7 @@ INSERT INTO release_ord_master (
   #{deliReqDt},
   'm1')
 </insert>
-
+<!-- 출고지시서 등록 (출고상세)-->
 <insert id="insertReleaseOrdList" parameterType="java.util.List">
   INSERT ALL
   <foreach collection="list" item="item" separator="">
@@ -287,7 +289,12 @@ INSERT INTO release_ord_master (
   </foreach>
   SELECT 1 FROM DUAL
 </insert>
-
+<!-- 주문목록 테이블 상태변경 -->
+<update id="updateOrdStatusCustomer" parameterType="String">
+  UPDATE order_list
+  SET ord_status_customer = 's7'
+  WHERE ord_cd = #{ordCd}
+</update>
 
 
 <select id="selectNewRelMasCd" resultType="String">
@@ -304,7 +311,6 @@ INSERT INTO release_ord_master (
   FROM release_ord
   WHERE SUBSTR(rel_ord_cd, 5, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
 </select>
-
 
 <!-- 출고지시서 불러오기: 대기(m1)만 -->
 <select id="getRelOrdListWaiting"

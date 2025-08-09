@@ -81,7 +81,8 @@ const handleSave = async () => {
       mname,
       deliAdd,
       deliReqDt,
-      relOrdStatus: 'm1'
+      relOrdStatus: 'm1',
+      ordCd
     };
 
     // detailList
