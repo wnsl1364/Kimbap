@@ -574,3 +574,8 @@ export const approveBatchMoveRequest = (moveReqCdList, approver, comment = '') =
     comment
   });
 };
+
+// 🔥 대기 중인 적재 계획 조회 (현재 등록 중인 자재들의 구역 선택 정보)
+export const getPendingLoadingPlacements = () => {
+  return axios.get('/api/materials/mateLoading/pending-placements');
+};
