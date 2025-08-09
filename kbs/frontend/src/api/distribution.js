@@ -39,3 +39,12 @@ export const getRelOrdListWaiting = () => {
 export const getRelDetails = (relMasCd) => {
   return axios.get(`/api/distribution/details/${relMasCd}`);
 };
+
+// LOT 재고 조회 (pcode 기준)
+export const getLotsByPcode = (pcode) => {
+  return axios.get('/api/distribution/lots', { params: { pcode } });
+};
+
+// 출고처리 저장
+export const saveReleaseProcess = (payload) =>
+  axios.post('/api/distribution/release', payload);

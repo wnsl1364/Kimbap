@@ -26,4 +26,8 @@ public interface DistributionService {
   List<RelOrderAndResultVO> getRelOrdListWaiting();
   // 출고지시서 단건조회 
   List<RelDetailVO> getRelDetails(String relMasCd);
+  // lot분배
+  List<LotStockVO> getLotsByPcode(String pcode);
+
+  String insertRelease(ReleaseRequestVO vo);
 }

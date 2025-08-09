@@ -13,7 +13,7 @@ import Singleselect from '@/components/kimbap/modal/singleselect.vue';
 // 🟩 Pinia 상태 및 액션
 const store = useRelsaveStore();
 const { formData, releaseList, products, allocationRows } = storeToRefs(store);
-const { fetchRelsaves, fetchRelDetails, autoDistributeAll, autoDistributeOne } = store;
+const { fetchRelsaves, fetchRelDetails, autoDistributeAll, saveRelease } = store;
 
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common);
@@ -74,26 +74,36 @@ const handleRelsaveSelected = async (item) => {
 
 const modalDataSets = {};
 
+const handleSave = async () => {
+    try {
+        const prodRelCd = await saveRelease();
+        toast.add({ severity: 'success', summary: '저장 완료', detail: `출고번호: ${prodRelCd}`, life: 2500 });
+        // 완료 후 목록 갱신/리셋
+        await store.fetchRelsaves(); // 대기목록 새로고침(완료/부분이면 빠짐)
+        // store.resetForm() // 필요 시 초기화
+    } catch (e) {
+        console.error(e);
+        toast.add({ severity: 'error', summary: '저장 실패', detail: e?.response?.data?.message || e.message, life: 3500 });
+    }
+};
 
-const handleSave = () => {};
 const handleApprove = () => {};
 const handleReject = () => {};
 
 onBeforeMount(() => {
     relsaveFields.value = [
         { label: '출고지시번호', field: 'relMasCd', type: 'text', disabled: true },
-        { label: '지시일자', field: 'relDt', type: 'text', disabled: true }
+        { label: '처리일자', field: 'relDt', type: 'text', disabled: true }
     ];
     columns.value = [
         { field: 'prodName', header: '제품명', type: 'input', disabled: true },
         { field: 'ordQty', header: '요청수량', type: 'input', disabled: true },
-        { field: 'relOrdQty', header: '지시수량', type: 'input', disabled: true },
-        { field: 'lotNo', header: 'LOT번호', type: 'input', disabled: true }
+        { field: 'relOrdQty', header: '지시수량', type: 'input', disabled: true }
     ];
     columns2.value = [
         { field: 'prodName', header: '제품명', type: 'input', disabled: true },
         { field: 'lotNo', header: 'LOT번호', type: 'input', disabled: true },
-        { field: 'allocQty', header: '출고수량', type: 'number' },
+        { field: 'allocQty', header: '출고수량', type: 'input' },
         { field: 'remainQty', header: '잔여수량', type: 'input', disabled: true }
     ];
 });
@@ -116,13 +126,13 @@ onBeforeMount(() => {
         />
     </div>
     <div class="space-y-4 mt-3">
-        <InputTable :data="products" :columns="columns" :title="'출고 제품'" scrollHeight="250px" height="305px" :dataKey="'pcode'" :buttons="inputFormButtons" :enableRowActions="false" :enableSelection="false" />
+        <InputTable :data="products" :columns="columns" :title="'출고 제품'" scrollHeight="250px" height="305px" :dataKey="'relOrdCd'" :buttons="inputFormButtons" :enableRowActions="false" :enableSelection="false" />
     </div>
     <div class="space-y-4 mt-3">
         <div class="flex gap-2 justify-end mb-2">
-            <Button label="전체 자동배분(FEFO)" @click="autoDistributeAll" />
+            <Button label="전체 자동배분" @click="autoDistributeAll" />
         </div>
-        <InputTable :data="allocationRows" :columns="columns2" :title="'LOT별 수량'" scrollHeight="250px" height="305px" :dataKey="'lotNo'" :enableRowActions="false" :enableSelection="false" />
+        <InputTable :data="allocationRows" :columns="columns2" :title="'LOT별 수량'" scrollHeight="250px" height="305px" dataKey="'_key'" :buttons="inputFormButtons" :enableRowActions="false" :enableSelection="false" />
     </div>
 
     <!-- 불러오기 모달 -->
@@ -136,6 +146,6 @@ onBeforeMount(() => {
             { field: 'prodName', header: '제품명' },
             { field: 'ordQty', header: '총수량' }
         ]"
-        @update:modelValue="handleRelsaveSelected"
+        @update:modelValue="(item) => fetchRelDetails(item.relMasCd)"
     />
 </template>
