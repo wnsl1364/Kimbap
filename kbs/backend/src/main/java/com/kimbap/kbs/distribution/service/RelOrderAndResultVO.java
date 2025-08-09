@@ -20,6 +20,7 @@ public class RelOrderAndResultVO {
   private String deliAdd;     // 배송지주소
   private String relOrdStatus;   // 출고지시상태
   private String note;        // 비고
+  private Integer ordQty; // 총수량
 
   // 검색 VO
   private String type;          // 타입 (요청, 부분출고, 출고완료 등)

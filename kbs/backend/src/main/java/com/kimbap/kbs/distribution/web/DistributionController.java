@@ -13,11 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kimbap.kbs.distribution.service.DistributionService;
 import com.kimbap.kbs.distribution.service.DistributionVO;
+import com.kimbap.kbs.distribution.service.LotStockVO;
 import com.kimbap.kbs.distribution.service.RelDetailVO;
 import com.kimbap.kbs.distribution.service.RelOrdModalVO;
 import com.kimbap.kbs.distribution.service.RelOrderAndResultVO;
 import com.kimbap.kbs.distribution.service.ReleaseMasterOrdVO;
 import com.kimbap.kbs.distribution.service.ReleaseOrdVO;
+import com.kimbap.kbs.distribution.service.ReleaseRequestVO;
 import com.kimbap.kbs.distribution.service.WarehouseVO;
 
 import lombok.RequiredArgsConstructor;
@@ -74,6 +76,25 @@ public class DistributionController {
         return distributionService.getRelDetails(relMasCd);
     }
 
+    @GetMapping("/lots")
+    public List<LotStockVO> getLotsByPcode(@RequestParam String pcode) {
+        return distributionService.getLotsByPcode(pcode);
+    }
+
+    @PostMapping("/release")
+    public ResponseEntity<String> saveRelease(@RequestBody ReleaseRequestVO vo) {
+        System.out.println("[DEBUG] relMasCd=" + vo.getRelMasCd());
+        if (vo.getItems() != null && !vo.getItems().isEmpty()) {
+            var it0 = vo.getItems().get(0);
+            System.out.println("[DEBUG] item0.relOrdCd=" + it0.getRelOrdCd()
+                + ", ord_d_cd=" + it0.getOrd_d_cd()
+                + ", pcode=" + it0.getPcode());
+        }
+        String prodRelCd = distributionService.insertRelease(vo);
+        return ResponseEntity.ok(prodRelCd);
+    }
+
+
     // 요청 DTO
     public static class ReleaseOrderRequest {
         private ReleaseMasterOrdVO master;
@@ -94,5 +115,7 @@ public class DistributionController {
         public void setDetailList(List<ReleaseOrdVO> detailList) {
             this.detailList = detailList;
         }
+
+        
     }
 }

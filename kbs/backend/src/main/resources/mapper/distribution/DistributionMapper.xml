@@ -327,13 +327,13 @@ INSERT INTO release_ord_master (
           ON od.pcode = p.pcode
          AND od.prod_ver_cd = p.prod_ver_cd
        WHERE ro.rel_mas_cd = rom.rel_mas_cd
-      )
+      ) prod_name
 
     , (
         SELECT SUM(ro.rel_ord_qty)
         FROM release_ord ro
        WHERE ro.rel_mas_cd = rom.rel_mas_cd
-      )
+      ) ord_qty
 
     , ol.deli_add
     , rom.rel_ord_status
@@ -365,19 +365,166 @@ INSERT INTO release_ord_master (
 <select id="getRelDetails"
         parameterType="string"
         resultType="com.kimbap.kbs.distribution.service.RelDetailVO">
-    SELECT
-        od.pcode
-      , p.prod_name
-      , od.ord_qty
-      , ro.rel_ord_qty
-    FROM release_ord ro
-    JOIN order_d od
-      ON ro.ord_d_cd = od.ord_d_cd
-    JOIN product p
-      ON od.pcode = p.pcode
-     AND od.prod_ver_cd = p.prod_ver_cd
-    WHERE ro.rel_mas_cd = #{relMasCd}
-    ORDER BY p.prod_name, od.pcode
+  SELECT
+      ro.rel_ord_cd
+    , ro.ord_d_cd
+    , od.pcode
+    , p.prod_name
+    , od.ord_qty
+    , ro.rel_ord_qty 
+    , ol.cp_cd
+  FROM release_ord ro
+  JOIN order_d od ON ro.ord_d_cd = od.ord_d_cd
+  JOIN product p  ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
+  JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+  JOIN order_list ol ON od.ord_cd = ol.ord_cd
+  WHERE ro.rel_mas_cd = #{relMasCd}
+  ORDER BY p.prod_name, od.pcode
 </select>
+
+<select id="getLotsByPcode"
+        parameterType="string"
+        resultType="com.kimbap.kbs.distribution.service.LotStockVO">
+  SELECT
+      pi.lot_no,
+      pi.pcode,
+      ws.qty,
+      pi.inbo_dt,
+      wd.wcode,
+      wd.ware_area_cd
+  FROM prod_inbo pi
+  JOIN ware_stock ws
+    ON pi.prod_inbo_cd = ws.prod_inbo_cd
+  JOIN ware_d wd
+    ON ws.ware_area_cd = wd.ware_area_cd
+  WHERE pi.pcode = #{pcode}
+    AND ws.qty > 0
+  ORDER BY pi.inbo_dt ASC, pi.lot_no 
+</select>
+
+<!-- 출고처리코드  -->
+<select id="nextProdRelCd" resultType="string">
+  SELECT 'PR' || TO_CHAR(SYSDATE, 'YYYYMMDD') ||
+         LPAD(NVL(MAX(SUBSTR(prod_rel_cd, 11, 4)), 0) + 1, 4, '0')
+  FROM prod_rel
+  WHERE SUBSTR(prod_rel_cd, 3, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+</select>
+
+<!-- ===================== 출고 마스터 저장 ===================== -->
+<insert id="insertProdRel">
+  INSERT INTO prod_rel (
+    prod_rel_cd,
+    lot_no,
+    rel_qty,
+    unit_price,
+    rel_total_amount,
+    rel_dt,
+    rel_ord_cd,
+    pcode,
+    prod_ver_cd
+  )
+  VALUES (
+    #{prodRelCd},
+    #{lotNo},
+    #{relQty},
+
+    /* 단가: relOrdCd 우선 → 없으면 ord_d_cd로 */
+    COALESCE(
+      (SELECT od.unit_price
+         FROM order_d od
+         JOIN release_ord ro ON ro.ord_d_cd = od.ord_d_cd
+        WHERE ro.rel_ord_cd = #{relOrdCd}),
+      (SELECT od.unit_price
+         FROM order_d od
+        WHERE od.ord_d_cd = #{ordDCd})
+    ),
+
+    /* 총금액 = 단가 × 출고수량 */
+    COALESCE(
+      (SELECT od.unit_price
+         FROM order_d od
+         JOIN release_ord ro ON ro.ord_d_cd = od.ord_d_cd
+        WHERE ro.rel_ord_cd = #{relOrdCd}),
+      (SELECT od.unit_price
+         FROM order_d od
+        WHERE od.ord_d_cd = #{ordDCd}),
+      0
+    ) * #{relQty},
+
+    SYSTIMESTAMP,
+    #{relOrdCd},
+    #{pcode},
+    #{prodVerCd}
+  )
+</insert>
+
+<select id="selectLatestProdVerCd" resultType="string">
+  SELECT prod_ver_cd
+  FROM (
+    SELECT prod_ver_cd
+    FROM product
+    WHERE pcode = #{pcode}
+    ORDER BY prod_ver_cd DESC
+  )
+  WHERE ROWNUM = 1
+</select>
+<!-- 지시서 실제 출고수량 합 -->
+<select id="selectTotalReleasedQty" resultType="int">
+  SELECT NVL(SUM(r.rel_qty), 0)
+    FROM prod_rel r
+    JOIN release_ord ro
+      ON ro.rel_ord_cd = r.rel_ord_cd
+    JOIN release_ord_master rom
+      ON rom.rel_mas_cd = ro.rel_mas_cd
+   WHERE rom.rel_mas_cd = #{relMasCd}
+</select>
+
+<select id="selectLotQtyForUpdate" resultType="int">
+  SELECT ws.qty
+    FROM ware_stock ws
+    JOIN prod_inbo pi
+      ON ws.prod_inbo_cd = pi.prod_inbo_cd
+   WHERE pi.lot_no = #{lotNo}
+     AND ws.ware_area_cd = #{wareAreaCd}
+   FOR UPDATE
+</select>
+
+<update id="decreaseLotQty">
+  UPDATE ware_stock ws
+     SET ws.qty = ws.qty - #{qty}
+   WHERE ws.ware_area_cd = #{wareAreaCd}
+     AND ws.prod_inbo_cd IN (
+           SELECT pi.prod_inbo_cd
+             FROM prod_inbo pi
+            WHERE pi.lot_no = #{lotNo}
+         )
+</update>
+
+<select id="selectUnitPriceByOrdDCd" resultType="java.math.BigDecimal">
+  SELECT unit_price
+    FROM order_d
+   WHERE ord_d_cd = #{ord_d_cd}
+</select>
+
+<update id="increaseCompanyUnsettledAmount">
+  UPDATE company
+     SET unsettled_amount = NVL(unsettled_amount, 0) + #{amount}
+   WHERE cp_cd = #{cpCd}
+</update>
+
+<!-- 지시서 지시수량 합 -->
+<select id="selectTotalRelOrdQty" resultType="int" parameterType="string">
+  SELECT NVL(SUM(ro.rel_ord_qty), 0)
+    FROM release_ord ro
+   WHERE ro.rel_mas_cd = #{relMasCd}
+</select>
+
+<!-- 지시서 상태 변경 -->
+<update id="updateRelOrderStatus" parameterType="map">
+  UPDATE release_ord_master
+     SET rel_ord_status = #{status}
+   WHERE rel_mas_cd     = #{relMasCd}
+</update>
+
 
 </mapper>
