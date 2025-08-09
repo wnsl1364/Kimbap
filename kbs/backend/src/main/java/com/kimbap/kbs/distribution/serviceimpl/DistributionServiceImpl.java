@@ -1,6 +1,5 @@
 package com.kimbap.kbs.distribution.serviceimpl;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -153,4 +152,14 @@ public class DistributionServiceImpl implements DistributionService {
 
         return "OK";
     }
+
+    public RelOrderAndResultVO getRelOrdDetail(String relMasCd) {
+        return distributionMapper.getRelOrdDetail(relMasCd);
+    }
+
+    @Override
+    public List<ReleaseOrdVO> getRelOrdProductList(String relMasCd) {
+        return distributionMapper.getRelOrdProductList(relMasCd);
+    }
+
 }
