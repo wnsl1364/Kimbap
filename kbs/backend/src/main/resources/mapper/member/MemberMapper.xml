@@ -101,11 +101,11 @@
           #{memCd},
           #{id}, 
           #{pw}, 
-          #{lDate}, 
+          #{regDt, jdbcType=TIMESTAMP},
           SYSDATE,
           #{memType}, 
-          #{empCd}, 
-          #{cpCd}, 
+          #{empCd, jdbcType=VARCHAR}, 
+          #{cpCd, jdbcType=VARCHAR}, 
           'f1')
 </insert>
 
