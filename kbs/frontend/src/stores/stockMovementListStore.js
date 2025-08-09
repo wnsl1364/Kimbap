@@ -88,8 +88,7 @@ export const useStockMovementListStore = defineStore('stockMovementList', () => 
   // 승인자 정보 필드 설정
   const approverFields = ref([
     { field: 'approverName', label: '승인자', type: 'input', readonly: true },
-    { field: 'approvalComment', label: '승인의견', type: 'input', placeholder: '승인 의견을 입력하세요 (선택사항)' },
-    { field: 'rejectionReason', label: '거절사유', type: 'input', placeholder: '거절 사유를 입력하세요', required: true }
+    { field: 'rejectionReason', label: '거절사유', type: 'input', placeholder: '거절 시 사유를 입력하세요' }
   ]);
 
   // ========== Computed ==========

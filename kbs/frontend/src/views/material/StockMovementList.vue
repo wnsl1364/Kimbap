@@ -8,8 +8,6 @@ import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import BasicTable from '@/components/kimbap/table/BasicTable.vue';
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import Textarea from 'primevue/textarea';
 
 // Store 및 기본 설정
 const stockMovementListStore = useStockMovementListStore();
@@ -38,8 +36,6 @@ const { user } = storeToRefs(memberStore);
 const searchFormData = ref({});
 const selectedMoveRequestItem = ref(null);
 const approverData = ref({});
-const rejectDialogVisible = ref(false);
-const rejectionReason = ref('');
 
 // 검색 폼 버튼 설정
 const searchFormButtons = computed(() => ({
@@ -61,7 +57,6 @@ const detailFormButtons = computed(() => ({
 const initializeApproverData = () => {
   approverData.value = {
     approverName: user.value?.empName || '',
-    approvalComment: '',
     rejectionReason: ''
   };
   console.log('승인자 정보 초기화:', approverData.value);
@@ -248,12 +243,11 @@ const handleApprove = async () => {
 
   try {
     const approver = user.value?.empCd || '';
-    const comment = approverData.value.approvalComment || '';
     
     await stockMovementListStore.approveMoveRequestById(
       selectedMoveRequestItem.value.moveReqCd,
       approver,
-      comment
+      '' // 승인 시에는 빈 코멘트
     );
     
     toast.add({
@@ -278,8 +272,8 @@ const handleApprove = async () => {
   }
 };
 
-// 거절 다이얼로그 열기
-const openRejectDialog = () => {
+// 거절 처리
+const handleReject = async () => {
   if (!selectedMoveRequestItem.value) {
     toast.add({
       severity: 'warn',
@@ -300,16 +294,10 @@ const openRejectDialog = () => {
     return;
   }
 
-  rejectionReason.value = '';
-  rejectDialogVisible.value = true;
-};
-
-// 거절 처리
-const handleReject = async () => {
-  if (!rejectionReason.value.trim()) {
+  if (!approverData.value.rejectionReason?.trim()) {
     toast.add({
       severity: 'warn',
-      summary: '입력 필요',
+      summary: '거절 사유 필요',
       detail: '거절 사유를 입력해주세요.',
       life: 3000
     });
@@ -322,7 +310,7 @@ const handleReject = async () => {
     await stockMovementListStore.rejectMoveRequestById(
       selectedMoveRequestItem.value.moveReqCd,
       approver,
-      rejectionReason.value
+      approverData.value.rejectionReason
     );
     
     toast.add({
@@ -331,9 +319,6 @@ const handleReject = async () => {
       detail: `이동요청 ${selectedMoveRequestItem.value.moveReqCd}이 거절되었습니다.`,
       life: 3000
     });
-    
-    rejectDialogVisible.value = false;
-    rejectionReason.value = '';
     
     // 거절 후 데이터 갱신
     await loadInitialData();
@@ -348,12 +333,6 @@ const handleReject = async () => {
       life: 3000
     });
   }
-};
-
-// 거절 다이얼로그 닫기
-const closeRejectDialog = () => {
-  rejectDialogVisible.value = false;
-  rejectionReason.value = '';
 };
 
 // 날짜 포맷 함수
@@ -493,7 +472,7 @@ const handleSearchFormDataChange = (newData) => {
                             severity="danger"
                             icon="pi pi-times"
                             :disabled="!canReject"
-                            @click="openRejectDialog"
+                            @click="handleReject"
                         />
                     </div>
                 </div>
@@ -501,47 +480,7 @@ const handleSearchFormDataChange = (newData) => {
         </div>
     </div>
 
-    <!-- 거절 사유 입력 다이얼로그 -->
-    <Dialog
-        v-model:visible="rejectDialogVisible"
-        modal
-        header="이동요청 거절"
-        :style="{ width: '500px' }"
-        :closable="true"
-        @hide="closeRejectDialog"
-    >
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    거절 사유 <span class="text-red-500">*</span>
-                </label>
-                <Textarea
-                    v-model="rejectionReason"
-                    rows="4"
-                    cols="50"
-                    placeholder="거절 사유를 입력해주세요."
-                    class="w-full"
-                    :class="{ 'p-invalid': !rejectionReason.trim() }"
-                />
-            </div>
-        </div>
-        
-        <template #footer>
-            <div class="flex gap-2 justify-end">
-                <Button
-                    label="취소"
-                    severity="secondary"
-                    @click="closeRejectDialog"
-                />
-                <Button
-                    label="거절 처리"
-                    severity="danger"
-                    @click="handleReject"
-                    :disabled="!rejectionReason.trim()"
-                />
-            </div>
-        </template>
-    </Dialog>
+
 </template>
 
 <style scoped>

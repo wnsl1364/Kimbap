@@ -11,7 +11,8 @@ import { getWarehousesByFactory, getWarehouseAreasWithStock } from '@/api/materi
 const props = defineProps({
     visible: { type: Boolean, default: false },
     selectedMaterial: { type: Object, default: () => ({}) },
-    loadingQuantity: { type: Number, default: 0 }
+    loadingQuantity: { type: Number, default: 0 },
+    existingPlacements: { type: Array, default: () => [] } // 🔥 다른 입고건들의 기존 배치 정보
 });
 
 const emit = defineEmits(['update:visible', 'confirm']);
@@ -79,10 +80,27 @@ const areaGrid = computed(() => {
             const areaCode = `W-${selectedWarehouseType.value.split('-')[1]}-${rowLetter}${col}-${selectedFloor.value}`;
             const areaInfo = warehouseAreas.value.find(area => area.wareAreaCd === areaCode);
             
+            // 🔥 다른 입고건이 이미 선택한 위치인지 확인
+            const existingPlacement = props.existingPlacements.find(placement => placement.wareAreaCd === areaCode);
+            
             // 🔥 단위별 실제 용량 계산
             const realMaxVolume = getRealCapacity();
             const currentVolume = areaInfo?.currentVolume || 0;
             const availableVolume = realMaxVolume - currentVolume;
+            
+            // 🔥 같은 자재인지 확인 (DB의 현재 자재 vs 선택하려는 자재)
+            const isSameMaterialInDB = areaInfo?.currentMaterial === props.selectedMaterial?.mcode;
+            
+            // 🔥 다른 입고건이 이미 이 위치를 선택했는지 확인
+            const isDifferentMaterialSelected = existingPlacement && existingPlacement.mcode !== props.selectedMaterial?.mcode;
+            const isSameMaterialSelected = existingPlacement && existingPlacement.mcode === props.selectedMaterial?.mcode;
+            
+            // 🔥 선택 가능 여부 결정
+            // - 다른 자재가 선택한 곳은 불가
+            // - 같은 자재가 선택한 곳은 가능 (동일 자재 다른 입고건)
+            // - DB에 다른 자재가 적재된 곳은 불가 (단, 총합이 0이면 가능)
+            const isAvailable = !isDifferentMaterialSelected && 
+                               (availableVolume > 0 || isSameMaterialInDB || isSameMaterialSelected);
             
             rowData.push({
                 wareAreaCd: areaCode,
@@ -92,8 +110,11 @@ const areaGrid = computed(() => {
                 currentVolume: currentVolume,
                 availableVolume: Math.max(0, availableVolume), // 🔥 실제 가용 용량
                 currentMaterial: areaInfo?.currentMaterial || null,
-                isAvailable: !areaInfo?.currentMaterial || areaInfo?.currentMaterial === props.selectedMaterial?.mcode,
-                isSameMaterial: areaInfo?.currentMaterial === props.selectedMaterial?.mcode
+                isAvailable: isAvailable,
+                isSameMaterial: isSameMaterialInDB,
+                isSameMaterialSelected: isSameMaterialSelected, // 🔥 같은 자재 다른 입고건
+                isDifferentMaterialSelected: isDifferentMaterialSelected,
+                existingPlacement: existingPlacement
             });
         }
         grid.push(rowData);
@@ -172,17 +193,28 @@ const getCapacityColor = (area) => {
 // 구역 선택
 const selectArea = (area) => {
     if (!area.isAvailable) {
+        let message = '구역 선택 불가';
+        let detail = '';
+        
+        if (area.isDifferentMaterialSelected) {
+            detail = `다른 자재(${area.existingPlacement.mateName || area.existingPlacement.mcode})가 이미 이 구역을 선택했습니다.`;
+        } else if (area.currentMaterial && !area.isSameMaterial) {
+            detail = `다른 자재가 적재된 구역입니다.`;
+        } else {
+            detail = '선택할 수 없는 구역입니다.';
+        }
+        
         toast.add({
             severity: 'warn',
-            summary: '구역 선택 불가',
-            detail: `다른 자재가 적재된 구역입니다.`,
+            summary: message,
+            detail: detail,
             life: 3000
         });
         return;
     }
     
     // 🔥 실제 가용 용량 체크
-    if (area.availableVolume <= 0) {
+    if (area.availableVolume <= 0 && !area.isSameMaterial && !area.isSameMaterialSelected) {
         toast.add({
             severity: 'warn',
             summary: '구역 선택 불가',
@@ -208,11 +240,22 @@ const selectArea = (area) => {
     
     // 새 구역 선택
     selectedAreas.value.push(area);
+    
+    // 🔥 가용 용량 계산 시 같은 자재 고려
+    let maxAllowedQty = remainingQty.value;
+    if (area.isSameMaterial || area.isSameMaterialSelected) {
+        // 같은 자재인 경우 전체 용량 사용 가능
+        maxAllowedQty = Math.min(remainingQty.value, area.realMaxVolume);
+    } else {
+        // 다른 자재인 경우 가용 용량만 사용 가능
+        maxAllowedQty = Math.min(remainingQty.value, area.availableVolume);
+    }
+    
     placementPlan.value.push({
         wareAreaCd: area.wareAreaCd,
         allocateQty: 0,
         selectedArea: area,
-        maxAllowedQty: Math.min(remainingQty.value, area.availableVolume) // 🔥 실제 가용 용량 사용
+        maxAllowedQty: maxAllowedQty
     });
     
     toast.add({
@@ -230,8 +273,12 @@ const updateAreaQuantity = (planIndex, newQty) => {
     
     newQty = Math.max(0, newQty || 0);
     
-    // 🔥 실제 가용 용량으로 제한
-    newQty = Math.min(newQty, plan.selectedArea.availableVolume);
+    // 🔥 실제 가용 용량으로 제한 (같은 자재인 경우 전체 용량 고려)
+    if (plan.selectedArea.isSameMaterial || plan.selectedArea.isSameMaterialSelected) {
+        newQty = Math.min(newQty, plan.selectedArea.realMaxVolume);
+    } else {
+        newQty = Math.min(newQty, plan.selectedArea.availableVolume);
+    }
     
     const otherTotal = placementPlan.value
         .filter((_, index) => index !== planIndex)
@@ -247,7 +294,13 @@ const updateAreaQuantity = (planIndex, newQty) => {
     const newTotal = placementPlan.value.reduce((sum, p) => sum + p.allocateQty, 0);
     placementPlan.value.forEach(p => {
         const others = newTotal - p.allocateQty;
-        p.maxAllowedQty = Math.min(modalInputQty.value - others, p.selectedArea.availableVolume);
+        let maxQty;
+        if (p.selectedArea.isSameMaterial || p.selectedArea.isSameMaterialSelected) {
+            maxQty = Math.min(modalInputQty.value - others, p.selectedArea.realMaxVolume);
+        } else {
+            maxQty = Math.min(modalInputQty.value - others, p.selectedArea.availableVolume);
+        }
+        p.maxAllowedQty = maxQty;
     });
 };
 
@@ -263,9 +316,17 @@ const getAreaStyle = (area) => {
     const isSelected = selectedAreas.value.some(selected => selected.wareAreaCd === area.wareAreaCd);
     
     if (isSelected) return 'bg-blue-500 text-white border-blue-600';
+    if (area.isDifferentMaterialSelected) {
+        // 🔥 다른 자재가 선택한 구역 - 빨간색
+        return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
+    }
+    if (area.isSameMaterialSelected) {
+        // 🔥 같은 자재 다른 입고건이 선택한 구역 - 주황색 (선택 가능)
+        return 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200';
+    }
     if (!area.isAvailable) return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
     if (area.isSameMaterial) return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
-    if (area.availableVolume <= 0) return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75'; // 🔥 실제 가용 용량 체크
+    if (area.availableVolume <= 0) return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75';
     return 'bg-white hover:bg-blue-50 border-gray-300 hover:border-blue-400';
 };
 
@@ -346,6 +407,9 @@ watch(() => props.visible, (newVal) => {
     if (newVal) {
         modalInputQty.value = props.loadingQuantity || 0;
         loadWarehouseTypes();
+    } else {
+        // 🔥 모달이 닫힐 때 초기화
+        resetModal();
     }
 });
 
@@ -371,6 +435,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                 <div class="bg-blue-50 p-4 rounded-lg">
                     <h6 class="font-semibold text-blue-800 mb-3">자재 정보</h6>
                     <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="font-medium">입고코드:</span>
+                            <span class="text-xs font-mono">{{ selectedMaterial?.mateInboCd }}</span>
+                        </div>
                         <div class="flex justify-between">
                             <span class="font-medium">자재코드:</span>
                             <span>{{ selectedMaterial?.mcode }}</span>
@@ -438,6 +506,19 @@ watch(() => props.loadingQuantity, (newQty) => {
                         </div>
                     </div>
                 </div>
+                
+                <!-- 🔥 다른 입고건의 선택된 구역 정보 -->
+                <div v-if="existingPlacements && existingPlacements.length > 0" class="bg-orange-50 p-4 rounded-lg">
+                    <h6 class="font-semibold text-orange-800 mb-3">다른 입고건 선택 구역</h6>
+                    <div class="space-y-2 max-h-32 overflow-y-auto">
+                        <div v-for="(placement, index) in (existingPlacements || [])" :key="index" 
+                             class="text-xs bg-white p-2 rounded border">
+                            <div class="font-mono font-semibold text-orange-700">{{ placement.wareAreaCd }}</div>
+                            <div class="text-gray-600">{{ placement.mateName || placement.mcode }}</div>
+                            <div class="text-orange-600">{{ placement.allocateQty }}{{ getUnitDisplayName(placement.unit || 'g5') }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 오른쪽: 창고 선택 -->
@@ -491,8 +572,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                                     현재적재: ${area.currentVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
                                     가용용량: ${area.availableVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
                                     ${area.currentMaterial ? '기존자재: ' + area.currentMaterial : ''}
-                                    ${!area.isAvailable ? '[선택불가] 다른 자재가 적재된 구역' : ''}
-                                    ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
+                                    ${area.isDifferentMaterialSelected ? '[선택불가] 다른 자재(' + (area.existingPlacement.mateName || area.existingPlacement.mcode) + ')가 이미 선택함' : ''}
+                                    ${area.isSameMaterialSelected ? '[가능] 같은 자재 다른 입고건이 선택함' : ''}
+                                    ${!area.isAvailable && !area.isDifferentMaterialSelected ? '[선택불가] 다른 자재가 적재된 구역' : ''}
+                                    ${area.availableVolume <= 0 && !area.isSameMaterial && !area.isSameMaterialSelected ? '[선택불가] 가용 용량 없음' : ''}`"
                                                                     >
                                     <div class="text-center">
                                         <div class="font-bold text-sm">{{ area.displayName }}</div>
@@ -502,6 +585,12 @@ watch(() => props.loadingQuantity, (newQty) => {
                                         <div v-if="area.currentMaterial" class="text-xs mt-1">
                                             <span v-if="area.isSameMaterial" class="text-green-600 font-semibold">동일자재</span>
                                             <span v-else class="text-red-600 font-semibold">다른자재</span>
+                                        </div>
+                                        <div v-else-if="area.isDifferentMaterialSelected" class="text-xs mt-1">
+                                            <span class="text-red-600 font-semibold">다른입고건</span>
+                                        </div>
+                                        <div v-else-if="area.isSameMaterialSelected" class="text-xs mt-1">
+                                            <span class="text-orange-600 font-semibold">같은자재</span>
                                         </div>
                                         <div v-else class="text-xs mt-1 text-gray-500">빈구역</div>
                                         
