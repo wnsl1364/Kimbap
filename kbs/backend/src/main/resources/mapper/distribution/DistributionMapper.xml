@@ -360,6 +360,8 @@ INSERT INTO release_ord_master (
     , rom.note
 
   ORDER BY rom.rel_dt DESC, rom.rel_mas_cd DESC
+</select>
+
 <select id="getRelDetails"
         parameterType="string"
         resultType="com.kimbap.kbs.distribution.service.RelDetailVO">
@@ -378,5 +380,4 @@ INSERT INTO release_ord_master (
     ORDER BY p.prod_name, od.pcode
 </select>
 
-</select>
 </mapper>
