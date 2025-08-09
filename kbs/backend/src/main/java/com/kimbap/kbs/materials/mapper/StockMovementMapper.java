@@ -22,6 +22,9 @@ public interface StockMovementMapper {
     
     // 이동요청상세코드 시퀀스 조회
     int getLastMoveReqDetailSequence(@Param("datePattern") String datePattern);
+    
+    // 창고이동코드 시퀀스 조회
+    int getLastWareMoveSequence(@Param("datePattern") String datePattern);
 
     // ========== 이동요청 목록 조회 관련 ==========
     
@@ -60,7 +63,7 @@ public interface StockMovementMapper {
 
     // ========== 승인/거절 처리 관련 ==========
     
-    // 이동요청 승인 처리
+    // 이동요청 승인 처리 (상태 변경 + 승인자/승인일시 설정)
     void approveMoveRequest(StockMovementVO stockMovement);
     
     // 이동요청 거절 처리
@@ -74,7 +77,7 @@ public interface StockMovementMapper {
 
     // ========== 이동처리 실행 관련 ==========
     
-    // 창고이동이력 등록
+    // 창고이동이력 등록 (WARE_MOVE_HIS 테이블)
     void insertWareMoveHistory(StockMovementVO stockMovement);
     
     // 창고재고 업데이트 (출발지 재고 차감)
