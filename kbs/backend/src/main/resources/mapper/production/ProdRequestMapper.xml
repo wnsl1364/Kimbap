@@ -118,11 +118,9 @@
     <!-- 마스터 insert -->
     <insert id="insertProductionReq">
         INSERT INTO production_req (
-            produ_req_cd, req_dt, requ,
-            pr_req_status, produ_plan_cd, deli_dt, note
+        produ_req_cd, req_dt, requ, pr_req_status, produ_plan_cd, deli_dt, note
         ) VALUES (
-            #{produReqCd}, #{reqDt}, #{requ},
-            'b1', #{produPlanCd}, #{deliDt}, #{note}
+        #{produReqCd}, #{reqDt}, #{requ}, 'b1', #{produPlanCd}, #{deliDt}, #{note, jdbcType=VARCHAR}
         )
     </insert>
     <!-- 마스터 update -->
@@ -220,13 +218,20 @@
         AND ws.qty > 0
         ]]>
         ORDER BY mi.lot_no ASC
+        FOR UPDATE
     </select>
     <!-- 재고 차감 -->
     <update id="decreaseWareStock">
         UPDATE ware_stock
-        SET qty = qty - #{useQty}
+        SET qty = qty - #{delta}
         WHERE wslcode = #{wslcode}
+        <![CDATA[
+            AND qty >= #{delta}
+        ]]>
     </update>
+    <select id="selectQtyByWslcode" resultType="decimal">
+        SELECT qty FROM ware_stock WHERE wslcode = #{wslcode}
+    </select>
     <!-- 자재출고 INSERT -->
     <insert id="insertMateRel" parameterType="MateReleaseVO">
         INSERT INTO mate_rel (

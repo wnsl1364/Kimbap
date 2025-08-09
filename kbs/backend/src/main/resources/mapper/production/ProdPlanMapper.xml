@@ -181,9 +181,10 @@
     <!-- MRP 등록 영역 ===================================== -->
     <!-- MRP 코드 생성 (예: MRP-YYYYMMDD-001) -->
     <select id="getNewMrpCd" resultType="String">
-        SELECT 'MRP-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' || LPAD(NVL(MAX(SUBSTR(mrp_cd, 13)), 0) + 1, 3, '0')
+        SELECT 'MRP-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' || 
+            LPAD(NVL(MAX(TO_NUMBER(SUBSTR(mrp_cd, 14))), 0) + 1, 3, '0')
         FROM mrp
-        WHERE TO_CHAR(plan_gene_dt, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+        WHERE mrp_cd LIKE 'MRP-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-%'
     </select>
 
     <insert id="insertMrp" parameterType="MrpVO">
@@ -240,17 +241,47 @@
 
     <!-- 발주서 등록 영역 ===================================== -->
     <!-- 발주서 코드 생성 -->
-    <select id="getNewPurcCd" resultType="String">
+    <!-- <select id="getNewPurcCd" resultType="String">
         SELECT 'PURC-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' || LPAD(NVL(MAX(SUBSTR(purc_cd, 14)), 0) + 1, 3, '0')
         FROM purc_ord
         WHERE TO_CHAR(ord_dt, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+    </select> -->
+    <select id="getNewPurcCd" resultType="String">
+        SELECT 'PURC-' || LPAD(
+            NVL(
+                MAX(
+                    CASE 
+                        WHEN REGEXP_LIKE(SUBSTR(purc_cd, 6), '^\d+$') 
+                        THEN TO_NUMBER(SUBSTR(purc_cd, 6))
+                        ELSE 0 
+                    END
+                ), 
+                0
+            ) + 1, 
+            3, 
+            '0'
+        )
+        FROM purc_ord
     </select>
     
     <!-- 발주서 상세 코드 생성 -->
     <select id="getNewPurcDCd" resultType="String">
-        SELECT fn_create_pk_code('purc_ord_d') FROM dual
+        SELECT 'PURC-D-' || LPAD(
+            NVL(
+                MAX(
+                    CASE 
+                        WHEN REGEXP_LIKE(SUBSTR(purc_d_cd, 9), '^\d+$') 
+                        THEN TO_NUMBER(SUBSTR(purc_d_cd, 9))
+                        ELSE 0 
+                    END
+                ), 
+                0
+            ) + 1, 
+            3, 
+            '0'
+        )
+        FROM purc_ord_d
     </select>
-    
     <!-- 발주서 등록 -->
     <insert id="insertPurchaseOrder" parameterType="PurcOrdVO">
         INSERT INTO purc_ord (purc_cd, ord_dt, regi, purc_status, ord_total_amount)
@@ -270,7 +301,7 @@
             unit, unit_price, ex_deli_dt, note, purc_d_status, 
             mate_cp_cd, curr_qty
         ) VALUES (
-            fn_create_pk_code('purc_ord_d'),
+            #{purcDCd},
             #{purcCd},
             #{mcode},
             #{mateVerCd},
