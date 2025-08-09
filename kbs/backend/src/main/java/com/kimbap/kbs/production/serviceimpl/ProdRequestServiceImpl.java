@@ -76,6 +76,10 @@ public class ProdRequestServiceImpl implements ProdRequestService {
       }
     }
 
+    // 제품입고 처리 시 필요값
+    String fcode = request.getFcode();
+    String facVerCd = request.getFacVerCd();
+
     // 신규 또는 수정 분기 처리
     for (ProdRequestDetailVO detail : details) {
       detail.setProduReqCd(produReqCd);
@@ -91,49 +95,48 @@ public class ProdRequestServiceImpl implements ProdRequestService {
         String pcode = detail.getPcode();
         String prodVerCd = detail.getProdVerCd();
         Integer reqQty = detail.getReqQty();
-        // 제품입고 처리 시 필요값
-        String fcode = request.getFcode();
-        String facVerCd = request.getFacVerCd();
 
+        // BOM 조회
         List<BomDetailVO> materials = mapper.selectBomMaterials(pcode, prodVerCd);
         for (BomDetailVO material : materials) {
-          BigDecimal totalNeedQty =  BigDecimal.valueOf(reqQty.intValue()).multiply(material.getNeedQty());
-          List<WaStockVO> stocks = mapper.selectAvailableStocks(material.getMcode(), material.getMateVerCd());
+            // 총 필요수량 = 요청수량 * 소요량
+            BigDecimal remaining = BigDecimal.valueOf(reqQty).multiply(material.getNeedQty());
 
-          for (WaStockVO stock : stocks) {
-            if (totalNeedQty.compareTo(BigDecimal.ZERO) <= 0) break;
+            // mcode + mateVerCd 기준 LOT FIFO 조회
+            List<WaStockVO> stocks = mapper.selectAvailableStocks(material.getMcode(), material.getMateVerCd());
 
-            BigDecimal useQty = stock.getQty().min(totalNeedQty);
-            String mcode = material.getMcode();
-            String relType = "";
-            if (mcode != null && mcode.length() >= 7) {
-              String typeDigit = mcode.substring(4, 5);
-              if ("1".equals(typeDigit)) relType = "y1";
-              else if ("2".equals(typeDigit)) relType = "y1";
+            for (WaStockVO stock : stocks) {
+                if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+
+                // 이 행에서 뺄 양 = min(행재고, 남은수량)
+                BigDecimal delta = stock.getQty().min(remaining);
+                if (delta.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+                // 음수 방지 가드(AND qty >= :delta)가 있는 UPDATE
+                int updated = mapper.decreaseWareStock(stock.getWslcode(), delta);
+                if (updated == 0) {
+                    // 경쟁 등으로 수량 변동 → 현재 수량 재조회 후 가능한 만큼만 재시도
+                    BigDecimal cur = mapper.selectQtyByWslcode(stock.getWslcode());
+                    if (cur != null && cur.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal retry = cur.min(delta);
+                        if (retry.compareTo(BigDecimal.ZERO) > 0) {
+                            mapper.decreaseWareStock(stock.getWslcode(), retry);
+                            insertMateRel(produProdCd, material, stock, retry, mname, resolveRelType(material.getMcode()));
+                            remaining = remaining.subtract(retry);
+                        }
+                    }
+                    continue;
+                }
+
+                // 출고 이력 기록
+                insertMateRel(produProdCd, material, stock, delta, mname, resolveRelType(material.getMcode()));
+                remaining = remaining.subtract(delta);
             }
-            MateReleaseVO rel = new MateReleaseVO();
-            rel.setMateRelCd(mapper.getNewMateRelCd());
-            rel.setProduProdCd(produProdCd);
-            rel.setMcode(material.getMcode());
-            rel.setMateVerCd(material.getMateVerCd());
-            rel.setWslcode(stock.getWslcode());
-            rel.setLotNo(stock.getLotNo());
-            rel.setRelQty(useQty);
-            rel.setUnit(material.getUnit());
-            rel.setRelDt(LocalDate.now());
-            rel.setRelType(relType);
-            rel.setMname(mname);
-            rel.setCreDt(LocalDate.now());
-            mapper.insertMateRel(rel);
 
-            mapper.decreaseWareStock(stock.getWslcode(), useQty);
-            totalNeedQty = totalNeedQty.subtract(useQty);
-          }
-
-          if (totalNeedQty.compareTo(BigDecimal.ZERO) > 0) {
-            throw new InsufficientStockException("자재 재고 부족: " + material.getMcode());
-          }
-      }
+            if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+                throw new InsufficientStockException("자재 재고 부족: " + material.getMcode());
+            }
+        }
 
       // 제품입고 처리
       ProdInboundVO inbo = new ProdInboundVO();
@@ -151,6 +154,39 @@ public class ProdRequestServiceImpl implements ProdRequestService {
 
     }
   }
+  // ===== Helper: 출고 이력 Insert =====
+  private void insertMateRel(String produProdCd,
+                            BomDetailVO material,
+                            WaStockVO stock,
+                            BigDecimal relQty,
+                            String mname,
+                            String relType) {
+    MateReleaseVO rel = new MateReleaseVO();
+    rel.setMateRelCd(mapper.getNewMateRelCd());
+    rel.setProduProdCd(produProdCd);
+    rel.setMcode(material.getMcode());
+    rel.setMateVerCd(material.getMateVerCd());
+    rel.setWslcode(stock.getWslcode());
+    rel.setLotNo(stock.getLotNo());
+    rel.setRelQty(relQty);
+    rel.setUnit(material.getUnit());
+    rel.setRelDt(LocalDate.now());
+    rel.setRelType(relType);
+    rel.setMname(mname);
+    rel.setCreDt(LocalDate.now());
+    mapper.insertMateRel(rel);
+  }
+
+  // ===== Helper: 자재 유형 → relType =====
+  private String resolveRelType(String mcode) {
+    if (mcode != null && mcode.length() >= 5) {
+      String typeDigit = mcode.substring(4, 5);
+      if ("1".equals(typeDigit)) return "y1";
+      if ("2".equals(typeDigit)) return "y1";
+    }
+    return "y1";
+  }
+
   // 생산요청과 관련 상세 삭제
   @Transactional
   @Override
