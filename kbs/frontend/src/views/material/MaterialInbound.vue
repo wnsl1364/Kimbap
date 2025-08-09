@@ -3,6 +3,8 @@ import { ref, onMounted, watch } from 'vue'
 import { useMaterialStore } from '@/stores/materialStore'
 import { useMemberStore } from '@/stores/memberStore'
 import { useRoute } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
+import Toast from 'primevue/toast'
 import BasicTable from '@/components/kimbap/table/BasicTable.vue'
 import InputForm from '@/components/kimbap/searchform/inputForm.vue'
 import { getMaterialInboundList, getMaterialInboundByPurcCd, updateMaterialInbound } from '@/api/materials'
@@ -10,6 +12,7 @@ import { getMaterialInboundList, getMaterialInboundByPurcCd, updateMaterialInbou
 const materialStore = useMaterialStore()
 const memberStore = useMemberStore()
 const route = useRoute()
+const toast = useToast()
 
 onMounted(async () => {
     await loadFactoryList();
@@ -62,7 +65,12 @@ const loadFactoryList = async () => {
         
     } catch (error) {
         console.error('공장 목록 로드 실패:', error);
-        alert(`공장 목록을 불러오는데 실패했습니다: ${error.message}`);
+        toast.add({
+            severity: 'error',
+            summary: '공장 목록 로드 실패',
+            detail: `공장 목록을 불러오는데 실패했습니다: ${error.message}`,
+            life: 5000
+        });
     }
 }
 
@@ -160,7 +168,12 @@ const fetchMaterialInboundData = async () => {
         
     } catch (error) {
         console.error('자재입고 데이터 조회 실패:', error);
-        alert('자재입고 데이터를 불러오는데 실패했습니다.');
+        toast.add({
+            severity: 'error',
+            summary: '데이터 조회 실패',
+            detail: '자재입고 데이터를 불러오는데 실패했습니다.',
+            life: 5000
+        });
     }
 }
 
@@ -246,12 +259,22 @@ watch(() => route.query.purcCd, async (newPurcCd, oldPurcCd) => {
 
 const handleInboundComplete = async () => {
     if (!formData.value.fcode || formData.value.fcode === '') {  
-        alert('입고공장을 반드시 선택해주세요!');
+        toast.add({
+            severity: 'warn',
+            summary: '입고공장 선택 필요',
+            detail: '입고공장을 반드시 선택해주세요!',
+            life: 3000
+        });
         return;
     }
 
     if (!selectedMaterials.value || selectedMaterials.value.length === 0) {
-        alert('입고할 자재를 선택해주세요.');
+        toast.add({
+            severity: 'warn',
+            summary: '자재 선택 필요',
+            detail: '입고할 자재를 선택해주세요.',
+            life: 3000
+        });
         return;
     }
 
@@ -261,7 +284,12 @@ const handleInboundComplete = async () => {
         if (selectedFactory?.facVerCd) {
             formData.value.facVerCd = selectedFactory.facVerCd;
         } else {
-            alert('선택된 공장의 버전 정보를 찾을 수 없습니다.');
+            toast.add({
+                severity: 'error',
+                summary: '공장 정보 오류',
+                detail: '선택된 공장의 버전 정보를 찾을 수 없습니다.',
+                life: 3000
+            });
             return;
         }
     }
@@ -303,7 +331,12 @@ const handleInboundComplete = async () => {
         
         formData.value.purcStatus = '입고완료';
         
-        alert(`입고 처리가 완료되었습니다. (처리된 자재: ${selectedMaterials.value.length}개, 입고일자: ${currentDate})`);
+        toast.add({
+            severity: 'success',
+            summary: '입고 처리 완료',
+            detail: `입고 처리가 완료되었습니다. (처리된 자재: ${selectedMaterials.value.length}개, 입고일자: ${currentDate})`,
+            life: 5000
+        });
         
         selectedMaterials.value = [];
         formData.value.fcode = '';
@@ -320,13 +353,19 @@ const handleInboundComplete = async () => {
             errorMessage = '서버와 통신할 수 없습니다. 네트워크를 확인해주세요.';
         }
         
-        alert(errorMessage);
+        toast.add({
+            severity: 'error',
+            summary: '입고 처리 실패',
+            detail: errorMessage,
+            life: 5000
+        });
     }
 }
 
 </script>
 
 <template>
+    <Toast />
     <div class="space-y-4 mb-2">
         <InputForm 
             :columns="materialStore.inboundFields"
