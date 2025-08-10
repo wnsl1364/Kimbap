@@ -1,6 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeMount, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onUnmounted, onBeforeMount, computed } from 'vue';
 import { format } from 'date-fns';
 import { useToast } from 'primevue/usetoast';
 import { storeToRefs } from 'pinia';
@@ -12,8 +11,8 @@ import Singleselect from '@/components/kimbap/modal/singleselect.vue';
 
 // 🟩 Pinia 상태 및 액션
 const store = useRelsaveStore();
-const { formData, releaseList, products, allocationRows } = storeToRefs(store);
-const { fetchRelsaves, fetchRelDetails, autoDistributeAll, saveRelease } = store;
+const { formData, releaseList, products, allocationRows,  } = storeToRefs(store);
+const { fetchRelsaves, fetchRelDetails, autoDistributeAll, saveRelease , resetForm} = store;
 
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common);
@@ -80,6 +79,7 @@ const handleSave = async () => {
         const prodRelCd = await saveRelease();
         toast.add({ severity: 'success', summary: '저장 완료', detail: `출고번호: ${prodRelCd}`, life: 2500 });
         // 완료 후 목록 갱신/리셋
+        resetForm();
         await store.fetchRelsaves(); // 대기목록 새로고침(완료/부분이면 빠짐)
         // store.resetForm() // 필요 시 초기화
     } catch (e) {
@@ -88,7 +88,9 @@ const handleSave = async () => {
     }
 };
 
-const handleApprove = () => {};
+const handleApprove = () => {
+    resetForm();
+};
 const handleReject = () => {};
 
 onBeforeMount(() => {
@@ -108,6 +110,10 @@ onBeforeMount(() => {
         { field: 'remainQty', header: '잔여수량', type: 'input', disabled: true }
     ];
 
+});
+
+onUnmounted(() => {
+  resetForm();
 });
 </script>
 
