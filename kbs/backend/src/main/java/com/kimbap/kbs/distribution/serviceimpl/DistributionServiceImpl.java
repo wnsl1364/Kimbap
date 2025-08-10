@@ -60,32 +60,34 @@ public class DistributionServiceImpl implements DistributionService {
     }
 
     // 출고 지시서 등록
-    @Transactional
-    @Override
     public void saveReleaseOrder(ReleaseMasterOrdVO master, List<ReleaseOrdVO> detailList) {
-        // 1. 출고마스터코드 생성
-        System.out.println("DEBUG: master = " + master);
-        System.out.println("DEBUG: master.getMName() = " + master.getMname());
+        // 1) 마스터 코드
         String relMasCd = distributionMapper.selectNewRelMasCd();
         master.setRelMasCd(relMasCd);
-
-        // 2. 마스터 insert
+    
+        // 2) 마스터 INSERT
         distributionMapper.insertReleaseOrdMaster(master);
-
-        // 3. 출고지시서코드 생성 준비
-        int maxSeq = distributionMapper.selectMaxRelOrdSeqToday(); // 오늘 최대 시퀀스
+    
+        // 3) 시퀀스 준비
+        int maxSeq = distributionMapper.selectMaxRelOrdSeqToday();
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int nextSeq = maxSeq + 1;
-
-        // 4. detailList에 코드 할당
+    
+        // 4) 디테일 코드/마스터 세팅
         for (ReleaseOrdVO item : detailList) {
             String relOrdCd = "REL-" + today + "-" + String.format("%04d", nextSeq++);
-            item.setNewRelOrdCd(relOrdCd); // 출고지시서 코드
-            item.setRelMasCd(relMasCd); // 출고마스터 코드
+            item.setNewRelOrdCd(relOrdCd);
+            item.setRelMasCd(relMasCd);
         }
-
-        // 5. 출고지시서 리스트 insert
+    
+        // 5) 디테일 INSERT
         distributionMapper.insertReleaseOrdList(detailList);
+    
+        // 6) 주문 상태 업데이트 (고객용 상태 s7)
+        if (master.getOrdCd() == null || master.getOrdCd().isBlank()) {
+            throw new IllegalArgumentException("ordCd가 없어 주문 상태를 갱신할 수 없습니다.");
+        }
+        distributionMapper.updateOrdStatusCustomer(master.getOrdCd());
     }
 
     @Override

@@ -16,6 +16,7 @@ export const useMemberStore = defineStore('member', {
   },
   getters: {
     isLogin: (state) => !!state.user,
-    role: (state) => state.user?.memType || ''  // 권한용 getter
+    role: (state) => state.user?.memType || '' , // 권한용 getter
+    team:    (state) => state.user?.teamCode || '',  // 팀코드
   }
 });

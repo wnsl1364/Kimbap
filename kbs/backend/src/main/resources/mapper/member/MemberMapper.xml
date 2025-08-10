@@ -13,6 +13,7 @@
       b.emp_name,
       b.tel,
       c.team_name,
+      c.team_code,
       d.dept_name,
       e.cp_cd,
       e.cp_name,

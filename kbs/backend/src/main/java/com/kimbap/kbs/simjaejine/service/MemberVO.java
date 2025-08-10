@@ -21,6 +21,7 @@ public class MemberVO {
   private String empName;
   private String tel;
   private String teamName;
+  private String teamCode;
   private String deptName;
   private String idUsed;
 

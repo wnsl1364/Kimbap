@@ -40,6 +40,8 @@ public interface DistributionMapper {
 
   void insertReleaseOrdList(List<ReleaseOrdVO> releaseList);
 
+  int updateOrdStatusCustomer(@Param("ordCd") String ordCd);
+
   // 출고마스터코드 자동 생성
   String selectNewRelMasCd();
 
