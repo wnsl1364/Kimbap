@@ -343,11 +343,11 @@ INSERT INTO release_ord_master (
        WHERE ro.rel_mas_cd = rom.rel_mas_cd
       ) prod_name
 
-    , (
-        SELECT SUM(ro.rel_ord_qty)
-        FROM release_ord ro
-       WHERE ro.rel_mas_cd = rom.rel_mas_cd
-      ) ord_qty
+    ,  (
+    SELECT NVL(SUM(ro.rel_ord_qty), 0)
+      FROM release_ord ro
+     WHERE ro.rel_mas_cd = rom.rel_mas_cd
+  ) rel_ord_qty
 
     , ol.deli_add
     , rom.rel_ord_status
@@ -540,5 +540,17 @@ INSERT INTO release_ord_master (
    WHERE rel_mas_cd     = #{relMasCd}
 </update>
 
+<update id="updateCustomerOrderStatus">
+    UPDATE order_list
+       SET ord_status_customer = #{status}
+     WHERE ord_cd = #{ordCd}
+</update>
+
+
+<select id="selectOrdCdByOrdDCd" parameterType="string" resultType="string">
+    SELECT ord_cd
+      FROM order_d
+     WHERE ord_d_cd = #{ord_d_cd}
+</select>
 
 </mapper>

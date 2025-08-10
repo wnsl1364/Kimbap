@@ -95,4 +95,9 @@ public interface DistributionMapper {
   
   int increaseCompanyUnsettledAmount(@Param("cpCd") String cpCd,
                                    @Param("amount") java.math.BigDecimal amount);
+
+  int updateCustomerOrderStatus(@Param("ordCd") String ordCd,
+                              @Param("status") String status);      
+                              
+  String selectOrdCdByOrdDCd(@Param("ord_d_cd") String ord_d_cd);
 }
