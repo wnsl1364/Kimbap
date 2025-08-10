@@ -109,42 +109,59 @@ public class DistributionServiceImpl implements DistributionService {
     @Override
     public String insertRelease(ReleaseRequestVO vo) {
         java.math.BigDecimal requestTotal = java.math.BigDecimal.ZERO;
+        java.util.Set<String> touchedOrdCds = new java.util.HashSet<>();
 
         for (var item : vo.getItems()) {
-            // ✅ ord_d_cd 로만 단가 조회
             java.math.BigDecimal unitPrice =
-                distributionMapper.selectUnitPriceByOrdDCd(item.getOrd_d_cd());
+                distributionMapper.selectUnitPriceByOrdDCd(item.getRelOrdCd());
+            if (unitPrice == null) unitPrice = distributionMapper.selectUnitPriceByOrdDCd(item.getOrd_d_cd());
             if (unitPrice == null) unitPrice = java.math.BigDecimal.ZERO;
 
             String prodVerCd = distributionMapper.selectLatestProdVerCd(item.getPcode());
 
             for (var lot : item.getLots()) {
                 Integer curr = distributionMapper.selectLotQtyForUpdate(lot.getLotNo(), lot.getWareAreaCd());
-                if (curr == null || curr < lot.getAllocQty()) throw new IllegalStateException("LOT " + lot.getLotNo() + " 재고부족");
+                if (curr == null || curr < lot.getAllocQty()) {
+                    throw new IllegalStateException("LOT " + lot.getLotNo() + " 재고부족");
+                }
 
                 String prodRelCd = distributionMapper.nextProdRelCd();
                 distributionMapper.insertProdRel(
                     prodRelCd,
                     lot.getLotNo(),
                     lot.getAllocQty(),
-                    item.getRelOrdCd(),   // 저장용으로 계속 전달
-                    item.getOrd_d_cd(),   // XML에서 단가/총액 계산 fallback에 사용
+                    item.getRelOrdCd(),
+                    item.getOrd_d_cd(),
                     item.getPcode(),
                     prodVerCd
                 );
 
                 distributionMapper.decreaseLotQty(lot.getLotNo(), lot.getWareAreaCd(), lot.getAllocQty());
 
-                // 누적합 계산
-                requestTotal = requestTotal.add(unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty())));
+                requestTotal = requestTotal.add(
+                    unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty()))
+                );
             }
+
+            // 이 아이템이 속한 주문코드 수집
+            String ordCd = distributionMapper.selectOrdCdByOrdDCd(item.getOrd_d_cd());
+            if (ordCd != null) touchedOrdCds.add(ordCd);
         }
 
+        // 마스터 상태 갱신 (기존 그대로)
         int totalOrd = distributionMapper.selectTotalRelOrdQty(vo.getRelMasCd());
         int totalDone = distributionMapper.selectTotalReleasedQty(vo.getRelMasCd());
-        String status = (totalDone >= totalOrd) ? "m3" : "m2";
-        distributionMapper.updateRelOrderStatus(vo.getRelMasCd(), status);
+        String relStatus = (totalDone >= totalOrd) ? "m3" : "m2";
+        distributionMapper.updateRelOrderStatus(vo.getRelMasCd(), relStatus);
 
+        // 주문 고객상태 갱신: 남은 수량 있으면 s8, 없으면 s3
+        for (String ordCd : touchedOrdCds) {
+            int remainCnt = distributionMapper.countRemainingQtyByOrdCd(ordCd);
+            String custStatus = (remainCnt > 0) ? "s8" : "s3";
+            distributionMapper.updateCustomerOrderStatus(ordCd, custStatus);
+        }
+
+        // 미정산금액 증가
         if (requestTotal.signum() > 0) {
             int updated = distributionMapper.increaseCompanyUnsettledAmount(vo.getCpCd(), requestTotal);
             if (updated == 0) {

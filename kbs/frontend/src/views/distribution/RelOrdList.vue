@@ -5,23 +5,47 @@ import InputTable from '@/components/kimbap/table/InputTable.vue';
 import { getRelOrdList } from '@/api/distribution';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
+import { useCommonStore } from '@/stores/commonStore'; // 🔥 공통코드 store 추가
 
 // 라우터 설정
 const router = useRouter();
 const route = useRoute();
 
+// 🔥 공통코드 store 추가
+const commonStore = useCommonStore();
+
 // api 데이터
 const rawData = ref([]);
 
-// 필터링된 데이터
-const cleanConvertedData = computed(() => Array.isArray(rawData.value) ? rawData.value : []);
+// 🔥 공통코드 형변환 함수
+const convertStatusCodes = (list) => {
+    const statusCodes = commonStore.getCodes('0M'); // 출고지시상태 코드
+    
+    return list.map(item => {
+        const matchedStatus = statusCodes.find(code => code.dcd === item.relOrdStatus);
+        
+        return {
+            ...item,
+            relOrdStatus: matchedStatus ? matchedStatus.cdInfo : item.relOrdStatus,
+        };
+    });
+};
+
+// 🔥 변환된 데이터 computed
+const cleanConvertedData = computed(() => {
+    const dataArray = Array.isArray(rawData.value) ? rawData.value : [];
+    return convertStatusCodes(dataArray);
+});
 
 const searchValues = ref({ type: '전체' });
 const onReset = () => { searchValues.value = { type: '전체' } };
 
-// ✅ onMounted 시 API 호출
+// ✅ onMounted 시 API 호출 + 공통코드 로드
 onMounted(async () => {
   try {
+    // 🔥 공통코드 로드
+    await commonStore.fetchCommonCodes('0M'); // 출고지시상태 코드
+    
     const result = await getRelOrdList({});
     console.log('✅ 응답 데이터:', result.data); // ← 실제 테이블용 데이터 확인
     rawData.value = result.data; // ✅ 핵심 수정
@@ -37,19 +61,25 @@ const materialTableButtons = ref({
   save: { show: false }
 });
 
+// 🔥 공통코드 원본값 조회 함수 (검색 시 사용)
+const getOriginalStatusCode = (displayValue) => {
+    const statusCodes = commonStore.getCodes('0M');
+    const found = statusCodes.find(code => code.cdInfo === displayValue);
+    return found ? found.dcd : displayValue;
+};
 
 const searchColumns = ref([
   {
     key: 'cpName',
     label: '거래처명',
     type: 'text',
-    placeholder: '제품명을 입력하세요'
+    placeholder: '거래처명을 입력하세요'
   },
   {
     key: 'relMasCd',
     label: '출고지시번호',
     type: 'text',
-    placeholder: '제품코드를 입력하세요'
+    placeholder: '출고지시번호를 입력하세요'
   },
   {
     key: 'relDt',
@@ -66,9 +96,10 @@ const searchColumns = ref([
     gridColumns: 4,
     options: [
       { label: '전체', value: '전체' },
-      { label: '요청', value: 'm1' },
+      { label: '대기', value: 'm1' }, // 🔥 원본 코드값 사용
       { label: '부분출고', value: 'm3' },
-      { label: '출고완료', value: 'm2' }
+      { label: '완료', value: 'm2' },
+      { label: '거절', value: 'm4' } // 🔥 거절 옵션 추가
     ]
   },
 ]);
@@ -104,10 +135,6 @@ const onSearch = async (searchValues) => {
   }
 };
 
-
-
-
-
 // InputTable용 컬럼 정의 (실제 데이터 필드와 매치)
 const inputTableColumns = computed(() => {
   const baseColumns = [
@@ -120,7 +147,7 @@ const inputTableColumns = computed(() => {
     {
       field: 'relMasCd',
       header: '출고지시번호',
-      type: 'clickable',
+      type: 'readonly',
       align: 'center',
       width: 200
     },
@@ -152,7 +179,7 @@ const inputTableColumns = computed(() => {
       field: 'relOrdStatus',
       header: '출고지시상태',
       type: 'readonly',
-      align: 'right'
+      align: 'center' // 🔥 상태는 가운데 정렬이 더 적절
     },
     {
       field: 'note',
@@ -184,7 +211,7 @@ const handleRowclicked = (row) => {
 
         <!-- 매핑된 InputTable -->
         <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relMasCd" :scroll-height="'50vh'"
-          :height="'60vh'" :title="`입출고 리스트`" :buttons="materialTableButtons" :enableRowActions="false"
+          :height="'60vh'" :title="`출고지시 리스트 (총 ${cleanConvertedData.length}건)`" :buttons="materialTableButtons" :enableRowActions="false"
           :enableSelection="false" @rowClick="handleRowclicked"/>
       </div>
     </div>

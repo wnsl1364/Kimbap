@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue';
 import RadioButton from 'primevue/radiobutton';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
-
+import { useToast } from 'primevue/usetoast';
+const toast = useToast();
 
 // 반응형 데이터
 const userType = ref('internal'); // 'internal' 또는 'supplier'

@@ -138,7 +138,7 @@
   FROM order_list o
   JOIN company c ON o.cp_cd = c.cp_cd
 
-  WHERE o.ord_status_customer IN ('s2', 's7')
+  WHERE o.ord_status_customer IN ('s2', 's7', 's8')
     AND EXISTS (
       SELECT 1
       FROM order_d od
@@ -176,39 +176,47 @@ SELECT
     cp.mname       AS mName,
     ol.ord_cd      AS ordCd,
 
-    <!-- /* 기출고 수량 */ -->
-    NVL((
-        SELECT SUM(pr.rel_qty)
+NVL((
+    SELECT SUM(pr.rel_qty)
+      FROM prod_rel pr
+      JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+      JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+     WHERE ro.ord_d_cd = od.ord_d_cd
+       AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
+), 0) AS relQty,
+
+GREATEST(
+  od.ord_qty - NVL((
+      SELECT SUM(pr.rel_qty)
         FROM prod_rel pr
-        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-        WHERE ro.ord_d_cd = od.ord_d_cd
-    ), 0) AS relQty,
+        JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+        JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+       WHERE ro.ord_d_cd = od.ord_d_cd
+         AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
+  ), 0),
+  0
+) AS noRelQty,
 
-    <!-- /* 미출고 수량 */ -->
-    od.ord_qty - NVL((
-        SELECT SUM(pr.rel_qty)
+CASE
+  WHEN NVL((
+      SELECT SUM(pr.rel_qty)
         FROM prod_rel pr
-        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-        WHERE ro.ord_d_cd = od.ord_d_cd
-    ), 0) AS noRelQty,
+        JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+        JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+       WHERE ro.ord_d_cd = od.ord_d_cd
+         AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
+  ), 0) = 0 THEN 'm1'
+  WHEN NVL((
+      SELECT SUM(pr.rel_qty)
+        FROM prod_rel pr
+        JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+        JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+       WHERE ro.ord_d_cd = od.ord_d_cd
+         AND rom.rel_ord_status NOT IN 'm4'
+  ), 0) &lt; od.ord_qty THEN 'm3'
+  ELSE 'm2'
+END AS relOrdStatus
 
-    <!-- /* 상태 */ -->
-    CASE
-      WHEN NVL((
-          SELECT SUM(pr.rel_qty)
-          FROM prod_rel pr
-          JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-          WHERE ro.ord_d_cd = od.ord_d_cd
-      ), 0) = 0 THEN 'm1'
-      WHEN NVL((
-          SELECT SUM(pr.rel_qty)
-          FROM prod_rel pr
-          JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-          WHERE ro.ord_d_cd = od.ord_d_cd
-      ), 0) &lt; od.ord_qty THEN 'm3'
-
-      ELSE 'm2'
-    END AS relOrdStatus
 
 FROM order_d od
 JOIN product    p  ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
@@ -335,11 +343,11 @@ INSERT INTO release_ord_master (
        WHERE ro.rel_mas_cd = rom.rel_mas_cd
       ) prod_name
 
-    , (
-        SELECT SUM(ro.rel_ord_qty)
-        FROM release_ord ro
-       WHERE ro.rel_mas_cd = rom.rel_mas_cd
-      ) ord_qty
+    ,  (
+    SELECT NVL(SUM(ro.rel_ord_qty), 0)
+      FROM release_ord ro
+     WHERE ro.rel_mas_cd = rom.rel_mas_cd
+  ) rel_ord_qty
 
     , ol.deli_add
     , rom.rel_ord_status
@@ -532,5 +540,32 @@ INSERT INTO release_ord_master (
    WHERE rel_mas_cd     = #{relMasCd}
 </update>
 
+<!-- 고객상태 업데이트 -->
+<update id="updateCustomerOrderStatus">
+    UPDATE order_list
+       SET ord_status_customer = #{status}
+     WHERE ord_cd = #{ordCd}
+</update>
+
+<!-- 주문코드 조회 -->
+<select id="selectOrdCdByOrdDCd" parameterType="string" resultType="string">
+    SELECT ord_cd
+      FROM order_d
+     WHERE ord_d_cd = #{ord_d_cd}
+</select>
+
+<!-- 해당 주문에 '잔여수량 > 0' 인 상세가 몇 개인지 -->
+<select id="countRemainingQtyByOrdCd" parameterType="string" resultType="int">
+  SELECT COUNT(1)
+    FROM order_d od
+    LEFT JOIN (
+      SELECT ro.ord_d_cd, NVL(SUM(pr.rel_qty),0) rel_qty
+        FROM prod_rel pr
+        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+       GROUP BY ro.ord_d_cd
+    ) r ON r.ord_d_cd = od.ord_d_cd
+   WHERE od.ord_cd = #{ordCd}
+     AND (od.ord_qty - NVL(r.rel_qty,0)) > 0
+</select>
 
 </mapper>

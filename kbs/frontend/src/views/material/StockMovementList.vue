@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { useStockMovementListStore } from '@/stores/stockMovementListStore';
 import { useMemberStore } from '@/stores/memberStore';
 import { useToast } from 'primevue/usetoast';
-import InputForm from '@/components/kimbap/searchform/inputForm.vue';
+import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import BasicTable from '@/components/kimbap/table/BasicTable.vue';
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue';
 import Button from 'primevue/button';
@@ -33,17 +33,16 @@ const {
 const { user } = storeToRefs(memberStore);
 
 // 반응형 상태
-const searchFormData = ref({});
 const selectedMoveRequestItem = ref(null);
 const approverData = ref({});
 
-// 검색 폼 버튼 설정
-const searchFormButtons = computed(() => ({
-  save: { show: true, label: '검색', severity: 'primary' },
-  reset: { show: true, label: '초기화', severity: 'secondary' },
-  delete: { show: false },
-  load: { show: false }
-}));
+// 검색 폼 버튼 설정 (SearchForm 사용 시 필요없음)
+// const searchFormButtons = computed(() => ({
+//   save: { show: true, label: '검색', severity: 'primary' },
+//   reset: { show: true, label: '초기화', severity: 'secondary' },
+//   delete: { show: false },
+//   load: { show: false }
+// }));
 
 // 상세정보 버튼 설정
 const detailFormButtons = computed(() => ({
@@ -95,20 +94,7 @@ const handleSearch = async (searchData) => {
   try {
     console.log('검색 조건:', searchData);
     
-    // 날짜 범위 처리
-    if (searchData.reqDt && Array.isArray(searchData.reqDt)) {
-      searchData.startDate = formatDate(searchData.reqDt[0]);
-      searchData.endDate = formatDate(searchData.reqDt[1]);
-      delete searchData.reqDt;
-    }
-    
     stockMovementListStore.setSearchFilter(searchData);
-    
-    if (Object.keys(searchData).some(key => searchData[key])) {
-      await stockMovementListStore.searchMoveRequests(searchData);
-    } else {
-      await stockMovementListStore.fetchMoveRequestList();
-    }
     
     toast.add({
       severity: 'success',
@@ -130,7 +116,6 @@ const handleSearch = async (searchData) => {
 // 검색 초기화
 const handleReset = async () => {
   try {
-    searchFormData.value = {};
     stockMovementListStore.clearSearchFilter();
     stockMovementListStore.clearSelectedMoveRequest();
     selectedMoveRequestItem.value = null;
@@ -379,11 +364,6 @@ watch(selectedMoveRequestInfo, (newValue) => {
 const handleApproverDataChange = (newData) => {
   approverData.value = { ...approverData.value, ...newData };
 };
-
-// 검색 폼 데이터 변경 처리
-const handleSearchFormDataChange = (newData) => {
-  searchFormData.value = { ...searchFormData.value, ...newData };
-};
 </script>
 
 <template>
@@ -391,22 +371,19 @@ const handleSearchFormDataChange = (newData) => {
         <!-- 왼쪽: 검색 및 목록 -->
         <div class="space-y-4">
             <!-- 검색 폼 -->
-            <div class="card">
-                <InputForm
-                    title="이동요청 검색"
+            <div class="space-y-4 mb-2">
+                <SearchForm 
                     :columns="searchColumns"
-                    :data="searchFormData"
-                    :buttons="searchFormButtons"
-                    @submit="handleSearch"
+                    @search="handleSearch"
                     @reset="handleReset"
-                    @update:data="handleSearchFormDataChange"
+                    :gridColumns="2"
                 />
             </div>
 
             <!-- 이동요청 목록 -->
             <div class="card">
                 <BasicTable
-                    title="이동요청 목록"
+                    :title="`이동요청 목록 (총 ${filteredMoveRequestList.length}건)`"
                     :data="filteredMoveRequestList"
                     :columns="moveRequestColumns"
                     :selection="selectedMoveRequestItem ? [selectedMoveRequestItem] : []"
