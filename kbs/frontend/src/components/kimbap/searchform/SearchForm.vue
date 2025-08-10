@@ -106,7 +106,6 @@ const searchData = computed(() => {
 
 const handleSearch = () => {
     const searchPayload = flattenSearchData(searchColumns.value);
-    console.log('검색 실행:', searchPayload);
     emit('search', searchPayload);
 };
 
@@ -136,17 +135,17 @@ const flattenSearchData = (columns) => {
             const end = column.value.end;
 
             if (start) {
-                flatData[`${key}Start`] =
-                    typeof start === 'string'
-                        ? start.slice(0, 10)
-                        : format(start, 'yyyy-MM-dd');
+                const startStr = typeof start === 'string'
+                    ? start.slice(0, 10)
+                    : format(start, 'yyyy-MM-dd');
+                flatData[`${key}Start`] = startStr;
             }
 
             if (end) {
-                flatData[`${key}End`] =
-                    typeof end === 'string'
-                        ? end.slice(0, 10)
-                        : format(end, 'yyyy-MM-dd');
+                const endStr = typeof end === 'string'
+                    ? end.slice(0, 10)
+                    : format(end, 'yyyy-MM-dd');
+                flatData[`${key}End`] = endStr;
             }
         } else {
             flatData[column.key] = column.value;

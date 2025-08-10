@@ -87,7 +87,7 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
     { field: 'mcode', header: '자재코드', type: 'readonly' },
     { field: 'mateName', header: '자재명', type: 'readonly' },
     { field: 'totalQty', header: '적재대기수량', type: 'readonly', align: 'right' },
-    { field: 'qty', header: '적재수량', type: 'input', inputType: 'number', align: 'right', placeholder: '적재수량 입력', width: '80px' },
+    { field: 'qty', header: '적재수량', type: 'input', inputType: 'number', align: 'right', placeholder: '적재수량 입력' },
     { field: 'unit', header: '단위', type: 'readonly' },
     { field: 'stoCon', header: '보관조건', type: 'readonly' },
     { field: 'lotNo', header: 'LOT번호', type: 'readonly' },
@@ -100,8 +100,8 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
       buttonLabel: '구역선택', 
       buttonIcon: 'pi pi-map-marker',
       buttonEvent: 'locationSelect',
-      width: '200px',
-      minWidth: '200px'
+      width: '120px',
+      minWidth: '120px'
     }
   ]);
 
@@ -134,15 +134,28 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
       // 보관조건 검색
       const matchStoCon = !searchData.stoCon || item.stoCon === searchData.stoCon;
       
-      // 입고일자 범위 검색
+      // 입고일자 범위 검색 (평탄화된 데이터 형식으로 수정)
       let matchInboDt = true;
-      if (searchData.inboDt?.start && searchData.inboDt?.end && item.inboDt) {
+      if ((searchData.inboDtStart || searchData.inboDtEnd) && item.inboDt) {
         const itemDate = new Date(item.inboDt);
-        const startDate = new Date(searchData.inboDt.start);
-        const endDate = new Date(searchData.inboDt.end);
-        endDate.setHours(23, 59, 59, 999); // 하루 끝까지
         
-        matchInboDt = itemDate >= startDate && itemDate <= endDate;
+        // 시작일 조건 체크
+        if (searchData.inboDtStart) {
+          const startDate = new Date(searchData.inboDtStart);
+          startDate.setHours(0, 0, 0, 0); // 하루 시작
+          if (itemDate < startDate) {
+            matchInboDt = false;
+          }
+        }
+        
+        // 종료일 조건 체크
+        if (searchData.inboDtEnd && matchInboDt) {
+          const endDate = new Date(searchData.inboDtEnd);
+          endDate.setHours(23, 59, 59, 999); // 하루 끝까지
+          if (itemDate > endDate) {
+            matchInboDt = false;
+          }
+        }
       }
       
       return matchMateInboCd && matchMcode && matchMateName && matchFcode && matchStoCon && matchInboDt;
@@ -164,6 +177,7 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
     if (!hasValidFilter) {
       return mateLoadingList.value;
     }
+    
     return searchMateLoadings(searchFilter.value);
   });
 
@@ -236,7 +250,7 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
  */
 const processBatchLoading = async () => {
       if (selectedMateLoadings.value.length === 0) {
-        throw new Error('적재할 자재를 선택해주세요.');
+        throw new Error('선택된 자재가 없습니다.');
       }
 
       // 창고구역이 설정된 자재들만 필터링 (wareAreaCd 또는 placementPlan이 있는 경우)
