@@ -150,12 +150,13 @@
   </select>
 
   <!-- lot번호 -->
-  <select id="getLotNoByOrdDCd" parameterType="string" resultType="string">
-      SELECT pr.lot_no
-      FROM prod_rel pr
-      JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-      WHERE ro.ord_d_cd = #{ordDCd}
+  <select id="getLotNosByOrdDCd" resultType="string">
+    SELECT DISTINCT pr.lot_no
+    FROM prod_rel pr
+    JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+    WHERE ro.ord_d_cd = #{ordDCd}
   </select>
+
 
   <!-- 주문상세 상태를 출고완료(t3)로 -->
   <update id="updateOrderDetailStatusToT3" parameterType="string">
@@ -179,4 +180,34 @@
     FROM order_d
     WHERE ord_d_cd = #{ordDCd}
   </select>
+
+  <!-- order_d에서 단가 조회 -->
+  <select id="getUnitPriceByOrdDCd" resultType="java.math.BigDecimal">
+    SELECT unit_price
+    FROM order_d
+    WHERE ord_d_cd = #{ordDCd}
+  </select>
+
+  <!-- order_list에서 회사 코드 조회 -->
+  <select id="getCompanyCodeByOrdCd" resultType="string">
+    SELECT cp_cd
+    FROM order_list
+    WHERE ord_cd = #{ordCd}
+  </select>
+
+  <!-- 반품 수 업데이트 -->
+  <update id="updateReturnAmount" parameterType="map">
+    UPDATE prod_return
+    SET return_amount = #{returnAmount}
+    WHERE prod_return_cd = #{prodReturnCd}
+  </update>
+
+  <!-- 미수금 차감 -->
+  <update id="decreaseCompanyUnsettledAmount" parameterType="map">
+    UPDATE company
+    SET unsettled_amount = NVL(unsettled_amount,0) - #{amount}
+    WHERE cp_cd = #{cpCd}
+  </update>
+
+
 </mapper>

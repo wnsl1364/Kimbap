@@ -1,5 +1,6 @@
 package com.kimbap.kbs.order.mapper;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +45,7 @@ public interface ReturnMapper {
   String getOrdCdByReturnCd(String prodReturnCd);
 
   // lot번호
-  String getLotNoByOrdDCd(String ordDCd);
+  List<String> getLotNosByOrdDCd(String ordDCd);
 
   // 주문상세 상태를 출고완료(t3)로 변경
   void updateOrderDetailStatusToT3(String ordDCd);
@@ -60,4 +61,11 @@ public interface ReturnMapper {
 
   // 미수금 차감
   void decreaseCompanyUnsettledAmount(Map<String, Object> params);
+
+  // order_d에서 단가 조회
+  BigDecimal getUnitPriceByOrdDCd(String ordDCd);
+
+  // order_list에서 회사 코드 조회
+  String getCompanyCodeByOrdCd(String ordCd);
+
 }

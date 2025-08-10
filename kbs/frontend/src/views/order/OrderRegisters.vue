@@ -376,11 +376,11 @@ const handleDownloadPDF = () => {
     },
     headStyles: {
       font: 'NotoSansKR',
-      fontStyle: 'normal',       // 👈 추가 추천 (기본)
+      fontStyle: 'normal',
       fontSize: 10
     },
     bodyStyles: {
-      font: 'NotoSansKR',         // 👈 이 부분 꼭 있어야 함!
+      font: 'NotoSansKR',
       fontSize: 10
     }
   })
@@ -525,11 +525,14 @@ onMounted(async () => {
       productModalConfig.value = {
         prodName: {
           displayField: 'prodName',
-          items: productList,
+          items: productList.map(p => ({
+            ...p,
+            prodUnitPriceFormatted: Number(p.prodUnitPrice).toLocaleString()
+          })),
           columns: [
             { field: 'pcode', header: '제품코드' },
             { field: 'prodName', header: '제품명' },
-            { field: 'prodUnitPrice', header: '단가' }
+            { field: 'prodUnitPriceFormatted', header: '단가' }
           ],
           mappingFields: {
             pcode: 'pcode',
