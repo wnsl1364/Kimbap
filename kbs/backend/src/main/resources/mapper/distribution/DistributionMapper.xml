@@ -182,7 +182,7 @@ NVL((
       JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
       JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
      WHERE ro.ord_d_cd = od.ord_d_cd
-       AND rom.rel_ord_status NOT IN ('취소코드','반려코드')  -- ← 실제 코드로 교체
+       AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
 ), 0) AS relQty,
 
 GREATEST(
