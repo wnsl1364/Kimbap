@@ -138,7 +138,7 @@
   FROM order_list o
   JOIN company c ON o.cp_cd = c.cp_cd
 
-  WHERE o.ord_status_customer IN ('s2', 's7')
+  WHERE o.ord_status_customer IN ('s2', 's7', 's8')
     AND EXISTS (
       SELECT 1
       FROM order_d od
