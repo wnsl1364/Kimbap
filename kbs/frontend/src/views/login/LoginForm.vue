@@ -1,4 +1,7 @@
 <template>
+  <!-- ✅ 이 페이지 전용 토스트 컨테이너 -->
+  <Toast position="top-right" />
+
   <div class="min-h-screen flex items-center justify-center bg-gray-100">
     <div class="bg-white rounded-2xl shadow-xl w-96 p-6">
       <!-- 로고 영역 -->
@@ -47,73 +50,65 @@
 </template>
 
 <script setup>
-import { createApp } from 'vue'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios';
 import { useRouter } from 'vue-router'
 import { useMemberStore } from '@/stores/memberStore';
+import { useToast } from 'primevue/usetoast'
+import Toast from 'primevue/toast'
 
-// 라우터
 const router = useRouter();
-
-// store 로그인정보 저장용
 const memberStore = useMemberStore();
+const toast = useToast();
 
-// login
 const id = ref('');
 const pw = ref('');
-const error = ref('');
-const rememberId = ref(false) // 아이디 저장 여부
+const rememberId = ref(false);
+
+// 저장된 아이디 복원
+onMounted(() => {
+  const saved = localStorage.getItem('rememberedId');
+  if (saved) {
+    id.value = saved;
+    rememberId.value = true;
+  }
+});
 
 async function handleLogin() {
-  // 프론트단 유효성 검사
   if (!id.value) {
-    error.value = '아이디를 입력하세요.';
+    toast.add({ severity: 'warn', summary: '입력 필요', detail: '아이디를 입력하세요.', life: 2500 });
     return;
   }
-
   if (!pw.value) {
-    error.value = '비밀번호를 입력하세요.';
+    toast.add({ severity: 'warn', summary: '입력 필요', detail: '비밀번호를 입력하세요.', life: 2500 });
     return;
   }
 
   try {
-    const response = await axios.post('/api/login', {
-      id: id.value,
-      pw: pw.value,
-    });
-
-    // 응답 { token: "...", user: { id, memType, ... } }
+    const response = await axios.post('/api/login', { id: id.value, pw: pw.value });
     const { token, user } = response.data;
 
-  if (user && user.id) {
+    if (user && user.id) {
       delete user.pw;
+      memberStore.saveUser(user);
+      sessionStorage.setItem('member', JSON.stringify(user));
+      localStorage.setItem('token', token);
 
-      memberStore.saveUser(user);                 // Pinia 저장
-      sessionStorage.setItem('member', JSON.stringify(user)); // 세션 저장
-      localStorage.setItem('token', token);       // 토큰은 로컬 저장
+      if (rememberId.value) localStorage.setItem('rememberedId', id.value);
+      else localStorage.removeItem('rememberedId');
 
-      console.log('저장된 정보:', user);
-      console.log('저장된 토큰:', token);
-
-      // 메인페이지로 이동
+      toast.add({ severity: 'success', summary: '로그인 성공', detail: `${user.id}님 환영합니다.`, life: 2000 });
       router.push('/');
     } else {
-      error.value = '로그인 응답이 올바르지 않습니다.';
+      toast.add({ severity: 'error', summary: '로그인 오류', detail: '로그인 응답이 올바르지 않습니다.', life: 3000 });
     }
   } catch (err) {
-    console.error(' 로그인 오류:', err);
-    error.value = '사원번호와 비밀번호를 확인해주세요.';
+    console.error('로그인 오류:', err);
+    toast.add({ severity: 'error', summary: '로그인 실패', detail: '사원번호와 비밀번호를 확인해주세요.', life: 3000 });
   }
 }
-// logout() {
-//   this.user = null;
-//   sessionStorage.removeItem('member');
-//   localStorage.removeItem('token');
-// }
 </script>
 
 <style scoped>
-/* 추후 필요시 커스텀 스타일 추가 가능 */
+/* 필요 시 추가 스타일 */
 </style>
-

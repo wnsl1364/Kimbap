@@ -120,7 +120,7 @@ const inputTableColumns = computed(() => {
     {
       field: 'relMasCd',
       header: '출고지시번호',
-      type: 'clickable',
+      type: 'readonly',
       align: 'center',
       width: 200
     },

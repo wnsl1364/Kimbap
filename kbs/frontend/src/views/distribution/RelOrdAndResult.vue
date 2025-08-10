@@ -9,8 +9,13 @@ import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
 import { useMemberStore } from '@/stores/memberStore'
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { reactive } from 'vue';
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast'
+
+const toast = useToast();
+const router = useRouter();
 
 const infoFormButtons = reactive({});
 // 로그인 정보 가져오기
@@ -52,9 +57,9 @@ const formFields2 = [
 // 제품 테이블
 const columns = computed(() => [
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
-  { field: 'ordQty', header: '주문수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'noRelQty', header: '주문잔여수량(개)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'relQty', header: '출고지시수량(개)', type: 'input', inputType: 'number', align: 'right', },
+  { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'noRelQty', header: '주문잔여수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'relQty', header: '출고지시수량(box)', type: 'input', inputType: 'number', align: 'right', },
   {
     field: 'wcode', // 창고코드
     header: '창고',
@@ -86,22 +91,90 @@ const warehouseOptions = computed(() => {
 
 const handleSave = async () => {
   try {
-    const { newRelOrdCd, relDt, regi, note, cpCd, mname, deliAdd, deliReqDt } = formData.value;
+    const { newRelOrdCd, relDt, regi, note, cpCd, mname, deliAdd, deliReqDt, cpName } = formData.value;
     const ordCdResolved = formData.value?.ordCd || route.query.ordCd;
+    
     if (!ordCdResolved) {
-      alert('ordCd가 비어 있어요. 주문을 먼저 선택해주세요.');
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '주문을 먼저 선택해주세요.', 
+        life: 3000 
+      });
       return;
     }
-    // master VO
+    
+    // 필수 필드 검증 (비고 제외)
+    if (!regi?.trim()) {
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '작성자를 입력해주세요.', 
+        life: 3000 
+      });
+      return;
+    }
+    
+    if (!cpCd?.trim()) {
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '거래처 정보가 없습니다. 주문정보를 다시 불러와주세요.', 
+        life: 3000 
+      });
+      return;
+    }
+    
+    if (!cpName?.trim()) {
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '거래처명이 없습니다. 주문정보를 다시 불러와주세요.', 
+        life: 3000 
+      });
+      return;
+    }
+    
+    if (!mname?.trim()) {
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '거래처 담당자가 없습니다. 주문정보를 다시 불러와주세요.', 
+        life: 3000 
+      });
+      return;
+    }
+    
+    if (!deliAdd?.trim()) {
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '납품지 주소가 없습니다. 주문정보를 다시 불러와주세요.', 
+        life: 3000 
+      });
+      return;
+    }
+    
+    if (!deliReqDt?.trim()) {
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '납기요청일이 없습니다. 주문정보를 다시 불러와주세요.', 
+        life: 3000 
+      });
+      return;
+    }
+    
+    // master VO (null 값 처리를 위해 빈 문자열로 변환)
     const master = {
       // relMasCd,
-      regi,
+      regi: regi?.trim() || '',
       relDt,
-      note,
-      cpCd,
-      mname,
-      deliAdd,
-      deliReqDt,
+      note: note?.trim() || '',  // null이면 빈 문자열로 처리
+      cpCd: cpCd?.trim() || '',
+      mname: mname?.trim() || '',
+      deliAdd: deliAdd?.trim() || '',
+      deliReqDt: deliReqDt?.trim() || '',
       relOrdStatus: 'm1',
       ordCd: ordCdResolved
     };
@@ -121,7 +194,12 @@ const handleSave = async () => {
       })
 
     if (detailList.length === 0) {
-      alert('출고지시수량이 입력된 제품이 없습니다.');
+      toast.add({ 
+        severity: 'warn', 
+        summary: '입력 확인', 
+        detail: '출고지시수량이 입력된 제품이 없습니다.', 
+        life: 3000 
+      });
       return;
     }
 
@@ -137,30 +215,34 @@ const handleSave = async () => {
     await insertRelOrd(payload);
 
     // ✅ 성공 처리
-    alert('출고지시 저장 완료!');
+    toast.add({ 
+      severity: 'success', 
+      summary: '저장 완료', 
+      detail: '출고지시가 성공적으로 저장되었습니다!', 
+      life: 3000 
+    });
+    
     formStore.$reset();
     productStore.$reset();
 
-    // ✅ 라우터 이동을 try-catch 밖으로 이동하거나 별도 처리
+    // ✅ 라우터 이동
     setTimeout(() => {
       router.push('/distribution/relOrdList');
-    }, 100);
+    }, 1000);
 
   } catch (err) {
     console.error('❌ 출고지시 저장 실패:', err);
 
     // ✅ 실제 오류인 경우만 오류 메시지 표시
     const errorMessage = err.response?.data?.message || err.message || '알 수 없는 오류가 발생했습니다.';
-    alert('저장 중 오류 발생: ' + errorMessage);
+    toast.add({ 
+      severity: 'error', 
+      summary: '저장 실패', 
+      detail: '저장 중 오류 발생: ' + errorMessage, 
+      life: 4000 
+    });
   }
 };
-
-
-// 버튼 설정
-// const infoFormButtons = ref({
-//   save: { show: true, label: '저장', severity: 'info', onClick: handleSave },
-//   load: { show: true, label: '주문정보 불러오기', severity: 'success' },
-// });
 
 // 제품 추가 영역 버튼 설정
 const purchaseFormButtons = ref({
@@ -203,6 +285,12 @@ const loadOrderListForModal = async () => {
     }
   } catch (err) {
     console.error('출고지시 모달 주문 목록 로딩 실패:', err)
+    toast.add({ 
+      severity: 'error', 
+      summary: '로딩 실패', 
+      detail: '주문 목록을 불러오는데 실패했습니다.', 
+      life: 3000 
+    });
   }
 }
 
@@ -217,7 +305,11 @@ const handleLoadOrder = async (selectedRow) => {
 
     // 2. 출고지시용 제품 리스트
     const prodRes = await getRelOrdSelect(ordCd);
-    const productList = prodRes.data;
+    const productList = (prodRes.data || []).map(p => ({
+          ...p,
+     relQty: 0,
+     wcode: '' // 창고 셀렉트 초기화(필요 없으면 이 줄 제거)
+   }));
 
     // 담당자명, 거래처명은 productList[0]에서 바로 꺼내기
     const mname = productList[0]?.mname || '';
@@ -248,15 +340,28 @@ const handleLoadOrder = async (selectedRow) => {
       newRelMasCd: newRelMasCd,
       wName: '',
     });
+    
     console.log('넘겨줄 데이터:', order);
     productStore.setProducts(productList);
     console.log('✅ 출고지시 제품 리스트:', productList)
+    
+    toast.add({ 
+      severity: 'success', 
+      summary: '불러오기 완료', 
+      detail: '주문 정보가 성공적으로 불러와졌습니다.', 
+      life: 2500 
+    });
+    
   } catch (err) {
     console.error('출고지시 주문 데이터 로딩 실패:', err);
+    toast.add({ 
+      severity: 'error', 
+      summary: '불러오기 실패', 
+      detail: '주문 데이터를 불러오는데 실패했습니다.', 
+      life: 3000 
+    });
   }
 };
-
-
 
 // 주문 불러오기
 onMounted(async () => {
@@ -293,8 +398,21 @@ onMounted(async () => {
       });
       formStore.setFormData(res.data.master);
       productStore.setProducts(res.data.products);
+      
+      toast.add({ 
+        severity: 'info', 
+        summary: '조회 완료', 
+        detail: '출고지시 상세 정보를 불러왔습니다.', 
+        life: 2500 
+      });
     } catch (err) {
       console.error('출고지시 상세 정보 로딩 실패:', err);
+      toast.add({ 
+        severity: 'error', 
+        summary: '조회 실패', 
+        detail: '출고지시 상세 정보를 불러오는데 실패했습니다.', 
+        life: 3000 
+      });
     }
   } else {
     // 신규 등록 모드
@@ -311,6 +429,7 @@ onMounted(async () => {
     };
   }
 });
+
 // 피니아 리셋
 onUnmounted(() => {
   formStore.$reset();
@@ -319,6 +438,9 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- ✅ 토스트 컨테이너 추가 -->
+  <Toast position="top-right" />
+  
   <div class="space-y-4 mb-3">
     <LeftAlignTable v-model:data="formData" :fields="formFields1" :title="'출고 지시서'" :buttons="infoFormButtons"
       button-position="top" :modalDataSets="modalDataSets" :dataKey="'ordCd'" @save="handleSave"

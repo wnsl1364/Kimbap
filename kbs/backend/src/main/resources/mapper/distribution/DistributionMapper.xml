@@ -176,39 +176,47 @@ SELECT
     cp.mname       AS mName,
     ol.ord_cd      AS ordCd,
 
-    <!-- /* 기출고 수량 */ -->
-    NVL((
-        SELECT SUM(pr.rel_qty)
+NVL((
+    SELECT SUM(pr.rel_qty)
+      FROM prod_rel pr
+      JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+      JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+     WHERE ro.ord_d_cd = od.ord_d_cd
+       AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
+), 0) AS relQty,
+
+GREATEST(
+  od.ord_qty - NVL((
+      SELECT SUM(pr.rel_qty)
         FROM prod_rel pr
-        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-        WHERE ro.ord_d_cd = od.ord_d_cd
-    ), 0) AS relQty,
+        JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+        JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+       WHERE ro.ord_d_cd = od.ord_d_cd
+         AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
+  ), 0),
+  0
+) AS noRelQty,
 
-    <!-- /* 미출고 수량 */ -->
-    od.ord_qty - NVL((
-        SELECT SUM(pr.rel_qty)
+CASE
+  WHEN NVL((
+      SELECT SUM(pr.rel_qty)
         FROM prod_rel pr
-        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-        WHERE ro.ord_d_cd = od.ord_d_cd
-    ), 0) AS noRelQty,
+        JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+        JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+       WHERE ro.ord_d_cd = od.ord_d_cd
+         AND rom.rel_ord_status NOT IN ('취소코드','반려코드')
+  ), 0) = 0 THEN 'm1'
+  WHEN NVL((
+      SELECT SUM(pr.rel_qty)
+        FROM prod_rel pr
+        JOIN release_ord ro  ON pr.rel_ord_cd = ro.rel_ord_cd
+        JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+       WHERE ro.ord_d_cd = od.ord_d_cd
+         AND rom.rel_ord_status NOT IN 'm4'
+  ), 0) &lt; od.ord_qty THEN 'm3'
+  ELSE 'm2'
+END AS relOrdStatus
 
-    <!-- /* 상태 */ -->
-    CASE
-      WHEN NVL((
-          SELECT SUM(pr.rel_qty)
-          FROM prod_rel pr
-          JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-          WHERE ro.ord_d_cd = od.ord_d_cd
-      ), 0) = 0 THEN 'm1'
-      WHEN NVL((
-          SELECT SUM(pr.rel_qty)
-          FROM prod_rel pr
-          JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
-          WHERE ro.ord_d_cd = od.ord_d_cd
-      ), 0) &lt; od.ord_qty THEN 'm3'
-
-      ELSE 'm2'
-    END AS relOrdStatus
 
 FROM order_d od
 JOIN product    p  ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
