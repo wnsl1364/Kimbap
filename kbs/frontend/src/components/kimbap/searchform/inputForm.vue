@@ -34,6 +34,11 @@ const props = defineProps({
         type: Object, 
         required: true 
     },
+    // 저장버튼 폼 초기화 비활성 기능
+    autoResetOnSave: {
+        type: Boolean,
+        default: true // 기본값은 true (기존 동작 유지)
+    }
 });
 
 const emit = defineEmits(['submit', 'reset', 'delete', 'load', 'update:data']);
@@ -82,7 +87,10 @@ watch(
 const handleSubmit = () => { 
     console.log('제출 데이터:', formData.value);
     emit('submit', formData.value);
-    initializeForm();
+    // autoResetOnSave prop에 따라 초기화 여부 결정
+    if (props.autoResetOnSave) {
+        initializeForm();
+    }
 };
 
 const handleReset = () => {

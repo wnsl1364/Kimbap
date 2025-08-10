@@ -22,4 +22,6 @@ public class MrpDetailVO {
 
   // JOIN
   private String mateName;        // 자재명
+
+  private BigDecimal currentStock; // 현재고 필드 추가 (미리보기용)
 }
