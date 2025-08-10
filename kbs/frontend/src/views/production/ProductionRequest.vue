@@ -161,6 +161,10 @@ const handleSave = async (data) => {
     });
     return;
   }
+  // 폼 유효성 검사
+  if (!validateForm()) {
+    return; // 유효성 검사 실패 시 저장 중단
+  }
   try {
     const isNew = !formData.value.produReqCd; // 등록/수정 여부 판별
 
@@ -168,8 +172,8 @@ const handleSave = async (data) => {
       request: {
         produReqCd: formData.value.produReqCd || null,
         produPlanCd: formData.value.produPlanCd,
-        reqDt: format(formData.value.reqDt, 'yyyy-MM-dd'),
-        deliDt: format(formData.value.deliDt, 'yyyy-MM-dd'),
+        reqDt: formatDate(formData.value.reqDt),
+        deliDt: formatDate(formData.value.deliDt),
         fcode: formData.value.factory?.fcode,
         facVerCd: formData.value.factory?.facVerCd,
         requ: formData.value.requ,  
@@ -206,6 +210,168 @@ const handleSave = async (data) => {
     });
   }
 }
+// 생산요청 유효성 검사 영역 =====================================================================
+// 날짜 포맷팅 헬퍼 함수
+const formatDate = (date) => {
+  if (!date) return null;
+  try {
+    if (typeof date === 'string') {
+      // 이미 YYYY-MM-DD 형태인 경우
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date;
+      }
+      // 다른 형태의 문자열인 경우 Date 객체로 변환
+      date = new Date(date);
+    }
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return format(date, 'yyyy-MM-dd');
+    }
+    return null;
+  } catch (err) {
+    console.error('날짜 포맷팅 오류:', err, date);
+    return null;
+  }
+}
+
+// 폼 유효성 검사 함수
+const validateForm = () => {
+  // 기본 정보 유효성 검사 (produPlanCd는 null 허용이므로 제외)
+  const basicValidationRules = [
+    {
+      field: 'reqDt',
+      value: formData.value.reqDt,
+      message: '생산요청일자를 입력해주세요.'
+    },
+    {
+      field: 'factory',
+      value: formData.value.factory?.fcode,
+      message: '공장을 선택해주세요.'
+    },
+    {
+      field: 'deliDt',
+      value: formData.value.deliDt,
+      message: '납기일자를 입력해주세요.'
+    }
+  ];
+
+  for (const rule of basicValidationRules) {
+    if (!rule.value) {
+      toast.add({
+        severity: 'warn',
+        summary: '입력 확인',
+        detail: rule.message,
+        life: 3000
+      });
+      return false;
+    }
+  }
+  
+  // 날짜 순서 검증 (요청일 <= 납기일)
+  if (formData.value.reqDt && formData.value.deliDt) {
+    const reqDate = new Date(formData.value.reqDt);
+    const deliDate = new Date(formData.value.deliDt);
+    
+    if (reqDate > deliDate) {
+      toast.add({
+        severity: 'warn',
+        summary: '날짜 오류',
+        detail: '생산요청일자가 납기일자보다 늦을 수 없습니다.',
+        life: 3000
+      });
+      return false;
+    }
+  }
+
+  // 제품 목록 유효성 검사
+  if (!prodDetailList.value || prodDetailList.value.length === 0) {
+    toast.add({
+      severity: 'warn',
+      summary: '제품 목록 확인',
+      detail: '요청할 제품을 하나 이상 추가해주세요.',
+      life: 3000
+    });
+    return false;
+  }
+  
+  // 각 제품 행별 필수값 검증
+  for (let i = 0; i < prodDetailList.value.length; i++) {
+    const item = prodDetailList.value[i];
+    const rowNum = i + 1;
+
+    // 필수 필드 검증
+    const requiredFields = [
+      { field: 'pcode', label: '제품코드' },
+      { field: 'reqQty', label: '요청수량' },
+      { field: 'exProduDt', label: '생산예정일자' },
+      { field: 'seq', label: '우선순위' }
+    ];
+
+    for (const fieldRule of requiredFields) {
+      if (!item[fieldRule.field] || (fieldRule.field === 'reqQty' && item[fieldRule.field] <= 0)) {
+        toast.add({
+          severity: 'warn',
+          summary: '제품 정보 확인',
+          detail: `${rowNum}번째 행의 ${fieldRule.label}을(를) 입력해주세요.`,
+          life: 3000
+        });
+        return false;
+      }
+    }
+
+    // 요청수량이 숫자이고 0보다 큰지 검증
+    if (isNaN(item.reqQty) || Number(item.reqQty) <= 0) {
+      toast.add({
+        severity: 'warn',
+        summary: '요청수량 오류',
+        detail: `${rowNum}번째 행의 요청수량은 0보다 큰 숫자여야 합니다.`,
+        life: 3000
+      });
+      return false;
+    }
+
+    // 우선순위가 숫자이고 1 이상인지 검증
+    if (isNaN(item.seq) || Number(item.seq) < 1 || !Number.isInteger(Number(item.seq))) {
+      toast.add({
+        severity: 'warn',
+        summary: '우선순위 오류',
+        detail: `${rowNum}번째 행의 우선순위는 1 이상의 정수여야 합니다.`,
+        life: 3000
+      });
+      return false;
+    }
+  }
+
+  // 우선순위 중복 및 순차성 검증
+  const seqList = prodDetailList.value.map(item => Number(item.seq)).sort((a, b) => a - b);
+  
+  // 중복 검사
+  const uniqueSeqList = [...new Set(seqList)];
+  if (seqList.length !== uniqueSeqList.length) {
+    toast.add({
+      severity: 'warn',
+      summary: '우선순위 중복',
+      detail: '우선순위에 중복된 값이 있습니다. 각 제품의 우선순위는 고유해야 합니다.',
+      life: 3000
+    });
+    return false;
+  }
+
+  // 1부터 시작하는 순차성 검사
+  for (let i = 0; i < seqList.length; i++) {
+    if (seqList[i] !== i + 1) {
+      toast.add({
+        severity: 'warn',
+        summary: '우선순위 순서 오류',
+        detail: `우선순위는 1부터 시작해서 순차적으로 입력해야 합니다. (현재: ${seqList.join(', ')})`,
+        life: 3000
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
+// =========================================================================================
 // 검색 입력란과 검색 결과 초기화
 const handleReset = () => {
   formData.value = {}
@@ -330,6 +496,7 @@ const modalDataSets = computed(() => ({
             title="생산계획 기본 정보"
             :buttons="prodReqFormButtons"
             buttonPosition="top"
+            :autoResetOnSave="false"
             @submit="handleSave"
             @reset="handleReset"
             @delete="handleDelete"

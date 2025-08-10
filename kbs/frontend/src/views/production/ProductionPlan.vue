@@ -151,15 +151,19 @@ const handleSave = async (data) => {
     });
     return;
   }
+  // 폼 유효성 검사
+  if (!validateForm()) {
+    return; // 유효성 검사 실패 시 저장 중단
+  }
   try {
     const isNew = !formData.value.produPlanCd; // 등록/수정 여부 판별
 
     const payload = {
       plan: {
         produPlanCd: formData.value.produPlanCd || null,
-        planDt: format(formData.value.planDt, 'yyyy-MM-dd'),
-        planStartDt: format(formData.value.planStartDt, 'yyyy-MM-dd'),
-        planEndDt: format(formData.value.planEndDt, 'yyyy-MM-dd'),
+        planDt: formatDate(formData.value.planDt),
+        planStartDt: formatDate(formData.value.planStartDt),
+        planEndDt: formatDate(formData.value.planEndDt),
         fcode: formData.value.factory?.fcode,
         facVerCd: formData.value.factory?.facVerCd,
         mname: user.value?.empCd || 'SYSTEM',  
@@ -193,15 +197,180 @@ const handleSave = async (data) => {
       await saveProdPlanDirect(payload, isNew)
     }
   } catch (err) {
+    console.error('handleSave 에러:', err)
     toast.add({
       severity: 'error',
       summary: '처리 실패',
-      detail: '처리 중 오류가 발생했습니다.',
+      detail: '처리 중 오류가 발생했습니다: ' + (err.message || '알 수 없는 오류'),
       life: 3000
     });
   } 
 }
 
+// 생산계획 저장 시 input Form 유효성 검사=====================================
+// 날짜 포맷팅 헬퍼 함수
+const formatDate = (date) => {
+  if (!date) return null;
+  try {
+    if (typeof date === 'string') {
+      // 이미 YYYY-MM-DD 형태인 경우
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date;
+      }
+      // 다른 형태의 문자열인 경우 Date 객체로 변환
+      date = new Date(date);
+    }
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return format(date, 'yyyy-MM-dd');
+    }
+    return null;
+  } catch (err) {
+    console.error('날짜 포맷팅 오류:', err, date);
+    return null;
+  }
+}
+
+// 폼 유효성 검사 함수
+const validateForm = () => {
+  const validationRules = [
+    {
+      field: 'planDt',
+      value: formData.value.planDt,
+      message: '계획일자를 입력해주세요.'
+    },
+    {
+      field: 'planStartDt', 
+      value: formData.value.planStartDt,
+      message: '계획기간(시작)을 입력해주세요.'
+    },
+    {
+      field: 'planEndDt',
+      value: formData.value.planEndDt, 
+      message: '계획기간(종료)를 입력해주세요.'
+    },
+    {
+      field: 'factory',
+      value: formData.value.factory?.fcode,
+      message: '공장을 선택해주세요.'
+    }
+  ];
+
+  for (const rule of validationRules) {
+    if (!rule.value) {
+      toast.add({
+        severity: 'warn',
+        summary: '입력 확인',
+        detail: rule.message,
+        life: 3000
+      });
+      return false;
+    }
+  }
+
+  // 날짜 순서 검증 (시작일 <= 종료일)
+  if (formData.value.planStartDt && formData.value.planEndDt) {
+    const startDate = new Date(formData.value.planStartDt);
+    const endDate = new Date(formData.value.planEndDt);
+    
+    if (startDate > endDate) {
+      toast.add({
+        severity: 'warn',
+        summary: '날짜 오류',
+        detail: '계획기간의 시작일이 종료일보다 늦을 수 없습니다.',
+        life: 3000
+      });
+      return false;
+    }
+  }
+    // 제품 목록 유효성 검사
+  if (!prodDetailList.value || prodDetailList.value.length === 0) {
+    toast.add({
+      severity: 'warn',
+      summary: '제품 목록 확인',
+      detail: '생산할 제품을 하나 이상 추가해주세요.',
+      life: 3000
+    });
+    return false;
+  }
+
+  // 각 제품 행별 필수값 검증
+  for (let i = 0; i < prodDetailList.value.length; i++) {
+    const item = prodDetailList.value[i];
+    const rowNum = i + 1;
+
+    // 필수 필드 검증
+    const requiredFields = [
+      { field: 'pcode', label: '제품코드' },
+      { field: 'planQty', label: '생산수량' },
+      { field: 'exProduDt', label: '생산예정일자' },
+      { field: 'seq', label: '우선순위' }
+    ];
+
+    for (const fieldRule of requiredFields) {
+      if (!item[fieldRule.field] || (fieldRule.field === 'planQty' && item[fieldRule.field] <= 0)) {
+        toast.add({
+          severity: 'warn',
+          summary: '제품 정보 확인',
+          detail: `${rowNum}번째 행의 ${fieldRule.label}을(를) 입력해주세요.`,
+          life: 3000
+        });
+        return false;
+      }
+    }
+
+    // 생산수량이 숫자이고 0보다 큰지 검증
+    if (isNaN(item.planQty) || Number(item.planQty) <= 0) {
+      toast.add({
+        severity: 'warn',
+        summary: '생산수량 오류',
+        detail: `${rowNum}번째 행의 생산수량은 0보다 큰 숫자여야 합니다.`,
+        life: 3000
+      });
+      return false;
+    }
+
+    // 우선순위가 숫자이고 1 이상인지 검증
+    if (isNaN(item.seq) || Number(item.seq) < 1 || !Number.isInteger(Number(item.seq))) {
+      toast.add({
+        severity: 'warn',
+        summary: '우선순위 오류',
+        detail: `${rowNum}번째 행의 우선순위는 1 이상의 정수여야 합니다.`,
+        life: 3000
+      });
+      return false;
+    }
+  }
+
+  // 우선순위 중복 및 순차성 검증
+  const seqList = prodDetailList.value.map(item => Number(item.seq)).sort((a, b) => a - b);
+  
+  // 중복 검사
+  const uniqueSeqList = [...new Set(seqList)];
+  if (seqList.length !== uniqueSeqList.length) {
+    toast.add({
+      severity: 'warn',
+      summary: '우선순위 중복',
+      detail: '우선순위에 중복된 값이 있습니다. 각 제품의 우선순위는 고유해야 합니다.',
+      life: 3000
+    });
+    return false;
+  }
+
+  // 1부터 시작하는 순차성 검사
+  for (let i = 0; i < seqList.length; i++) {
+    if (seqList[i] !== i + 1) {
+      toast.add({
+        severity: 'warn',
+        summary: '우선순위 순서 오류',
+        detail: `우선순위는 1부터 시작해서 순차적으로 입력해야 합니다. (현재: ${seqList.join(', ')})`,
+        life: 3000
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
 // ===================================================
 // MRP 미리보기 표시
 const showMrpPreview = async (payload) => {
@@ -225,14 +394,30 @@ const showMrpPreview = async (payload) => {
 }
 // 실제 생산계획 저장
 const saveProdPlanDirect = async (payload, isNew) => {
-  await store.saveProdPlan(payload)
-  prodDetailList.value = []
-  toast.add({
-    severity: 'success',
-    summary: isNew ? '신규 등록 완료' : '수정 완료',
-    detail: isNew ? '생산계획이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
-    life: 3000
-  });
+  try {
+    await store.saveProdPlan(payload)
+    
+    // 저장 성공 시에만 초기화
+    formData.value = {}
+    prodDetailList.value = []
+    
+    toast.add({
+      severity: 'success',
+      summary: isNew ? '신규 등록 완료' : '수정 완료',
+      detail: isNew ? '생산계획이 새로 등록되었습니다.' : '생산계획이 수정되었습니다.',
+      life: 3000
+    });
+  } catch (err) {
+    // 저장 실패 시 폼 데이터 유지하고 에러만 표시
+    console.error('생산계획 저장 실패:', err)
+    toast.add({
+      severity: 'error',
+      summary: '저장 실패',
+      detail: '생산계획 저장 중 오류가 발생했습니다.',
+      life: 3000
+    });
+    throw err; // 상위로 에러 전파
+  }
 }
 // MRP 미리보기 모달에서 확인 버튼 클릭
 const handleMrpPreviewConfirm = async () => {
@@ -241,7 +426,7 @@ const handleMrpPreviewConfirm = async () => {
       // 통합 API 호출
       await store.saveProdPlanWithMrp(pendingPlanData.value)
       
-      // 성공 후 처리
+      // 성공 후에만 폼 초기화
       formData.value = {}
       prodDetailList.value = []
       pendingPlanData.value = null
@@ -256,6 +441,7 @@ const handleMrpPreviewConfirm = async () => {
     }
   } catch (err) {
     console.error('통합 저장 오류:', err)
+    // 실패 시 폼 데이터는 유지하고 에러만 표시
     toast.add({
       severity: 'error',
       summary: '저장 실패',
@@ -268,6 +454,7 @@ const handleMrpPreviewConfirm = async () => {
 const handleMrpPreviewCancel = () => {
   pendingPlanData.value = null
   mrpPreviewData.value = {}
+  mrpPreviewVisible.value = false
 }
 // ===================================================
 
@@ -388,6 +575,7 @@ const modalDataSets = computed(() => ({
             title="생산계획 기본 정보"
             :buttons="prodPlanFormButtons"
             buttonPosition="top"
+            :autoResetOnSave="false"
             @submit="handleSave"
             @reset="handleReset"
             @delete="handleDelete"

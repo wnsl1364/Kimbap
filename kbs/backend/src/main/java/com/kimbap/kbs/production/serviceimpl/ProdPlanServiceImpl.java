@@ -3,7 +3,9 @@ package com.kimbap.kbs.production.serviceimpl;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -126,25 +128,52 @@ public class ProdPlanServiceImpl implements ProdPlanService {
         
         List<ProdPlanDetailVO> planDetails = mapper.selectDetailsByPlanCd(produPlanCd);
         
+        // 자재별 총 부족량을 합산하기 위한 Map 생성
+        Map<String, MrpDetailVO> materialRequirementMap = new HashMap<>();
+        
         for (ProdPlanDetailVO detail : planDetails) {
             List<BomDetailVO> bomList = mapper.selectBomMaterials(detail.getPcode(), detail.getProdVerCd());
             
             for (BomDetailVO bom : bomList) {
                 BigDecimal requiredQty = bom.getNeedQty().multiply(new BigDecimal(detail.getPlanQty()));
-                BigDecimal stockQty = mapper.selectTotalStockByMate(bom.getMcode(), bom.getMateVerCd());
-                BigDecimal lackQty = requiredQty.subtract(stockQty).max(BigDecimal.ZERO);
                 
-                if (lackQty.compareTo(BigDecimal.ZERO) > 0) {
-                    MrpDetailVO mrpD = new MrpDetailVO();
-                    mrpD.setMrpCd(mrpCd);
-                    mrpD.setMcode(bom.getMcode());
-                    mrpD.setMateVerCd(bom.getMateVerCd());
-                    mrpD.setRequiredQty(lackQty);
-                    mrpD.setUnit(bom.getUnit());
-                    mrpD.setField("생산계획");
+                // 자재별로 필요량 합산
+                String materialKey = bom.getMcode() + "_" + bom.getMateVerCd();
+                
+                if (materialRequirementMap.containsKey(materialKey)) {
+                    // 기존 자재의 필요량에 추가
+                    MrpDetailVO existingMrpDetail = materialRequirementMap.get(materialKey);
+                    BigDecimal totalRequired = existingMrpDetail.getRequiredQty().add(requiredQty);
+                    existingMrpDetail.setRequiredQty(totalRequired);
+                } else {
+                    // 새로운 자재 추가
+                    MrpDetailVO mrpDetail = new MrpDetailVO();
+                    mrpDetail.setMrpCd(mrpCd);
+                    mrpDetail.setMcode(bom.getMcode());
+                    mrpDetail.setMateVerCd(bom.getMateVerCd());
+                    mrpDetail.setRequiredQty(requiredQty);
+                    mrpDetail.setUnit(bom.getUnit());
+                    mrpDetail.setField("생산계획");
                     
-                    mapper.insertMrpDetail(mrpD);
+                    materialRequirementMap.put(materialKey, mrpDetail);
                 }
+            }
+        }
+        
+        // 자재별 총 필요량에서 재고를 차감하여 실제 부족량 계산 및 MRP 상세 저장
+        for (MrpDetailVO mrpDetail : materialRequirementMap.values()) {
+            BigDecimal totalRequiredQty = mrpDetail.getRequiredQty();
+            BigDecimal stockQty = mapper.selectTotalStockByMate(mrpDetail.getMcode(), mrpDetail.getMateVerCd());
+            BigDecimal lackQty = totalRequiredQty.subtract(stockQty).max(BigDecimal.ZERO);
+            
+            System.out.println("🔍 자재: " + mrpDetail.getMcode() + 
+                            ", 총 필요량: " + totalRequiredQty + 
+                            ", 현재고: " + stockQty + 
+                            ", 부족량: " + lackQty);
+            
+            if (lackQty.compareTo(BigDecimal.ZERO) > 0) {
+                mrpDetail.setRequiredQty(lackQty); // 부족량으로 업데이트
+                mapper.insertMrpDetail(mrpDetail);
             }
         }
         
@@ -275,30 +304,61 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     private List<MrpDetailVO> simulateMrpGeneration(ProdPlanFullVO fullVO) {
         List<MrpDetailVO> mrpDetails = new ArrayList<>();
         
+        // ✅ 자재별 총 부족량을 합산하기 위한 Map 생성
+        Map<String, MrpDetailVO> materialRequirementMap = new HashMap<>();
+        
         // 🔄 기존 MRP 로직과 동일한 처리
         for (ProdPlanDetailVO detail : fullVO.getPlanDetails()) {
             List<BomDetailVO> bomList = mapper.selectBomMaterials(detail.getPcode(), detail.getProdVerCd());
             
             for (BomDetailVO bom : bomList) {
                 BigDecimal requiredQty = bom.getNeedQty().multiply(new BigDecimal(detail.getPlanQty()));
-                BigDecimal stockQty = mapper.selectTotalStockByMate(bom.getMcode(), bom.getMateVerCd());
-                BigDecimal lackQty = requiredQty.subtract(stockQty).max(BigDecimal.ZERO);
                 
-                if (lackQty.compareTo(BigDecimal.ZERO) > 0) {
+                // ✅ 자재별로 필요량 합산
+                String materialKey = bom.getMcode() + "_" + bom.getMateVerCd();
+                
+                if (materialRequirementMap.containsKey(materialKey)) {
+                    // 기존 자재의 필요량에 추가
+                    MrpDetailVO existingMrpDetail = materialRequirementMap.get(materialKey);
+                    BigDecimal totalRequired = existingMrpDetail.getRequiredQty().add(requiredQty);
+                    existingMrpDetail.setRequiredQty(totalRequired);
+                    
+                    System.out.println("자재 " + bom.getMcode() + " 필요량 합산: " + totalRequired);
+                } else {
+                    // 새로운 자재 추가
                     MrpDetailVO mrpDetail = new MrpDetailVO();
-                    // mrpDetail.setMrpCd("PREVIEW"); // 실제 저장하지 않으므로 가상 코드
                     mrpDetail.setMcode(bom.getMcode());
                     mrpDetail.setMateVerCd(bom.getMateVerCd());
                     mrpDetail.setMateName(bom.getMateName());
-                    mrpDetail.setRequiredQty(lackQty);
+                    mrpDetail.setRequiredQty(requiredQty);
                     mrpDetail.setUnit(bom.getUnit());
                     mrpDetail.setField("생산계획");
                     
-                    mrpDetails.add(mrpDetail);
+                    materialRequirementMap.put(materialKey, mrpDetail);
+                    System.out.println("새 자재 추가: " + bom.getMcode() + ", 필요량: " + requiredQty);
                 }
             }
         }
         
+        // 자재별 총 필요량에서 재고를 차감하여 실제 부족량 계산
+        for (MrpDetailVO mrpDetail : materialRequirementMap.values()) {
+            BigDecimal totalRequiredQty = mrpDetail.getRequiredQty();
+            BigDecimal stockQty = mapper.selectTotalStockByMate(mrpDetail.getMcode(), mrpDetail.getMateVerCd());
+            BigDecimal lackQty = totalRequiredQty.subtract(stockQty).max(BigDecimal.ZERO);
+            
+            System.out.println("최종 계산 - 자재: " + mrpDetail.getMcode() + 
+                            ", 총 필요량: " + totalRequiredQty + 
+                            ", 현재고: " + stockQty + 
+                            ", 부족량: " + lackQty);
+            
+            if (lackQty.compareTo(BigDecimal.ZERO) > 0) {
+                mrpDetail.setRequiredQty(lackQty); // 부족량으로 업데이트
+                mrpDetail.setCurrentStock(stockQty); // 현재고 정보도 추가 (미리보기용)
+                mrpDetails.add(mrpDetail);
+            }
+        }
+        
+        System.out.println("최종 MRP 상세 개수 (중복 제거 후): " + mrpDetails.size());
         return mrpDetails;
     }
     
