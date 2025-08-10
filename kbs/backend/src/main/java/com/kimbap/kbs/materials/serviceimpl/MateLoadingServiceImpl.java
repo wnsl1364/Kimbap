@@ -39,11 +39,17 @@ public class MateLoadingServiceImpl implements MateLoadingService {
     public String processMateLoading(MateLoadingVO mateLoading) {
         System.out.println("=== 단건 적재 처리 시작 ===");
         System.out.println("입력데이터: " + mateLoading.toString());
+        System.out.println("조회할 자재코드: " + mateLoading.getMcode());
         
         // 🔥 material 테이블에서 자재 정보 조회
         MateLoadingVO materialInfo = null;
         try {
             materialInfo = mateLoadingMapper.getMaterialInfo(mateLoading.getMcode());
+            if (materialInfo != null) {
+                System.out.println("자재 정보 조회 성공 - mcode: " + materialInfo.getMcode() + ", mate_type: " + materialInfo.getMateType());
+            } else {
+                System.out.println("자재 정보 조회 결과: null");
+            }
         } catch (Exception e) {
             System.err.println("자재 정보 조회 실패: " + mateLoading.getMcode() + " - " + e.getMessage());
             e.printStackTrace();
@@ -55,8 +61,9 @@ public class MateLoadingServiceImpl implements MateLoadingService {
             mateLoading.setItemType("h1"); // 기본값: 원자재 (품목유형 코드)
             // unit은 기존 값 유지
         } else {
-            // 🔥 item_type을 material 테이블의 mate_type으로 설정
-            mateLoading.setItemType(materialInfo.getMateType());
+            // 🔥 mate_type을 item_type으로 변환 (H1 -> h1, H2 -> h2)
+            String itemType = convertMateTypeToItemType(materialInfo.getMateType());
+            mateLoading.setItemType(itemType);
             
             // 🔥 unit을 material 테이블의 unit(공통코드)으로 설정
             mateLoading.setUnit(materialInfo.getUnit());
@@ -114,7 +121,13 @@ public class MateLoadingServiceImpl implements MateLoadingService {
                 // 🔥 material 테이블에서 자재 정보 조회
                 MateLoadingVO materialInfo = null;
                 try {
+                    System.out.println("조회할 자재코드: " + mateLoading.getMcode());
                     materialInfo = mateLoadingMapper.getMaterialInfo(mateLoading.getMcode());
+                    if (materialInfo != null) {
+                        System.out.println("자재 정보 조회 성공 - mcode: " + materialInfo.getMcode() + ", mate_type: " + materialInfo.getMateType());
+                    } else {
+                        System.out.println("자재 정보 조회 결과: null");
+                    }
                 } catch (Exception e) {
                     System.err.println("자재 정보 조회 실패: " + mateLoading.getMcode() + " - " + e.getMessage());
                 }
@@ -137,8 +150,9 @@ public class MateLoadingServiceImpl implements MateLoadingService {
                     mateLoading.setItemType("h1"); // 기본값: 원자재 (품목유형 코드)
                     // unit은 기존 값 유지
                 } else {
-                    // 🔥 item_type을 material 테이블의 mate_type으로 설정
-                    mateLoading.setItemType(materialInfo.getMateType());
+                    // 🔥 mate_type을 item_type으로 변환 (H1 -> h1, H2 -> h2)
+                    String itemType = convertMateTypeToItemType(materialInfo.getMateType());
+                    mateLoading.setItemType(itemType);
                     
                     // 🔥 unit을 material 테이블의 unit(공통코드)으로 설정
                     mateLoading.setUnit(materialInfo.getUnit());
@@ -358,5 +372,36 @@ public class MateLoadingServiceImpl implements MateLoadingService {
             System.out.println("임시 창고재고목록코드 생성: " + fallbackCode);
             return fallbackCode;
         }
+    }
+    
+    /**
+     * MATERIAL 테이블의 mate_type을 WARE_STOCK 테이블의 item_type으로 변환
+     * @param mateType MATERIAL 테이블의 mate_type (H1, H2 등)
+     * @return WARE_STOCK 테이블의 item_type (h1, h2 등)
+     */
+    private String convertMateTypeToItemType(String mateType) {
+        if (mateType == null || mateType.trim().isEmpty()) {
+            System.out.println("mate_type이 null이거나 비어있음. 기본값 h1 사용");
+            return "h1"; // 기본값: 원자재
+        }
+        
+        String upperMateType = mateType.toUpperCase().trim();
+        String itemType;
+        
+        switch (upperMateType) {
+            case "H1":
+                itemType = "h1"; // 원자재
+                break;
+            case "H2":
+                itemType = "h2"; // 부자재
+                break;
+            default:
+                System.out.println("알 수 없는 mate_type: " + mateType + ". 기본값 h1 사용");
+                itemType = "h1"; // 기본값: 원자재
+                break;
+        }
+        
+        System.out.println("mate_type 변환: " + mateType + " -> " + itemType);
+        return itemType;
     }
 }

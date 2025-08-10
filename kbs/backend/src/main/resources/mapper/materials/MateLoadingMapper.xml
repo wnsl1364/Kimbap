@@ -293,6 +293,6 @@
             is_used
         FROM material
         WHERE mcode = #{mcode}
-        AND is_used = 'Y'
+        AND is_used = 'f1'
     </select>
 </mapper>

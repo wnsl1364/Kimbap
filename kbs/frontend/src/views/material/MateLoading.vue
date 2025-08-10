@@ -33,12 +33,12 @@ const {
 // 🔥 사용자 정보 가져오기
 const { user } = storeToRefs(memberStore);
 
-// 🔥 디버깅: 검색 필터 상태 감시
-watch(searchFilter, (newFilter) => {
-    console.log('검색 필터 변경:', newFilter);
-    console.log('전체 목록 크기:', mateLoadingList.value.length);
-    console.log('필터링된 목록 크기:', filteredMateLoadingList.value.length);
-}, { deep: true });
+// 🔥 디버깅: 검색 필터 상태 감시 (필요시에만 활성화)
+// watch(searchFilter, (newFilter) => {
+//     console.log('검색 필터 변경:', newFilter);
+//     console.log('전체 목록 크기:', mateLoadingList.value.length);
+//     console.log('필터링된 목록 크기:', filteredMateLoadingList.value.length);
+// }, { deep: true });
 
 // 로컬 상태
 const selectedItems = ref([]);
@@ -119,8 +119,6 @@ onMounted(async () => {
 // 검색 처리
 const handleSearch = async (searchData) => {
     try {
-        console.log('검색 조건:', searchData);
-        
         // Store에 검색 필터 설정 (프론트에서 필터링)
         mateLoadingStore.setSearchFilter(searchData);
         
@@ -177,11 +175,23 @@ const handleDataChange = (newData) => {
 
 // 🔥 체크박스 선택 변경 처리 (InputTable에서 호출)
 const handleSelectionChange = (newSelection) => {
-    console.log('선택 변경됨:', newSelection);
-    selectedItems.value = newSelection;
+    console.log('🔥 체크박스 선택 변경됨:', newSelection?.length || 0, '개');
+    console.log('새로운 선택 목록:', newSelection);
+    
+    selectedItems.value = newSelection || [];
     
     // 🔥 store에도 즉시 반영
-    mateLoadingStore.setSelectedMateLoadings([...newSelection]);
+    mateLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
+    
+    // 선택된 각 자재의 구역 정보 로깅
+    selectedItems.value.forEach((item, index) => {
+        const hasArea = (item.wareAreaCd && item.wareAreaCd.trim() !== '') || 
+                       (item.placementPlan && item.placementPlan.length > 0);
+        console.log(`체크박스 선택된 자재 ${index + 1}: ${item.mateInboCd} - 구역설정: ${hasArea}`);
+        if (hasArea) {
+            console.log(`  wareAreaCd: ${item.wareAreaCd}, placementPlan: ${item.placementPlan ? '있음' : '없음'}`);
+        }
+    });
 };
 
 //  구역선택 버튼 클릭 처리 (신규)
@@ -283,27 +293,40 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                     }))
                 };
                 
-                // 🔥 자동으로 체크박스 체크하기 - 수정된 material 객체 사용
-                if (material && !selectedItems.value.some(item => item.mateInboCd === material.mateInboCd)) {
-                    // 변환된 데이터가 아닌 원본 material 객체를 사용하되, 화면 표시용 정보도 포함
-                    const materialForSelection = {
-                        ...material,
-                        // 화면 표시용 변환된 정보도 포함
-                        unit: convertedMateLoadingList.value.find(item => item.mateInboCd === material.mateInboCd)?.unit || material.unit,
-                        stoCon: convertedMateLoadingList.value.find(item => item.mateInboCd === material.mateInboCd)?.stoCon || material.stoCon,
-                        firstUnit: convertedMateLoadingList.value.find(item => item.mateInboCd === material.mateInboCd)?.firstUnit || material.firstUnit
-                    };
+                // 🔥 자동 체크박스 선택 기능 제거 - 구역 정보만 업데이트
+                // 이미 선택된 자재가 있는 경우에만 해당 자재의 구역 정보를 업데이트
+                const existingSelectedIndex = selectedItems.value.findIndex(item => 
+                    item.mateInboCd === material.mateInboCd
+                );
+                
+                // convertedMateLoadingList에서 해당 아이템을 찾기
+                const convertedMaterial = convertedMateLoadingList.value.find(item => 
+                    item.mateInboCd === material.mateInboCd
+                );
+                
+                if (convertedMaterial) {
+                    // 변환된 데이터에 구역 정보를 업데이트
+                    convertedMaterial.placementPlan = material.placementPlan;
+                    convertedMaterial.totalAllocated = material.totalAllocated;
+                    convertedMaterial.remainingQty = material.remainingQty;
+                    convertedMaterial.userInputQty = material.userInputQty;
+                    convertedMaterial.wareAreaCd = material.wareAreaCd;
+                    convertedMaterial.selectedAreaInfo = material.selectedAreaInfo;
+                    convertedMaterial.qty = material.qty;
                     
-                    selectedItems.value.push(materialForSelection);
-                    console.log('자동 체크박스 선택 완료:', materialForSelection.mateInboCd);
-                    console.log('선택된 자재의 placementPlan:', materialForSelection.placementPlan);
-                    console.log('선택된 자재의 wareAreaCd:', materialForSelection.wareAreaCd);
+                    if (existingSelectedIndex >= 0) {
+                        // 이미 선택되어 있는 경우에만 해당 항목을 업데이트
+                        selectedItems.value[existingSelectedIndex] = { ...convertedMaterial };
+                        console.log('기존 선택된 자재 구역 정보 업데이트:', convertedMaterial.mateInboCd);
+                        
+                        // 🔥 store에도 즉시 반영 (이미 선택된 자재만)
+                        mateLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
+                    }
                     
-                    // 🔥 store에도 즉시 반영
-                    mateLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
+                    console.log('선택된 자재의 placementPlan:', convertedMaterial.placementPlan);
+                    console.log('선택된 자재의 wareAreaCd:', convertedMaterial.wareAreaCd);
                     
-                    // 🔥 InputTable의 선택 상태만 업데이트 (전체 데이터는 변경하지 않음)
-                    console.log('구역 선택 후 체크박스 상태 업데이트 완료');
+                    console.log('구역 선택 완료 - 자동 체크박스 선택 없음');
                 }
             }
         }
@@ -332,11 +355,16 @@ const handleWarehouseAreaConfirm = (selectionData) => {
 
 // 적재처리 버튼 클릭
 const handleProcessLoading = async () => {
+    console.log('🔥 적재처리 버튼 클릭 - 현재 상태 점검:');
+    console.log('selectedItems.value.length:', selectedItems.value.length);
+    console.log('selectedItems 상세:', selectedItems.value);
+    
+    // 🔥 체크박스가 체크된 자재가 없는 경우 우선 체크
     if (!selectedItems.value || selectedItems.value.length === 0) {
         toast.add({
             severity: 'warn',
-            summary: '선택 필요',
-            detail: '적재 처리할 자재를 선택해주세요.',
+            summary: '자재 선택 필요',
+            detail: '적재할 자재를 선택해주세요.',
             life: 3000
         });
         return;
@@ -354,6 +382,23 @@ const handleProcessLoading = async () => {
             });
         });
         
+        // 🔥 선택된 자재들 중 구역이 설정되지 않은 자재 확인
+        const itemsWithoutArea = selectedItems.value.filter(item => 
+            !(item.wareAreaCd && item.wareAreaCd.trim() !== '') &&
+            !(item.placementPlan && item.placementPlan.length > 0)
+        );
+        
+        if (itemsWithoutArea.length > 0) {
+            const itemNames = itemsWithoutArea.map(item => item.mateName || item.mateInboCd).join(', ');
+            toast.add({
+                severity: 'warn',
+                summary: '구역 선택 필요',
+                detail: `다음 자재들의 창고구역을 먼저 선택해주세요: ${itemNames}`,
+                life: 5000
+            });
+            return;
+        }
+        
         // 선택된 자재들의 구역 설정 상태 확인
         const itemsWithArea = selectedItems.value.filter(item => 
             (item.wareAreaCd && item.wareAreaCd.trim() !== '') ||
@@ -362,11 +407,12 @@ const handleProcessLoading = async () => {
         
         console.log('구역이 설정된 자재들:', itemsWithArea);
         
-        if (itemsWithArea.length === 0) {
+        // 모든 선택된 자재가 구역 설정이 완료된 경우에만 진행
+        if (itemsWithArea.length !== selectedItems.value.length) {
             toast.add({
                 severity: 'warn',
-                summary: '구역 선택 필요',
-                detail: '선택된 자재 중 창고구역이 설정된 자재가 없습니다. 먼저 구역을 선택해주세요.',
+                summary: '구역 선택 미완료',
+                detail: '선택된 모든 자재의 창고구역을 설정해주세요.',
                 life: 3000
             });
             return;

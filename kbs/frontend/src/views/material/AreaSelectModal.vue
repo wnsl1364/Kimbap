@@ -95,11 +95,18 @@ const areaGrid = computed(() => {
             const isDifferentMaterialSelected = existingPlacement && existingPlacement.mcode !== props.selectedMaterial?.mcode;
             const isSameMaterialSelected = existingPlacement && existingPlacement.mcode === props.selectedMaterial?.mcode;
             
-            // 🔥 선택 가능 여부 결정
-            // - 다른 자재가 선택한 곳은 불가
-            // - 같은 자재가 선택한 곳은 가능 (동일 자재 다른 입고건)
-            // - DB에 다른 자재가 적재된 곳은 불가 (단, 총합이 0이면 가능)
+            // 🔥 다른 자재가 DB에 적재되어 있는지 확인 (핵심!)
+            const isDifferentMaterialInDB = areaInfo?.currentMaterial && 
+                                          areaInfo.currentMaterial !== props.selectedMaterial?.mcode &&
+                                          currentVolume > 0;
+            
+            // 🔥 선택 가능 여부 결정 (더 엄격한 규칙)
+            // 1. 다른 자재가 선택한 곳은 절대 불가
+            // 2. 다른 자재가 DB에 적재된 곳은 절대 불가
+            // 3. 같은 자재가 적재된 곳만 가능
+            // 4. 완전히 비어있는 곳은 가능
             const isAvailable = !isDifferentMaterialSelected && 
+                               !isDifferentMaterialInDB &&
                                (availableVolume > 0 || isSameMaterialInDB || isSameMaterialSelected);
             
             rowData.push({
@@ -114,6 +121,7 @@ const areaGrid = computed(() => {
                 isSameMaterial: isSameMaterialInDB,
                 isSameMaterialSelected: isSameMaterialSelected, // 🔥 같은 자재 다른 입고건
                 isDifferentMaterialSelected: isDifferentMaterialSelected,
+                isDifferentMaterialInDB: isDifferentMaterialInDB, // 🔥 다른 자재가 DB에 적재됨
                 existingPlacement: existingPlacement
             });
         }
@@ -180,6 +188,45 @@ const getUsagePercentage = (area) => {
     return Math.round((current / realCapacity) * 100);
 };
 
+// 🔥 구역 선택 가능 여부 체크
+const canSelectArea = (area) => {
+    // 1. 기본 가용성 체크
+    if (!area.isAvailable) return false;
+    
+    // 2. 다른 자재가 적재된 구역은 절대 불가
+    if (area.isDifferentMaterialInDB || area.isDifferentMaterialSelected) return false;
+    
+    // 3. 용량 체크 (같은 자재인 경우는 예외)
+    if (area.availableVolume <= 0 && !area.isSameMaterial && !area.isSameMaterialSelected) return false;
+    
+    return true;
+};
+
+// 🔥 잘못된 구역 클릭 시 처리
+const handleInvalidAreaClick = (area) => {
+    let message = '구역 선택 불가';
+    let detail = '';
+    let severity = 'error';
+    
+    if (area.isDifferentMaterialSelected) {
+        detail = `❌ 다른 자재(${area.existingPlacement.mateName || area.existingPlacement.mcode})가 이미 선택한 구역입니다.`;
+    } else if (area.isDifferentMaterialInDB) {
+        detail = `❌ 다른 자재(${area.currentMaterial})가 적재된 구역입니다.\n동일한 자재만 추가 적재할 수 있습니다.`;
+    } else if (area.availableVolume <= 0) {
+        detail = `⚠️ 해당 구역에는 가용 용량이 없습니다. (현재: ${area.currentVolume}/${area.realMaxVolume})`;
+        severity = 'warn';
+    } else {
+        detail = '선택할 수 없는 구역입니다.';
+    }
+    
+    toast.add({
+        severity: severity,
+        summary: message,
+        detail: detail,
+        life: 4000
+    });
+};
+
 // 🔥 용량 상태 색상
 const getCapacityColor = (area) => {
     const percentage = getUsagePercentage(area);
@@ -197,18 +244,20 @@ const selectArea = (area) => {
         let detail = '';
         
         if (area.isDifferentMaterialSelected) {
-            detail = `다른 자재(${area.existingPlacement.mateName || area.existingPlacement.mcode})가 이미 이 구역을 선택했습니다.`;
+            detail = `❌ 다른 자재(${area.existingPlacement.mateName || area.existingPlacement.mcode})가 이미 이 구역을 선택했습니다.`;
+        } else if (area.isDifferentMaterialInDB) {
+            detail = `❌ 다른 자재(${area.currentMaterial})가 이미 적재된 구역입니다. 동일한 자재만 추가 적재할 수 있습니다.`;
         } else if (area.currentMaterial && !area.isSameMaterial) {
-            detail = `다른 자재가 적재된 구역입니다.`;
+            detail = `❌ 다른 자재가 적재된 구역입니다.`;
         } else {
             detail = '선택할 수 없는 구역입니다.';
         }
         
         toast.add({
-            severity: 'warn',
+            severity: 'error',
             summary: message,
             detail: detail,
-            life: 3000
+            life: 4000
         });
         return;
     }
@@ -316,17 +365,36 @@ const getAreaStyle = (area) => {
     const isSelected = selectedAreas.value.some(selected => selected.wareAreaCd === area.wareAreaCd);
     
     if (isSelected) return 'bg-blue-500 text-white border-blue-600';
+    
+    // 🔥 다른 자재가 적재된 구역들은 빨간색으로 명확히 구분
     if (area.isDifferentMaterialSelected) {
-        // 🔥 다른 자재가 선택한 구역 - 빨간색
-        return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
+        // 다른 자재가 선택한 구역 - 진한 빨간색
+        return 'bg-red-300 text-red-900 border-red-500 cursor-not-allowed opacity-80';
     }
+    if (area.isDifferentMaterialInDB) {
+        // 다른 자재가 DB에 적재된 구역 - 빨간색
+        return 'bg-red-200 text-red-800 border-red-400 cursor-not-allowed opacity-75';
+    }
+    
+    // 🔥 선택 가능한 구역들
     if (area.isSameMaterialSelected) {
-        // 🔥 같은 자재 다른 입고건이 선택한 구역 - 주황색 (선택 가능)
+        // 같은 자재 다른 입고건이 선택한 구역 - 주황색 (선택 가능)
         return 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200';
     }
-    if (!area.isAvailable) return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
-    if (area.isSameMaterial) return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
-    if (area.availableVolume <= 0) return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75';
+    if (!area.isAvailable) {
+        // 기타 이유로 선택 불가능한 구역
+        return 'bg-gray-300 text-gray-600 border-gray-400 cursor-not-allowed opacity-75';
+    }
+    if (area.isSameMaterial) {
+        // 같은 자재가 적재된 구역 - 녹색 (추가 적재 가능)
+        return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
+    }
+    if (area.availableVolume <= 0) {
+        // 용량 초과 구역
+        return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75';
+    }
+    
+    // 빈 구역 - 선택 가능
     return 'bg-white hover:bg-blue-50 border-gray-300 hover:border-blue-400';
 };
 
@@ -477,10 +545,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                             <div class="flex justify-between items-start mb-2">
                                 <div>
                                     <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
-                                    <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
+                                    <!-- <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
                                     <div class="text-xs text-blue-600">
                                         최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
-                                    </div>
+                                    </div> -->
                                 </div>
                                 <Button
                                     size="small"
@@ -563,10 +631,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                                     :class="[
                                         'border-2 rounded-lg p-3 transition-all duration-200 min-h-20 min-w-16',
                                         getAreaStyle(area),
-                                        // 🔥 클릭 가능 여부에 따라 커서 스타일 적용
-                                        area.isAvailable && area.availableVolume > 0 ? 'cursor-pointer' : 'cursor-not-allowed'
+                                        // 🔥 선택 가능 여부에 따라 커서 스타일 적용 (더 엄격한 조건)
+                                        area.isAvailable && !area.isDifferentMaterialInDB && !area.isDifferentMaterialSelected ? 'cursor-pointer' : 'cursor-not-allowed'
                                     ]"
-                                    @click="area.isAvailable && area.availableVolume > 0 ? selectArea(area) : null"
+                                    @click="canSelectArea(area) ? selectArea(area) : handleInvalidAreaClick(area)"
                                     :title="`구역: ${area.wareAreaCd}
                                     실제용량: ${area.realMaxVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}
                                     현재적재: ${area.currentVolume}${getUnitDisplayName(selectedMaterial?.unit || 'g5')}

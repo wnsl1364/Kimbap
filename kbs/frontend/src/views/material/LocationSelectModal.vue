@@ -556,10 +556,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                             <div class="flex justify-between items-start mb-2">
                                 <div>
                                     <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
-                                    <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
+                                    <!-- <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
                                     <div class="text-xs text-blue-600">
                                         최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
-                                    </div>
+                                    </div> -->
                                 </div>
                                 <Button
                                     size="small"
