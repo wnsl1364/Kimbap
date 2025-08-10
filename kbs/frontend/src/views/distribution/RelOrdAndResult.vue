@@ -69,7 +69,6 @@ const columns = computed(() => [
     optionValue: 'key',              // ★ "wcode|wareVerCd"
     optionLabel: 'label'
   },
-  { field: 'relOrdStatus', header: '출고상태', type: 'input', readonly: true }
 ]);
 
 const warehouseOptions = computed(() => {
