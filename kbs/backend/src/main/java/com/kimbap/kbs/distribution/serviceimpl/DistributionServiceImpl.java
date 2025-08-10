@@ -111,33 +111,41 @@ public class DistributionServiceImpl implements DistributionService {
         java.math.BigDecimal requestTotal = java.math.BigDecimal.ZERO;
 
         for (var item : vo.getItems()) {
-            // ✅ ord_d_cd 로만 단가 조회
             java.math.BigDecimal unitPrice =
-                distributionMapper.selectUnitPriceByOrdDCd(item.getOrd_d_cd());
+                distributionMapper.selectUnitPriceByOrdDCd(item.getRelOrdCd());
+            if (unitPrice == null) {
+                unitPrice = distributionMapper.selectUnitPriceByOrdDCd(item.getOrd_d_cd());
+            }
             if (unitPrice == null) unitPrice = java.math.BigDecimal.ZERO;
 
             String prodVerCd = distributionMapper.selectLatestProdVerCd(item.getPcode());
 
             for (var lot : item.getLots()) {
                 Integer curr = distributionMapper.selectLotQtyForUpdate(lot.getLotNo(), lot.getWareAreaCd());
-                if (curr == null || curr < lot.getAllocQty()) throw new IllegalStateException("LOT " + lot.getLotNo() + " 재고부족");
+                if (curr == null || curr < lot.getAllocQty()) {
+                    throw new IllegalStateException("LOT " + lot.getLotNo() + " 재고부족");
+                }
 
                 String prodRelCd = distributionMapper.nextProdRelCd();
                 distributionMapper.insertProdRel(
-                    prodRelCd,
-                    lot.getLotNo(),
-                    lot.getAllocQty(),
-                    item.getRelOrdCd(),   // 저장용으로 계속 전달
-                    item.getOrd_d_cd(),   // XML에서 단가/총액 계산 fallback에 사용
-                    item.getPcode(),
-                    prodVerCd
-                );
+                        prodRelCd,
+                        lot.getLotNo(),
+                        lot.getAllocQty(),
+                        item.getRelOrdCd(),
+                        item.getOrd_d_cd(),
+                        item.getPcode(),
+                        prodVerCd);
 
                 distributionMapper.decreaseLotQty(lot.getLotNo(), lot.getWareAreaCd(), lot.getAllocQty());
 
-                // 누적합 계산
-                requestTotal = requestTotal.add(unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty())));
+                requestTotal = requestTotal.add(
+                    unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty()))
+                );
             }
+
+            // ★ 추가: 해당 아이템의 주문 코드 찾아서 고객 상태 's3'로 변경
+            String ordCd = distributionMapper.selectOrdCdByOrdDCd(item.getOrd_d_cd());
+            distributionMapper.updateCustomerOrderStatus(ordCd, "s3");
         }
 
         int totalOrd = distributionMapper.selectTotalRelOrdQty(vo.getRelMasCd());

@@ -147,7 +147,7 @@ onBeforeMount(() => {
             { field: 'relMasCd', header: '출고지시번호' },
             { field: 'cpName', header: '거래처명' },
             { field: 'prodName', header: '제품명' },
-            { field: 'ordQty', header: '총수량' }
+            { field: 'relOrdQty', header: '지시수량' }
         ]"
         @update:modelValue="(item) => fetchRelDetails(item.relMasCd)"
     />
