@@ -1,5 +1,6 @@
 package com.kimbap.kbs.order.serviceimpl;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,9 +31,16 @@ public class ReturnServiceImpl implements ReturnService {
         String ordCd = request.getOrdCd();
 
         for (ReturnItemVO item : request.getReturnItems()) {
-            // 출고 테이블에서 LOT 번호 조회
-            String lotNo = returnMapper.getLotNoByOrdDCd(item.getOrdDCd());
-            item.setLotNo(lotNo);
+            // 출고 테이블에서 LOT 번호 목록 조회
+            List<String> lotNos = returnMapper.getLotNosByOrdDCd(item.getOrdDCd());
+
+            if (lotNos.isEmpty()) {
+                throw new RuntimeException("LOT 정보가 없습니다. (ord_d_cd: " + item.getOrdDCd() + ")");
+            } else if (lotNos.size() == 1) {
+                item.setLotNo(lotNos.get(0)); // 유일하면 자동 세팅
+            } else {
+                throw new RuntimeException("LOT이 여러 건입니다. 화면에서 LOT을 선택해 주세요. (ord_d_cd: " + item.getOrdDCd() + ")");
+            }
 
             // 시퀀스 번호 조회 (정수형)
             int seq = returnMapper.getNextReturnCodeSeq();
@@ -82,45 +90,83 @@ public class ReturnServiceImpl implements ReturnService {
     @Override
     @Transactional
     public void approveReturn(ReturnItemVO request) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("returnStatusInternal", "w1");  // 내부 승인(w1)
-        params.put("prodReturnCd", request.getProdReturnCd());
-        params.put("manager", request.getManager());
+        log.info("=== [반품 승인 요청 시작] ===");
+        log.info("요청 데이터: prodReturnCd={}, ordDCd={}, returnQty={}, manager={}", 
+                request.getProdReturnCd(), request.getOrdDCd(), request.getReturnQty(), request.getManager());
 
-        // 반품 상태 업데이트 (내부 승인)
-        returnMapper.updateReturnStatus(params);
-        log.info("반품 승인 완료 → prodReturnCd: {}", request.getProdReturnCd());
+        // 1. 단가 DB 조회
+        BigDecimal unitPrice = returnMapper.getUnitPriceByOrdDCd(request.getOrdDCd());
+        log.info("DB 조회 단가: {}", unitPrice);
 
-        // 주문 상세 상태 t5(반품완료)로 변경
-        returnMapper.updateOrderDetailStatusToT5(request.getProdReturnCd());
-        log.info("주문상세 상태 변경 → t5 (prodReturnCd: {})", request.getProdReturnCd());
+        // 2. 반품금액 계산
+        BigDecimal returnAmount = unitPrice.multiply(new BigDecimal(request.getReturnQty()));
+        log.info("계산된 반품 금액: {}", returnAmount);
 
-        // 주문 마스터 상태 갱신
+        // 3. prod_return 테이블에 금액 업데이트
+        Map<String, Object> amountParams = new HashMap<>();
+        amountParams.put("prodReturnCd", request.getProdReturnCd());
+        amountParams.put("returnAmount", returnAmount);
+        returnMapper.updateReturnAmount(amountParams);
+        log.info("prod_return 테이블 return_amount 업데이트 완료");
+
+        // 4. 거래처 미수금 차감
         String ordCd = returnMapper.getOrdCdByReturnCd(request.getProdReturnCd());
-        log.info("반품 승인 후 마스터 상태 갱신 시작 → ordCd: {}", ordCd);
+        String cpCd = returnMapper.getCompanyCodeByOrdCd(ordCd);
+        log.info("연결된 주문코드: {}, 거래처코드: {}", ordCd, cpCd);
 
+        Map<String, Object> decreaseParams = new HashMap<>();
+        decreaseParams.put("cpCd", cpCd);
+        decreaseParams.put("amount", returnAmount);
+        returnMapper.decreaseCompanyUnsettledAmount(decreaseParams);
+        log.info("거래처({}) 미수금 {} 차감 완료", cpCd, returnAmount);
+
+        // 5. 반품 상태 승인(w1) 처리
+        Map<String, Object> statusParams = new HashMap<>();
+        statusParams.put("returnStatusInternal", "w1");
+        statusParams.put("prodReturnCd", request.getProdReturnCd());
+        statusParams.put("manager", request.getManager());
+        returnMapper.updateReturnStatus(statusParams);
+        log.info("반품 상태 승인(w1) 처리 완료");
+
+        // 6. 주문 상세 상태 t5(반품완료)로 변경
+        returnMapper.updateOrderDetailStatusToT5(request.getProdReturnCd());
+        log.info("주문상세 상태 변경 → t5(반품완료)");
+
+        // 7. 주문 마스터 상태 갱신
         updateOrderMasterStatus(ordCd);
+        log.info("주문마스터 상태 갱신 완료");
+
+        log.info("=== [반품 승인 요청 종료] ===");
     }
 
     @Override
     @Transactional
     public void rejectReturn(ReturnItemVO request) {
+        log.info("=== [반품 거절 요청 시작] ===");
+        log.info("요청 데이터: prodReturnCd={}, manager={}, rejectRea={}", 
+                request.getProdReturnCd(), request.getManager(), request.getRejectRea());
+
+        // 1. 반품 상태 거절(w2) 처리
         Map<String, Object> params = new HashMap<>();
         params.put("returnStatusInternal", "w2");  // 거절
         params.put("prodReturnCd", request.getProdReturnCd());
         params.put("manager", request.getManager());
         params.put("rejectRea", request.getRejectRea());
-
-        // 반품 상태 거절로 변경
         returnMapper.updateReturnStatus(params);
+        log.info("반품 상태 거절(w2) 처리 완료");
 
-        // 주문 상세 상태 t1(주문접수)로 복구
+        // 2. 주문 상세 상태 t1(주문접수)로 복구
         returnMapper.updateOrderDetailStatusToT1(request.getProdReturnCd());
+        log.info("주문상세 상태 변경 → t1(주문접수)");
 
-        // 주문 마스터 상태 갱신
+        // 3. 주문 마스터 상태 갱신
         String ordCd = returnMapper.getOrdCdByReturnCd(request.getProdReturnCd());
         updateOrderMasterStatus(ordCd);
+        log.info("주문마스터 상태 갱신 완료");
+
+        log.info("=== [반품 거절 요청 종료] ===");
     }
+
 
     @Transactional
     public void updateOrderMasterStatus(String ordCd) {

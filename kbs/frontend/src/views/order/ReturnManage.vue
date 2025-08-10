@@ -122,7 +122,7 @@ const handleApprove = async () => {
       prodReturnCd: selectedRows.value.prodReturnCd,
       manager: user.value.memCd,
       rejectRea: '',
-      ordDCd: selectedRows.value.ord_d_cd,
+      ordDCd: selectedRows.value.ordDCd,
       returnQty: selectedRows.value.returnQty,
       unitPrice: selectedRows.value.unitPrice
     };

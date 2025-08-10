@@ -1,5 +1,6 @@
 package com.kimbap.kbs.order.service;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 import lombok.AllArgsConstructor;
@@ -34,4 +35,6 @@ public class ReturnItemVO {
     private Date returnEndDt;
     private String manager;
     private String managerName;
+
+    private BigDecimal unitPrice;
 }
