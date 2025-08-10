@@ -540,17 +540,32 @@ INSERT INTO release_ord_master (
    WHERE rel_mas_cd     = #{relMasCd}
 </update>
 
+<!-- 고객상태 업데이트 -->
 <update id="updateCustomerOrderStatus">
     UPDATE order_list
        SET ord_status_customer = #{status}
      WHERE ord_cd = #{ordCd}
 </update>
 
-
+<!-- 주문코드 조회 -->
 <select id="selectOrdCdByOrdDCd" parameterType="string" resultType="string">
     SELECT ord_cd
       FROM order_d
      WHERE ord_d_cd = #{ord_d_cd}
+</select>
+
+<!-- 해당 주문에 '잔여수량 > 0' 인 상세가 몇 개인지 -->
+<select id="countRemainingQtyByOrdCd" parameterType="string" resultType="int">
+  SELECT COUNT(1)
+    FROM order_d od
+    LEFT JOIN (
+      SELECT ro.ord_d_cd, NVL(SUM(pr.rel_qty),0) rel_qty
+        FROM prod_rel pr
+        JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+       GROUP BY ro.ord_d_cd
+    ) r ON r.ord_d_cd = od.ord_d_cd
+   WHERE od.ord_cd = #{ordCd}
+     AND (od.ord_qty - NVL(r.rel_qty,0)) > 0
 </select>
 
 </mapper>

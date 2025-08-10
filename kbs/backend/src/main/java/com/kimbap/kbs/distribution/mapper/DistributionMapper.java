@@ -100,4 +100,7 @@ public interface DistributionMapper {
                               @Param("status") String status);      
                               
   String selectOrdCdByOrdDCd(@Param("ord_d_cd") String ord_d_cd);
+
+  int countRemainingQtyByOrdCd(@Param("ordCd") String ordCd);
+
 }
