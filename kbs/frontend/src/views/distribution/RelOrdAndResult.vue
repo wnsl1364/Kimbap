@@ -27,7 +27,7 @@ const formStore = useOrderFormStore()
 const productStore = useOrderProductStore()
 
 // 반응형 상태
-const { formData , resetForm } = storeToRefs(formStore)
+const { formData, resetForm } = storeToRefs(formStore)
 const { products } = storeToRefs(productStore)
 
 //창고 목록 상태
@@ -60,17 +60,38 @@ const columns = computed(() => [
     header: '창고',
     type: 'select',
     align: 'right',
-    options: warehouseList.value,  // 창고 목록 변수
-    optionValue: 'wcode',
-    optionLabel: 'wareName' // 또는 창고명을 보여주고 싶다면 'wname' 등으로 변경
+    options: warehouseOptions.value, // ★ 변경
+    optionValue: 'key',              // ★ "wcode|wareVerCd"
+    optionLabel: 'label'
   },
   { field: 'relOrdStatus', header: '출고상태', type: 'input', readonly: true }
 ]);
 
+const warehouseOptions = computed(() => {
+  const seen = new Set()
+  return (warehouseList.value || []).reduce((acc, w) => {
+    const key = `${w.wcode}|${w.wareVerCd}`   // ★ 합성키
+    if (!seen.has(key)) {
+      seen.add(key)
+      acc.push({
+        key,
+        label: `${w.wareName} (${w.wcode})`,
+        wcode: w.wcode,
+        wareVerCd: w.wareVerCd,
+      })
+    }
+    return acc
+  }, [])
+})
+
 const handleSave = async () => {
   try {
     const { newRelOrdCd, relDt, regi, note, cpCd, mname, deliAdd, deliReqDt } = formData.value;
-
+    const ordCdResolved = formData.value?.ordCd || route.query.ordCd;
+    if (!ordCdResolved) {
+      alert('ordCd가 비어 있어요. 주문을 먼저 선택해주세요.');
+      return;
+    }
     // master VO
     const master = {
       // relMasCd,
@@ -81,49 +102,53 @@ const handleSave = async () => {
       mname,
       deliAdd,
       deliReqDt,
-      relOrdStatus: 'm1'
+      relOrdStatus: 'm1',
+      ordCd: ordCdResolved
     };
 
     // detailList
     const detailList = (products.value || [])
-      .filter(p => p.relQty > 0)
-      .map(p => ({
-        wcode: p.wcode,
-        wareVerCd: p.wareVerCd,
-        ordDCd: p.ordDCd,
-        relQty: p.relQty,
-        newRelOrdCd: p.newRelOrdCd
-      }))
-      
+      .filter(p => Number(p.relQty) > 0)
+      .map(p => {
+        const [wcode, wareVerCd] = String(p.wcode || '').split('|')  // ★ 분해
+        return {
+          wcode,
+          wareVerCd,
+          ordDCd: p.ordDCd,
+          relQty: Number(p.relQty || 0),
+          newRelOrdCd: p.newRelOrdCd
+        }
+      })
+
     if (detailList.length === 0) {
       alert('출고지시수량이 입력된 제품이 없습니다.');
       return;
     }
-    
+
     const payload = {
       master,
       detailList
     };
-    
+
     console.log('products.value =', products.value)
     console.log('📦 등록할 출고지시 payload:', payload);
-    
+
     // ✅ API 호출
     await insertRelOrd(payload);
-    
+
     // ✅ 성공 처리
     alert('출고지시 저장 완료!');
     formStore.$reset();
     productStore.$reset();
-    
+
     // ✅ 라우터 이동을 try-catch 밖으로 이동하거나 별도 처리
     setTimeout(() => {
       router.push('/distribution/relOrdList');
     }, 100);
-    
+
   } catch (err) {
     console.error('❌ 출고지시 저장 실패:', err);
-    
+
     // ✅ 실제 오류인 경우만 오류 메시지 표시
     const errorMessage = err.response?.data?.message || err.message || '알 수 없는 오류가 발생했습니다.';
     alert('저장 중 오류 발생: ' + errorMessage);
@@ -249,19 +274,19 @@ onMounted(async () => {
   // ✅ 지시서 조회 모드: relMasCd로 진입한 경우
   if (relMasCd) {
     // 출고/반려 버튼 추가
-    infoFormButtons.save = { 
-      show: true, 
-      label: '출고', 
-      severity: 'success', 
-      onClick: handleSave 
+    infoFormButtons.save = {
+      show: true,
+      label: '출고',
+      severity: 'success',
+      onClick: handleSave
     };
-    infoFormButtons.delete = { 
-      show: true, 
-      label: '반려', 
-      severity: 'danger', 
-      onClick: handleSave 
+    infoFormButtons.delete = {
+      show: true,
+      label: '반려',
+      severity: 'danger',
+      onClick: handleSave
     };
-    
+
     try {
       const res = await axios.get('/api/distribution/relOrderDetail', {
         params: { relMasCd }
@@ -273,16 +298,16 @@ onMounted(async () => {
     }
   } else {
     // 신규 등록 모드
-    infoFormButtons.save = { 
-      show: true, 
-      label: '저장', 
-      severity: 'info', 
-      onClick: handleSave 
+    infoFormButtons.save = {
+      show: true,
+      label: '저장',
+      severity: 'info',
+      onClick: handleSave
     };
-    infoFormButtons.load = { 
-      show: true, 
-      label: '주문정보 불러오기', 
-      severity: 'success' 
+    infoFormButtons.load = {
+      show: true,
+      label: '주문정보 불러오기',
+      severity: 'success'
     };
   }
 });

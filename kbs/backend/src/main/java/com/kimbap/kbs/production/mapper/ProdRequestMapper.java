@@ -39,7 +39,8 @@ public interface ProdRequestMapper {
     // 사용 가능한 자재재고 조회
     List<WaStockVO> selectAvailableStocks(@Param("mcode") String mcode, @Param("mateVerCd") String mateVerCd);
     // 재고 차감
-    void decreaseWareStock(@Param("wslcode") String wslcode, @Param("useQty") BigDecimal useQty);
+    int decreaseWareStock(@Param("wslcode") String wslcode, @Param("delta") BigDecimal delta);
+    BigDecimal selectQtyByWslcode(String wslcode);
 
     String getNewMateRelCd();                   // 자재 출고 코드 생성
     void insertMateRel(MateReleaseVO vo);       // 자재 출고 테이블 입력

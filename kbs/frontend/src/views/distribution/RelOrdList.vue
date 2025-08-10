@@ -121,7 +121,8 @@ const inputTableColumns = computed(() => {
       field: 'relMasCd',
       header: '출고지시번호',
       type: 'clickable',
-      align: 'center'
+      align: 'center',
+      width: 200
     },
     {
       field: 'cpName',

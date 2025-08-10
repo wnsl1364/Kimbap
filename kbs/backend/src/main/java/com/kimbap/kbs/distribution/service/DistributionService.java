@@ -21,6 +21,16 @@ public interface DistributionService {
 
   // 출고지시 전체 저장
   void saveReleaseOrder(ReleaseMasterOrdVO masterVO, List<ReleaseOrdVO> detailList);
+  // 마스터 단건조회
+  RelOrderAndResultVO getRelOrdDetail(String relMasCd);
+  // 출고 지시서 단건조회
+  List<ReleaseOrdVO> getRelOrdProductList(String relMasCd);
+  // 출고지시서 불러오기 
+  List<RelOrderAndResultVO> getRelOrdListWaiting();
+  // 출고지시서 단건조회 
+  List<RelDetailVO> getRelDetails(String relMasCd);
+  // lot분배
+  List<LotStockVO> getLotsByPcode(String pcode);
 
-
+  String insertRelease(ReleaseRequestVO vo);
 }

@@ -52,6 +52,11 @@ public class StockMovementVO {
     private String arrWareCd;        // 도착창고코드
     private String arrAreaCd;        // 도착구역코드
     
+    // ========== WARE_MOVE_HIS 테이블 전용 컬럼들 ==========
+    private String wareMoveCd;       // 창고이동코드
+    private Timestamp moveDt;        // 이동일자
+    private String mname;            // 담당자
+    
     // ========== 조인용 추가 필드들 ==========
     // 자재 정보
     private String mateName;         // 자재명

@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class WarehouseVO {
   private String wcode;       // 창고코드
   private String wareName;    // 창고이름
+  private String wareVerCd;    // 창고버전코드
   private String lotNo;       // Lot번호
 }

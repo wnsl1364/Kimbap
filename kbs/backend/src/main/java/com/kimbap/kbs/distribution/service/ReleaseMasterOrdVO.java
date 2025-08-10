@@ -21,4 +21,6 @@ public class ReleaseMasterOrdVO {
     private String deliAdd; // 배송지주소
     private Date deliReqDt; // 배송요청일자
     private String relOrdStatus; // 출고지시서 상태
+
+    private String ordCd;
 }

@@ -13,6 +13,7 @@
       b.emp_name,
       b.tel,
       c.team_name,
+      c.team_code,
       d.dept_name,
       e.cp_cd,
       e.cp_name,
@@ -101,11 +102,11 @@
           #{memCd},
           #{id}, 
           #{pw}, 
-          #{lDate}, 
+          #{regDt, jdbcType=TIMESTAMP},
           SYSDATE,
           #{memType}, 
-          #{empCd}, 
-          #{cpCd}, 
+          #{empCd, jdbcType=VARCHAR}, 
+          #{cpCd, jdbcType=VARCHAR}, 
           'f1')
 </insert>
 

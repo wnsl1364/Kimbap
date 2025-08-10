@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useMaterialStore } from '@/stores/materialStore';
 import { useMemberStore } from '@/stores/memberStore';
@@ -30,6 +31,7 @@ const memberStore = useMemberStore();
 const common = useCommonStore();
 const { commonCodes } = storeToRefs(common)
 const toast = useToast();
+const route = useRoute();
 const convertedMaterialList = computed(() => {
   if (!purchaseData.value || !Array.isArray(purchaseData.value)) {
     console.warn('convertedMaterialList: purchaseData가 배열이 아님:', typeof purchaseData.value);
@@ -505,19 +507,59 @@ const handleSavePurchaseOrder = async (formData) => {
 const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
   try {
     console.log('🔍 특정 자재의 공급업체 조회:', selectedMcode, selectedMateVerCd);
-    const response = await getSuppliersByMaterial(selectedMcode, selectedMateVerCd); // 🔥 API 함수 호출
 
-    return response.data.map(item => ({
-      cpCd: item.cpCd,
-      cpName: item.cpName,
-      repname: item.repname,
-      tel: item.cpTel,
-      unitPrice: item.unitPrice,
-      ltime: item.ltime
-    }));
+    // 1) mateVerCd가 유효하면 버전 기반 API 우선 시도
+    if (selectedMateVerCd && selectedMateVerCd !== 'undefined') {
+      try {
+        const response = await getSuppliersByMaterial(selectedMcode, selectedMateVerCd);
+        const list = response.data || [];
+        if (list.length > 0) {
+          return list.map(item => ({
+            cpCd: item.cpCd,
+            cpName: item.cpName,
+            repname: item.repname,
+            tel: item.cpTel,
+            unitPrice: item.unitPrice,
+            ltime: item.ltime
+          }));
+        }
+        // 결과 0건이면 mcode만으로 재조회
+        console.warn('⚠️ 버전기반 조회 0건 → mcode만으로 재조회');
+      } catch (e) {
+        console.warn('버전기반 조회 실패 → mcode만으로 재조회', e);
+      }
+    }
+
+    // 2) 버전정보 없거나 결과가 0이면 mcode-only 조합 API로 대체
+    const msResp = await getMaterialsWithSuppliers({ mcode: selectedMcode });
+    const combos = Array.isArray(msResp.data) ? msResp.data : (msResp.data?.data || []);
+    const suppliers = combos
+      .filter(it => it.mcode === selectedMcode)
+      .map(it => ({
+        cpCd: it.cpCd,
+        cpName: it.cpName,
+        repname: it.repname,
+        tel: it.cpTel || it.tel,
+        unitPrice: it.unitPrice,
+        ltime: it.ltime,
+        mateVerCd: it.mateVerCd
+      }));
+
+    return suppliers;
   } catch (error) {
-    console.error('❌ 특정 자재의 공급업체 조회 실패:', error);
-    return materialStore.materialSupplierCombinations;
+    console.error('❌ 특정 자재의 공급업체 조회 실패(최종):', error);
+    // 마지막 fallback: 스토어에 적재된 조합에서 mcode만 필터
+    return materialStore.materialSupplierCombinations
+      .filter(it => it.mcode === selectedMcode)
+      .map(it => ({
+        cpCd: it.cpCd,
+        cpName: it.cpName,
+        repname: it.repname,
+        tel: it.cpTel || it.tel,
+        unitPrice: it.unitPrice,
+        ltime: it.ltime,
+        mateVerCd: it.mateVerCd
+      }));
   }
 };
 
@@ -638,6 +680,116 @@ onMounted(async () => {
     await loadMaterialSupplierCombinations();
 
     console.log('🚀 MaterialPurchase 컴포넌트 초기화 완료');
+
+  // ✅ 재고 화면에서 넘어온 쿼리로 초기 행 채우기 (쿼리 또는 스토어)
+    const q = route.query || {};
+  if (q.mcode) {
+      const qty = Number(q.qty) || 0;
+      const row = {
+        id: Date.now(),
+        mcode: q.mcode,
+        mateVerCd: q.mateVerCd || '',
+        materialName: q.mateName || '',
+        buyer: '',
+        cpCd: '',
+        number: qty,
+        unit: q.unit || '',
+        price: 0,
+        totalPrice: 0,
+        date: new Date().toISOString().split('T')[0],
+        memo: '재고부족 자동생성'
+      };
+
+      purchaseData.value = [row];
+
+      toast.add({
+        severity: 'info',
+        summary: '부족 자재 추가',
+        detail: `${row.materialName || row.mcode} 부족수량 ${qty}를 발주서에 추가했습니다. 공급업체를 선택하세요.`,
+        life: 3500
+      });
+
+      // 🔎 공급업체 자동 선택/단가 채우기
+      try {
+        // cpCd가 쿼리에 이미 있으면 우선 적용
+        if (q.cpCd) {
+          const suppliers = await loadSuppliersByMaterial(q.mcode, q.mateVerCd || undefined);
+          const target = suppliers.find(s => s.cpCd === q.cpCd);
+          if (target) {
+            purchaseData.value[0].buyer = target.cpName;
+            purchaseData.value[0].cpCd = target.cpCd;
+            purchaseData.value[0].price = Number(target.unitPrice) || 0;
+            purchaseData.value[0].totalPrice = (Number(purchaseData.value[0].number) || 0) * (Number(target.unitPrice) || 0);
+
+            toast.add({
+              severity: 'success',
+              summary: '공급업체 적용',
+              detail: `${target.cpName} (단가: ${(Number(target.unitPrice) || 0).toLocaleString()}원)`,
+              life: 2500
+            });
+          } else {
+            toast.add({
+              severity: 'warn',
+              summary: '공급업체 확인 필요',
+              detail: '전달된 공급업체가 이 자재와 매칭되지 않았습니다. 직접 선택해주세요.',
+              life: 3000
+            });
+          }
+        } else {
+          // 공급업체 조회 -> 1건이면 자동, 여러건이면 최저가 자동 선택
+          const suppliers = await loadSuppliersByMaterial(q.mcode, q.mateVerCd || undefined);
+          if (suppliers && suppliers.length > 0) {
+            let chosen = null;
+            if (suppliers.length === 1) {
+              chosen = suppliers[0];
+              toast.add({ severity: 'info', summary: '공급업체 자동 선택', detail: `${chosen.cpName} 1건`, life: 2200 });
+            } else {
+              chosen = suppliers.reduce((min, s) => (Number(s.unitPrice) < Number(min.unitPrice) ? s : min), suppliers[0]);
+              toast.add({ severity: 'info', summary: '최저가 자동 선택', detail: `${chosen.cpName} (단가 ${Number(chosen.unitPrice).toLocaleString()}원)`, life: 2600 });
+            }
+
+            purchaseData.value[0].buyer = chosen.cpName;
+            purchaseData.value[0].cpCd = chosen.cpCd;
+            purchaseData.value[0].price = Number(chosen.unitPrice) || 0;
+            purchaseData.value[0].totalPrice = (Number(purchaseData.value[0].number) || 0) * (Number(chosen.unitPrice) || 0);
+          } else {
+            toast.add({ severity: 'warn', summary: '공급업체 없음', detail: '이 자재의 공급업체를 찾지 못했습니다. 직접 선택해주세요.', life: 3000 });
+          }
+        }
+      } catch (e) {
+        console.error('공급업체 자동 선택 실패:', e);
+      }
+    }
+
+    // 🧩 스토어에 사전 채운 데이터가 있는 경우(여러 건) → 공급업체 자동 배정/단가 세팅
+    if (purchaseData.value && purchaseData.value.length > 0) {
+      try {
+        for (let i = 0; i < purchaseData.value.length; i++) {
+          const item = purchaseData.value[i];
+          if (!item.mcode) continue;
+
+          // cpCd가 이미 있으면 스킵
+          if (item.cpCd) continue;
+
+          const suppliers = await loadSuppliersByMaterial(item.mcode, item.mateVerCd || undefined);
+          if (suppliers && suppliers.length > 0) {
+            let chosen = null;
+            if (suppliers.length === 1) {
+              chosen = suppliers[0];
+            } else {
+              chosen = suppliers.reduce((min, s) => (Number(s.unitPrice) < Number(min.unitPrice) ? s : min), suppliers[0]);
+            }
+
+            item.buyer = chosen.cpName;
+            item.cpCd = chosen.cpCd;
+            item.price = Number(chosen.unitPrice) || 0;
+            item.totalPrice = (Number(item.number) || 0) * (Number(chosen.unitPrice) || 0);
+          }
+        }
+      } catch (e) {
+        console.error('다중 항목 공급업체 자동 배정 실패:', e);
+      }
+    }
 
   } catch (error) {
     console.error('❌ 초기화 중 오류:', error);
@@ -768,7 +920,13 @@ const getPurcStatusText = (status) => {
 };
 
 onUnmounted(() => {
-  console.log('🧹 MaterialPurchase 컴포넌트 언마운트됨');
+  console.log('🧹 MaterialPurchase 컴포넌트 언마운트됨: 상태 초기화');
+  // 발주 상세 데이터 초기화 (다음 진입 시 새로 채우도록)
+  purchaseData.value = [];
+  // 모달/목록 상태 초기화
+  orderListModalVisible.value = false;
+  orderList.value = [];
+  // 기본정보는 마운트 시 다시 세팅되므로 명시 초기화는 생략
 });
 </script>
 
