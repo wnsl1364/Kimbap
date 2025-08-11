@@ -152,6 +152,8 @@ public class ProdRequestServiceImpl implements ProdRequestService {
       inbo.setFacVerCd(facVerCd);
       mapper.insertProdInbo(inbo);
 
+      mapper.updateProductionReqStatus(produReqCd, "b4");
+
     }
   }
   // ===== Helper: 출고 이력 Insert =====
