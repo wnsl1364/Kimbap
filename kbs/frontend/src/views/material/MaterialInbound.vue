@@ -370,7 +370,7 @@ const handleInboundComplete = async () => {
         <InputForm 
             :columns="materialStore.inboundFields"
             :data="formData" 
-            title="기본정보"
+            title="자재 입고"
             :buttons="{ 
                 save: { show: true, label: '입고처리', severity: 'success' }, 
                 reset: { show: false, label: '초기화', severity: 'secondary' },
@@ -394,10 +394,10 @@ const handleInboundComplete = async () => {
         />
     </div>
     <div>
-        <h2>자재 목록</h2>
         <BasicTable 
             :data="material" 
             :columns="materialStore.inMaterialColumns" 
+            title="자재 목록"
             v-model:selection="selectedMaterials"
             selectionMode="multiple"
             :dataKey="'id'"
