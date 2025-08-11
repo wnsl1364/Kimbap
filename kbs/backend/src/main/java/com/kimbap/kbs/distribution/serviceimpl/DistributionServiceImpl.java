@@ -64,25 +64,25 @@ public class DistributionServiceImpl implements DistributionService {
         // 1) 마스터 코드
         String relMasCd = distributionMapper.selectNewRelMasCd();
         master.setRelMasCd(relMasCd);
-    
+
         // 2) 마스터 INSERT
         distributionMapper.insertReleaseOrdMaster(master);
-    
+
         // 3) 시퀀스 준비
         int maxSeq = distributionMapper.selectMaxRelOrdSeqToday();
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int nextSeq = maxSeq + 1;
-    
+
         // 4) 디테일 코드/마스터 세팅
         for (ReleaseOrdVO item : detailList) {
             String relOrdCd = "REL-" + today + "-" + String.format("%04d", nextSeq++);
             item.setNewRelOrdCd(relOrdCd);
             item.setRelMasCd(relMasCd);
         }
-    
+
         // 5) 디테일 INSERT
         distributionMapper.insertReleaseOrdList(detailList);
-    
+
         // 6) 주문 상태 업데이트 (고객용 상태 s7)
         if (master.getOrdCd() == null || master.getOrdCd().isBlank()) {
             throw new IllegalArgumentException("ordCd가 없어 주문 상태를 갱신할 수 없습니다.");
@@ -112,10 +112,11 @@ public class DistributionServiceImpl implements DistributionService {
         java.util.Set<String> touchedOrdCds = new java.util.HashSet<>();
 
         for (var item : vo.getItems()) {
-            java.math.BigDecimal unitPrice =
-                distributionMapper.selectUnitPriceByOrdDCd(item.getRelOrdCd());
-            if (unitPrice == null) unitPrice = distributionMapper.selectUnitPriceByOrdDCd(item.getOrd_d_cd());
-            if (unitPrice == null) unitPrice = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal unitPrice = distributionMapper.selectUnitPriceByOrdDCd(item.getRelOrdCd());
+            if (unitPrice == null)
+                unitPrice = distributionMapper.selectUnitPriceByOrdDCd(item.getOrd_d_cd());
+            if (unitPrice == null)
+                unitPrice = java.math.BigDecimal.ZERO;
 
             String prodVerCd = distributionMapper.selectLatestProdVerCd(item.getPcode());
 
@@ -127,31 +128,46 @@ public class DistributionServiceImpl implements DistributionService {
 
                 String prodRelCd = distributionMapper.nextProdRelCd();
                 distributionMapper.insertProdRel(
-                    prodRelCd,
-                    lot.getLotNo(),
-                    lot.getAllocQty(),
-                    item.getRelOrdCd(),
-                    item.getOrd_d_cd(),
-                    item.getPcode(),
-                    prodVerCd
-                );
+                        prodRelCd,
+                        lot.getLotNo(),
+                        lot.getAllocQty(),
+                        item.getRelOrdCd(),
+                        item.getOrd_d_cd(),
+                        item.getPcode(),
+                        prodVerCd);
 
                 distributionMapper.decreaseLotQty(lot.getLotNo(), lot.getWareAreaCd(), lot.getAllocQty());
 
                 requestTotal = requestTotal.add(
-                    unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty()))
-                );
+                        unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty())));
+            }
+            // ✅ 이 라인(주문상세)이 전량 출고됐는지 확인 후, 전량이면 t3로 상태 변경
+            int ordered = distributionMapper.selectOrderQtyByOrdDCd(item.getOrd_d_cd()); // 주문수량
+            int released = distributionMapper.sumReleasedQtyByOrdDCd(item.getOrd_d_cd()); // 누적 실제 출고
+            if (released >= ordered) {
+                distributionMapper.updateOrderDetailStatusToT3(item.getOrd_d_cd());
             }
 
             // 이 아이템이 속한 주문코드 수집
             String ordCd = distributionMapper.selectOrdCdByOrdDCd(item.getOrd_d_cd());
-            if (ordCd != null) touchedOrdCds.add(ordCd);
+            if (ordCd != null)
+                touchedOrdCds.add(ordCd);
         }
 
         // 마스터 상태 갱신 (기존 그대로)
-        int totalOrd = distributionMapper.selectTotalRelOrdQty(vo.getRelMasCd());
-        int totalDone = distributionMapper.selectTotalReleasedQty(vo.getRelMasCd());
-        String relStatus = (totalDone >= totalOrd) ? "m3" : "m2";
+        // 주문 전체 요청 수량
+        long totalRequestQty = distributionMapper.selectTotalRequestQtyByRelMasCd(vo.getRelMasCd());
+        // 주문 전체에서 누적 출고된 수량
+        long totalReleasedQtyAll = distributionMapper.selectTotalReleasedQtyAllByRelMasCd(vo.getRelMasCd());
+
+        String relStatus;
+        if (totalReleasedQtyAll == 0) {
+            relStatus = "m1"; // 미출고
+        } else if (totalReleasedQtyAll >= totalRequestQty) {
+            relStatus = "m2"; // 전부 출고
+        } else {
+            relStatus = "m3"; // 부분 출고
+        }
         distributionMapper.updateRelOrderStatus(vo.getRelMasCd(), relStatus);
 
         // 주문 고객상태 갱신: 남은 수량 있으면 s8, 없으면 s3
