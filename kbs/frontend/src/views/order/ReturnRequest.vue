@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrderDetail, registerReturn, cancelReturn } from '@/api/return'
+import { getOrderDetail, registerReturn, cancelReturn, getLotList } from '@/api/return'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
 import { format, parseISO } from 'date-fns'
@@ -13,6 +13,7 @@ const ordCd = route.params.ordCd
 const formData = ref({})
 const products = ref([])
 const selectedRows = ref([])
+const lotOptions = ref({}) // LOT 목록 저장용
 
 const infoFormButtons = ref({
   save: { show: true, label: '반품요청', severity: 'info' },
@@ -37,22 +38,70 @@ const returnFormFields = [
 const productColumns = [
   { field: 'prodName', header: '제품명', type: 'readonly' },
   { field: 'ordQty', header: '주문수량(BOX)', type: 'readonly', align: 'right' },
+  { field: 'lotNo', header: 'LOT번호', type: 'select', options: row => lotOptions.value[row.ordDCd] || [], align: 'left' },
   { field: 'returnQty', header: '반품수량(BOX)', type: 'input', inputType: 'number', align: 'right' },
   { field: 'returnAmount', header: '반품금액', type: 'readonly', align: 'right', formatter: val => Number(val).toLocaleString() },
   { field: 'returnRea', header: '반품사유', type: 'input', align: 'left' },
 ]
 
+// const handleSave = async () => {
+//   if (selectedRows.value.length === 0) {
+//     return alert('반품할 제품을 선택해주세요.');
+//   }
+
+//   const selected = selectedRows.value.filter(p => p.returnQty > 0 && p.returnRea && p.lotNo);
+//   if (selected.length === 0) {
+//     return alert('반품수량, 사유, LOT을 모두 입력해야 합니다.');
+//   }
+
+//   // 주문수량 초과 검증
+//   for (const item of selected) {
+//     if (item.returnQty > item.ordQty) {
+//       return alert(`"${item.prodName}"의 반품수량은 주문수량(${item.ordQty} BOX)를 초과할 수 없습니다.`);
+//     }
+//   }
+
+//   const payload = {
+//     ordCd: formData.value.ordCd,
+//     returnItems: selected.map(p => ({
+//       ordDCd: p.ordDCd,
+//       lotNo: p.lotNo,
+//       returnQty: p.returnQty,
+//       returnRea: p.returnRea,
+//       returnAmount: p.returnAmount,
+//       returnStatusCustomer: 'v1'
+//     }))
+//   }
+
+//   try {
+//     const res = await registerReturn(payload)
+//     if (res.data.result_code === 'SUCCESS') {
+//       alert('반품 요청이 등록되었습니다.')
+//       router.push({ path: '/order/orderList', query: { refresh: true } });
+//     } else {
+//       alert('저장 실패: ' + res.data.message)
+//     }
+//   } catch (err) {
+//     console.error('반품 저장 실패:', err)
+//     alert('반품 저장 중 오류 발생')
+//   }
+// }
+
 const handleSave = async () => {
+  console.log('[handleSave] 현재 selectedRows:', selectedRows.value);
+  console.log('[handleSave] 현재 products:', products.value);
+
   if (selectedRows.value.length === 0) {
     return alert('반품할 제품을 선택해주세요.');
   }
 
-  const selected = selectedRows.value.filter(p => p.returnQty > 0 && p.returnRea);
+  const selected = selectedRows.value.filter(p => p.returnQty > 0 && p.returnRea && p.lotNo);
+  console.log('[handleSave] 조건 통과한 selected:', selected);
+
   if (selected.length === 0) {
-    return alert('반품수량과 사유를 입력한 제품을 선택해주세요.');
+    return alert('반품수량, 사유, LOT을 모두 입력해야 합니다.');
   }
 
-  // 주문수량 초과 검증
   for (const item of selected) {
     if (item.returnQty > item.ordQty) {
       return alert(`"${item.prodName}"의 반품수량은 주문수량(${item.ordQty} BOX)를 초과할 수 없습니다.`);
@@ -69,21 +118,25 @@ const handleSave = async () => {
       returnAmount: p.returnAmount,
       returnStatusCustomer: 'v1'
     }))
-  }
+  };
+  console.log('[handleSave] 전송 payload:', payload);
 
   try {
-    const res = await registerReturn(payload)
+    const res = await registerReturn(payload);
+    console.log('[handleSave] 서버 응답:', res.data);
+
     if (res.data.result_code === 'SUCCESS') {
-      alert('반품 요청이 등록되었습니다.')
+      alert('반품 요청이 등록되었습니다.');
       router.push({ path: '/order/orderList', query: { refresh: true } });
     } else {
-      alert('저장 실패: ' + res.data.message)
+      alert('저장 실패: ' + res.data.message);
     }
   } catch (err) {
-    console.error('반품 저장 실패:', err)
-    alert('반품 저장 중 오류 발생')
+    console.error('반품 저장 실패:', err);
+    alert('반품 저장 중 오류 발생');
   }
-}
+};
+
 
 // 반품취소
 const handleCancelReturn = async () => {
@@ -128,6 +181,16 @@ watch(products, (newVal) => {
   })
 }, { deep: true });
 
+// LOT 목록 불러오기
+async function loadLotOptions(ordDCd) {
+  try {
+    const res = await getLotList(ordDCd)
+    lotOptions.value[ordDCd] = res.data.data.map(lot => ({ label: lot, value: lot }))
+  } catch (err) {
+    console.error(`LOT 목록 조회 실패 (${ordDCd}):`, err)
+  }
+}
+
 onMounted(async () => {
   try {
     const res = await getOrderDetail(ordCd)
@@ -145,8 +208,14 @@ onMounted(async () => {
       returnQty: 0,
       returnRea: '',
       unitPrice: item.unitPrice,  // 초기 단가 설정 (수량 따라 변경될 예정)
-      returnAmount: 0
+      returnAmount: 0,
+      lotNo: '' // LOT 선택 값
     }))
+
+    // 모든 제품 LOT 목록 불러오기
+    for (const p of products.value) {
+      await loadLotOptions(p.ordDCd)
+    }
   } catch (err) {
     console.error('주문 상세 조회 실패:', err)
   }

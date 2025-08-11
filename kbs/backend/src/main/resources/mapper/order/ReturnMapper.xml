@@ -150,13 +150,20 @@
   </select>
 
   <!-- lot번호 -->
-  <select id="getLotNosByOrdDCd" resultType="string">
+  <select id="getLotNosByOrdDCd" parameterType="map" resultType="string">
     SELECT DISTINCT pr.lot_no
     FROM prod_rel pr
     JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
     WHERE ro.ord_d_cd = #{ordDCd}
   </select>
 
+  <select id="checkLotExists" parameterType="map" resultType="string">
+    SELECT DISTINCT pr.lot_no
+    FROM prod_rel pr
+    JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+    WHERE ro.ord_d_cd = #{ordDCd}
+      AND pr.lot_no = #{lotNo}
+  </select>
 
   <!-- 주문상세 상태를 출고완료(t3)로 -->
   <update id="updateOrderDetailStatusToT3" parameterType="string">
@@ -209,5 +216,10 @@
     WHERE cp_cd = #{cpCd}
   </update>
 
-
+  <select id="getLotListByOrdDCd" resultType="string">
+    SELECT DISTINCT pr.lot_no
+    FROM prod_rel pr
+    JOIN release_ord ro ON pr.rel_ord_cd = ro.rel_ord_cd
+    WHERE ro.ord_d_cd = #{ordDCd}
+  </select>
 </mapper>

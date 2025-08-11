@@ -4,7 +4,7 @@ import { getOrderList } from '@/api/order'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
-import { format, parseISO } from 'date-fns'
+import { format, addDays, subDays, parseISO } from 'date-fns'
 import { storeToRefs } from 'pinia';
 import { useOrderFormStore } from '@/stores/orderFormStore'
 import { useOrderProductStore } from '@/stores/orderProductStore'
@@ -38,14 +38,28 @@ const formFields = [
 ]
 
 // 제품 테이블
-const columns = [
-  { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
-  { field: 'prodName', header: '제품명', type: 'input', readonly: true },
-  { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'unitPrice', header: '단가(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString()},
-  { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() },
-  { field: 'deliAvailDt', header: '납기가능일자', type: 'calendar' }
-]
+// 제품 테이블
+const columns = computed(() => {
+  const deliReqDate = formData.value?.deliReqDt
+    ? new Date(formData.value.deliReqDt)
+    : null;
+
+  return [
+    { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
+    { field: 'prodName', header: '제품명', type: 'input', readonly: true },
+    { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+    { field: 'unitPrice', header: '단가(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() },
+    { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() },
+    {
+      field: 'deliAvailDt',
+      header: '납기가능일자',
+      type: 'calendar',
+      minDate: deliReqDate ? subDays(deliReqDate, 7) : null,
+      maxDate: deliReqDate ? addDays(deliReqDate, 10) : null
+    }
+  ];
+});
+
 
 // 버튼 설정
 const infoFormButtons = ref({
@@ -133,7 +147,9 @@ const handleLoadOrder = async (selectedRow) => {
         return {
           ...item,
           totalAmount: total,
-          deliAvailDt: item.deliAvailDt ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd') : '',
+          deliAvailDt: item.deliAvailDt
+          ? format(parseISO(item.deliAvailDt), 'yyyy-MM-dd')
+          : format(parseISO(order.deliReqDt), 'yyyy-MM-dd'),
           ordDStatus: item.ordDStatus || 't1',
           ordDCd: item.ordDCd
         }

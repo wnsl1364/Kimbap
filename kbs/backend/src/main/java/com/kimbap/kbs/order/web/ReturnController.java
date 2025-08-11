@@ -103,14 +103,22 @@ public class ReturnController {
     }
 
 
-    // 반품 승인 처리
+    // 반품 승인 처리 (다중)
     @PutMapping("/approve")
-    public ResponseEntity<Map<String, Object>> approveReturn(@RequestBody ReturnItemVO request) {
+    public ResponseEntity<Map<String, Object>> approveReturn(@RequestBody List<ReturnItemVO> requests) {
         Map<String, Object> response = new HashMap<>();
         try {
-            returnService.approveReturn(request);
+            if (requests == null || requests.isEmpty()) {
+                response.put("result_code", "FAIL");
+                response.put("message", "승인할 반품건이 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // 여러 건 처리
+            returnService.approveReturns(requests);
+
             response.put("result_code", "SUCCESS");
-            response.put("message", "반품 승인 성공");
+            response.put("message", "반품 승인 성공 (" + requests.size() + "건)");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("반품 승인 실패", e);
@@ -163,5 +171,12 @@ public class ReturnController {
             response.put("data", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
+
+    // LOT 목록 조회
+    @GetMapping("/lot/{ordDCd}")
+    public ResponseEntity<?> getLotList(@PathVariable String ordDCd) {
+        List<String> lotList = returnService.getLotList(ordDCd);
+        return ResponseEntity.ok().body(Map.of("result_code", "SUCCESS", "data", lotList));
     }
 }

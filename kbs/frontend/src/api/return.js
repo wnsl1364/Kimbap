@@ -41,3 +41,8 @@ export const cancelReturn = (ordDCdList) => {
     data: ordDCdList  // 배열 자체를 그대로 전달
   });
 };
+
+// LOT 목록 조회
+export const getLotList = (ordDCd) => {
+  return axios.get(`/api/return/lot/${ordDCd}`);
+};

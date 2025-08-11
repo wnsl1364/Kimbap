@@ -504,7 +504,7 @@ const downloadExcel = () => {
                                 </div>
                             </div>
                         </template>
-                        <template v-else-if="column.type === 'select'">
+                        <!-- <template v-else-if="column.type === 'select'">
                             <div class="flex items-center border rounded w-full h-10">
                                 <select 
                                     v-model="slotProps.data[column.field]" 
@@ -516,9 +516,33 @@ const downloadExcel = () => {
                                     </option>
                                 </select>
                             </div>
+                        </template> -->
+                        <template v-else-if="column.type === 'select'">
+                            <div class="flex items-center border rounded w-full h-10">
+                                <select
+                                    v-model="slotProps.data[column.field]"
+                                    @change="() => { 
+                                        console.log('[InputTable] select 변경:', column.field, '→', slotProps.data[column.field], '행 데이터:', slotProps.data);
+                                        emitDataChange();
+                                    }" 
+                                    :class="['flex-1 bg-transparent px-3 py-2 outline-none', getTextColorClass(column, slotProps.data)]"
+                                    :style="getTextColorStyle(column, slotProps.data)"
+                                >
+                                    <option 
+                                        v-for="opt in (typeof column.options === 'function' ? column.options(slotProps.data) : column.options)" 
+                                        :key="opt.value" 
+                                        :value="opt.value"
+                                    >
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
                         </template>
+
+
                         <template v-else-if="column.type === 'calendar'">
-                            <Calendar :modelValue="slotProps.data[column.field]" @update:modelValue="updateField(slotProps.data, column.field, $event)" dateFormat="yy-mm-dd" showIcon class="w-full" />
+                            <Calendar :modelValue="slotProps.data[column.field]" @update:modelValue="updateField(slotProps.data, column.field, $event)" dateFormat="yy-mm-dd" showIcon class="w-full" :minDate="column.minDate || null"
+                            :maxDate="column.maxDate || null"/>
                         </template>
 
                         <template v-else-if="column.type === 'clickable'">
