@@ -11,7 +11,6 @@ import { format, isValid } from 'date-fns';
 // 컴포넌트 import
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
-import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue';
 import Toast from 'primevue/toast';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -20,7 +19,9 @@ import Textarea from 'primevue/textarea';
 // API 함수들 import
 import { 
   getPurcOrderWithDetails,
-  updatePurchaseOrderStatus 
+  updatePurchaseOrderStatus,
+  bulkApprovePurchaseOrders,
+  bulkRejectPurchaseOrders
 } from '@/api/materials';
 
 // Store들
@@ -62,15 +63,18 @@ const inputTableRef = ref(null);
 const rejectModalVisible = ref(false);
 const rejectReason = ref('');
 
-// 기본정보 필드 설정
-const basicInfoFields = ref([
-  { field: 'purcCd', label: '발주번호', type: 'input', readonly: true },
-  { field: 'ordDt', label: '주문일자', type: 'input', readonly: true },
-  { field: 'regi', label: '등록자', type: 'input', readonly: true },
-  { field: 'purcStatus', label: '발주상태', type: 'input', readonly: true },
-  { field: 'ordTotalAmount', label: '총 발주금액', type: 'input', readonly: true },
-  { field: 'approver', label: '승인자', type: 'input', readonly: true }
+// SearchForm로 표시할 기본정보 컬럼 (읽기전용)
+const basicInfoColumns = computed(() => [
+  { key: 'purcCd', label: '발주번호', type: 'readonly', value: approvalOrderHeader.value.purcCd || '' },
+  { key: 'ordDt', label: '주문일자', type: 'readonly', value: approvalOrderHeader.value.ordDt || '' },
+  { key: 'regi', label: '등록자', type: 'readonly', value: approvalOrderHeader.value.empName || approvalOrderHeader.value.regi || '' },
+  { key: 'purcStatus', label: '발주상태', type: 'readonly', value: approvalOrderHeader.value.purcStatus || '' },
+  { key: 'ordTotalAmount', label: '총 발주금액', type: 'readonly', value: approvalOrderHeader.value.ordTotalAmount || '' },
+  { key: 'approver', label: '승인자', type: 'readonly', value: approvalOrderHeader.value.approver || '' }
 ]);
+
+// 테이블에 안전하게 전달할 데이터
+const tableData = computed(() => Array.isArray(approvalOrderDetails.value) ? approvalOrderDetails.value : []);
 
 // 상세정보 테이블 컬럼 설정
 const detailTableColumns = computed(() => [
@@ -136,9 +140,9 @@ const detailTableColumns = computed(() => [
   }
 ]);
 
-// 테이블 버튼 설정 (저장 버튼 추가!)
+// 테이블 버튼 설정 (저장 버튼 제거, 즉시처리 버튼만 사용)
 const tableButtons = ref({
-  save: { show: true, label: '변경사항 저장', severity: 'success' },
+  save: { show: false },
   reset: { show: false },
   delete: { show: false },
   load: { show: false }
@@ -371,32 +375,33 @@ const updateTempStatus = (items, newStatus, reason = '') => {
   console.log('임시 상태 변경 완료:', pendingChanges.value.length, '건 대기중');
 };
 
-// 임시 승인 처리 (웹페이지에서만!)
-const handleTempApprove = () => {
-  console.log('임시 승인 처리!')
-  
+// 선택 초기화 (상단 테이블 초기화)
+const clearSelection = () => {
+  localSelectedItems.value = [];
+  if (inputTableRef.value && inputTableRef.value.selectedRows) {
+    inputTableRef.value.selectedRows = [];
+  }
+};
+
+// 승인 즉시 처리
+const handleTempApprove = async () => {
   if (!canApprove.value) {
-    toast.add({
-      severity: 'warn',
-      summary: '승인 불가',
-      detail: '승인할 항목을 선택해 주세요.',
-      life: 3000
-    });
+    toast.add({ severity: 'warn', summary: '승인 불가', detail: '승인할 항목을 선택해 주세요.', life: 3000 });
     return;
   }
-  
-  // 화면에서만 상태 변경!
-  updateTempStatus(localSelectedItems.value, 'c2', '승인 대기중');
-  
-  toast.add({
-    severity: 'info',
-    summary: '임시 승인 완료',
-    detail: `${localSelectedItems.value.length}건이 승인 대기 상태로 변경되었습니다. "저장" 버튼을 눌러서 실제 저장해 주세요.`,
-    life: 4000
-  });
-  
-  // 선택 해제
-  localSelectedItems.value = [];
+  try {
+    isLoading.value = true;
+    const purcDCdList = localSelectedItems.value.map(it => it.purcDCd);
+    await bulkApprovePurchaseOrders(purcDCdList, memberStore.user?.empName || 'system');
+    toast.add({ severity: 'success', summary: '승인 완료', detail: `${purcDCdList.length}건 승인 처리되었습니다.`, life: 3000 });
+    await loadOrderDetails(purcCd.value);
+  } catch (e) {
+    console.error('승인 실패:', e);
+    toast.add({ severity: 'error', summary: '승인 실패', detail: '승인 처리 중 오류가 발생했습니다.', life: 3000 });
+  } finally {
+    isLoading.value = false;
+    clearSelection();
+  }
 };
 
 // 거절 모달 열기
@@ -415,32 +420,31 @@ const openRejectModal = () => {
   rejectModalVisible.value = true;
 };
 
-// 임시 거절 처리 (웹페이지에서만!)
-const handleTempReject = () => {
+// 거절 즉시 처리
+const handleTempReject = async () => {
   if (!rejectReason.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: '거절 사유 필요',
-      detail: '거절 사유를 입력해 주세요.',
-      life: 3000
-    });
+    toast.add({ severity: 'warn', summary: '거절 사유 필요', detail: '거절 사유를 입력해 주세요.', life: 3000 });
     return;
   }
-  
-  // 화면에서만 상태 변경!
-  updateTempStatus(localSelectedItems.value, 'c6', rejectReason.value);
-  
-  toast.add({
-    severity: 'info',
-    summary: '임시 거절 완료',
-    detail: `${localSelectedItems.value.length}건이 거절 대기 상태로 변경되었습니다. "저장" 버튼을 눌러서 실제 저장해 주세요.`,
-    life: 4000
-  });
-  
-  // 모달 닫기 및 선택 해제
-  rejectModalVisible.value = false;
-  localSelectedItems.value = [];
-  rejectReason.value = '';
+  if (!canReject.value) {
+    toast.add({ severity: 'warn', summary: '거절 불가', detail: '거절할 항목을 선택해 주세요.', life: 3000 });
+    return;
+  }
+  try {
+    isLoading.value = true;
+    const purcDCdList = localSelectedItems.value.map(it => it.purcDCd);
+    await bulkRejectPurchaseOrders(purcDCdList, rejectReason.value, memberStore.user?.empName || 'system');
+    toast.add({ severity: 'success', summary: '거절 완료', detail: `${purcDCdList.length}건 거절 처리되었습니다.`, life: 3000 });
+    await loadOrderDetails(purcCd.value);
+  } catch (e) {
+    console.error('거절 실패:', e);
+    toast.add({ severity: 'error', summary: '거절 실패', detail: '거절 처리 중 오류가 발생했습니다.', life: 3000 });
+  } finally {
+    isLoading.value = false;
+    rejectModalVisible.value = false;
+    rejectReason.value = '';
+    clearSelection();
+  }
 };
 
 // 실제 저장 처리! (진짜 API 호출)
@@ -533,13 +537,7 @@ const handleResetChanges = () => {
 
 // 목록으로 돌아가기
 const goBackToList = () => {
-  if (hasUnsavedChanges.value) {
-    if (confirm('저장하지 않은 변경사항이 있습니다.')) {
-      router.push('/material/MaterialPurchaseView');
-    }
-  } else {
-    router.push('/material/MaterialPurchaseView');
-  }
+  router.push('/material/MaterialPurchaseView');
 };
 
 // 초기화
@@ -600,12 +598,6 @@ onUnmounted(async () => {
       </div>
       
       <div class="flex gap-2">
-        <!-- 저장하지 않은 변경사항 경고 -->
-        <div v-if="hasUnsavedChanges" class="flex items-center text-orange-600 mr-3">
-          <i class="pi pi-exclamation-triangle mr-1"></i>
-          <span class="text-sm">{{ pendingChanges.length }}건 저장 대기중</span>
-        </div>
-        
         <Button 
           label="목록으로 돌아가기" 
           icon="pi pi-arrow-left" 
@@ -618,73 +610,19 @@ onUnmounted(async () => {
 
     <!-- 발주 기본정보 -->
     <div class="mb-6">
-      <LeftAlignTable
-        :data="approvalOrderHeader"
-        :fields="basicInfoFields"
-        @reset="resetOrderHeader"
-        title="발주 기본정보"
-      />
+      <SearchForm :columns="basicInfoColumns" :gridColumns="3" :showActions="false" />
     </div>
 
-    <!-- 승인 요약 정보 -->
-    <div v-if="localSelectedItems.length > 0" 
-         class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-      <h3 class="text-lg font-semibold text-blue-800 mb-2">승인 처리 요약</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div>
-          <span class="text-gray-600">선택된 항목:</span>
-          <span class="font-bold ml-2">{{ localSelectedItems.length }}건</span>
-        </div>
-        <div>
-          <span class="text-gray-600">총 승인 금액:</span>
-          <span class="font-bold ml-2 text-blue-600">
-            {{ totalApprovalAmount.toLocaleString() }}원
-          </span>
-        </div>
-        <div>
-          <span class="text-gray-600">처리 가능:</span>
-          <span :class="canApprove ? 'text-green-600 font-bold' : 'text-red-600'" class="ml-2">
-            {{ canApprove ? '승인 가능' : '승인 불가' }}
-          </span>
-        </div>
-      </div>
-    </div>
+  <!-- 승인 요약 정보 제거됨 -->
 
-    <!-- 변경사항 요약 -->
-    <div v-if="hasUnsavedChanges" 
-         class="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-      <h3 class="text-lg font-semibold text-yellow-800 mb-2">저장 대기 중인 변경사항</h3>
-      <div class="space-y-2">
-        <div v-for="change in pendingChanges" :key="change.purcDCd" class="text-sm">
-          • <strong>{{ change.purcDCd }}</strong>: 
-          {{ change.newStatus === 'c2' ? '승인' : '거절' }}
-          <span v-if="change.reason" class="text-gray-600 ml-2">({{ change.reason }})</span>
-        </div>
-      </div>
-      
-      <div class="flex gap-2 mt-3">
-        <Button 
-          label="지금 저장하기" 
-          severity="success" 
-          @click="handleSaveChanges"
-          :disabled="isLoading"
-          :loading="isLoading"
-        />
-        <Button 
-          label="변경사항 취소" 
-          severity="secondary" 
-          @click="handleResetChanges"
-          :disabled="isLoading"
-        />
-      </div>
-    </div>
+  <!-- 저장 대기/변경사항 요약 UI 제거됨: 즉시 처리 정책 적용 -->
 
     <!-- 발주 상세 목록 -->
     <div class="mb-6">
       <InputTable
         ref="inputTableRef"
         :columns="detailTableColumns"
-        :data="approvalOrderDetails"
+        :data="tableData"
         :scroll-height="'35vh'"
         :height="'47vh'"
         title="발주 상세 목록"
@@ -694,20 +632,25 @@ onUnmounted(async () => {
         :enableSelection="true"
         selectionMode="multiple"
         :showRowCount="true"
-        @selectionChange="handleSelectionChange"
-        @save="handleSaveChanges"
+    @selectionChange="handleSelectionChange"
       >
         <!-- 승인/거절 버튼들 -->
         <template #top-buttons>
+          <!-- 선택 요약: 버튼들 왼쪽에 작게 표시 -->
+          <div class="flex items-center text-xs md:text-sm text-gray-600 mr-3 whitespace-nowrap">
+            <span>선택 {{ localSelectedItems.length }}건</span>
+            <span class="mx-2 text-gray-300">|</span>
+            <span>금액 {{ totalApprovalAmount.toLocaleString() }}원</span>
+          </div>
           <Button 
-            label="임시 승인" 
+      label="승인" 
             severity="success" 
             icon="pi pi-check"
             @click="handleTempApprove"
             :disabled="!canApprove || isLoading"
           />
           <Button 
-            label="임시 거절" 
+      label="거절" 
             severity="danger" 
             icon="pi pi-times"
             @click="openRejectModal"
@@ -758,7 +701,7 @@ onUnmounted(async () => {
           :disabled="isLoading"
         />
         <Button 
-          label="임시 거절 처리" 
+          label="거절 처리" 
           severity="danger" 
           @click="handleTempReject"
           :disabled="!rejectReason.trim() || isLoading"
