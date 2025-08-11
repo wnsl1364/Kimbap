@@ -443,10 +443,10 @@ INSERT INTO release_ord_master (
 
 <!-- 출고처리코드  -->
 <select id="nextProdRelCd" resultType="string">
-  SELECT 'PR' || TO_CHAR(SYSDATE, 'YYYYMMDD') ||
-         LPAD(NVL(MAX(SUBSTR(prod_rel_cd, 11, 4)), 0) + 1, 4, '0')
+  SELECT 'PR-' || TO_CHAR(SYSDATE, 'YYYYMMDD') ||
+         LPAD(NVL(MAX(SUBSTR(prod_rel_cd, 12, 4)), 0) + 1, 4, '0')
   FROM prod_rel
-  WHERE SUBSTR(prod_rel_cd, 3, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
+  WHERE SUBSTR(prod_rel_cd, 4, 8) = TO_CHAR(SYSDATE, 'YYYYMMDD')
 </select>
 
 <!-- ===================== 출고 마스터 저장 ===================== -->
