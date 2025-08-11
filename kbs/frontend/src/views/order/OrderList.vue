@@ -9,6 +9,10 @@ import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
 import { format, subDays } from 'date-fns'
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast'
+
+const toast = useToast();
 
 // 라우터 설정
 const router = useRouter();
@@ -24,7 +28,7 @@ const isSupplier = computed(() => user.value?.memType === 'p3')       // 공급�
 const isManager = computed(() => user.value?.memType === 'p4')        // 담당자
 const isAdmin = computed(() => user.value?.memType === 'p5')          // 시스템 관리자
 
-console.log('현재 사용자 권한:', user.value)
+// console.log('현재 사용자 권한:', user.value)
 
 // 공통코드 가져오기
 const common = useCommonStore()
@@ -147,7 +151,7 @@ onMounted(async () => {
 
     const res = await getOrderList(params);
     orders.value = ordStatusCodes(res.data.data);
-    console.log('실제 응답 내용:', res.data);
+    // console.log('실제 응답 내용:', res.data);
   } catch (err) {
     console.error('목록 조회 실패:', err);
   }
@@ -241,7 +245,7 @@ const searchColumns = computed(() => {
 
 // 검색 이벤트 핸들러
 const handleSearch = (searchData) => {
-  console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
+  // console.log('테이블 컴포넌트에서 받은 검색 데이터:', searchData);
 
   const params = {
     id: user.value.id,
@@ -277,7 +281,12 @@ const handleSearch = (searchData) => {
 
 // 리셋 이벤트 핸들러
 const handleReset = () => {
-  console.log('검색 조건이 리셋되었습니다')
+  toast.add({ 
+    severity: 'info', 
+    summary: '검색 조건 리셋', 
+    detail: '검색 조건이 리셋되었습니다.', 
+    life: 3000 
+  });
   handleSearch({
     ordDt: defaultSearchValues.value.ordDt
   });
@@ -285,7 +294,7 @@ const handleReset = () => {
 
 // 행 선택 이동
 const handleRowClick = (rowData) => {
-  console.log('[OrderList.vue] 라우터 이동 대상:', rowData)
+  // console.log('[OrderList.vue] 라우터 이동 대상:', rowData)
   const ordCd = rowData.ordCd
   const memType = user.value?.memType
 
@@ -307,19 +316,34 @@ const handleRefundRequest = () => {
   const selected = selectedRows.value;
 
   if (!selected || selected.length !== 1) {
-    alert('반품 관리는 하나의 주문만 선택할 수 있습니다.');
+    toast.add({ 
+        severity: 'warn', 
+        summary: '반품 관리 오류', 
+        detail: '반품 관리는 하나의 주문만 선택할 수 있습니다.', 
+        life: 3000 
+      });
     return;
   }
 
   const order = selected[0];
 
   if (!order.ordCd) {
-    alert('주문을 선택하세요.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '주문 선택 오류', 
+      detail: '주문을 선택하세요.', 
+      life: 3000 
+    });
     return;
   }
 
   if (!['출고완료', '부분반품', '반품요청'].includes(order.ordStatus)) {
-    alert('출고완료, 부분반품, 반품요청 상태인 주문만 반품 관리가 가능합니다.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 관리 안내', 
+      detail: '출고완료, 부분반품, 반품요청 상태인 주문만 반품 관리가 가능합니다.', 
+      life: 3000 
+    });
     return;
   }
 
@@ -327,19 +351,19 @@ const handleRefundRequest = () => {
 };
 
 
-watch(selectedRows, (newVal) => {
-  console.log('선택된 주문:', newVal)
-  if (newVal && newVal.ordStatusCustomer) {
-    console.log('원본 상태코드:', newVal.ordStatusCustomer)
-  }
-  if (newVal && newVal.ordStatus) {
-    console.log('화면 표시 상태:', newVal.ordStatus)
-  }
-});
+// watch(selectedRows, (newVal) => {
+//   console.log('선택된 주문:', newVal)
+//   if (newVal && newVal.ordStatusCustomer) {
+//     console.log('원본 상태코드:', newVal.ordStatusCustomer)
+//   }
+//   if (newVal && newVal.ordStatus) {
+//     console.log('화면 표시 상태:', newVal.ordStatus)
+//   }
+// });
 
 watch(() => route.query.refresh, (newVal) => {
   if (newVal) {
-    console.log('목록 재조회');
+    // console.log('목록 재조회');
     handleSearch({});
   }
 });
