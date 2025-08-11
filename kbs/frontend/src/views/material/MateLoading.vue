@@ -471,9 +471,10 @@ const getPendingPlacementsForArea = () => {
             v-model:selection="selectedItems"
             :dataKey="'mateInboCd'"
             :selectionMode="'multiple'"
+            :height="'55vh'"
+            :scrollHeight="'45vh'"
             :enableSelection="true"
             :enableRowActions="false"
-            :scrollHeight="'500px'"
             :showRowCount="true"
             :dateFields="dateFields"
             :buttons="{ 

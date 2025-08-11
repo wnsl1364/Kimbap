@@ -224,10 +224,18 @@ const cleanConvertedData = computed(() => {
   return converted;
 });
 
+const currentCpCd = computed(() =>
+  memberStore.user?.cpCd || memberStore.user?.cpCode || memberStore.user?.cp_code || null
+);
+
 const onSearch = async (searchData) => {
   try {
     isLoading.value = true;
-    const response = await getPurchaseOrdersForView(searchData, actualUserType.value);
+    // 공급업체는 자신의 거래처 코드로 강제 필터링
+    const enforcedParams = actualUserType.value === 'supplier'
+      ? { ...searchData, cpCd: currentCpCd.value }
+      : searchData;
+    const response = await getPurchaseOrdersForView(enforcedParams, actualUserType.value);
     cleanPurchaseData.value = response.data;
     
     toast.add({
@@ -265,8 +273,11 @@ const loadCleanPurchaseData = async () => {
   try {
     isLoading.value = true;
     console.log('데이터 로드 시작 - 사용자 타입:', actualUserType.value);
-    
-    const response = await getPurchaseOrdersForView({}, actualUserType.value);
+    // 공급업체는 자신의 거래처 코드로만 로드
+    const baseParams = actualUserType.value === 'supplier' && currentCpCd.value
+      ? { cpCd: currentCpCd.value }
+      : {};
+    const response = await getPurchaseOrdersForView(baseParams, actualUserType.value);
     cleanPurchaseData.value = response.data;
 
     console.log('깔끔한 데이터 로드 완료:', response.data.length, '건');
@@ -332,8 +343,12 @@ const loadCleanSampleData = () => {
       deliDt: '2025-07-30'
     }
   ];
-  
-  cleanPurchaseData.value = cleanSampleData;
+  // 공급업체는 자신의 거래처 데이터만 노출
+  if (actualUserType.value === 'supplier' && currentCpCd.value) {
+    cleanPurchaseData.value = cleanSampleData.filter(it => it.cpCd === currentCpCd.value);
+  } else {
+    cleanPurchaseData.value = cleanSampleData;
+  }
   console.log('샘플 데이터 설정 완료');
 };
 
@@ -359,11 +374,11 @@ const handleRowClick = (rowData) => {
   if (!purcCd) return;
 
   // 사용자 타입에 따른 페이지 이동
-  if (memType === 'p3') {
+  if (memType === 'p3' || memType === 'p5') {
     console.log('[MaterialPurchaseView.vue] 공급업체 → 발주승인 페이지')
     // 공급업체는 모든 발주를 승인 페이지로
     router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
-  } else if (memType === 'p1' || memType === 'p4') {
+  } else if (memType === 'p1' || memType === 'p4' || memType === 'p5') {
     // 내부직원(사원, 담당자): 입고대기 상태만 자재입고 페이지로, 나머지는 발주승인 페이지로
     if (purcDStatus === '입고 대기' || purcDStatus === '입고대기' || rowData.purcDStatus === 'c3') {
       console.log('[MaterialPurchaseView.vue] 내부직원 + 입고대기 → 자재입고 페이지')
@@ -407,13 +422,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="grid">
-    <div class="col-12">
-      <div class="card">
-        <h5>자재 구매/발주 관리</h5>
 
         <!-- 현재 사용자 정보 -->
-        <div class="mb-4 p-3 border-round surface-100">
+        <!-- <div class="mb-4 p-3 border-round surface-100">
           <div class="flex align-items-center gap-3">
             <i class="pi pi-user text-primary"></i>
             <div>
@@ -431,7 +442,7 @@ onMounted(async () => {
               </span>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <!-- 테스트용 권한 변경 -->
         <!-- <div class="mb-4" v-if="showTestControls">
@@ -448,19 +459,21 @@ onMounted(async () => {
 
         <!-- 검색 폼 -->
         <SearchForm 
+          title="자재 발주 조회"
           :columns="searchColumns"
           @search="onSearch"
           :gridColumns="4"
           @reset="onReset"
         />
 
+        <div class="mt-4">
         <!-- InputTable -->
         <InputTable
           :key="`purchase-table-${actualUserType}`"
           :columns="inputTableColumns"
           :data="cleanConvertedData"
-          :scroll-height="'40vh'" 
-          :height="'50vh'"
+          :scroll-height="'42vh'" 
+          :height="'52vh'"
           :title="`발주 목록 조회 (${actualUserType === 'internal' ? '내부직원용' : '공급업체용'})`"
           dataKey="purcCd"
           :buttons="materialTableButtons"
@@ -470,9 +483,7 @@ onMounted(async () => {
           :enableRowClick="true"
           @dataChange="(newData) => console.log('InputTable 데이터 변경:', newData)"
         />
-      </div>
-    </div>
-  </div>
+        </div>
 </template>
 
 <style scoped>

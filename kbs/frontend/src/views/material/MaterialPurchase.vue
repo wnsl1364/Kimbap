@@ -943,23 +943,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-4">
     <Toast />
-
-    <!-- 페이지 헤더 -->
-    <div class="mb-6 flex flex-col-2">
-    <div class="flex-1">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">자재 발주서 작성</h1>
-    </div>
-      <div class="flex items-center gap-4 text-sm text-gray-600">
-        <span>👤 {{ memberStore.user?.empName || '김김밥1' }}</span>
-        <span>🏢 {{ memberStore.user?.deptName || '구매팀' }}</span>
-      </div>
-    </div>
-
     <!-- 주문 기본정보 (발주번호, 등록자, 주문일자만!) -->
-    <div class="mb-6">
-      <InputForm :columns="basicInfoColumns" :data="orderBasicInfo" title="주문 기본정보" :buttons="formButtons"
+    <div class="mb-4">
+      <InputForm :columns="basicInfoColumns" :data="orderBasicInfo" title="자재 발주서 작성" :buttons="formButtons"
         button-position="top" @update:data="(newData) => { orderBasicInfo.value = newData }" @submit="handleSavePurchaseOrder"
         @reset="handleReset" @load="handleLoad" />
     </div>
@@ -998,7 +985,6 @@ onUnmounted(() => {
     <!-- 발주서 목록 선택 모달 -->
     <SingleSelectModal v-model:visible="orderListModalVisible" :items="orderList" :columns="orderListColumns"
       :itemKey="'purcCd'" @update:modelValue="handleOrderSelect" header="발주서 목록" />
-  </div>
 </template>
 
 <style scoped>

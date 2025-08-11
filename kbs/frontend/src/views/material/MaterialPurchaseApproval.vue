@@ -19,9 +19,7 @@ import Textarea from 'primevue/textarea';
 // API 함수들 import
 import { 
   getPurcOrderWithDetails,
-  updatePurchaseOrderStatus,
-  bulkApprovePurchaseOrders,
-  bulkRejectPurchaseOrders
+  updatePurchaseOrderStatus
 } from '@/api/materials';
 
 // Store들
@@ -214,25 +212,62 @@ const loadOrderDetails = async (orderCode) => {
     isLoading.value = true;
     console.log('발주 상세 정보 로드 시작:', orderCode);
     
-    const response = await getPurcOrderWithDetails(orderCode);
+  // supplier라면 cpCd를 함께 전달(서버가 지원 시 서버 필터)
+  const userMemType = memberStore.user?.memType;
+  const userCpCd = memberStore.user?.cpCd || memberStore.user?.cpCode || memberStore.user?.cp_code;
+  const response = await getPurcOrderWithDetails(orderCode, userMemType === 'p3' && userCpCd ? { cpCd: userCpCd } : undefined);
     console.log('API 응답 데이터:', response.data);
     
     if (response.data && response.data.header && response.data.details) {
       const { header, details } = response.data;
-      
-      // 헤더 정보 설정
+
+      // 공급업체 접근 제어: 본인 거래처 발주만 열람 가능
+  // 위에서 이미 userMemType/userCpCd를 계산
+      const headerCpCd = header.cpCd || header.cpCode || header.cp_code;
+      if (userMemType === 'p3' && headerCpCd && userCpCd && headerCpCd !== userCpCd) {
+        toast.add({
+          severity: 'error',
+          summary: '접근 제한',
+          detail: '해당 발주서는 귀사 거래가 아닙니다.',
+          life: 3000
+        });
+        setTimeout(() => router.push('/material/MaterialPurchaseView'), 1000);
+        return;
+      }
+
+      // supplier라면 본인 cpCd와 일치하는 상세만 남김(서버가 이미 필터했어도 안전망)
+      const filteredDetails = (userMemType === 'p3' && userCpCd)
+        ? details.filter(it => (it.cpCd || it.cpCode || it.cp_code) === userCpCd)
+        : details;
+
+      // supplier이고 본인 항목이 하나도 없으면 접근 차단
+      if (userMemType === 'p3' && userCpCd && filteredDetails.length === 0) {
+        toast.add({
+          severity: 'warn',
+          summary: '열람 대상 없음',
+          detail: '해당 발주에 귀사 거래 건이 없습니다.',
+          life: 3000
+        });
+        setTimeout(() => router.push('/material/MaterialPurchaseView'), 1000);
+        return;
+      }
+
+      // 헤더 정보 설정(공급업체는 본인 항목 합계로 표시)
+      const visibleTotal = (userMemType === 'p3')
+        ? filteredDetails.reduce((sum, it) => sum + Number(it.totalAmount || 0), 0)
+        : Number(header.ordTotalAmount || 0);
+
       materialStore.setApprovalOrderHeader({
         purcCd: header.purcCd,
         ordDt: formatDate(header.ordDt),
         regi: header.regi || '등록자명',
         purcStatus: getStatusText(header.purcStatus),
-        ordTotalAmount: header.ordTotalAmount ? 
-          `${Number(header.ordTotalAmount).toLocaleString()}원` : '0원',
+        ordTotalAmount: `${Number(visibleTotal).toLocaleString()}원`,
         approver: memberStore.user?.cpName || '현재 로그인 사용자'
       });
       
-      // 상세 정보 설정 (임시 상태 필드 추가!)
-      const detailsData = details.map((item, index) => ({
+  // 상세 정보 설정 (임시 상태 필드 추가!)
+  const detailsData = filteredDetails.map((item, index) => ({
         purcDCd: item.purcDCd,
         id: `detail_${index + 1}`,
         mateName: item.mateName,
@@ -260,7 +295,7 @@ const loadOrderDetails = async (orderCode) => {
       toast.add({
         severity: 'success',
         summary: '불러오기 완료',
-        detail: `발주서 ${orderCode} 정보를 성공적으로 불러왔습니다. (${details.length}건)`,
+        detail: `발주서 ${orderCode} 정보를 성공적으로 불러왔습니다. (${detailsData.length}건)`,
         life: 3000
       });
       
@@ -391,9 +426,28 @@ const handleTempApprove = async () => {
   }
   try {
     isLoading.value = true;
-    const purcDCdList = localSelectedItems.value.map(it => it.purcDCd);
-    await bulkApprovePurchaseOrders(purcDCdList, memberStore.user?.empName || 'system');
-    toast.add({ severity: 'success', summary: '승인 완료', detail: `${purcDCdList.length}건 승인 처리되었습니다.`, life: 3000 });
+    const approver = memberStore.user?.empName || '시스템';
+    const requests = localSelectedItems.value.map(item => {
+      const statusData = {
+        purcDCd: item.purcDCd,
+        purcCd: item._original?.purcCd || purcCd.value,
+        purcDStatus: 'c2',
+        note: `${approver}에 의해 승인됨`
+      };
+      return updatePurchaseOrderStatus(statusData);
+    });
+
+    const results = await Promise.allSettled(requests);
+    const success = results.filter(r => r.status === 'fulfilled').length;
+    const fail = results.length - success;
+
+    if (success > 0) {
+      toast.add({ severity: 'success', summary: '승인 완료', detail: `${success}건 승인 완료${fail ? `, 실패 ${fail}건` : ''}`, life: 4000 });
+    }
+    if (fail > 0 && success === 0) {
+      toast.add({ severity: 'error', summary: '승인 실패', detail: '선택 항목 승인에 모두 실패했습니다.', life: 4000 });
+    }
+
     await loadOrderDetails(purcCd.value);
   } catch (e) {
     console.error('승인 실패:', e);
@@ -432,9 +486,29 @@ const handleTempReject = async () => {
   }
   try {
     isLoading.value = true;
-    const purcDCdList = localSelectedItems.value.map(it => it.purcDCd);
-    await bulkRejectPurchaseOrders(purcDCdList, rejectReason.value, memberStore.user?.empName || 'system');
-    toast.add({ severity: 'success', summary: '거절 완료', detail: `${purcDCdList.length}건 거절 처리되었습니다.`, life: 3000 });
+    const approver = memberStore.user?.empName || '시스템';
+    const reasonText = rejectReason.value.trim();
+    const requests = localSelectedItems.value.map(item => {
+      const statusData = {
+        purcDCd: item.purcDCd,
+        purcCd: item._original?.purcCd || purcCd.value,
+        purcDStatus: 'c6',
+        note: `거절사유: ${reasonText} (거절자: ${approver})`
+      };
+      return updatePurchaseOrderStatus(statusData);
+    });
+
+    const results = await Promise.allSettled(requests);
+    const success = results.filter(r => r.status === 'fulfilled').length;
+    const fail = results.length - success;
+
+    if (success > 0) {
+      toast.add({ severity: 'success', summary: '거절 완료', detail: `${success}건 거절 완료${fail ? `, 실패 ${fail}건` : ''}`, life: 4000 });
+    }
+    if (fail > 0 && success === 0) {
+      toast.add({ severity: 'error', summary: '거절 실패', detail: '선택 항목 거절에 모두 실패했습니다.', life: 4000 });
+    }
+
     await loadOrderDetails(purcCd.value);
   } catch (e) {
     console.error('거절 실패:', e);
@@ -585,32 +659,9 @@ onUnmounted(async () => {
 <template>
   <div class="p-4 pb-0">
     <Toast />
-    
-    <!-- 페이지 헤더 -->
-    <div class="mb-6 flex justify-between items-center">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">발주 승인/거절 처리</h1>
-        <p class="text-gray-600">
-          {{ approvalOrderHeader.purcCd || '발주번호 로딩중...' }} 
-          <span class="mx-2">|</span>
-          👤 {{ memberStore.user?.cpName || '회사이름나와야함' }}
-        </p>
-      </div>
-      
-      <div class="flex gap-2">
-        <Button 
-          label="목록으로 돌아가기" 
-          icon="pi pi-arrow-left" 
-          severity="secondary"
-          @click="goBackToList"
-          :disabled="isLoading"
-        />
-      </div>
-    </div>
-
     <!-- 발주 기본정보 -->
-    <div class="mb-6">
-      <SearchForm :columns="basicInfoColumns" :gridColumns="3" :showActions="false" />
+    <div>
+      <SearchForm title="발주 기본정보" :columns="basicInfoColumns" :gridColumns="3" :showActions="false" />
     </div>
 
   <!-- 승인 요약 정보 제거됨 -->
@@ -618,13 +669,13 @@ onUnmounted(async () => {
   <!-- 저장 대기/변경사항 요약 UI 제거됨: 즉시 처리 정책 적용 -->
 
     <!-- 발주 상세 목록 -->
-    <div class="mb-6">
+    <div class="mt-4">
       <InputTable
         ref="inputTableRef"
         :columns="detailTableColumns"
         :data="tableData"
-        :scroll-height="'35vh'"
-        :height="'47vh'"
+        :scroll-height="'45vh'"
+        :height="'55vh'"
         title="발주 상세 목록"
         dataKey="purcDCd"
         :buttons="tableButtons"

@@ -661,11 +661,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="material-stock-view">
     <!-- 검색 폼 (기존 SearchForm.vue 사용) -->
-    <SearchForm :columns="searchColumns" :gridColumns="4" @search="onSearch" @reset="onReset" />
+    <SearchForm title="자재 재고 조회" :columns="searchColumns" :gridColumns="4" @search="onSearch" @reset="onReset" />
 
     <!-- 재고 현황 테이블 (기존 InputTable.vue 사용) -->
+     <div class="mt-4">
     <InputTable ref="stockTableRef" :data="stockStatusData" :columns="stockStatusColumns"
       :title="`재고 현황 목록 (${totalStockItems}건 / 긴급알림: ${criticalAlertCount}건)`" :buttons="tableButtons"
       :scrollHeight="'55vh'" :height="'65vh'" :loading="stockStatusLoading" :enableRowActions="false"
@@ -674,15 +674,12 @@ onMounted(async () => {
         <Button label="선택 자재 발주" severity="help" icon="pi pi-shopping-cart" @click="handleShortageOrderButton" />
       </template>
     </InputTable>
+    </div>
 
     <!-- LOT별 재고 조회 모달 (BasicModal 사용!) -->
     <BasicModal v-model:visible="lotStockModalVisible" :items="lotStockData" :columns="lotStockColumns" itemKey="lotNo"
       :titleName="selectedMaterialInfo.materialName" :titleCode="selectedMaterialInfo.materialCode" />
-  </div>
 </template>
 
 <style scoped>
-.material-stock-view {
-  padding: 1rem;
-}
 </style>
