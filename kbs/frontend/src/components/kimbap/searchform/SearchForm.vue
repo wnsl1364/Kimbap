@@ -18,6 +18,11 @@ const props = defineProps({
     gridColumns: {
         type: Number,
         default: 4
+    },
+    // 액션 버튼(초기화/검색) 표시 여부
+    showActions: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -68,20 +73,26 @@ const validateRange = (column) => {
 // Props의 columns를 기반으로 searchColumns 초기화
 const initializeColumns = () => {
     searchColumns.value = props.columns.map(column => {
-        let initialValue = '';
+        let initialValue;
 
-        // 범위 검색 타입들은 객체로 초기화
-        // ✅ default 값 우선 적용
-        if (column.default !== undefined) {
+        // 1) 명시적으로 value가 전달된 경우 최우선 사용 (readonly 등 표시용 지원)
+        if (column.value !== undefined) {
+            initialValue = column.value;
+        } else if (column.default !== undefined) {
+            // 2) default 값 우선 적용
             initialValue = column.default;
         } else if (column.type === 'dateRange') {
+            // 3) 범위 타입 기본값
             initialValue = { start: null, end: null };
         } else if (column.type === 'numberRange') {
-            // 숫자 범위는 기본값 0으로 설정! ✨
+            // 숫자 범위는 기본값 0으로 설정
             initialValue = { min: 0, max: 0 };
         } else if (column.type === 'radio') {
             // 부모에서 넘긴 값이 있다면 사용, 없으면 첫 번째 옵션 사용
             initialValue = column.value ?? column.options?.[0]?.value ?? '';
+        } else {
+            // 4) 그 외 기본값
+            initialValue = '';
         }
 
         return {
@@ -226,7 +237,7 @@ const flattenSearchData = (columns) => {
                     </div>
                 </div>
 
-                <div class="flex gap-2 items-center justify-center">
+                <div v-if="showActions" class="flex gap-2 items-center justify-center">
                     <Button label="초기화" severity="secondary" class="!w-auto !min-w-40 !px-6" @click="handleReset" />
                     <Button label="검색" class="!w-auto !min-w-40 !px-6" @click="handleSearch" />
                 </div>

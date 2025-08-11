@@ -53,13 +53,13 @@ const convertUnitCodes = (list) => {
   const stoConCodes = common.getCodes('0G');   // 단위코드
 
   return list.map(item => {
-    const matchedMateType = mateTypeCodes.find(code => code.dcd === item.mateType);
-    const matchedStoCon = stoConCodes.find(code => code.dcd === item.unit); // 🔥 unit 필드 매핑
+  const matchedMateType = mateTypeCodes.find(code => (code.dcd || code.detailCd) === item.mateType);
+  const matchedStoCon = stoConCodes.find(code => (code.dcd || code.detailCd) === item.unit); // 🔥 unit 필드 매핑
 
     return {
       ...item,
-      mateType: matchedMateType ? matchedMateType.cdInfo : item.mateType,
-      unit: matchedStoCon ? matchedStoCon.cdInfo : item.unit, // 🔥 unit으로 변경
+  mateType: matchedMateType ? (matchedMateType.cdInfo || matchedMateType.detailNm) : item.mateType,
+  unit: matchedStoCon ? (matchedStoCon.cdInfo || matchedStoCon.detailNm) : item.unit, // 🔥 unit으로 변경
     };
   });
 };
@@ -249,11 +249,13 @@ const convertedModalDataSets = computed(() => {
   return {
     materialName: {
       ...modalData.materialName,
-      items: convertUnitCodes(modalData.materialName?.items || [])
+  items: convertUnitCodes(modalData.materialName?.items || []),
+  itemKey: 'uniqueKey'
     },
     buyer: {
       ...modalData.buyer,
-      items: convertUnitCodes(modalData.buyer?.items || [])
+  items: convertUnitCodes(modalData.buyer?.items || []),
+  itemKey: 'uniqueKey'
     }
   };
 });
@@ -718,6 +720,10 @@ onMounted(async () => {
           if (target) {
             purchaseData.value[0].buyer = target.cpName;
             purchaseData.value[0].cpCd = target.cpCd;
+            // mateVerCd가 쿼리로 오지 않은 경우 공급업체 정보에서 보강
+            if (!purchaseData.value[0].mateVerCd && target.mateVerCd) {
+              purchaseData.value[0].mateVerCd = target.mateVerCd;
+            }
             purchaseData.value[0].price = Number(target.unitPrice) || 0;
             purchaseData.value[0].totalPrice = (Number(purchaseData.value[0].number) || 0) * (Number(target.unitPrice) || 0);
 
@@ -750,6 +756,9 @@ onMounted(async () => {
 
             purchaseData.value[0].buyer = chosen.cpName;
             purchaseData.value[0].cpCd = chosen.cpCd;
+            if (!purchaseData.value[0].mateVerCd && chosen.mateVerCd) {
+              purchaseData.value[0].mateVerCd = chosen.mateVerCd;
+            }
             purchaseData.value[0].price = Number(chosen.unitPrice) || 0;
             purchaseData.value[0].totalPrice = (Number(purchaseData.value[0].number) || 0) * (Number(chosen.unitPrice) || 0);
           } else {
@@ -782,6 +791,9 @@ onMounted(async () => {
 
             item.buyer = chosen.cpName;
             item.cpCd = chosen.cpCd;
+            if (!item.mateVerCd && chosen.mateVerCd) {
+              item.mateVerCd = chosen.mateVerCd;
+            }
             item.price = Number(chosen.unitPrice) || 0;
             item.totalPrice = (Number(item.number) || 0) * (Number(chosen.unitPrice) || 0);
           }
@@ -845,7 +857,7 @@ const orderListColumns = [
 // 발주서 목록 로드 (실제 API 호출)
 const loadOrderList = async () => {
   try {
-    console.log('📋 발주서 목록 로드 시작...');
+    console.log('발주서 목록 로드 시작...');
 
     const response = await getPurcOrderList();
     console.log('발주서 목록 API 응답:', response.data);
@@ -858,23 +870,23 @@ const loadOrderList = async () => {
       ordTotalAmount: order.ordTotalAmount ? order.ordTotalAmount.toLocaleString() : '0'
     }));
 
-    console.log('✅ 발주서 목록 로드 완료:', orderList.value.length, '건');
+    console.log('발주서 목록 로드 완료:', orderList.value.length, '건');
 
   } catch (error) {
-    console.error('❌ 발주서 목록 로드 실패:', error);
+    console.error('발주서 목록 로드 실패:', error);
 
     // API 실패 시 기본 데이터
     orderList.value = [
       {
         purcCd: 'PUOR-202507-0001',
-        ordDt: format(new Date('2025-07-25'), 'yyyy-MM-dd'), // 🔥 date-fns 사용
+        ordDt: format(new Date('2025-07-25'), 'yyyy-MM-dd'), // date-fns 사용
         regi: '김김밥',
         purcStatus: '승인',
         ordTotalAmount: '500,000'
       },
       {
         purcCd: 'PUOR-202507-0002',
-        ordDt: format(new Date('2025-07-26'), 'yyyy-MM-dd'), // 🔥 date-fns 사용
+        ordDt: format(new Date('2025-07-26'), 'yyyy-MM-dd'), // date-fns 사용
         regi: '이발주',
         purcStatus: '요청',
         ordTotalAmount: '350,000'
@@ -948,7 +960,7 @@ onUnmounted(() => {
     <!-- 주문 기본정보 (발주번호, 등록자, 주문일자만!) -->
     <div class="mb-6">
       <InputForm :columns="basicInfoColumns" :data="orderBasicInfo" title="주문 기본정보" :buttons="formButtons"
-        button-position="top" @update:data="(newData) => { orderBasicInfo = newData }" @submit="handleSavePurchaseOrder"
+        button-position="top" @update:data="(newData) => { orderBasicInfo.value = newData }" @submit="handleSavePurchaseOrder"
         @reset="handleReset" @load="handleLoad" />
     </div>
 
@@ -956,7 +968,7 @@ onUnmounted(() => {
     <div>
       <InputTable title="자재 발주 상세" :scroll-height="'40vh'" :height="'50vh'" :columns="materialColumns"
         :data="convertedMaterialList" :buttons="tableButtons" :enableRowActions="true" :enableSelection="true"
-        :modalDataSets="convertedModalDataSets" :autoCalculation="{
+        :modalDataSets="convertedModalDataSets" :autoCa lculation="{
           enabled: true,
           quantityField: 'number',
           priceField: 'price',
@@ -983,7 +995,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 📋 발주서 목록 선택 모달 -->
+    <!-- 발주서 목록 선택 모달 -->
     <SingleSelectModal v-model:visible="orderListModalVisible" :items="orderList" :columns="orderListColumns"
       :itemKey="'purcCd'" @update:modelValue="handleOrderSelect" header="발주서 목록" />
   </div>

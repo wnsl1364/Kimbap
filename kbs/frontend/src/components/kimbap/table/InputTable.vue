@@ -547,7 +547,7 @@ const downloadExcel = () => {
             @update:visible="handleModalClose"
             :items="props.modalDataSets[currentField]?.items || []"
             :columns="props.modalDataSets[currentField]?.columns || []"
-            :itemKey="props.dataKey"
+            :itemKey="props.modalDataSets[currentField]?.itemKey || props.dataKey"
         />
     </div>
 </template>

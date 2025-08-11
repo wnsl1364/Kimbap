@@ -191,6 +191,10 @@ const model = ref([
             label: '자재',
             items: [
                 {
+                    label: '자재 발주 조회',
+                    to: '/material/materialPurchaseView'
+                },
+                {
                     label: '자재 발주 승인',
                     to: '/material/MaterialPurchaseApproval'
                 },
