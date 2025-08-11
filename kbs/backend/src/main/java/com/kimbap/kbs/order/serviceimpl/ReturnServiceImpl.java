@@ -31,15 +31,15 @@ public class ReturnServiceImpl implements ReturnService {
         String ordCd = request.getOrdCd();
 
         for (ReturnItemVO item : request.getReturnItems()) {
-            // 출고 테이블에서 LOT 번호 목록 조회
-            List<String> lotNos = returnMapper.getLotNosByOrdDCd(item.getOrdDCd());
+            // 프론트에서 넘어온 lotNo를 이용해 유효성 체크
+            Map<String, Object> lotParams = new HashMap<>();
+            lotParams.put("ordDCd", item.getOrdDCd());
+            lotParams.put("lotNo", item.getLotNo());
 
-            if (lotNos.isEmpty()) {
-                throw new RuntimeException("LOT 정보가 없습니다. (ord_d_cd: " + item.getOrdDCd() + ")");
-            } else if (lotNos.size() == 1) {
-                item.setLotNo(lotNos.get(0)); // 유일하면 자동 세팅
-            } else {
-                throw new RuntimeException("LOT이 여러 건입니다. 화면에서 LOT을 선택해 주세요. (ord_d_cd: " + item.getOrdDCd() + ")");
+            String lot = returnMapper.checkLotExists(lotParams);
+
+            if (lot == null) {
+                throw new RuntimeException("선택한 LOT 번호가 유효하지 않습니다. (ord_d_cd: " + item.getOrdDCd() + ")");
             }
 
             // 시퀀스 번호 조회 (정수형)
@@ -141,6 +141,15 @@ public class ReturnServiceImpl implements ReturnService {
 
     @Override
     @Transactional
+    public void approveReturns(List<ReturnItemVO> requests) {
+        for (ReturnItemVO request : requests) {
+            approveReturn(request); // 기존 단건 승인 로직 재사용
+        }
+    }
+
+
+    @Override
+    @Transactional
     public void rejectReturn(ReturnItemVO request) {
         log.info("=== [반품 거절 요청 시작] ===");
         log.info("요청 데이터: prodReturnCd={}, manager={}, rejectRea={}", 
@@ -224,4 +233,8 @@ public class ReturnServiceImpl implements ReturnService {
         }
     }
 
+    @Override
+    public List<String> getLotList(String ordDCd) {
+        return returnMapper.getLotNosByOrdDCd(ordDCd);
+    }
 }

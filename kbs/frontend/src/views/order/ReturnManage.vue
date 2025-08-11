@@ -109,29 +109,29 @@ const handleReset = () => {
 };
 
 const handleApprove = async () => {
-  if (!selectedRows.value) {
+  if (!selectedRows.value.length) {
     alert('처리할 반품 건을 선택하세요.');
     return;
   }
 
-  const confirmed = confirm('선택한 반품건을 승인 처리하시겠습니까?');
+  const confirmed = confirm(`${selectedRows.value.length}건의 반품건을 승인 처리하시겠습니까?`);
   if (!confirmed) return;
 
   try {
-    const payload = {
-      prodReturnCd: selectedRows.value.prodReturnCd,
+    // 여러 건을 배열로 payload 생성
+    const payloadList = selectedRows.value.map(row => ({
+      prodReturnCd: row.prodReturnCd,
       manager: user.value.memCd,
       rejectRea: '',
-      ordDCd: selectedRows.value.ordDCd,
-      returnQty: selectedRows.value.returnQty,
-      unitPrice: selectedRows.value.unitPrice
-    };
-    
-    await approveReturn(payload);
+      ordDCd: row.ordDCd,
+      returnQty: row.returnQty,
+      unitPrice: row.unitPrice
+    }));
+
+    await approveReturn(payloadList); // 배열 전송
     alert('승인 처리되었습니다.');
-    // router.push({ path: '/order/orderList', query: { refresh: true } });
     fetchReturnList();
-    selectedRows.value = null;
+    selectedRows.value = [];
   } catch (err) {
     console.error('승인 처리 실패:', err);
     alert('승인 처리 중 오류 발생');
@@ -141,13 +141,20 @@ const handleApprove = async () => {
 const handleSelectionChange = (selection) => {
   if (!selection) return;
 
-  const selectedItem = Array.isArray(selection) ? selection[0] : selection;
-
-  if (['w1', 'w2', 'w3'].includes(selectedItem.returnStatusInternal)) {
-    alert('이미 승인(완료/거절)된 건은 선택할 수 없습니다.');
-    selectedRows.value = null;  // 선택 해제 (single일 때는 null)
+  if (Array.isArray(selection)) {
+    // 승인/거절 불가능한 항목 필터링
+    const filtered = selection.filter(item => !['w1', 'w2', 'w3'].includes(item.returnStatusInternal));
+    if (filtered.length < selection.length) {
+      alert('이미 승인(완료/거절)된 건은 선택할 수 없습니다.');
+    }
+    selectedRows.value = filtered; // ✅ 배열 그대로 저장
   } else {
-    selectedRows.value = selectedItem;
+    if (['w1', 'w2', 'w3'].includes(selection.returnStatusInternal)) {
+      alert('이미 승인(완료/거절)된 건은 선택할 수 없습니다.');
+      selectedRows.value = [];
+    } else {
+      selectedRows.value = [selection];
+    }
   }
 };
 
@@ -172,7 +179,8 @@ const handleRejectWithReason = async () => {
 
   try {
     const payload = {
-      prodReturnCd: selectedRows.value.prodReturnCd,
+      // prodReturnCd: selectedRows.value.prodReturnCd,
+      prodReturnCd: selectedRows.value[0].prodReturnCd,
       manager: user.value.memCd,
       rejectRea: rejectReason.value
     };
@@ -190,6 +198,16 @@ const handleRejectWithReason = async () => {
 };
 
 const handleReject = () => {
+  if (!selectedRows.value || selectedRows.value.length === 0) {
+    alert('처리할 반품 건을 선택하세요.');
+    return;
+  }
+
+  if (selectedRows.value.length > 1) {
+    alert('반품 거절은 한 건씩만 가능합니다.');
+    return;
+  }
+
   openRejectModal();
 };
 
@@ -223,7 +241,7 @@ watch(selectedRows, (newVal) => {
       :enableRowActions="false"
       :enableSelection="true"
       :scroll-height="'55vh'" :height="'65vh'"
-      :selectionMode="'single'"
+      :selectionMode="'multiple'"
       :showRowCount="true"
       :buttons="tableButtons"
       :dateFields="['returnDt', 'returnEndDt']"
@@ -243,7 +261,8 @@ watch(selectedRows, (newVal) => {
     <div class="mb-4">
       <h4 class="mb-2">거절할 반품건</h4>
       <div class="bg-gray-50 p-3 rounded">
-        {{ selectedRows?.prodReturnCd }} - {{ selectedRows?.prodName }}
+        <!-- {{ selectedRows?.prodReturnCd }} - {{ selectedRows?.prodName }} -->
+        {{ selectedRows[0]?.prodReturnCd }} - {{ selectedRows[0]?.prodName }}
       </div>
     </div>
 

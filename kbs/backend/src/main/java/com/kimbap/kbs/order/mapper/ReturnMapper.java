@@ -68,4 +68,8 @@ public interface ReturnMapper {
   // order_list에서 회사 코드 조회
   String getCompanyCodeByOrdCd(String ordCd);
 
+  // LOT 목록 조회
+  List<String> getLotListByOrdDCd(String ordDCd);
+
+  String checkLotExists(Map<String, Object> params);
 }
