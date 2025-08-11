@@ -124,10 +124,10 @@ const productColumns = [
     placeholder: '검색'
   },
   { field: 'prodName', header: '제품명', type: 'input', align: 'left', readonly },
-  { field: 'planQty', header: '생산수량', type: 'input', align: 'right' },
-  { field: 'unitName', header: '단위', type: 'input', align: 'center', readonly },
+  { field: 'planQty', header: '생산수량', type: 'input', width: '150px', align: 'right' },
+  { field: 'unitName', header: '단위', type: 'input', width: '100px', align: 'center', readonly },
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
-  { field: 'seq', header: '우선순위', type: 'input', align: 'center' }
+  { field: 'seq', header: '우선순위', type: 'input', width: '150px', align: 'center' }
 ]
 
 // 생산계획과 관련 상세 저장(등록, 수정)

@@ -113,11 +113,11 @@ const handleRowClick = async (row) => {
 };
 const prodPlanColumns = [
   { field: 'produPlanCd', header: '생산계획번호' },
-  { field: 'planDt', header: '계획일자' },
+  { field: 'planDt',      header: '계획일자' },
   { field: 'planStartDt', header: '계획시작' },
-  { field: 'planEndDt', header: '계획종료' },
-  { field: 'facName', header: '공장' },
-  { field: 'note', header: '비고' }
+  { field: 'planEndDt',   header: '계획종료' },
+  { field: 'facName',     header: '공장' },
+  { field: 'note',        header: '비고' }
 ];
 
 // 검색 결과도 초기화

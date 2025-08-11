@@ -17,7 +17,6 @@ const toast = useToast();
 
 // Store에서 상태 가져오기
 const {
-    mateLoadingList,
     prodLoadingList,
     setSelectedProductLoadings,
     factoryList,

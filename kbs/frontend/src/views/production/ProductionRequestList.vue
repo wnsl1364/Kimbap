@@ -43,6 +43,7 @@ onMounted(async () => {
   await common.fetchCommonCodes('0G') // 공통코드 가져오기
   await common.fetchCommonCodes('0B') // 공통코드 가져오기
   condProdRequestList.value = convertUnitCodes(condProdRequestList.value); // 공통코드 변환
+
 })
 
 // 공장 드롭다운 옵션
@@ -61,11 +62,26 @@ const reqStatusOptions = computed(() => [
     value: s.dcd      // 실제 검색에 사용될 코드값 (예: "b1", "b2", "b3")
   }))
 ])
-
+// 기본 날짜 값 계산
+const getDefaultDateRange = () => {
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  return {
+    start: firstDayOfMonth,   // 이번달 1일
+    end: today                // 오늘 날짜
+  };
+};
 // 검색 조건 정의
 const searchColumns = [
   { key: 'produPeqCd', label: '생산요청번호', type: 'text', placeholder: '예: PROD-20250716-01' },
-  { key: 'reqDtRange', label: '요청일자', type: 'dateRange', startPlaceholder: '시작일', endPlaceholder: '종료일' },
+  { key: 'reqDtRange',
+    label: '요청일자',
+    type: 'dateRange',
+    startPlaceholder: '시작일',
+    endPlaceholder: '종료일',
+    defaultValue: getDefaultDateRange()
+  },
   {
     key: 'factory',
     label: '공장',
