@@ -10,6 +10,10 @@ import Dialog from 'primevue/dialog';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import { storeToRefs } from 'pinia';
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast'
+
+const toast = useToast();
 
 // 라우터 설정
 const router = useRouter();
@@ -104,13 +108,23 @@ const handleSearch = (searchData) => {
 };
 
 const handleReset = () => {
-  console.log('검색 조건이 리셋되었습니다');
+  toast.add({ 
+    severity: 'info', 
+    summary: '검색 조건 초기화', 
+    detail: '검색 조건이 리셋되었습니다.', 
+    life: 3000 
+  });
   handleSearch({});
 };
 
 const handleApprove = async () => {
   if (!selectedRows.value.length) {
-    alert('처리할 반품 건을 선택하세요.');
+    toast.add({ 
+      severity: 'info', 
+      summary: '반품 승인', 
+      detail: '처리할 반품 건을 선택하세요.', 
+      life: 3000 
+    });
     return;
   }
 
@@ -129,12 +143,22 @@ const handleApprove = async () => {
     }));
 
     await approveReturn(payloadList); // 배열 전송
-    alert('승인 처리되었습니다.');
+    toast.add({ 
+      severity: 'info', 
+      summary: '반품 승인', 
+      detail: '승인 처리되었습니다.', 
+      life: 3000 
+    });
     fetchReturnList();
     selectedRows.value = [];
   } catch (err) {
     console.error('승인 처리 실패:', err);
-    alert('승인 처리 중 오류 발생');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 승인 실패', 
+      detail: '승인 처리 중 오류 발생', 
+      life: 3000 
+    });
   }
 };
 
@@ -145,12 +169,22 @@ const handleSelectionChange = (selection) => {
     // 승인/거절 불가능한 항목 필터링
     const filtered = selection.filter(item => !['w1', 'w2', 'w3'].includes(item.returnStatusInternal));
     if (filtered.length < selection.length) {
-      alert('이미 승인(완료/거절)된 건은 선택할 수 없습니다.');
+      toast.add({ 
+        severity: 'warn', 
+        summary: '반품 선택 오류', 
+        detail: '이미 승인(완료/거절)된 건은 선택할 수 없습니다.', 
+        life: 3000 
+      });
     }
     selectedRows.value = filtered; // ✅ 배열 그대로 저장
   } else {
     if (['w1', 'w2', 'w3'].includes(selection.returnStatusInternal)) {
-      alert('이미 승인(완료/거절)된 건은 선택할 수 없습니다.');
+      toast.add({ 
+        severity: 'warn', 
+        summary: '반품 선택 오류', 
+        detail: '이미 승인(완료/거절)된 건은 선택할 수 없습니다.', 
+        life: 3000 
+      });
       selectedRows.value = [];
     } else {
       selectedRows.value = [selection];
@@ -164,7 +198,12 @@ const rejectReason = ref('');
 
 const openRejectModal = () => {
   if (!selectedRows.value) {
-    alert('처리할 반품 건을 선택하세요.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 선택', 
+      detail: '처리할 반품 건을 선택하세요.', 
+      life: 3000 
+    });
     return;
   }
   rejectReason.value = '';
@@ -173,7 +212,12 @@ const openRejectModal = () => {
 
 const handleRejectWithReason = async () => {
   if (!rejectReason.value.trim()) {
-    alert('거절 사유를 입력하세요.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '거절 사유', 
+      detail: '거절 사유를 입력하세요.', 
+      life: 3000 
+    });
     return;
   }
 
@@ -188,23 +232,44 @@ const handleRejectWithReason = async () => {
     console.log('reject payload:', payload);
 
     await rejectReturn(payload);
-    alert('거절 처리되었습니다.');
+    toast.add({ 
+      severity: 'info', 
+      summary: '거절 처리 완료', 
+      detail: '거절 처리되었습니다.', 
+      life: 3000 
+    });
     rejectModalVisible.value = false;
     fetchReturnList();  // 목록 새로고침
   } catch (err) {
     console.error('거절 처리 실패:', err);
-    alert('거절 처리 중 오류 발생');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '거절 처리 실패', 
+      detail: '거절 처리 중 오류 발생', 
+      life: 3000 
+    });
   }
 };
 
 const handleReject = () => {
   if (!selectedRows.value || selectedRows.value.length === 0) {
-    alert('처리할 반품 건을 선택하세요.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 선택 실패', 
+      detail: '처리할 반품 건을 선택하세요.', 
+      life: 3000 
+    });
     return;
   }
 
   if (selectedRows.value.length > 1) {
     alert('반품 거절은 한 건씩만 가능합니다.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 거절 오류', 
+      detail: '반품 거절은 한 건씩만 가능합니다.', 
+      life: 3000 
+    });
     return;
   }
 

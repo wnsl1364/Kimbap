@@ -167,7 +167,12 @@ const handleApprove = async () => {
   // console.log('승인 직전 제품 데이터:', JSON.stringify(products.value, null, 2))
 
   if (missingDeliAvail) {
-    alert('모든 제품에 납기가능일자를 입력해주세요.')
+    toast.add({ 
+      severity: 'warn', 
+      summary: '납기가능일자 누락', 
+      detail: '모든 제품에 납기가능일자를 입력해주세요.', 
+      life: 3000 
+    });
     return
   }
 
@@ -188,17 +193,32 @@ const handleApprove = async () => {
     const res = await axios.put(`/api/order/${ordCd}/approve`, payload)
 
     if (res.data.result_code === 'SUCCESS') {
-      alert('주문 승인 완료!')
+      toast.add({ 
+        severity: 'info', 
+        summary: '주문 승인', 
+        detail: '주문 승인 완료!', 
+        life: 3000 
+      });
 
       formStore.$reset()
       productStore.$reset()
       await loadOrderListForModal()
     } else {
-      alert('승인 실패: ' + res.data.message)
+      toast.add({ 
+        severity: 'warn', 
+        summary: '승인 실패', 
+        detail: '승인 실패: ' + res.data.message, 
+        life: 3000 
+      });
     }
   } catch (err) {
     console.error('승인 오류:', err)
-    alert('승인 중 오류가 발생했습니다.')
+    toast.add({ 
+      severity: 'warn', 
+      summary: '승인 실패', 
+      detail: '승인 중 오류가 발생했습니다.', 
+      life: 3000 
+    });
   }
 }
 
@@ -221,21 +241,34 @@ const handleReject = async () => {
       ordStatusInternal: 'a3',
     };
 
-    console.log('거절 요청 payload:', JSON.stringify(payload, null, 2))
-
     const res = await axios.put(`/api/order/${ordCd}/reject`, payload);
     if (res.data.result_code === 'SUCCESS') {
-      alert('주문 거절 완료!')
+      toast.add({ 
+        severity: 'info', 
+        summary: '주문 거절', 
+        detail: '주문 거절 완료!', 
+        life: 3000 
+      });
 
       formStore.$reset()
       productStore.$reset()
       await loadOrderListForModal()
     } else {
-      alert('거절 실패: ' + res.data.message)
+      toast.add({ 
+        severity: 'warn', 
+        summary: '주문 거절 실패', 
+        detail: '거절 실패: ' + res.data.message, 
+        life: 3000 
+      });
     }
   } catch (err) {
     console.error('거절 오류:', err)
-    alert('거절 중 오류가 발생했습니다.')
+    toast.add({ 
+        severity: 'warn', 
+        summary: '주문 거절 실패', 
+        detail: '거절 중 오류가 발생했습니다.', 
+        life: 3000 
+      });
   }
 }
 

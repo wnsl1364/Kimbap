@@ -13,6 +13,10 @@ import { getOrderList } from '@/api/order'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { registerKoreanFont } from '@/utils/pdf-font'
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast'
+
+const toast = useToast();
 
 // 날짜 포맷팅을 위한 date-fns
 import { format, addDays, isValid, parse, parseISO } from 'date-fns'
@@ -142,7 +146,7 @@ const handleReset = () => {
 
   Object.assign(formData.value, baseInfo)
 
-  console.log('초기화 후 formData:', formData.value)
+  // console.log('초기화 후 formData:', formData.value)
 }
 
 // 날짜 변환 함수
@@ -211,8 +215,8 @@ const handleSave = async () => {
       deletedOrdDCdList: deletedOrdDCdList.value
     }
 
-    console.log('서버에 보낼 데이터:', requestBody)
-    console.log("orderDetails", requestBody.orderDetails)
+    // console.log('서버에 보낼 데이터:', requestBody)
+    // console.log("orderDetails", requestBody.orderDetails)
 
     const isUpdate = !!formData.value.ordCd
     const url = isUpdate
@@ -232,8 +236,13 @@ const handleSave = async () => {
       alert(`${isUpdate ? '수정' : '등록'} 실패: ${res.data.message}`)
     }
   } catch (err) {
-    console.error('주문 저장 오류:', err)
-    alert('주문 저장 중 오류가 발생했습니다.')
+    // console.error('주문 저장 오류:', err)    
+    toast.add({ 
+      severity: 'warn', 
+      summary: '주문 저장 실패', 
+      detail: '주문 저장 중 오류가 발생했습니다.', 
+      life: 3000 
+    });
   }
 }
 
@@ -245,7 +254,12 @@ const handleDelete = async () => {
     const res = await axios.put(`/api/order/${formData.value.ordCd}/deactivate`)  // 예: PUT 요청
 
     if (res.data.result_code === 'SUCCESS') {
-      alert('주문이 정상적으로 삭제(비활성)되었습니다.')
+      toast.add({ 
+        severity: 'info', 
+        summary: '주문 삭제 완료', 
+        detail: '주문이 정상적으로 삭제(비활성)되었습니다.', 
+        life: 3000 
+      });
       handleReset()
       router.push('/order/orderList')
     } else {
@@ -253,7 +267,12 @@ const handleDelete = async () => {
     }
   } catch (err) {
     console.error('삭제 오류:', err)
-    alert('주문 삭제 중 오류가 발생했습니다.')
+    toast.add({ 
+        severity: 'inwarnfo', 
+        summary: '주문 삭제 실패', 
+        detail: '주문 삭제 중 오류가 발생했습니다.', 
+        life: 3000 
+      });
   }
 }
 
@@ -493,7 +512,7 @@ const handleLoadOrder = async (selectedRow) => {
         const unitPrice = calculateDiscountedPrice(basePrice, qty)
         const total = qty * unitPrice
 
-        console.log('제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
+        // console.log('제품별 ordDCd:', item.ordDCd, 'ordDStatus:', item.ordDStatus)
 
         return {
           ...item,
@@ -626,11 +645,21 @@ onMounted(async () => {
         setFormData(order)           // 주문 기본 정보
         setProducts(order.orderDetails) // 주문 상세 목록
       } else {
-        alert(`주문 정보를 불러오는 데 실패했습니다: ${res.data.message}`)
+        toast.add({
+          severity: 'warn',
+          summary: '주문 불러오기 실패',
+          detail: `주문 정보를 불러오는 데 실패했습니다: ${res.data.message}`,
+          life: 3000
+        });
       }
     } catch (err) {
       console.error('주문 조회 오류:', err)
-      alert('주문 정보를 불러오는 중 오류가 발생했습니다.')
+      toast.add({ 
+        severity: 'warn', 
+        summary: '주문 조회 실패', 
+        detail: '주문 정보를 불러오는 중 오류가 발생했습니다.', 
+        life: 3000 
+      });
     }
   }
 })
