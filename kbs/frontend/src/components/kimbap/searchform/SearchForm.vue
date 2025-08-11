@@ -15,6 +15,10 @@ const props = defineProps({
         type: Array,
         required: true
     },
+    title: { 
+        type: String, 
+        default: '' 
+    },
     gridColumns: {
         type: Number,
         default: 4
@@ -172,6 +176,7 @@ const flattenSearchData = (columns) => {
         <div class="flex flex-col border-2 border-black-600 gap-8">
             <!-- 검색 폼 영역 -->
             <div class="card flex flex-col gap-4 !p-5 !rounded-none">
+                <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
 
                 <!-- 동적 검색 필드들 - 2열 그리드 -->
                 <div :class="gridClass">
