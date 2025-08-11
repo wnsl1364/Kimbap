@@ -59,7 +59,12 @@ const handlePlanSelect = ({ basicInfo, detailList }) => {
   // 오늘 날짜를 기본값으로 설정
   formData.value.reqDt = new Date()
 
-  prodDetailList.value = detailList
+    // 남은수량 계산하여 데이터 가공
+  prodDetailList.value = detailList.map(item => ({
+    ...item,
+    totalReqQty: item.totalReqQty || 0,
+    remainingQty: Math.max(0, (item.planQty || 0) - (item.totalReqQty || 0)) // 마이너스일 경우 0으로 설정
+  }))
 }
 
 // 모달에서 선택된 생산요청 데이터 처리
@@ -141,11 +146,13 @@ const productColumns = [
     placeholder: '검색'
   },
   { field: 'prodName', header: '제품명', type: 'input', align: 'left', readonly },
-  { field: 'planQty', header: '계획수량', type: 'input', align: 'right', readonly },
-  { field: 'reqQty', header: '요청수량', type: 'input', align: 'right' },
-  { field: 'unitName', header: '단위', type: 'input', align: 'center', readonly },
+  { field: 'planQty', header: '계획수량', type: 'input', width: '110px', align: 'right', readonly },
+  { field: 'totalReqQty', header: '기요청수량', type: 'input', width: '110px', align: 'right', readonly },
+  { field: 'remainingQty', header: '남은수량', type: 'input', width: '110px', align: 'right', readonly },
+  { field: 'reqQty', header: '요청수량', type: 'input', width: '110px', align: 'right' },
+  { field: 'unitName', header: '단위', type: 'input', width: '80px', align: 'center', readonly },
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
-  { field: 'seq', header: '우선순위', type: 'input', align: 'center' }
+  { field: 'seq', header: '우선순위', type: 'input', width: '110px', align: 'center' }
 ]
 // 생산요청과 관련 상세 저장(등록, 수정)
 const handleSave = async (data) => {
