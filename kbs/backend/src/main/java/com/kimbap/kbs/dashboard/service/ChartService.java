@@ -1,4 +1,4 @@
-package com.kimbap.kbs.Dashboard.service;
+package com.kimbap.kbs.dashboard.service;
 
 import java.util.List;
 
