@@ -12,6 +12,7 @@ public class ReleaseRequestVO {
     private String memo;     // 비고/메모
     private List<ItemVO> items; // 출고 상세 목록
 
+
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ItemVO {

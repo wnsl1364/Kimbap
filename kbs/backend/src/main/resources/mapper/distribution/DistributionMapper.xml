@@ -90,6 +90,13 @@
       WHERE ro.rel_mas_cd = rom.rel_mas_cd
     ) AS relOrdQty,
 
+    (
+      SELECT SUM(od.ord_qty)
+      FROM release_ord ro
+      JOIN order_d od ON ro.ord_d_cd = od.ord_d_cd
+      WHERE ro.rel_mas_cd = rom.rel_mas_cd
+    ) AS ordQty,
+
     ol.deli_add          AS deliAdd,
     rom.rel_ord_status   AS relOrdStatus,
     rom.note             AS note

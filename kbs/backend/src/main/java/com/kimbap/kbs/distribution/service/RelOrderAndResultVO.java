@@ -20,6 +20,7 @@ public class RelOrderAndResultVO {
   private String deliAdd;     // 배송지주소
   private String relOrdStatus;   // 출고지시상태
   private String note;        // 비고
+  private String ordQty; // 주문 수량 합계
 
   // 마스터테이블 단건조회 
   
