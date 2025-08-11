@@ -142,6 +142,22 @@ const model = ref([
                     to: '/material/materialStockView'
                 },
                 {
+                    label: '자재 발주 조회',
+                    to: '/material/materialPurchaseView'
+                },
+                {
+                    label: '자재 발주',
+                    to: '/material/materialPurchase'
+                },
+                {
+                    label: '자재 발주 승인',
+                    to: '/material/MaterialPurchaseApproval'
+                },
+                {
+                    label: '자재 출고',
+                    to: '/material/materialOutbound'
+                },
+                {
                     label: '자재 입고',
                     to: '/material/MaterialPurchaseView?from=inbound'
                 },
@@ -162,13 +178,18 @@ const model = ref([
                     to: '/material/materialInOutHistory'
                 },
                 {
-                    label: '자재 발주',
-                    to: '/material/materialPurchase'
-                },
-                {
-                    label: '자재 발주 조회',
-                    to: '/material/materialPurchaseView'
-                },
+                    label: '창고 테스트',
+                    to: '/material/testStore'
+                }
+            ]
+        }]
+    },
+    // 공급업체(p3)용 단독 메뉴: 자재 발주 승인, 자재 출고
+    {
+        roles: ['p3'],
+        items: [{
+            label: '자재',
+            items: [
                 {
                     label: '자재 발주 승인',
                     to: '/material/MaterialPurchaseApproval'
@@ -176,10 +197,6 @@ const model = ref([
                 {
                     label: '자재 출고',
                     to: '/material/materialOutbound'
-                },
-                {
-                    label: '창고 테스트',
-                    to: '/material/testStore'
                 }
             ]
         }]
