@@ -66,7 +66,7 @@
   </where>
 
 
-    ORDER BY temp.regDt DESC
+    ORDER BY temp.regDt DESC, temp.type ASC
   </select>
 
   <!-- 출고지시서 조회 -->

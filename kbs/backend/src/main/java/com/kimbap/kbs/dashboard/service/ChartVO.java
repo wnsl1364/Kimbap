@@ -20,7 +20,7 @@ public class ChartVO {
   private int prodRel;
 
   // 대시보드 PieChart 데이터
-  private String pcode;
+  private String prodName;
   private int pieTotalQty;
 
   // 대시보드 BarChart 데이터
