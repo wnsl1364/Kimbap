@@ -19,22 +19,22 @@ const rawData = ref([]);
 
 // 🔥 공통코드 형변환 함수
 const convertStatusCodes = (list) => {
-    const statusCodes = commonStore.getCodes('0M'); // 출고지시상태 코드
-    
-    return list.map(item => {
-        const matchedStatus = statusCodes.find(code => code.dcd === item.relOrdStatus);
-        
-        return {
-            ...item,
-            relOrdStatus: matchedStatus ? matchedStatus.cdInfo : item.relOrdStatus,
-        };
-    });
+  const statusCodes = commonStore.getCodes('0M'); // 출고지시상태 코드
+
+  return list.map(item => {
+    const matchedStatus = statusCodes.find(code => code.dcd === item.relOrdStatus);
+
+    return {
+      ...item,
+      relOrdStatus: matchedStatus ? matchedStatus.cdInfo : item.relOrdStatus,
+    };
+  });
 };
 
 // 🔥 변환된 데이터 computed
 const cleanConvertedData = computed(() => {
-    const dataArray = Array.isArray(rawData.value) ? rawData.value : [];
-    return convertStatusCodes(dataArray);
+  const dataArray = Array.isArray(rawData.value) ? rawData.value : [];
+  return convertStatusCodes(dataArray);
 });
 
 const searchValues = ref({ type: '전체' });
@@ -45,7 +45,7 @@ onMounted(async () => {
   try {
     // 🔥 공통코드 로드
     await commonStore.fetchCommonCodes('0M'); // 출고지시상태 코드
-    
+
     const result = await getRelOrdList({});
     console.log('✅ 응답 데이터:', result.data); // ← 실제 테이블용 데이터 확인
     rawData.value = result.data; // ✅ 핵심 수정
@@ -63,9 +63,9 @@ const materialTableButtons = ref({
 
 // 🔥 공통코드 원본값 조회 함수 (검색 시 사용)
 const getOriginalStatusCode = (displayValue) => {
-    const statusCodes = commonStore.getCodes('0M');
-    const found = statusCodes.find(code => code.cdInfo === displayValue);
-    return found ? found.dcd : displayValue;
+  const statusCodes = commonStore.getCodes('0M');
+  const found = statusCodes.find(code => code.cdInfo === displayValue);
+  return found ? found.dcd : displayValue;
 };
 
 const searchColumns = ref([
@@ -111,7 +111,7 @@ const onSearch = async (searchValues) => {
       relMasCd,
       relDtStart,
       relDtEnd,
-      type
+      type,
     } = searchValues;
 
     const startDate = relDtStart || null;
@@ -164,8 +164,14 @@ const inputTableColumns = computed(() => {
       align: 'left'
     },
     {
+      field: 'ordQty',
+      header: '주문수량',
+      type: 'readonly',
+      align: 'right'
+    },
+    {
       field: 'relOrdQty',
-      header: '총수량',
+      header: '지시수량',
       type: 'readonly',
       align: 'right'
     },
@@ -193,9 +199,9 @@ const inputTableColumns = computed(() => {
 
 const handleRowclicked = (row) => {
   console.log('📋 선택된 행:', row);
-  
+
   const relMasCd = row.relMasCd;
-  
+
   // 상세 페이지로 이동
   router.push({ path: '/distribution/relOrdAndResult', query: { relMasCd } });
 };
@@ -211,8 +217,8 @@ const handleRowclicked = (row) => {
 
         <!-- 매핑된 InputTable -->
         <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relMasCd" :scroll-height="'50vh'"
-          :height="'60vh'" :title="`출고지시 리스트 (총 ${cleanConvertedData.length}건)`" :buttons="materialTableButtons" :enableRowActions="false"
-          :enableSelection="false" @rowClick="handleRowclicked"/>
+          :height="'60vh'" :title="`출고지시 리스트 (총 ${cleanConvertedData.length}건)`" :buttons="materialTableButtons"
+          :enableRowActions="false" :enableSelection="false" @rowClick="handleRowclicked" />
       </div>
     </div>
   </div>
