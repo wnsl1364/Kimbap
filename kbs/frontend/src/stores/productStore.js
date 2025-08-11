@@ -100,7 +100,7 @@ export const useProductStore = defineStore('product', () => {
       console.error('조건 검색 실패:', err);
     }
   };
-  // 생산계획의 상세 목록 조회
+  // 생산요청의 상세 목록 조회
   const fetchProdRequestDetailList = async (produPlanCd) => {
     try {
       const res = await getProdRequestDetailList(produPlanCd);

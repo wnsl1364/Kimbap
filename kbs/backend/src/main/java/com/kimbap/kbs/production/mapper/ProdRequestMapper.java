@@ -48,6 +48,10 @@ public interface ProdRequestMapper {
     String getNewLotNo300();                    // 제품 입고 LOT 생성
     void insertProdInbo(ProdInboundVO vo);      // 제품 입고 테이블 입력
     int selectTodayProdInboSeq();               // 제품 입고 코드 가장 최근 값 가져오기
+
+    // 생산요청 상태 업데이트
+    void updateProductionReqStatus(@Param("produReqCd") String produReqCd, 
+                                  @Param("status") String status);
     // ===================================================
 
 }

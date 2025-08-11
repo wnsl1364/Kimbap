@@ -44,6 +44,9 @@
             AND pp.fcode = #{fcode}
             AND pp.fac_ver_cd = #{facVerCd}
             </if>
+            <if test="prReqStatus != null and prReqStatus != ''">
+            AND pr.pr_req_status = #{prReqStatus}
+            </if>
         </where>
         GROUP BY 
             pr.produ_req_cd,
@@ -242,6 +245,12 @@
             #{relQty}, #{unit}, #{relDt}, #{relType}, #{mname}, #{creDt}
         )
     </insert>
+    <!-- 생산요청 상태 업데이트 -->
+    <update id="updateProductionReqStatus">
+        UPDATE production_req 
+        SET pr_req_status = #{status}
+        WHERE produ_req_cd = #{produReqCd}
+    </update>
     <!-- 완제품 입고 INSERT -->
     <insert id="insertProdInbo" parameterType="ProdInboundVO">
         INSERT INTO prod_inbo (
