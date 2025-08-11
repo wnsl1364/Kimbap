@@ -53,13 +53,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // .requestMatchers("/api/standard/**","/std/**","/standard","/std","/api/std","/api/standard").hasRole("ADMIN")
-                        // .requestMatchers("/login", "/login/**", "/api/login").permitAll() // 로그인,
-                        // 회원가입은 모두 허용
-                        // .anyRequest().authenticated() // 나머지는 인증만 되어 있으면 허용
-                        // .requestMatchers("/api/logout").permitAll()
-                        .anyRequest().permitAll() // 모든 요청 허용
-                )
+                    .requestMatchers("/api/memberAdd").hasRole("ADMIN") // ROLE_ADMIN만 접근 가능 
+                    .anyRequest().permitAll() // 그 외는 모두 허용
+            )
                 .logout(logout -> logout
                         .logoutUrl("/api/logout")
                         .logoutSuccessHandler((request, response, auth) -> {

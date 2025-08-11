@@ -74,7 +74,7 @@ const model = ref([
         ]
     },
     {
-        roles: ['p5'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'], // 매출이랑 공급만 안보이게
         items: [{
             label: '기준정보',
             items: [
@@ -102,156 +102,152 @@ const model = ref([
         }]
     },
     {
-        teams: ['DEPT-1-1', ''],
-        roles: ['p2'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
+        roles: ['p1', 'p2', 'p4'], // 영업팀 사원, 매출업체, 담당자''],
         items: [{
             label: '주문',
             items: [
                 {
-                    label: '주문등록',
+                    label: '주문등록', // 매출업체만
                     to: '/order/orderRegister',
+                    roles: ['p1', 'p2', 'p4'], // 사원, 매출업체, 담당자
+                    teams: ['DEPT-1-1', ''] // 영업팀, 구매팀
                 },
                 {
-                    label: '주문검토',
+                    label: '주문검토', // 영업
                     to: '/order/orderReview',
                     teams: ['DEPT-1-1']
                 },
                 {
-                    label: '주문목록',
+                    label: '주문목록', // 매출업체, 영업
                     to: '/order/orderList',
-                    roles: ['p2']
+                    roles: ['p1', 'p2', 'p4'], // 사원, 매출업체, 담당자
+                    teams: ['DEPT-1-1', ''] // 영업팀, 구매팀,
                 },
                 {
-                    label: '거래처원장',
-                    to: '/order/orderLedger'
+                    label: '거래처원장', // 영업
+                    to: '/order/orderLedger',
+                    teams: ['DEPT-1-1']
                 },
                 {
-                    label: '반품관리',
-                    to: '/order/returnManage'
+                    label: '반품관리', // 영업
+                    to: '/order/returnManage',
+                    teams: ['DEPT-1-1']
                 },
             ]
         }]
     },
     {
-        teams: ['DEPT-4-1'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2',],
+        roles: ['p1', 'p3', 'p4'],
         items: [{
             label: '자재',
             items: [
                 {
-                    label: '자재 재고 조회',
-                    to: '/material/materialStockView'
+                    label: '자재 재고 조회', // 자재팀 , 구매팀
+                    to: '/material/materialStockView',
                 },
                 {
-                    label: '자재 발주 조회',
-                    to: '/material/materialPurchaseView'
+                    label: '자재 발주 조회', // 공급업체 자재팀
+                    to: '/material/materialPurchaseView',
+                    teams: ['DEPT-1-2', 'DEPT-4-1', ''],
+                    roles: ['p1', 'p3', 'p4'], // 사원, 공급업체, 담당자
                 },
                 {
                     label: '자재 발주',
-                    to: '/material/materialPurchase'
+                    to: '/material/materialPurchase',
+                    teams: ['DEPT-4-1', 'DEPT-1-2'],
                 },
                 {
-                    label: '자재 발주 승인',
-                    to: '/material/MaterialPurchaseApproval'
+                    label: '자재 발주 승인', // 공급업체 자재팀
+                    to: '/material/MaterialPurchaseApproval',
+                    teams: ['DEPT-4-1', 'DEPT-1-2', ''],
+                    roles: ['p1', 'p3', 'p4'],
                 },
                 {
-                    label: '자재 출고',
-                    to: '/material/materialOutbound'
+                    label: '자재 출고', // 공급업체만
+                    to: '/material/materialOutbound',
+                    roles: ['p3'],
                 },
                 {
                     label: '자재 입고',
-                    to: '/material/MaterialPurchaseView?from=inbound'
+                    to: '/material/MaterialPurchaseView?from=inbound',
+                    teams: ['DEPT-4-1', 'DEPT-1-2'],
                 },
                 {
                     label: '자재 적재 대기 목록',
-                    to: '/material/mateLoading'
+                    to: '/material/mateLoading',
+                    teams: ['DEPT-4-1', 'DEPT-1-2']
                 },
                 {
                     label: '자재 이동 요청 등록',
-                    to: '/material/stockMovementRegister'
+                    to: '/material/stockMovementRegister',
+                    teams: ['DEPT-4-1', 'DEPT-1-2'],
                 },
                 {
                     label: '자재 이동 요청 목록',
-                    to: '/material/stockMovementList'
+                    to: '/material/stockMovementList',
+                    teams: ['DEPT-4-1', 'DEPT-1-2']
                 },
                 {
                     label: '자재 입출고 내역',
-                    to: '/material/materialInOutHistory'
+                    to: '/material/materialInOutHistory',
                 },
-                {
-                    label: '창고 테스트',
-                    to: '/material/testStore'
-                }
             ]
         }]
     },
-    // 공급업체(p3)용 단독 메뉴: 자재 발주 승인, 자재 출고
-    {
-        roles: ['p3'],
-        items: [{
-            label: '자재',
-            items: [
-                {
-                    label: '자재 발주 조회',
-                    to: '/material/materialPurchaseView'
-                },
-                {
-                    label: '자재 발주 승인',
-                    to: '/material/MaterialPurchaseApproval'
-                },
-                {
-                    label: '자재 출고',
-                    to: '/material/materialOutbound'
-                }
-            ]
-        }]
-    },
-    {
-        teams: ['DEPT-2-1'],
+    { // 조회페이지는 매추 공급 빼고 다가능
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
         items: [{
             label: '생산',
             items: [
                 {
-                    label: '생산 계획 등록',
-                    to: '/production/productionPlan'
+                    label: '생산 계획 등록', // 등록 요청 생산만
+                    to: '/production/productionPlan',
+                    teams: ['DEPT-2-1'],
                 },
                 {
                     label: '생산 계획 조회',
                     to: '/production/productionPlanList'
                 },
                 {
-                    label: '생산요청서 등록',
-                    to: '/production/productionRequest'
+                    label: '생산요청서 등록', // 생산만
+                    to: '/production/productionRequest',
+                    teams: ['DEPT-2-1'],
                 },
                 {
                     label: '생산 요청 조회',
                     to: '/production/productionRequestList'
                 },
                 {
-                    label: '제품 적재 대기',
-                    to: '/production/productInbound'
+                    label: '제품 적재 대기', // 물류 창고1,2
+                    to: '/production/productInbound',
+                    teams: ['DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
                 },
             ]
         }]
     },
     {
-        teams: ['DEPT-4-2'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
         items: [{
             label: '물류',
             items: [
                 {
                     label: '출고지시서 조회',
-                    to: '/distribution/relOrdList'
+                    to: '/distribution/relOrdList',
                 },
                 {
-                    label: '출고 지시서 등록',
-                    to: '/distribution/relOrdAndResult'
+                    label: '출고 지시서 등록', // 물류
+                    to: '/distribution/relOrdAndResult',
+                    teams: ['DEPT-4-2'],
                 },
                 {
-                    label: '출고 처리',
-                    to: '/distribution/relSave'
+                    label: '출고 처리', // 창고1,2
+                    to: '/distribution/relSave',
+                    teams: ['DEPT-5-1', 'DEPT-5-2'],
                 },
                 {
-                    label: '완제품 입출고 조회',
+                    label: '완제품 입출고 조회', 
                     to: '/distribution/distributionCheck'
                 },
             ]
@@ -263,11 +259,11 @@ const model = ref([
             label: '결제',
             items: [
                 {
-                    label: '입출금 관리',
+                    label: '입출금 관리', // 회계
                     to: '/payment/cashflow'
                 },
                 {
-                    label: '미수금 정산',
+                    label: '미수금 정산', // 회계
                     to: '/payment/unpaidallocation'
                 },
             ]

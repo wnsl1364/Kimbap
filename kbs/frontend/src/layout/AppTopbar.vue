@@ -1,14 +1,17 @@
 <script setup>
+import { computed } from 'vue';
 import { useLayout } from '@/layout/composables/layout';
 import { useRouter } from 'vue-router';
 import { useMemberStore } from '@/stores/memberStore';
 import { storeToRefs } from 'pinia';
 import { logout } from '@/api/member';
 
+const isAdmin = computed(() => user.value?.memType === 'p5');
 const router = useRouter();
 const { toggleMenu } = useLayout();
 
 const memberStore = useMemberStore();
+const { user } = storeToRefs(memberStore);
 const { isLogin: isLoggedIn } = storeToRefs(memberStore);
 
 const goToLogin = () => {
@@ -86,7 +89,7 @@ const handleLogout = async () => {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button type="button" @click="goToMemberAdd">
+                    <button v-if="isAdmin" type="button" @click="goToMemberAdd">
                         <i>계정등록</i>
                     </button>
                     <button v-if="!isLoggedIn" type="button" @click="goToLogin">
