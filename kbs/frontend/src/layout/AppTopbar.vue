@@ -90,7 +90,7 @@ const handleLogout = async () => {
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
                     <span v-if="isLoggedIn" style="margin-right: 10px;">
-                        {{ user?.empName }} 님 환영합니다
+                        {{ user?.empName || user?.cpName }} 님 환영합니다
                     </span>
                     <button v-if="isAdmin" type="button" @click="goToMemberAdd">
                         <i>계정등록</i>
