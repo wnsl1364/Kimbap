@@ -6,10 +6,10 @@
     <div class="bg-white rounded-2xl shadow-xl w-96 p-6">
       <!-- 로고 영역 -->
       <div class="flex items-center justify-center mb-6">
-        <img src="" alt="전북대학교 로고" class="h-10 mr-2" />
+        <img src="" alt="김밥 로고" class="h-10 mr-2" />
         <div class="text-left">
-          <h1 class="text-lg font-bold text-blue-800 leading-none">전북대학교</h1>
-          <p class="text-sm text-blue-500 leading-none">치과대학</p>
+          <h1 class="text-lg font-bold text-blue-800 leading-none">잘</h1>
+          <p class="text-sm text-blue-500 leading-none">말아조</p>
         </div>
       </div>
 

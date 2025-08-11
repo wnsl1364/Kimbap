@@ -1,12 +1,12 @@
-package com.kimbap.kbs.Dashboard.serviceimpl;
+package com.kimbap.kbs.dashboard.serviceimpl;
 
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.kimbap.kbs.Dashboard.mapper.ChartMapper;
-import com.kimbap.kbs.Dashboard.service.ChartService;
-import com.kimbap.kbs.Dashboard.service.ChartVO;
+import com.kimbap.kbs.dashboard.mapper.ChartMapper;
+import com.kimbap.kbs.dashboard.service.ChartService;
+import com.kimbap.kbs.dashboard.service.ChartVO;
 
 import lombok.RequiredArgsConstructor;
 
