@@ -115,9 +115,9 @@ const handleReset = async () => {
 </script>
 <template>
     <div class="space-y-4">
-        <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3" />
+        <SearchForm title="자재 입출고 내역" :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3" />
     </div>
-    <div class="space-y-4 mt-8">
+    <div class="space-y-4 mt-2">
         <!-- 🔽 실제 테이블 -->
         <InputTable :columns="InputTablecolumns" :title="'자재 입출고 조회'" :data="convertedMathistoryList" scrollHeight="360px" height="460px" :enableSelection="false" :buttons="inputTableButtons" :enableRowActions="false" :showRowCount="true" :showExcelDownload="true" />
     </div>

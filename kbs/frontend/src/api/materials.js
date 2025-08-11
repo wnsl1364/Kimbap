@@ -83,8 +83,11 @@ export const getPurcOrderDetailList = () => {
   });
 };
 
-export const getPurcOrderWithDetails = (purcCd) => {
-  return axios.get(`/api/materials/purchase-orders/${purcCd}`);
+export const getPurcOrderWithDetails = (purcCd, extraParams) => {
+  // extraParams가 있으면 쿼리로 전달(서버가 지원하면 서버측 필터, 미지원이면 무시)
+  return axios.get(`/api/materials/purchase-orders/${purcCd}`,
+    extraParams ? { params: extraParams } : undefined
+  );
 };
 
 export const savePurchaseOrder = (orderData) => {
@@ -224,6 +227,20 @@ export const getPurchaseOrdersForView = (searchParams = {}, userType = 'p1') => 
     ...searchParams,
     memtype: memtypeMap[userType] || 'p1'
   };
+
+  // 공급업체 사용자인데 cpCd 누락 시, 로컬 스토리지/세션 저장 사용자 정보에서 보조적으로 채워넣기
+  try {
+    if ((userType === 'p3' || userType === 'supplier') && !params.cpCd) {
+      const userRaw = localStorage.getItem('memberStore') || localStorage.getItem('user');
+      if (userRaw) {
+        const parsed = JSON.parse(userRaw);
+        const cpCd = parsed?.user?.cpCd || parsed?.cpCd || parsed?.user?.cpCode || parsed?.cpCode;
+        if (cpCd) params.cpCd = cpCd;
+      }
+    }
+  } catch (e) {
+    // no-op: 보조 로딩 실패는 무시
+  }
   
   // null이나 undefined 값 제거
   Object.keys(params).forEach(key => 
