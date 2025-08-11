@@ -1,6 +1,7 @@
 package com.kimbap.kbs.production.serviceimpl;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -109,7 +110,7 @@ public class ProdRequestServiceImpl implements ProdRequestService {
                 if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
 
                 // 이 행에서 뺄 양 = min(행재고, 남은수량)
-                BigDecimal delta = stock.getQty().min(remaining);
+                BigDecimal delta = stock.getQty().min(remaining).setScale(0, RoundingMode.CEILING);
                 if (delta.compareTo(BigDecimal.ZERO) <= 0) continue;
 
                 // 음수 방지 가드(AND qty >= :delta)가 있는 UPDATE
@@ -118,12 +119,12 @@ public class ProdRequestServiceImpl implements ProdRequestService {
                     // 경쟁 등으로 수량 변동 → 현재 수량 재조회 후 가능한 만큼만 재시도
                     BigDecimal cur = mapper.selectQtyByWslcode(stock.getWslcode());
                     if (cur != null && cur.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal retry = cur.min(delta);
+                        BigDecimal retry = cur.min(delta).setScale(0, RoundingMode.CEILING);
                         if (retry.compareTo(BigDecimal.ZERO) > 0) {
                             mapper.decreaseWareStock(stock.getWslcode(), retry);
                             insertMateRel(produProdCd, material, stock, retry, mname, resolveRelType(material.getMcode()));
                             remaining = remaining.subtract(retry);
-                        }
+                        } 
                     }
                     continue;
                 }
