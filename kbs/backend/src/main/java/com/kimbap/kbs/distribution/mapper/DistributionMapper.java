@@ -71,10 +71,6 @@ public interface DistributionMapper {
   int updateRelOrderStatus(@Param("relMasCd") String relMasCd,
       @Param("status") String status);
 
-  int selectTotalRelOrdQty(@Param("relMasCd") String relMasCd);
-
-  int selectTotalReleasedQty(@Param("relMasCd") String relMasCd);
-
   // (선택) 주문상세 상태 갱신
   int updateOrderDetailStatus(@Param("ord_d_cd") String ordDCd,
       @Param("status") String status);
@@ -102,5 +98,15 @@ public interface DistributionMapper {
   String selectOrdCdByOrdDCd(@Param("ord_d_cd") String ord_d_cd);
 
   int countRemainingQtyByOrdCd(@Param("ordCd") String ordCd);
+
+  void updateOrderDetailStatusToT3(String ordDCd);
+
+  Integer selectOrderQtyByOrdDCd(String ordDCd);
+  
+  Integer sumReleasedQtyByOrdDCd(String ordDCd);
+
+  Long selectTotalRequestQtyByRelMasCd(String relMasCd);
+
+  Long selectTotalReleasedQtyAllByRelMasCd(String relMasCd);
 
 }

@@ -384,14 +384,32 @@ INSERT INTO release_ord_master (
     , ro.ord_d_cd
     , od.pcode
     , p.prod_name
-    , od.ord_qty
-    , ro.rel_ord_qty 
+    -- 요청수량 = 주문 전체 기준 잔여(주문수량 - 누적출고)
+    , GREATEST(od.ord_qty - NVL(pr_all.released_qty, 0), 0) AS ord_qty
+    -- 지시수량 = 지시서에 저장된 원래 지시수량
+    , ro.rel_ord_qty AS rel_ord_qty
     , ol.cp_cd
   FROM release_ord ro
-  JOIN order_d od ON ro.ord_d_cd = od.ord_d_cd
-  JOIN product p  ON od.pcode = p.pcode AND od.prod_ver_cd = p.prod_ver_cd
-  JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
-  JOIN order_list ol ON od.ord_cd = ol.ord_cd
+  JOIN order_d od
+    ON ro.ord_d_cd = od.ord_d_cd
+  JOIN product p
+    ON od.pcode = p.pcode
+   AND od.prod_ver_cd = p.prod_ver_cd
+  JOIN release_ord_master rom
+    ON ro.rel_mas_cd = rom.rel_mas_cd
+  JOIN order_list ol
+    ON od.ord_cd = ol.ord_cd
+
+  <!-- ✅ prod_rel에 ord_d_cd가 없으므로 rel_ord를 통해 ord_d_cd로 집계 -->
+  LEFT JOIN (
+      SELECT rro.ord_d_cd, SUM(pr.rel_qty) AS released_qty
+      FROM prod_rel pr
+      JOIN release_ord rro
+        ON rro.rel_ord_cd = pr.rel_ord_cd
+      GROUP BY rro.ord_d_cd
+  ) pr_all
+    ON pr_all.ord_d_cd = od.ord_d_cd
+
   WHERE ro.rel_mas_cd = #{relMasCd}
   ORDER BY p.prod_name, od.pcode
 </select>
@@ -482,16 +500,7 @@ INSERT INTO release_ord_master (
   )
   WHERE ROWNUM = 1
 </select>
-<!-- 지시서 실제 출고수량 합 -->
-<select id="selectTotalReleasedQty" resultType="int">
-  SELECT NVL(SUM(r.rel_qty), 0)
-    FROM prod_rel r
-    JOIN release_ord ro
-      ON ro.rel_ord_cd = r.rel_ord_cd
-    JOIN release_ord_master rom
-      ON rom.rel_mas_cd = ro.rel_mas_cd
-   WHERE rom.rel_mas_cd = #{relMasCd}
-</select>
+
 
 <select id="selectLotQtyForUpdate" resultType="int">
   SELECT ws.qty
@@ -526,13 +535,6 @@ INSERT INTO release_ord_master (
    WHERE cp_cd = #{cpCd}
 </update>
 
-<!-- 지시서 지시수량 합 -->
-<select id="selectTotalRelOrdQty" resultType="int" parameterType="string">
-  SELECT NVL(SUM(ro.rel_ord_qty), 0)
-    FROM release_ord ro
-   WHERE ro.rel_mas_cd = #{relMasCd}
-</select>
-
 <!-- 지시서 상태 변경 -->
 <update id="updateRelOrderStatus" parameterType="map">
   UPDATE release_ord_master
@@ -566,6 +568,50 @@ INSERT INTO release_ord_master (
     ) r ON r.ord_d_cd = od.ord_d_cd
    WHERE od.ord_cd = #{ordCd}
      AND (od.ord_qty - NVL(r.rel_qty,0)) > 0
+</select>
+
+<!-- 주문상세 상태 변경 -->
+<update id="updateOrderDetailStatusToT3" parameterType="string">
+    UPDATE order_d
+       SET ord_d_status = 't3'
+     WHERE ord_d_cd = #{ordDCd}
+</update>
+
+<!-- 주문 상세 수량 -->
+<select id="selectOrderQtyByOrdDCd" parameterType="string" resultType="int">
+  SELECT ord_qty
+  FROM order_d
+  WHERE ord_d_cd = #{ordDCd}
+</select>
+
+<!-- 누적 실제 출고 수량 (취소 제외) -->
+<select id="sumReleasedQtyByOrdDCd" parameterType="string" resultType="int">
+  SELECT NVL(SUM(pr.rel_qty), 0)
+  FROM prod_rel pr
+  JOIN release_ord rro
+    ON rro.rel_ord_cd = pr.rel_ord_cd
+  WHERE rro.ord_d_cd = #{ordDCd}
+</select>
+
+<select id="selectTotalRequestQtyByRelMasCd" resultType="long">
+  SELECT NVL(SUM(od.ord_qty), 0)
+  FROM order_d od
+  JOIN release_ord ro
+    ON ro.ord_d_cd = od.ord_d_cd
+  WHERE ro.rel_mas_cd = #{relMasCd}
+</select>
+
+<!-- 🔁 누적 출고합: 이번 마스터에 포함된 ord_d_cd 집합에 대해, 전체 기간 prod_rel 합산 -->
+<select id="selectTotalReleasedQtyAllByRelMasCd" resultType="long">
+  SELECT NVL(SUM(pr.rel_qty), 0)
+  FROM prod_rel pr
+  JOIN release_ord r_all
+    ON r_all.rel_ord_cd = pr.rel_ord_cd
+  WHERE r_all.ord_d_cd IN (
+    SELECT r_this.ord_d_cd
+    FROM release_ord r_this
+    WHERE r_this.rel_mas_cd = #{relMasCd}
+  )
 </select>
 
 </mapper>
