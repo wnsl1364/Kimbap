@@ -762,7 +762,8 @@ watch(itemTableData, () => {
     :itemKey="'id'"
     :columns="itemModalColumns"
     @update:modelValue="handleItemSelect"
-    :style="{ '--modal-width': '90vw', '--modal-height': '80vh' }"
+  :dialogWidth="'80vw'"
+  :tableHeight="'50vh'"
   />
 
   <!-- 도착위치 선택 모달 -->
@@ -793,12 +794,9 @@ watch(itemTableData, () => {
 }
 
 .p-dialog .p-dialog-content {
-  height: calc(85vh - 120px) !important;
+  height: calc(70vh - 120px) !important;
   overflow: auto !important;
 }
 
-.p-datatable-wrapper {
-  height: 400px !important;
-  overflow: auto !important;
-}
+/* 전역 테이블 높이 강제 제거: 개별 컴포넌트에서 scrollHeight로 제어 */
 </style>
