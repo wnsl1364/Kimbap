@@ -53,6 +53,14 @@ const factoryOptions = computed(() => [
     value: { fcode: f.fcode, facVerCd: f.facVerCd }
   }))
 ])
+// 요청 상태 드롭다운 옵션
+const reqStatusOptions = computed(() => [
+  { label: '전체', value: '' },  
+  ...common.getCodes('0B').map(s => ({
+    label: s.cdInfo,  // 화면에 표시될 텍스트 (예: "요청", "완료", "취소")
+    value: s.dcd      // 실제 검색에 사용될 코드값 (예: "b1", "b2", "b3")
+  }))
+])
 
 // 검색 조건 정의
 const searchColumns = [
@@ -64,6 +72,13 @@ const searchColumns = [
     type: 'dropdown',
     options: factoryOptions,
     placeholder: '공장을 선택하세요'
+  },
+  {
+    key: 'prReqStatus',
+    label: '요청 상태',
+    type: 'dropdown',
+    options: reqStatusOptions,
+    placeholder: '상태를 선택하세요'
   },
 ];
 const prodRequestColumns = [
@@ -89,7 +104,6 @@ exportColumns.value = [
 ]
 // 생산요청 목록 검색
 const handleSearch = async (searchData) => {
-
   try {
     // 전처리: 날짜 객체를 yyyy-MM-dd로 변환
     const formatted = {
@@ -98,6 +112,7 @@ const handleSearch = async (searchData) => {
       reqDtEnd: searchData.reqDtRange?.end ? format(searchData.reqDtRange.end, 'yyyy-MM-dd') : null,
       fcode: searchData.factory?.fcode || null,
       facVerCd: searchData.factory?.facVerCd || null,
+      prReqStatus: searchData.prReqStatus || null
     };
 
     await store.fetchProdRequestListByCondition(formatted);

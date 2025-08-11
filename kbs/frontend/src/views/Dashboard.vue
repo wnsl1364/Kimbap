@@ -1,16 +1,14 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import StandartTable from '@/components/kimbap/table/StandardTable.vue'
 import { dashboardTopData, dashboardPieData, dashboardBarData, dashboardOrderData } from '@/api/dashboard';
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
 
-// 공통코드 가져오기
-const common = useCommonStore()
-const { commonCodes } = storeToRefs(common);
-// 공통코드 형변환
+// 🔥 공통코드 store 추가
+const commonStore = useCommonStore();
 
 // 월 변환
 const currentMonthLabel = ref('');
@@ -31,11 +29,36 @@ const prodReturnCount = ref(0);   // 반품접수
 const releaseOrdCount = ref(0);   // 출고대기
 const prodRelCount = ref(0);      // 출고완료
 
-// 금일 요청주문 데이터
-const condProdPlanList = ref([]);
+// 🔥 원본 데이터와 변환된 데이터 분리
+const rawOrderData = ref([]);
+
+// 🔥 공통코드 형변환 함수
+const convertOrderStatusCodes = (list) => {
+  const statusCodes = commonStore.getCodes('0S'); // 주문상세상태 코드
+
+  return list.map((item, index) => {
+    const matchedStatus = statusCodes.find(code => code.dcd === item.ordDStatus);
+
+    return {
+      ...item,
+      index: index + 1,
+      ordDStatus: matchedStatus ? matchedStatus.cdInfo : item.ordDStatus,
+    };
+  });
+};
+
+// 🔥 변환된 주문 데이터 computed
+const condProdPlanList = computed(() => {
+  const dataArray = Array.isArray(rawOrderData.value) ? rawOrderData.value : [];
+  return convertOrderStatusCodes(dataArray);
+});
 
 onMounted(async () => {
     setColorOptions();
+    
+    // 🔥 공통코드 로드
+    await commonStore.fetchCommonCodes('0S'); // 주문상세상태 코드
+    
     await fetchDashboardCounts(); // 상단 데이터
     await fetchDashboardPieData(); // 파이차트 데이터
     await fetchDashboardBarData(); // 바 차트 데이터
@@ -90,7 +113,7 @@ async function fetchDashboardPieData() {
             'PROD-1009': '치즈돈까스김밥',
             'PROD-1010': '연어아보카도김밥'
         };
-        const labels = raw.map(item => productNameMap[item.pcode] || item.pcode);
+        const labels = raw.map(item => productNameMap[item.prodName] || item.prodName);
         const data = raw.map(item => item.pieTotalQty);
 
         const documentStyle = getComputedStyle(document.documentElement);
@@ -162,34 +185,20 @@ async function fetchDashboardBarData() {
     }
 }
 
-// 금일 요청주문 데이터
+// 🔥 수정된 금일 요청주문 데이터 함수
 async function fetchDashboardOrderData() {
     try {
         const res = await dashboardOrderData();
         console.log('dashboardOrderData 응답:', res.data);
 
-        let rawList = Array.isArray(res.data) ? res.data.map((item, index) => ({
-            ...item,
-            index: index + 1
-        })) : [];
-
-        // 공통코드 매핑
-        const unitCodes = common.getCodes('0A');
-        rawList = rawList.map(item => {
-            const matched = unitCodes.find(code => code.dcd === item.ordDStatus);
-            return {
-                ...item,
-                ordDStatus: matched ? matched.cdInfo : item.ordDStatus
-            };
-        });
-
-        condProdPlanList.value = rawList;
+        // 🔥 원본 데이터만 저장 (변환은 computed에서 처리)
+        rawOrderData.value = Array.isArray(res.data) ? res.data : [];
+        
     } catch (err) {
         console.error('금일 요청주문 데이터 조회 실패:', err);
+        rawOrderData.value = [];
     }
 }
-
-
 
 function setColorOptions() {
     const documentStyle = getComputedStyle(document.documentElement);
@@ -228,7 +237,6 @@ function setColorOptions() {
         }
     };
 
-
     pieOptions.value = {
         plugins: {
             legend: {
@@ -249,6 +257,7 @@ const prodPlanColumns = [
     { field: 'deliAvailDt', header: '납기가능일자' },
     { field: 'ordDStatus', header: '주문상세상태' }
 ]
+
 watch(
     [getPrimary, getSurface, isDarkTheme],
     () => {
@@ -322,6 +331,7 @@ watch(
         </div>
     </div>
     <div class="w-full">
+        <!-- 🔥 변환된 데이터 사용 -->
         <StandartTable :title="'금일 요청주문'" :data="condProdPlanList" :columns="prodPlanColumns" dataKey="index"
             scrollHeight="45vh" :selectable="false" :showHistoryButton="false" />
     </div>

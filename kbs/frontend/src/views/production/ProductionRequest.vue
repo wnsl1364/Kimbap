@@ -86,6 +86,11 @@ onMounted(async () => {
   await fetchFactoryList() // 공장 목록 조회
   await fetchProductList() // 제품 목록 가져오기
   await common.fetchCommonCodes('0G') // 공통코드 가져오기
+
+  // 오늘 날짜를 기본값으로 설정
+  if (!formData.value.reqDt) {
+    formData.value.reqDt = new Date()
+  }
 })
 
 // 공장 드롭다운 옵션
@@ -120,8 +125,8 @@ const prodReqFormButtons = ref({
   load: { show: true, label: '생산요청 불러오기', severity: 'info' }
 })
 const prodPlanDetailButtons = ref({
-  save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' },
-  reset: { show: isAdmin.value || isManager.value, label: '초기화', severity: 'secondary' }
+  save: { show: false, label: '저장', severity: 'success' },
+  reset: { show: false, label: '초기화', severity: 'secondary' }
 })
 
 // 제품 테이블 컬럼 정의
@@ -136,6 +141,7 @@ const productColumns = [
     placeholder: '검색'
   },
   { field: 'prodName', header: '제품명', type: 'input', align: 'left', readonly },
+  { field: 'planQty', header: '계획수량', type: 'input', align: 'right', readonly },
   { field: 'reqQty', header: '요청수량', type: 'input', align: 'right' },
   { field: 'unitName', header: '단위', type: 'input', align: 'center', readonly },
   { field: 'exProduDt', header: '생산예정일자', type: 'input', inputType: 'date', align: 'center' },
