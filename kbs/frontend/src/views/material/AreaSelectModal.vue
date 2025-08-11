@@ -89,16 +89,17 @@ const areaGrid = computed(() => {
             const availableVolume = realMaxVolume - currentVolume;
             
             // 🔥 같은 자재인지 확인 (DB의 현재 자재 vs 선택하려는 자재)
-            const isSameMaterialInDB = areaInfo?.currentMaterial === props.selectedMaterial?.mcode;
+            //    수량이 0인 경우는 빈구역으로 간주하므로 동일/다른 자재 판정에서 제외
+            const hasStock = (currentVolume > 0);
+            const isSameMaterialInDB = hasStock && (areaInfo?.currentMaterial === props.selectedMaterial?.mcode);
             
             // 🔥 다른 입고건이 이미 이 위치를 선택했는지 확인
             const isDifferentMaterialSelected = existingPlacement && existingPlacement.mcode !== props.selectedMaterial?.mcode;
             const isSameMaterialSelected = existingPlacement && existingPlacement.mcode === props.selectedMaterial?.mcode;
             
             // 🔥 다른 자재가 DB에 적재되어 있는지 확인 (핵심!)
-            const isDifferentMaterialInDB = areaInfo?.currentMaterial && 
-                                          areaInfo.currentMaterial !== props.selectedMaterial?.mcode &&
-                                          currentVolume > 0;
+            const isDifferentMaterialInDB = hasStock && areaInfo?.currentMaterial && 
+                                          areaInfo.currentMaterial !== props.selectedMaterial?.mcode;
             
             // 🔥 선택 가능 여부 결정 (더 엄격한 규칙)
             // 1. 다른 자재가 선택한 곳은 절대 불가
@@ -116,7 +117,8 @@ const areaGrid = computed(() => {
                 realMaxVolume: realMaxVolume,    // 🔥 단위별 실제 용량
                 currentVolume: currentVolume,
                 availableVolume: Math.max(0, availableVolume), // 🔥 실제 가용 용량
-                currentMaterial: areaInfo?.currentMaterial || null,
+                // 수량이 0이면 빈구역으로 표시하기 위해 currentMaterial을 숨김
+                currentMaterial: hasStock ? (areaInfo?.currentMaterial || null) : null,
                 isAvailable: isAvailable,
                 isSameMaterial: isSameMaterialInDB,
                 isSameMaterialSelected: isSameMaterialSelected, // 🔥 같은 자재 다른 입고건
