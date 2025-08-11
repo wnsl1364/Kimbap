@@ -23,16 +23,16 @@ const goToMemberAdd = () => {
 };
 
 const handleLogout = async () => {
-  try {
-    await logout();
-    const memberStore = useMemberStore();
-    memberStore.logout(); // 상태 초기화 (accessToken도 포함)
+    try {
+        await logout();
+        const memberStore = useMemberStore();
+        memberStore.logout(); // 상태 초기화 (accessToken도 포함)
 
-    localStorage.removeItem('pinia'); // persisted 상태 제거
-    await router.push('/login/loginForm'); // 페이지 이동
-  } catch (err) {
-    console.error('로그아웃 실패:', err);
-  }
+        localStorage.removeItem('pinia'); // persisted 상태 제거
+        await router.push('/login/loginForm'); // 페이지 이동
+    } catch (err) {
+        console.error('로그아웃 실패:', err);
+    }
 };
 
 </script>
@@ -89,6 +89,9 @@ const handleLogout = async () => {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
+                    <span v-if="isLoggedIn" style="margin-right: 10px;">
+                        {{ user?.empName }} 님 환영합니다
+                    </span>
                     <button v-if="isAdmin" type="button" @click="goToMemberAdd">
                         <i>계정등록</i>
                     </button>
