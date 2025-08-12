@@ -75,7 +75,7 @@
             ON pp.pcode = p.pcode
             AND pp.prod_ver_cd = p.prod_ver_cd
         LEFT JOIN (
-            SELECT 
+            SELECT
                 pr.pcode,
                 pr.prod_ver_cd,
                 req.produ_plan_cd,
