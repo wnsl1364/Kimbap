@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -53,13 +54,35 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/memberAdd").hasRole("ADMIN") // ROLE_ADMIN만 접근 가능 
-                    .anyRequest().permitAll() // 그 외는 모두 허용
-            )
+                        // ✅ 조회 허용 목록 (GET만)
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/std/cp/list",
+                                "/api/std/cp/sup/list",
+                                "/api/std/cp/sal/list",
+                                "/api/std/cp/detail/**",
+                                "/api/std/fac/list",
+                                "/api/std/fac/detail/**",
+                                "/api/std/mat/list",
+                                "/api/std/mat/detail/**",
+                                "/api/std/mat/history/**",
+                                "/api/std/prod/list",
+                                "/api/std/prod/detail/**",
+                                "/api/std/wh/list",
+                                "/api/std/wh/detail/**")
+                        .permitAll()
+
+                        // ✅ 그 외 /api/std/**는 ADMIN만
+                        .requestMatchers("/api/std/**").hasRole("ADMIN")
+
+                        // 기존 규칙 유지
+                        .requestMatchers("/api/memberAdd").hasRole("ADMIN")
+
+                        // 나머지는 전부 허용 (프로젝트 정책에 맞게 authenticated()로 바꿀 수 있음)
+                        .anyRequest().permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/api/logout")
-                        .logoutSuccessHandler((request, response, auth) -> {
-                            // 클라이언트에게 200 OK 만 응답
+                        .logoutSuccessHandler((request, response, authn) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
                         }))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
