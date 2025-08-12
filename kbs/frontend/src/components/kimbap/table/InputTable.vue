@@ -91,6 +91,11 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    // 외부 selection(v-model:selection) 동기화 지원
+    selection: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const emit = defineEmits(['update:data', 'dataChange', 'openQtyModal', 'delete', 'reset', 'save', 'load', 'refund', 'handleProductDeleteList', 'rowClick', 'selectionChange', 'locationSelect', 'update:selection', 'lotAction']);
@@ -137,6 +142,18 @@ watch(
     () => props.data,
     (newVal) => {
         internalData.value = newVal;
+    },
+    { immediate: true, deep: true }
+);
+
+// 🔄 외부에서 selection 변경(v-model:selection으로 배열 비우기 등) 시 내부 선택 상태 동기화
+watch(
+    () => props.selection,
+    (newVal) => {
+        // 참조가 다르거나 길이가 달라진 경우에만 갱신
+        if (newVal !== selectedRows.value) {
+            selectedRows.value = Array.isArray(newVal) ? [...newVal] : [];
+        }
     },
     { immediate: true, deep: true }
 );
