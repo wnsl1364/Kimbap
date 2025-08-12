@@ -12,6 +12,7 @@ import com.kimbap.kbs.production.service.MaterVO;
 import com.kimbap.kbs.production.service.MrpDetailVO;
 import com.kimbap.kbs.production.service.MrpVO;
 import com.kimbap.kbs.production.service.ProdPlanDetailVO;
+import com.kimbap.kbs.production.service.ProdPlanFullVO;
 import com.kimbap.kbs.production.service.ProdPlanVO;
 import com.kimbap.kbs.production.service.ProdsVO;
 import com.kimbap.kbs.production.service.PurcOrdDetailVO;
@@ -78,4 +79,10 @@ public interface ProdPlanMapper {
     List<MrpVO> selectMrpListByDateRange(@Param("startDate") LocalDate startDate, 
                                         @Param("endDate") LocalDate endDate);
 
+    // 사용자 정보 업데이트용 메소드들 추가
+    void updateProdPlanRegi(String produPlanCd, String empCd);     // 생산계획 등록자 업데이트
+    void updateMrpRegi(String mrpCd, String empCd);                // MRP 등록자 업데이트  
+    void updatePurchaseOrderRegi(String purcCd, String empCd);     // 발주서 등록자 업데이트
+    String getLatestPurchaseOrder();                               // 최근 생성된 발주서 조회 (간단한 방법)
+    
 }
