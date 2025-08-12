@@ -5,6 +5,10 @@ import { getOrderDetail, registerReturn, cancelReturn, getLotList } from '@/api/
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
 import InputTable from '@/components/kimbap/table/InputTable.vue'
 import { format, parseISO } from 'date-fns'
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast'
+
+const toast = useToast();
 
 const route = useRoute()
 const router = useRouter()
@@ -92,19 +96,37 @@ const handleSave = async () => {
   console.log('[handleSave] 현재 products:', products.value);
 
   if (selectedRows.value.length === 0) {
-    return alert('반품할 제품을 선택해주세요.');
+    toast.add({
+      severity: 'warn', // 'success', 'info', 'warn', 'error'
+      summary: '입력 확인',
+      detail: '반품할 제품을 선택해주세요.',
+      life: 3000
+    });
+    return;
   }
 
   const selected = selectedRows.value.filter(p => p.returnQty > 0 && p.returnRea && p.lotNo);
   console.log('[handleSave] 조건 통과한 selected:', selected);
 
   if (selected.length === 0) {
-    return alert('반품수량, 사유, LOT을 모두 입력해야 합니다.');
+    toast.add({
+      severity: 'warn', // 'success', 'info', 'warn', 'error'
+      summary: '입력 확인',
+      detail: '반품수량, 사유, LOT을 모두 입력해야 합니다.',
+      life: 3000
+    });
+    return;
   }
 
   for (const item of selected) {
     if (item.returnQty > item.ordQty) {
-      return alert(`"${item.prodName}"의 반품수량은 주문수량(${item.ordQty} BOX)를 초과할 수 없습니다.`);
+      toast.add({ 
+        severity: 'warn', 
+        summary: '반품 수량 초과', 
+        detail: `"${item.prodName}"의 반품수량은 주문수량(${item.ordQty} BOX)를 초과할 수 없습니다.`, 
+        life: 3000 
+      });
+      return;
     }
   }
 
@@ -126,14 +148,29 @@ const handleSave = async () => {
     console.log('[handleSave] 서버 응답:', res.data);
 
     if (res.data.result_code === 'SUCCESS') {
-      alert('반품 요청이 등록되었습니다.');
+      toast.add({
+        severity: 'info', // 'success', 'info', 'warn', 'error'
+        summary: '반품 요청 완료',
+        detail: '반품 요청이 등록되었습니다.',
+        life: 3000
+      });
       router.push({ path: '/order/orderList', query: { refresh: true } });
     } else {
-      alert('저장 실패: ' + res.data.message);
+      toast.add({ 
+        severity: 'warn', 
+        summary: '저장 실패', 
+        detail: '저장 실패: ' + res.data.message, 
+        life: 3000 
+      });
     }
   } catch (err) {
     console.error('반품 저장 실패:', err);
-    alert('반품 저장 중 오류 발생');
+    toast.add({ 
+        severity: 'warn', 
+        summary: '저장 실패', 
+        detail: '반품 저장 중 오류 발생', 
+        life: 3000 
+      });
   }
 };
 
@@ -143,7 +180,13 @@ const handleCancelReturn = async () => {
   const selected = selectedRows.value.filter(item => item.ordDStatus === 't4');
 
   if (selected.length === 0) {
-    return alert('반품요청 상태인 제품만 선택해주세요.');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 요청 선택 오류', 
+      detail: '반품요청 상태인 제품만 선택해주세요.', 
+      life: 3000 
+    });
+    return;
   }
 
   const ordDCdList = selected.map(item => item.ordDCd);
@@ -153,14 +196,29 @@ const handleCancelReturn = async () => {
   try {
     const res = await cancelReturn(ordDCdList);
     if (res.data.result_code === 'SUCCESS') {
-      alert('반품 요청이 취소되었습니다.');
+      toast.add({ 
+        severity: 'info', 
+        summary: '반품 요청 취소', 
+        detail: '반품 요청이 취소되었습니다.', 
+        life: 3000 
+      });
       router.push({ path: '/order/orderList', query: { refresh: true } });
     } else {
-      alert('취소 실패: ' + res.data.message);
+      toast.add({ 
+        severity: 'warn', 
+        summary: '반품 요청 취소 실패', 
+        detail: '취소 실패: ' + res.data.message, 
+        life: 3000 
+      });
     }
   } catch (err) {
     console.error('반품 취소 실패:', err);
-    alert('반품 취소 중 오류 발생');
+    toast.add({ 
+      severity: 'warn', 
+      summary: '반품 요청 취소 실패', 
+      detail: '반품 취소 중 오류 발생', 
+      life: 3000 
+    });
   }
 }
 
@@ -169,7 +227,12 @@ watch(products, (newVal) => {
   newVal.forEach(item => {
     if (item.returnQty > item.ordQty) {
       item.returnQty = item.ordQty;
-      alert(`"${item.prodName}"의 반품수량은 주문수량(${item.ordQty} BOX)를 초과할 수 없습니다.`);
+      toast.add({ 
+        severity: 'warn', 
+        summary: '반품 수량 초과', 
+        detail: `"${item.prodName}"의 반품수량은 주문수량(${item.ordQty} BOX)를 초과할 수 없습니다.`, 
+        life: 3000 
+      });
     }
 
     const qty = item.returnQty || 0;
