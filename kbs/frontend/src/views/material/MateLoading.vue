@@ -164,6 +164,18 @@ const handleSelectionChange = (newSelection) => {
 
 //  구역선택 버튼 클릭 처리 (신규)
 const handleLocationSelect = (rowData) => {
+    // ✅ 먼저 체크박스로 선택했는지 확인 (InputTable 수정 없이 동작 제어)
+    const isSelected = selectedItems.value.some(item => item.mateInboCd === rowData.mateInboCd);
+    if (!isSelected) {
+        toast.add({
+            severity: 'warn',
+            summary: '자재 선택 필요',
+            detail: '구역을 선택하려면 먼저 자재를 선택하세요.',
+            life: 3000
+        });
+        return; // 선택 안된 경우 실행 중단
+    }
+
     // 적재 수량이 입력되지 않은 경우 경고
     if (!rowData.qty || rowData.qty <= 0) {
         toast.add({
