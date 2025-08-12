@@ -47,48 +47,65 @@ public class SecurityConfig {
     }
 
     // 3. JWT 필터 등록 및 시큐리티 체인 설정
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // ✅ 조회 허용 목록 (GET만)
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/std/cp/list",
-                                "/api/std/cp/sup/list",
-                                "/api/std/cp/sal/list",
-                                "/api/std/cp/detail/**",
-                                "/api/std/fac/list",
-                                "/api/std/fac/detail/**",
-                                "/api/std/mat/list",
-                                "/api/std/mat/detail/**",
-                                "/api/std/mat/history/**",
-                                "/api/std/prod/list",
-                                "/api/std/prod/detail/**",
-                                "/api/std/wh/list",
-                                "/api/std/wh/detail/**")
-                        .permitAll()
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    return http
+        .cors(Customizer.withDefaults())
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            // 조회 허용 목록 (GET만)
+            .requestMatchers(
+                HttpMethod.GET,
+                // 거래처
+                "/api/std/cp/list",
+                "/api/std/cp/sup/list",
+                "/api/std/cp/sal/list",
+                "/api/std/cp/detail/**",
+                "/api/std/cp/change-history/**",
 
-                        // ✅ 그 외 /api/std/**는 ADMIN만
-                        .requestMatchers("/api/std/**").hasRole("ADMIN")
+                // 설비
+                "/api/std/fac/list",
+                "/api/std/fac/detail/**",
+                "/api/std/fac/change-history/**",
 
-                        // 기존 규칙 유지
-                        .requestMatchers("/api/memberAdd").hasRole("ADMIN")
+                // 자재
+                "/api/std/mat/list",
+                "/api/std/mat/detail/**",
+                "/api/std/mat/history/**",
+                "/api/std/mat/change-history/**",
 
-                        // 나머지는 전부 허용 (프로젝트 정책에 맞게 authenticated()로 바꿀 수 있음)
-                        .anyRequest().permitAll())
-                .logout(logout -> logout
-                        .logoutUrl("/api/logout")
-                        .logoutSuccessHandler((request, response, authn) -> {
-                            response.setStatus(HttpServletResponse.SC_OK);
-                        }))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
-                        UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+                // 제품
+                "/api/std/prod/list",
+                "/api/std/prod/detail/**",
+                "/api/std/prod/change-history/**",
+
+                // 창고
+                "/api/std/wh/list",
+                "/api/std/wh/detail/**",
+                "/api/std/wh/change-history/**"
+            ).permitAll()
+
+            // 그 외 /api/std/**는 ADMIN만
+            .requestMatchers("/api/std/**").hasRole("ADMIN")
+
+            // 기존 규칙 유지
+            .requestMatchers("/api/memberAdd").hasRole("ADMIN")
+
+            // 나머지는 전부 허용 (정책에 따라 authenticated()로 변경 가능)
+            .anyRequest().permitAll()
+        )
+        .logout(logout -> logout
+            .logoutUrl("/api/logout")
+            .logoutSuccessHandler((request, response, authn) -> {
+                response.setStatus(HttpServletResponse.SC_OK);
+            })
+        )
+        .addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
+            UsernamePasswordAuthenticationFilter.class)
+        .build();
+}
+
 
     // 4. CORS 설정 (Vue 등 프론트 허용)
     @Bean
