@@ -135,7 +135,6 @@ const onSearch = async (searchValues) => {
   }
 };
 
-// InputTable용 컬럼 정의 (실제 데이터 필드와 매치)
 const inputTableColumns = computed(() => {
   const baseColumns = [
     {
@@ -143,49 +142,56 @@ const inputTableColumns = computed(() => {
       header: '출고지시일자',
       type: 'readonly',
       align: 'center'
+      ,width: '120px'
     },
     {
       field: 'relMasCd',
       header: '출고지시번호',
       type: 'readonly',
       align: 'center',
-      width: 200
+      width: '200px'
     },
     {
       field: 'cpName',
       header: '거래처명',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '150px'
     },
     {
       field: 'prodName',
       header: '제품명',
       type: 'readonly',
-      align: 'left'
+      align: 'left',
+      width: '200px'
     },
     {
       field: 'ordQty',
-      header: '주문수량',
+      header: '주문수량(box)',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '100px'
     },
     {
       field: 'relOrdQty',
-      header: '지시수량',
+      header: '지시수량(box)',
       type: 'readonly',
-      align: 'right'
+      align: 'right',
+      width: '100px'
     },
     {
       field: 'deliAdd',
       header: '배송지주소',
       type: 'readonly',
-      align: 'center'
+      align: 'center',
+      width: '230px'
     },
     {
       field: 'relOrdStatus',
       header: '출고지시상태',
       type: 'readonly',
-      align: 'center' // 🔥 상태는 가운데 정렬이 더 적절
+      align: 'center', // 🔥 상태는 가운데 정렬이 더 적절
+      width: '120px'
     },
     {
       field: 'note',
