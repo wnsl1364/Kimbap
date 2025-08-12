@@ -58,7 +58,7 @@ const formFields2 = [
 const columns = computed(() => [
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
   { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'noRelQty', header: '주문잔여수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
+  { field: 'noRelQty', header: '잔여수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
   { field: 'relQty', header: '출고지시수량(box)', type: 'input', inputType: 'number', align: 'right', },
   {
     field: 'wcode', // 창고코드
