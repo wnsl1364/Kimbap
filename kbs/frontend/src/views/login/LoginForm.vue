@@ -9,12 +9,13 @@
         <img src="../../image/kimbab.png" alt="김밥 로고" class="h-20 mr-2" />
         <div class="text-left">
           <p class="text-sm text-blue-500 leading-none mb-3">Login</p>
-          <h1 class="text-lg font-bold text-blue-800 leading-none mt-2 ">잘말아조</h1>
+          <h1 class="text-lg font-bold text-blue-800 leading-none mt-2">잘말아조</h1>
         </div>
       </div>
 
       <!-- 로그인 폼 -->
-      <div>
+      <!-- ✅ form 으로 감싸고 submit 이벤트에 handleLogin 연결 -->
+      <form @submit.prevent="handleLogin">
         <input
           v-model="id"
           type="text"
@@ -28,20 +29,20 @@
           class="w-full mb-3 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-300"
         />
 
-        <div class="flex items-center mb-4">
+        <div class="flex items-center mb-4"></div>
 
-        </div>
-
+        <!-- ✅ 버튼을 submit 타입으로 -->
         <button
-          @click="handleLogin"
+          type="submit"
           class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
         >
           로그인
         </button>
-      </div>
+      </form>
     </div>
   </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted } from 'vue'

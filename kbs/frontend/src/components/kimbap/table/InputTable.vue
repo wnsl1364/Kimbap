@@ -207,14 +207,43 @@ const emitDataChange = () => {
     emit('dataChange', internalData.value);
 };
 
-// 필드 업데이트
-const updateField = (rowData, field, value) => {
+// 필드 업데이트 (수정된 버전)
+const updateField = (rowData, field, value, event = null) => {
     // 음수 방지: 숫자 필드이며 0보다 작으면 무조건 0으로 교정
     const columnDef = props.columns.find((col) => col.field === field);
     if (columnDef?.inputType === 'number') {
         const numValue = Number(value);
         if (!isNaN(numValue) && numValue < 0) {
             value = 0;
+        }
+    }
+
+    // 🔥 출고지시수량(relQty) 검증: 잔여수량(noRelQty)을 넘지 않도록 제한
+    if (field === 'relQty') {
+        const relQty = Number(value) || 0;
+        const noRelQty = Number(rowData.noRelQty) || 0;
+        
+        if (relQty > noRelQty) {
+            // 잔여수량을 넘는 경우 잔여수량으로 제한
+            value = noRelQty;
+            
+            // DOM input 값도 강제로 업데이트 (중요!)
+            if (event && event.target) {
+                nextTick(() => {
+                    event.target.value = noRelQty;
+                });
+            }
+            
+            // 사용자에게 알림 (선택사항)
+            console.warn(`출고지시수량(${relQty})이 잔여수량(${noRelQty})을 넘어 ${noRelQty}로 제한되었습니다.`);
+            
+            // 토스트 알림을 원한다면 이 부분의 주석을 해제하고 부모 컴포넌트에서 처리
+            // emit('showToast', { 
+            //     severity: 'warn', 
+            //     summary: '입력 제한', 
+            //     detail: `출고지시수량이 잔여수량(${noRelQty})을 넘을 수 없습니다.`, 
+            //     life: 3000 
+            // });
         }
     }
 
@@ -293,24 +322,24 @@ const getAlignClass = (align) => {
 // 컬럼별 글자색 클래스 반환 함수
 const getTextColorClass = (column, rowData = null) => {
     if (!column.textColor) return '';
-    
+
     // 문자열인 경우 (고정 색상)
     if (typeof column.textColor === 'string') {
         return column.textColor;
     }
-    
+
     // 함수인 경우 (동적 색상)
     if (typeof column.textColor === 'function') {
         return column.textColor(rowData);
     }
-    
+
     return '';
 };
 
 // 컬럼별 인라인 스타일 생성 함수
 const getTextColorStyle = (column, rowData = null) => {
     if (!column.textColor) return {};
-    
+
     // 문자열인 경우
     if (typeof column.textColor === 'string') {
         // CSS 클래스가 아닌 직접적인 색상값인 경우 (예: #ff0000, rgb(255,0,0))
@@ -319,7 +348,7 @@ const getTextColorStyle = (column, rowData = null) => {
         }
         return {}; // CSS 클래스인 경우 스타일 반환하지 않음
     }
-    
+
     // 함수인 경우
     if (typeof column.textColor === 'function') {
         const result = column.textColor(rowData);
@@ -328,7 +357,7 @@ const getTextColorStyle = (column, rowData = null) => {
         }
         return {};
     }
-    
+
     return {};
 };
 
@@ -339,56 +368,56 @@ defineExpose({
 });
 // 엑셀 다운로드 함수
 const downloadExcel = () => {
-  import('xlsx').then((xlsx) => {
-    let rowsToDownload;
+    import('xlsx').then((xlsx) => {
+        let rowsToDownload;
 
-    if (selectedRows.value.length > 0) {
-      rowsToDownload = selectedRows.value;
-    } else {
-      rowsToDownload = props.data;
-    }
-
-    // 컬럼 헤더 매핑 (props.columns 기준)
-    const headerMap = {};
-    props.columns.forEach(col => {
-      if (col.field) {
-        headerMap[col.field] = col.header || col.field;
-      }
-    });
-
-    // ✅ 날짜 필드 자동 포맷 적용 (yyyy-MM-dd)
-    const converted = rowsToDownload.map(row => {
-      const newRow = {};
-      for (const key in headerMap) {
-        let value = row[key];
-
-        if (value instanceof Date) {
-          value = format(value, 'yyyy-MM-dd');
-        } else if (typeof value === 'string') {
-          const date = new Date(value);
-          if (!isNaN(date.getTime()) && value.length >= 8) {
-            value = format(date, 'yyyy-MM-dd');
-          }
+        if (selectedRows.value.length > 0) {
+            rowsToDownload = selectedRows.value;
+        } else {
+            rowsToDownload = props.data;
         }
 
-        newRow[headerMap[key]] = value ?? '';
-      }
-      return newRow;
+        // 컬럼 헤더 매핑 (props.columns 기준)
+        const headerMap = {};
+        props.columns.forEach(col => {
+            if (col.field) {
+                headerMap[col.field] = col.header || col.field;
+            }
+        });
+
+        // ✅ 날짜 필드 자동 포맷 적용 (yyyy-MM-dd)
+        const converted = rowsToDownload.map(row => {
+            const newRow = {};
+            for (const key in headerMap) {
+                let value = row[key];
+
+                if (value instanceof Date) {
+                    value = format(value, 'yyyy-MM-dd');
+                } else if (typeof value === 'string') {
+                    const date = new Date(value);
+                    if (!isNaN(date.getTime()) && value.length >= 8) {
+                        value = format(date, 'yyyy-MM-dd');
+                    }
+                }
+
+                newRow[headerMap[key]] = value ?? '';
+            }
+            return newRow;
+        });
+
+        // 워크시트 및 파일 생성
+        const worksheet = xlsx.utils.json_to_sheet(converted);
+        const workbook = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+        // 파일명 결정
+        const filename = rowsToDownload.length === 1
+            ? `${rowsToDownload[0][props.dataKey] || 'item'}.xlsx`
+            : `${props.title || 'data'}.xlsx`;
+
+        // 엑셀 파일 다운로드 실행
+        xlsx.writeFile(workbook, filename);
     });
-
-    // 워크시트 및 파일 생성
-    const worksheet = xlsx.utils.json_to_sheet(converted);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-
-    // 파일명 결정
-    const filename = rowsToDownload.length === 1
-      ? `${rowsToDownload[0][props.dataKey] || 'item'}.xlsx`
-      : `${props.title || 'data'}.xlsx`;
-
-    // 엑셀 파일 다운로드 실행
-    xlsx.writeFile(workbook, filename);
-  });
 };
 </script>
 
@@ -405,43 +434,43 @@ const downloadExcel = () => {
                     <!-- 슬롯 버튼들 -->
                     <slot name="top-buttons"></slot>
                     <!-- 기본 버튼들 -->
-                    <Button v-if="buttons.delete?.show" :label="buttons.delete.label" :severity="buttons.delete.severity" @click="$emit('delete')" />
-                    <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity" @click="$emit('reset')" />
-                    <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity" @click="$emit('save')" />
-                    <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity" @click="$emit('load')" />
-                    <Button v-if="buttons.refund?.show" :label="buttons.refund.label" :severity="buttons.refund.severity" @click="$emit('refund')" />
-                    <Button v-if="buttons.refundReq?.show" :label="buttons.refundReq.label" :severity="buttons.refundReq.severity" @click="$emit('refundReq')" />
-                    <Button v-if="buttons.location?.show" :label="buttons.location.label" :severity="buttons.location.severity" @click="$emit('location')" />
-                    <Button v-if="buttons.excel?.show" icon="pi pi-file-excel" :label="buttons.excel.label || '엑셀 다운로드'" :severity="buttons.excel.severity || 'success'" @click="downloadExcel" />
+                    <Button v-if="buttons.delete?.show" :label="buttons.delete.label"
+                        :severity="buttons.delete.severity" @click="$emit('delete')" />
+                    <Button v-if="buttons.reset?.show" :label="buttons.reset.label" :severity="buttons.reset.severity"
+                        @click="$emit('reset')" />
+                    <Button v-if="buttons.save?.show" :label="buttons.save.label" :severity="buttons.save.severity"
+                        @click="$emit('save')" />
+                    <Button v-if="buttons.load?.show" :label="buttons.load.label" :severity="buttons.load.severity"
+                        @click="$emit('load')" />
+                    <Button v-if="buttons.refund?.show" :label="buttons.refund.label"
+                        :severity="buttons.refund.severity" @click="$emit('refund')" />
+                    <Button v-if="buttons.refundReq?.show" :label="buttons.refundReq.label"
+                        :severity="buttons.refundReq.severity" @click="$emit('refundReq')" />
+                    <Button v-if="buttons.location?.show" :label="buttons.location.label"
+                        :severity="buttons.location.severity" @click="$emit('location')" />
+                    <Button v-if="buttons.excel?.show" icon="pi pi-file-excel" :label="buttons.excel.label || '엑셀 다운로드'"
+                        :severity="buttons.excel.severity || 'success'" @click="downloadExcel" />
 
                     <!-- 행 관리 버튼들 -->
                     <template v-if="enableRowActions">
-                        <Button v-if="enableSelection && selectedRows.length > 0" :label="`${selectedRows.length}개 삭제`" icon="pi pi-trash" severity="danger" @click="deleteSelectedRows" />
+                        <Button v-if="enableSelection && selectedRows.length > 0" :label="`${selectedRows.length}개 삭제`"
+                            icon="pi pi-trash" severity="danger" @click="deleteSelectedRows" />
                         <Button label="행 추가" icon="pi pi-plus" outlined severity="info" @click="addRow" />
                     </template>
                 </div>
             </div>
 
-            <DataTable
-                :value="internalData"
-                :tableStyle="{ minWidth: '50rem', tableLayout: 'fixed' }"
-                showGridlines
-                responsiveLayout="scroll"
-                v-model:selection="selectedRows"
-                :dataKey="props.dataKey"
-                size="large"
-                :selectionMode="enableSelection ? selectionMode : null"
-                scrollable
-                :scrollHeight="scrollHeight"
-                :style="{ border: '1px solid #e5e7eb' }"
-                @rowClick="props.enableRowClick ? handleRowClick : undefined"
-                stripedRows
-            >
+            <DataTable :value="internalData" :tableStyle="{ minWidth: '50rem', tableLayout: 'fixed' }" showGridlines
+                responsiveLayout="scroll" v-model:selection="selectedRows" :dataKey="props.dataKey" size="large"
+                :selectionMode="enableSelection ? selectionMode : null" scrollable :scrollHeight="scrollHeight"
+                :style="{ border: '1px solid #e5e7eb' }" @rowClick="props.enableRowClick ? handleRowClick : undefined"
+                stripedRows>
                 <!-- 선택 체크박스 컬럼 -->
                 <Column v-if="enableSelection" :selectionMode="selectionMode" headerStyle="width: 57px"> </Column>
 
                 <!-- 데이터 컬럼들 -->
-                <Column v-for="column in columns" :key="column.field" :header="column.header" headerClass="text-center" :bodyClass="getAlignClass(column.align)" :style="column.width ? { width: column.width } : {}">
+                <Column v-for="column in columns" :key="column.field" :header="column.header" headerClass="text-center"
+                    :bodyClass="getAlignClass(column.align)" :style="column.width ? { width: column.width } : {}">
                     <template #body="slotProps">
                         <!-- <template v-if="column.type === 'readonly'">
                             <span>
@@ -454,52 +483,48 @@ const downloadExcel = () => {
                         </template> -->
 
                         <template v-if="column.type === 'readonly'">
-                            <span 
-                                :class="getTextColorClass(column, slotProps.data)"
-                                :style="getTextColorStyle(column, slotProps.data)"
-                            >
+                            <span :class="getTextColorClass(column, slotProps.data)"
+                                :style="getTextColorStyle(column, slotProps.data)">
                                 {{
                                     props.dateFields.includes(column.field)
                                         ? formatDate(slotProps.data[column.field])
                                         : column.formatter
-                                          ? column.formatter.length === 1
-                                              ? column.formatter(slotProps.data[column.field]) // 단일 값만 넘김
-                                              : column.formatter(slotProps.data) // row 전체를 넘김
-                                          : slotProps.data[column.field]
+                                            ? column.formatter.length === 1
+                                                ? column.formatter(slotProps.data[column.field]) // 단일 값만 넘김
+                                                : column.formatter(slotProps.data) // row 전체를 넘김
+                                            : slotProps.data[column.field]
                                 }}
                             </span>
                         </template>
 
+
+
+                        <!-- 기존 input 템플릿 -->
                         <template v-else-if="column.type === 'input'">
                             <div class="flex items-center border rounded h-10 w-full overflow-hidden">
-                                <input
-                                    :value="slotProps.data[column.field]"
-                                    @input="updateField(slotProps.data, column.field, $event.target.value)"
-                                    :type="column.inputType || 'text'"
-                                    :readonly="column.readonly"
-                                    :disabled="column.disabled"
-                                    :placeholder="column.placeholder"
+                                <input :value="slotProps.data[column.field]"
+                                    @input="updateField(slotProps.data, column.field, $event.target.value, $event)"
+                                    :type="column.inputType || 'text'" :readonly="column.readonly"
+                                    :disabled="column.disabled" :placeholder="column.placeholder"
                                     :min="column.inputType === 'number' ? 0 : undefined"
+                                    :max="column.field === 'relQty' ? slotProps.data.noRelQty : undefined"
                                     :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align), getTextColorClass(column, slotProps.data)]"
-                                    :style="getTextColorStyle(column, slotProps.data)"
-                                />
+                                    :style="getTextColorStyle(column, slotProps.data)" />
                             </div>
                         </template>
 
                         <!-- inputsearch 타입에서 모달 연결 -->
                         <template v-else-if="column.type === 'inputsearch'">
                             <div class="flex items-center border rounded h-10 w-full overflow-hidden">
-                                <input
-                                    :value="slotProps.data[column.field]"
+                                <input :value="slotProps.data[column.field]"
                                     @input="updateField(slotProps.data, column.field, $event.target.value)"
-                                    :type="column.inputType || 'text'"
-                                    :readonly="column.readonly"
-                                    :disabled="column.disabled"
-                                    :placeholder="column.placeholder"
+                                    :type="column.inputType || 'text'" :readonly="column.readonly"
+                                    :disabled="column.disabled" :placeholder="column.placeholder"
                                     :class="['border-none outline-none flex-1 bg-transparent px-3 py-2 min-w-0', getAlignClass(column.align), getTextColorClass(column, slotProps.data)]"
-                                    :style="getTextColorStyle(column, slotProps.data)"
-                                />
-                                <div v-if="column.suffixIcon" class="flex items-center justify-center px-2 cursor-pointer text-gray-400 hover:text-blue-500 flex-shrink-0" @click.stop="openModal(slotProps.data, column.field)">
+                                    :style="getTextColorStyle(column, slotProps.data)" />
+                                <div v-if="column.suffixIcon"
+                                    class="flex items-center justify-center px-2 cursor-pointer text-gray-400 hover:text-blue-500 flex-shrink-0"
+                                    @click.stop="openModal(slotProps.data, column.field)">
                                     <i :class="[column.suffixIcon, 'text-xs']" />
                                 </div>
                             </div>
@@ -519,20 +544,15 @@ const downloadExcel = () => {
                         </template> -->
                         <template v-else-if="column.type === 'select'">
                             <div class="flex items-center border rounded w-full h-10">
-                                <select
-                                    v-model="slotProps.data[column.field]"
-                                    @change="() => { 
-                                        console.log('[InputTable] select 변경:', column.field, '→', slotProps.data[column.field], '행 데이터:', slotProps.data);
-                                        emitDataChange();
-                                    }" 
+                                <select v-model="slotProps.data[column.field]" @change="() => {
+                                    console.log('[InputTable] select 변경:', column.field, '→', slotProps.data[column.field], '행 데이터:', slotProps.data);
+                                    emitDataChange();
+                                }"
                                     :class="['flex-1 bg-transparent px-3 py-2 outline-none', getTextColorClass(column, slotProps.data)]"
-                                    :style="getTextColorStyle(column, slotProps.data)"
-                                >
-                                    <option 
-                                        v-for="opt in (typeof column.options === 'function' ? column.options(slotProps.data) : column.options)" 
-                                        :key="opt.value" 
-                                        :value="opt.value"
-                                    >
+                                    :style="getTextColorStyle(column, slotProps.data)">
+                                    <option
+                                        v-for="opt in (typeof column.options === 'function' ? column.options(slotProps.data) : column.options)"
+                                        :key="opt.value" :value="opt.value">
                                         {{ opt.label }}
                                     </option>
                                 </select>
@@ -541,21 +561,25 @@ const downloadExcel = () => {
 
 
                         <template v-else-if="column.type === 'calendar'">
-                            <Calendar :modelValue="slotProps.data[column.field]" @update:modelValue="updateField(slotProps.data, column.field, $event)" dateFormat="yy-mm-dd" showIcon class="w-full" :minDate="column.minDate || null"
-                            :maxDate="column.maxDate || null"/>
+                            <Calendar :modelValue="slotProps.data[column.field]"
+                                @update:modelValue="updateField(slotProps.data, column.field, $event)"
+                                dateFormat="yy-mm-dd" showIcon class="w-full" :minDate="column.minDate || null"
+                                :maxDate="column.maxDate || null" />
                         </template>
 
                         <template v-else-if="column.type === 'clickable'">
-                            <span 
-                                :class="['text-blue-600 underline cursor-pointer', getTextColorClass(column, slotProps.data)]" 
+                            <span
+                                :class="['text-blue-600 underline cursor-pointer', getTextColorClass(column, slotProps.data)]"
                                 :style="getTextColorStyle(column, slotProps.data)"
-                                @click.stop="emit('rowClick', slotProps.data)"
-                            >
-                                {{ props.dateFields.includes(column.field) ? formatDate(slotProps.data[column.field]) : slotProps.data[column.field] }}
+                                @click.stop="emit('rowClick', slotProps.data)">
+                                {{ props.dateFields.includes(column.field) ? formatDate(slotProps.data[column.field]) :
+                                slotProps.data[column.field] }}
                             </span>
                         </template>
                         <template v-else-if="column.type === 'button'">
-                            <Button :label="column.buttonLabel || '버튼'" :severity="column.buttonSeverity || 'info'" size="small" @click.stop="$emit(column.buttonEvent || 'buttonClick', slotProps.data, column)" />
+                            <Button :label="column.buttonLabel || '버튼'" :severity="column.buttonSeverity || 'info'"
+                                size="small"
+                                @click.stop="$emit(column.buttonEvent || 'buttonClick', slotProps.data, column)" />
                         </template>
                     </template>
                 </Column>
@@ -563,20 +587,15 @@ const downloadExcel = () => {
         </div>
 
         <!-- 모달 컴포넌트 - props에서 데이터 가져오기 -->
-        <SingleSelectModal
-            v-model:visible="modalVisible"
-            :key="`${currentField}-${Date.now()}`"
-            :modelValue="null"
-            @update:modelValue="handleModalSelect"
-            @update:visible="handleModalClose"
+        <SingleSelectModal v-model:visible="modalVisible" :key="`${currentField}-${Date.now()}`" :modelValue="null"
+            @update:modelValue="handleModalSelect" @update:visible="handleModalClose"
             :items="props.modalDataSets[currentField]?.items || []"
             :columns="props.modalDataSets[currentField]?.columns || []"
-            :itemKey="props.modalDataSets[currentField]?.itemKey || props.dataKey"
-        />
+            :itemKey="props.modalDataSets[currentField]?.itemKey || props.dataKey" />
     </div>
 </template>
 <style>
- .layout-main {
+.layout-main {
     padding: 0;
 }
 </style>

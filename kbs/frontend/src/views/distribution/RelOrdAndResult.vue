@@ -59,7 +59,7 @@ const columns = computed(() => [
   { field: 'prodName', header: '제품명', type: 'input', readonly: true },
   { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
   { field: 'noRelQty', header: '잔여수량(box)', type: 'input', inputType: 'number', align: 'right', readonly: true },
-  { field: 'relQty', header: '출고지시수량(box)', type: 'input', inputType: 'number', align: 'right', },
+  { field: 'relQty', header: '출고지시수량(box)', type: 'input', inputType: 'number', align: 'right', min: 0},
   {
     field: 'wcode', // 창고코드
     header: '창고',
@@ -74,11 +74,12 @@ const columns = computed(() => [
 const warehouseOptions = computed(() => {
   const seen = new Set()
   return (warehouseList.value || []).reduce((acc, w) => {
-    const key = `${w.wcode}|${w.wareVerCd}`   // ★ 합성키
+    const key = `${w.wcode}|${w.wareVerCd}`
     if (!seen.has(key)) {
       seen.add(key)
       acc.push({
-        key,
+        key,                           // 기존 유지
+        value: key,                    // ✅ 기본 값 키 추가 (중요)
         label: `${w.wareName} (${w.wcode})`,
         wcode: w.wcode,
         wareVerCd: w.wareVerCd,
@@ -179,28 +180,43 @@ const handleSave = async () => {
     };
 
     // detailList
-    const detailList = (products.value || [])
-      .filter(p => Number(p.relQty) > 0)
-      .map(p => {
-        const [wcode, wareVerCd] = String(p.wcode || '').split('|')  // ★ 분해
-        return {
-          wcode,
-          wareVerCd,
-          ordDCd: p.ordDCd,
-          relQty: Number(p.relQty || 0),
-          newRelOrdCd: p.newRelOrdCd
-        }
-      })
+  const detailList = (products.value || [])
+  .filter(p => Number(p.relQty) > 0)
+  .map(p => {
+    let wcode = ''
+    let wareVerCd = ''
+    const raw = p.wcode
 
-    if (detailList.length === 0) {
-      toast.add({ 
-        severity: 'warn', 
-        summary: '입력 확인', 
-        detail: '출고지시수량이 입력된 제품이 없습니다.', 
-        life: 3000 
-      });
-      return;
+    if (typeof raw === 'string') {
+      ;[wcode, wareVerCd] = raw.split('|')
+    } else if (raw && typeof raw === 'object') {
+      if (raw.key) {
+        ;[wcode, wareVerCd] = String(raw.key).split('|')
+      } else {
+        wcode = raw.wcode || ''
+        wareVerCd = raw.wareVerCd || ''
+      }
     }
+
+    return {
+      wcode,
+      wareVerCd,
+      ordDCd: p.ordDCd,
+      relQty: Number(p.relQty || 0),
+      newRelOrdCd: p.newRelOrdCd
+    }
+  })
+
+  const invalid = detailList.filter(d => !d.wcode || !d.wareVerCd)
+if (invalid.length) {
+  toast.add({
+    severity: 'warn',
+    summary: '입력 확인',
+    detail: '창고를 선택하지 않은 제품이 있습니다.',
+    life: 3000
+  })
+  return
+}
 
     const payload = {
       master,
