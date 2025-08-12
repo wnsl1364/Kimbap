@@ -415,27 +415,11 @@ const handleOutboundComplete = async () => {
         // 기타 필수 정보들
         cpCd: material._originalData?.cpCd,
         unit: material._originalData?.unit,
-        unitPrice: material._originalData?.unitPrice,
-
-        // ✅ 입고 관련 필수 필드들
-        inboStatus: 'c3',                          // 입고대기 상태
-        inboDt: new Date(),                        // 입고일시
-        supplierLotNo: `SUP-${Date.now()}`,        // 공급업체 LOT 번호 (임시)
-        // lotNo는 자바에서 자동생성하게 null로 보냄 (generateMaterialLotNumber 함수 사용)
-        lotNo: null,                               // 자바에서 자동생성
-
-        // ✅ 공장/창고 정보 (기본값)
-        fcode: 'FAC001',                          // 공장코드
-        facVerCd: 'V1',                           // 공장버전코드
-        wcode: 'WH001',                           // 창고코드  
-        wareVerCd: 'V1',                          // 창고버전코드
-
-        // ✅ 날짜 정보
-        deliDt: new Date()                        // 납기일자
+        unitPrice: material._originalData?.unitPrice
       }
     })
 
-    console.log('🔄 발주상세 업데이트 데이터:', purcOrderUpdates)
+    console.log('� 발주상세 업데이트 데이터:', purcOrderUpdates)
     console.log('📥 자재입고 생성 데이터:', mateInboInserts)
 
     // 🚀 실제 API 호출!
@@ -558,40 +542,21 @@ const selectableItemsCount = computed(() => {
 
 <template>
   <div class="material-outbound-container">
-    <!-- � Toast 컴포넌트 추가 -->
+    <!-- Toast 컴포넌트 추가 -->
     <Toast />
 
-    <!-- �🔍 검색 폼 -->
+    <!-- 검색 폼 -->
     <SearchForm :columns="searchColumns" v-model:searchData="searchData" :formButtons="searchFormButtons"
       :gridColumns="3" @search="handleSearch" @reset="handleReset" />
 
-    <!-- 📊 출고 현황 요약 -->
-    <div class="flex justify-between items-center mb-4 p-4 bg-blue-50 rounded-lg">
-      <div class="flex gap-6">
-        <div class="text-center">
-          <div class="text-2xl font-bold text-blue-600">{{ outboundData.length }}</div>
-          <div class="text-sm text-gray-600">총 발주 항목</div>
-        </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-orange-600">{{ selectableItemsCount }}</div>
-          <div class="text-sm text-gray-600">출고 가능 항목</div>
-        </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-green-600">{{ selectedMaterials.length }}</div>
-          <div class="text-sm text-gray-600">선택된 항목</div>
-        </div>
-      </div>
-      <div class="text-sm text-gray-500">
-        마지막 업데이트: {{ new Date().toLocaleString('ko-KR') }}
-      </div>
-    </div>
+  <!-- 출고 현황 요약 바 제거됨 (지표는 테이블 상단으로 이동) -->
 
-    <!-- 📋 출고 목록 테이블 -->
+    <!-- 출고 목록 테이블 -->
     <InputTable :columns="outboundColumns" :data="outboundData" :buttons="materialTableButtons"
-      :enableRowActions="false" :enableSelection="true" selectionMode="multiple" v-model:selection="selectedMaterials"
+      :enableRowActions="false" :enableSelection="true" selectionMode="multiple" v-model:selection="selectedMaterials" :selection="selectedMaterials"
       dataKey="id" :autoCalculation="{
         enabled: true,
-        quantityField: 'outboundQty',     // ✅ 새로운 출고수량 필드
+        quantityField: 'outboundQty',     // 새로운 출고수량 필드
         totalField: 'leftQty',
         calculation: (item) => {
           const currentLeft = (item.purcQty || 0) - (item.currQty || 0)  // 현재 남은수량
@@ -599,16 +564,29 @@ const selectableItemsCount = computed(() => {
           return currentLeft - outbound                                  // 출고 후 남은수량
         }
       }">
-      <!-- 🎯 상단 버튼들 -->
+      <!-- 상단 버튼들 + 지표 -->
       <template #top-buttons>
+        <div class="flex items-center gap-6 mr-6 pr-6 border-r border-gray-200">
+          <div class="text-center">
+            <div class="text-lg font-bold text-blue-600 leading-tight">{{ outboundData.length }}</div>
+            <div class="text-xs text-gray-600">총 발주 항목</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-bold text-orange-600 leading-tight">{{ selectableItemsCount }}</div>
+            <div class="text-xs text-gray-600">출고 가능 항목</div>
+          </div>
+          <div class="text-center">
+            <div class="text-lg font-bold text-green-600 leading-tight">{{ selectedMaterials.length }}</div>
+            <div class="text-xs text-gray-600">선택된 항목</div>
+          </div>
+        </div>
         <div class="flex gap-2">
-          <Button label="출고완료 처리" outlined severity="success" icon="pi pi-check-circle" @click="handleOutboundComplete"
-            :disabled="selectedMaterials.length === 0" />
+          <Button label="출고완료 처리" outlined severity="success" icon="pi pi-check-circle" @click="handleOutboundComplete" :disabled="selectedMaterials.length === 0" />
           <Button label="새로고침" outlined severity="info" icon="pi pi-refresh" @click="fetchOutboundData" />
         </div>
       </template>
 
-      <!-- 🎨 상태별 스타일링 -->
+      <!-- 상태별 스타일링 -->
       <template #status="{ data }">
         <span :class="{
           'bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs': data.status === '요청',
@@ -623,7 +601,7 @@ const selectableItemsCount = computed(() => {
         </span>
       </template>
 
-      <!-- 🎯 수량 포맷팅 -->
+      <!-- 수량 포맷팅 -->
       <template #purcQty="{ data }">
         <span class="font-mono text-right">{{ data.purcQty?.toLocaleString() }}</span>
       </template>
@@ -639,19 +617,6 @@ const selectableItemsCount = computed(() => {
         </span>
       </template>
     </InputTable>
-
-    <!-- 💡 도움말 섹션 -->
-    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-      <h3 class="text-lg font-semibold mb-2 text-gray-700">💡 자재출고 처리 안내</h3>
-      <ul class="text-sm text-gray-600 space-y-1">
-        <li>• <strong>승인(c2)</strong> 상태의 발주 항목만 출고 처리 가능합니다</li>
-        <li>• 출고 처리 시 상태가 <strong>입고대기(c3)</strong>로 변경됩니다</li>
-        <li>• <strong>출고수량</strong>을 입력하면 남은수량이 자동으로 계산됩니다</li>
-        <li>• <strong>납기일</strong>을 클릭하여 실제 납기일을 입력할 수 있습니다</li>
-        <li>• <strong>비고</strong>란에 특이사항을 입력할 수 있습니다</li>
-        <li>• 여러 항목을 선택하여 일괄 출고완료 처리할 수 있습니다</li>
-      </ul>
-    </div>
   </div>
 </template>
 
@@ -660,7 +625,7 @@ const selectableItemsCount = computed(() => {
   padding: 1rem;
 }
 
-/* 🎨 테이블 스타일 개선 */
+/* 테이블 스타일 개선 */
 :deep(.p-datatable .p-datatable-tbody > tr:hover) {
   background-color: #f8fafc;
 }
@@ -670,13 +635,13 @@ const selectableItemsCount = computed(() => {
   font-weight: 600;
 }
 
-/* 🎯 선택된 행 스타일 */
+/* 선택된 행 스타일 */
 :deep(.p-datatable .p-datatable-tbody > tr.p-highlight) {
   background-color: #dbeafe !important;
   color: #1e40af;
 }
 
-/* 📱 반응형 스타일 */
+/* 반응형 스타일 */
 @media (max-width: 768px) {
   .material-outbound-container {
     padding: 0.5rem;
