@@ -214,66 +214,39 @@ const handleReset = async () => {
 };
 </script>
 <template>
-  <div class="grid">
-    <div class="col-12">
-      <div class="card">
-        <h5>생산요청 조회</h5>
-
-        <!-- 현재 사용자 정보 -->
-        <div class="mb-4 p-3 border-round surface-100">
-          <div class="flex align-items-center gap-3">
-            <i class="pi pi-user text-primary"></i>
-            <div>
-              <strong>
-                {{ 
-                  user?.memType === 'p1' 
-                    ? (user?.empName || '테스트 사용자')
-                    : user?.memType === 'p3'
-                    ? (user?.cpName || '테스트 거래처')
-                    : '테스트 사용자'
-                }}
-              </strong>
-              <span class="ml-2 text-500">
-                ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
-              </span>
-            </div>
-          </div>
-        </div>  
-        <div>
-          <!-- 검색 모달 -->
-          <SearchForm
-            :columns="searchColumns"
-            @search="handleSearch"
-            @reset="handleReset"
-          />
-          <p></p>
-          <!-- 검색 결과 테이블 표시 -->
-          <StandartTable
-            :title="'생산요청 목록'"
-            :data="condProdRequestList"
-            :columns="prodRequestColumns"
-            dataKey="produReqCd"
-            :height="'60vh'"
-            scrollHeight="50vh"
-            :selectable="false"
-            :showHistoryButton="false"
-            :hoverable="true"
-            :showRowCount="true"
-            @row-click="row => openDetailModal(row.produReqCd)"
-            :showExcelDownload="true"
-            :exportColumns="exportColumns"
-            :exportData="mergedExportData" 
-          />
-          <!-- 상세정보 모달 -->
-          <ProdRequestDetailModal
-            :visible="detailModalVisible"
-            :title="`생산요청 상세 : ${selectedReqCd}`"
-            :detailList="detailList"
-            :columns="detailColumns"
-            @update:visible="detailModalVisible = $event"
-          />
-        </div>
-      </div>
-    </div>
-  </div>  
+  <div>
+    <!-- 검색 모달 -->
+    <SearchForm
+      :title="'생산요청 목록'"
+      :columns="searchColumns"
+      @search="handleSearch"
+      @reset="handleReset"
+    />
+    <p></p>
+    <!-- 검색 결과 테이블 표시 -->
+    <StandartTable
+      :title="'생산요청 제품 목록'"
+      :data="condProdRequestList"
+      :columns="prodRequestColumns"
+      dataKey="produReqCd"
+      :height="'60vh'"
+      scrollHeight="50vh"
+      :selectable="false"
+      :showHistoryButton="false"
+      :hoverable="true"
+      :showRowCount="true"
+      @row-click="row => openDetailModal(row.produReqCd)"
+      :showExcelDownload="true"
+      :exportColumns="exportColumns"
+      :exportData="mergedExportData" 
+    />
+    <!-- 상세정보 모달 -->
+    <ProdRequestDetailModal
+      :visible="detailModalVisible"
+      :title="`생산요청 상세 : ${selectedReqCd}`"
+      :detailList="detailList"
+      :columns="detailColumns"
+      @update:visible="detailModalVisible = $event"
+    />
+  </div>
 </template>

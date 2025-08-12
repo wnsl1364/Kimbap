@@ -451,6 +451,7 @@ watch(selectedItems, (newSelection) => {
         <!-- 검색 폼 -->
         <div class="space-y-4 mb-2">
             <SearchForm 
+                title="제품 적재 대기 조회"
                 :columns="searchColumns"
                 @search="handleSearch"
                 @reset="handleReset"
