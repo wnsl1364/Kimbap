@@ -24,6 +24,16 @@ onMounted(async () => {
   }
 });
 
+const inOutCounts = computed(() => {
+  const arr = Array.isArray(rawData.value) ? rawData.value : [];
+  return arr.reduce((acc, cur) => {
+    acc.total++;
+    if (cur.type === '입고') acc.in += 1;
+    if (cur.type === '출고') acc.out += 1;
+    return acc;
+  }, { total: 0, in: 0, out: 0 });
+});
+
 const materialTableButtons = ref({
   add: { show: false },
   edit: { show: false },
@@ -171,7 +181,7 @@ const inputTableColumns = computed(() => {
 
         <!-- 매핑된 InputTable -->
         <InputTable :columns="inputTableColumns" :data="cleanConvertedData" :scroll-height="'50vh'" :height="'60vh'"
-          :title="`입출고 리스트`" :buttons="materialTableButtons" :enableRowActions="false" :enableSelection="false" />
+          :title="`완제품 입출고 (총 ${inOutCounts.total}건 / 입고 ${inOutCounts.in}건 · 출고 ${inOutCounts.out}건)`" :buttons="materialTableButtons" :enableRowActions="false" :enableSelection="false" />
       </div>
     </div>
   </div>

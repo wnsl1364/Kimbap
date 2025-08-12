@@ -46,16 +46,18 @@
 
   <!-- 금일 요청주문 목록 -->
   <select id="getOrderData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
-    SELECT 
+  SELECT
       a.ord_dt,
       b.cp_name,
       SUM(c.ord_qty) AS ordTotalQty,
       c.deli_avail_dt,
       a.ord_status_customer AS ordDStatus
-    FROM order_list a 
-      JOIN company b ON a.cp_cd = b.cp_cd
-      JOIN order_d c ON a.ord_cd = c.ord_cd
-    GROUP BY 
+  FROM order_list a
+  JOIN company b ON a.cp_cd = b.cp_cd
+  JOIN order_d  c ON a.ord_cd = c.ord_cd
+  WHERE a.ord_dt &gt;= TRUNC(SYSDATE)
+    AND a.ord_dt &lt;  TRUNC(SYSDATE) + 1
+  GROUP BY
       a.ord_dt, b.cp_name, c.deli_avail_dt, a.ord_status_customer
   </select>
 

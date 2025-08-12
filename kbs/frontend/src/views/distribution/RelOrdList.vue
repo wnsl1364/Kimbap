@@ -217,7 +217,7 @@ const handleRowclicked = (row) => {
 
         <!-- 매핑된 InputTable -->
         <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relMasCd" :scroll-height="'50vh'"
-          :height="'60vh'" :title="`출고지시 리스트 (총 ${cleanConvertedData.length}건)`" :buttons="materialTableButtons"
+          :height="'60vh'" :title="`출고지시서 (총 ${cleanConvertedData.length}건)`" :buttons="materialTableButtons"
           :enableRowActions="false" :enableSelection="false" @rowClick="handleRowclicked" />
       </div>
     </div>

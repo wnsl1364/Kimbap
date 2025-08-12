@@ -167,6 +167,7 @@ const model = ref([
                 {
                     label: '자재 출고', // 공급업체만
                     to: '/material/materialOutbound',
+                    teams: [''],
                     roles: ['p3'],
                 },
                 {
