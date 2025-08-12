@@ -423,74 +423,46 @@ watch(selectedItems, (newSelection) => {
 </script>
 
 <template>
-<div class="grid">
-    <div class="col-12">
-        <div class="card">
-        <h5>제품 적재</h5>
-
-        <!-- 현재 사용자 정보 -->
-        <div class="mb-4 p-3 border-round surface-100">
-            <div class="flex align-items-center gap-3">
-                <i class="pi pi-user text-primary"></i>
-                <div>
-                    <strong>
-                        {{ 
-                            memberStore.user?.memType === 'p1' 
-                            ? (memberStore.user?.empName || '테스트 사용자')
-                            : memberStore.user?.memType === 'p3'
-                            ? (memberStore.user?.cpName || '테스트 거래처')
-                            : '테스트 사용자'
-                        }}
-                    </strong>
-                    <span class="ml-2 text-500">
-                        ({{ actualUserType === 'internal' ? '내부직원' : '공급업체직원' }})
-                    </span>
-                </div>
-            </div>
-        </div>
-        <!-- 검색 폼 -->
-        <div class="space-y-4 mb-2">
-            <SearchForm 
-                title="제품 적재 대기 조회"
-                :columns="searchColumns"
-                @search="handleSearch"
-                @reset="handleReset"
-                :gridColumns="3"
-            />
-        </div>
-        <p></p>
-        <!-- 제품 적재 대기 목록 테이블 -->
-        <div>
-            <InputTable 
-                :data="convertedProdLoadingList"
-                :columns="tableColumns"
-                :title="`제품 적재 대기 목록 (총 ${filteredProdLoadingList.length}건)`"
-                v-model:selection="selectedItems"
-                :dataKey="'prodInboCd'"
-                :selectionMode="'multiple'"
-                :enableSelection="true"
-                :enableRowActions="false"
-                :scrollHeight="'500px'"
-                :showRowCount="true"
-                :dateFields="dateFields"
-                :buttons="formButtons"
-                @dataChange="handleDataChange"
-                @rowClick="handleRowClick"
-                @locationSelect="handleLocationSelect"
-                @save="handleProcessLoading"
-            />
-        </div>
-
-            <!-- 🔥 창고 구역 선택 모달 (신규) -->
-            <WarehouseAreaSelectModal
-                v-model:visible="warehouseAreaModalVisible"
-                :selectedProduct="currentSelectedProduct"
-                :loadingQuantity="currentSelectedProduct?.qty || 0"
-                @confirm="handleWarehouseAreaConfirm"
-            />
-        </div>
+    <!-- 검색 폼 -->
+    <div class="space-y-4 mb-2">
+        <SearchForm 
+            title="제품 적재 대기 조회"
+            :columns="searchColumns"
+            @search="handleSearch"
+            @reset="handleReset"
+            :gridColumns="3"
+        />
     </div>
-</div>
+    <p></p>
+    <!-- 제품 적재 대기 목록 테이블 -->
+    <div>
+        <InputTable 
+            :data="convertedProdLoadingList"
+            :columns="tableColumns"
+            :title="`제품 적재 대기 목록 (총 ${filteredProdLoadingList.length}건)`"
+            v-model:selection="selectedItems"
+            :dataKey="'prodInboCd'"
+            :selectionMode="'multiple'"
+            :enableSelection="true"
+            :enableRowActions="false"
+            :scrollHeight="'500px'"
+            :showRowCount="true"
+            :dateFields="dateFields"
+            :buttons="formButtons"
+            @dataChange="handleDataChange"
+            @rowClick="handleRowClick"
+            @locationSelect="handleLocationSelect"
+            @save="handleProcessLoading"
+        />
+    </div>
+
+        <!-- 🔥 창고 구역 선택 모달 (신규) -->
+        <WarehouseAreaSelectModal
+            v-model:visible="warehouseAreaModalVisible"
+            :selectedProduct="currentSelectedProduct"
+            :loadingQuantity="currentSelectedProduct?.qty || 0"
+            @confirm="handleWarehouseAreaConfirm"
+        />
 </template>
 
 <style scoped>

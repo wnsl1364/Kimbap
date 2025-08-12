@@ -18,4 +18,6 @@ public interface ProdPlanService {
   void createPurchaseOrderFromMrp(String mrpCd);                  // 실제 발주서 생성
   String runMrpAndCreatePurchaseOrder(String produPlanCd);        // 통합 메소드
 
+  String saveProdPlanWithMrpAndUpdateUser(ProdPlanFullVO fullVO, String empCd);
+
 }

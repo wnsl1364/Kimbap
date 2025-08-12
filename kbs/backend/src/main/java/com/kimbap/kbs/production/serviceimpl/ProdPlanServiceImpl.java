@@ -166,7 +166,7 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             BigDecimal stockQty = mapper.selectTotalStockByMate(mrpDetail.getMcode(), mrpDetail.getMateVerCd());
             BigDecimal lackQty = totalRequiredQty.subtract(stockQty).max(BigDecimal.ZERO);
             
-            System.out.println("🔍 자재: " + mrpDetail.getMcode() + 
+            System.out.println("자재: " + mrpDetail.getMcode() + 
                             ", 총 필요량: " + totalRequiredQty + 
                             ", 현재고: " + stockQty + 
                             ", 부족량: " + lackQty);
@@ -304,17 +304,17 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     private List<MrpDetailVO> simulateMrpGeneration(ProdPlanFullVO fullVO) {
         List<MrpDetailVO> mrpDetails = new ArrayList<>();
         
-        // ✅ 자재별 총 부족량을 합산하기 위한 Map 생성
+        // 자재별 총 부족량을 합산하기 위한 Map 생성
         Map<String, MrpDetailVO> materialRequirementMap = new HashMap<>();
         
-        // 🔄 기존 MRP 로직과 동일한 처리
+        // 기존 MRP 로직과 동일한 처리
         for (ProdPlanDetailVO detail : fullVO.getPlanDetails()) {
             List<BomDetailVO> bomList = mapper.selectBomMaterials(detail.getPcode(), detail.getProdVerCd());
             
             for (BomDetailVO bom : bomList) {
                 BigDecimal requiredQty = bom.getNeedQty().multiply(new BigDecimal(detail.getPlanQty()));
-                
-                // ✅ 자재별로 필요량 합산
+            
+                // 자재별로 필요량 합산
                 String materialKey = bom.getMcode() + "_" + bom.getMateVerCd();
                 
                 if (materialRequirementMap.containsKey(materialKey)) {
@@ -368,10 +368,10 @@ public class ProdPlanServiceImpl implements ProdPlanService {
     private List<PurcOrdDetailVO> simulatePurchaseOrderGeneration(List<MrpDetailVO> mrpDetails, String virtualPurcCd) {
         List<PurcOrdDetailVO> purchaseOrderDetails = new ArrayList<>();
         
-        System.out.println("🔍 MRP 상세 개수: " + mrpDetails.size());
+        System.out.println("MRP 상세 개수: " + mrpDetails.size());
         
         for (MrpDetailVO mrpDetail : mrpDetails) {
-            System.out.println("🔍 처리 중인 자재: " + mrpDetail.getMcode() + " (버전: " + mrpDetail.getMateVerCd() + ")");
+            System.out.println("처리 중인 자재: " + mrpDetail.getMcode() + " (버전: " + mrpDetail.getMateVerCd() + ")");
             
             // 1. 공급업체 조회
             MateSupplierVO bestSupplier = mapper.selectBestSupplierByMaterial(
@@ -380,11 +380,11 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             );
             
             if (bestSupplier == null) {
-                System.out.println("❌ 공급업체 없음: " + mrpDetail.getMcode());
+                System.out.println("공급업체 없음: " + mrpDetail.getMcode());
                 continue;
             }
             
-            System.out.println("✅ 공급업체 발견: " + bestSupplier.getCpName() + " (단가: " + bestSupplier.getUnitPrice() + ")");
+            System.out.println("공급업체 발견: " + bestSupplier.getCpName() + " (단가: " + bestSupplier.getUnitPrice() + ")");
             
             // 2. 자재 기본정보 조회
             MaterVO material = mapper.selectMaterialInfo(
@@ -393,11 +393,11 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             );
             
             if (material == null) {
-                System.out.println("❌ 자재 정보 없음: " + mrpDetail.getMcode());
+                System.out.println("자재 정보 없음: " + mrpDetail.getMcode());
                 continue;
             }
             
-            System.out.println("✅ 자재 정보: " + material.getMateName() + " (MOQ: " + material.getMoqty() + ")");
+            System.out.println("자재 정보: " + material.getMateName() + " (MOQ: " + material.getMoqty() + ")");
             
             // 3. 발주수량 계산
             BigDecimal requiredQty = mrpDetail.getRequiredQty();
@@ -410,7 +410,7 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             LocalDate exDeliDt = LocalDate.now().plusDays(bestSupplier.getLtime());
             BigDecimal totalAmount = purcQty.multiply(bestSupplier.getUnitPrice());
             
-            System.out.println("📊 발주수량 계산: 필요=" + requiredQty + ", MOQ=" + moqty + ", 발주=" + purcQty);
+            System.out.println("발주수량 계산: 필요=" + requiredQty + ", MOQ=" + moqty + ", 발주=" + purcQty);
             
             PurcOrdDetailVO orderDetail = new PurcOrdDetailVO();
             orderDetail.setPurcCd(virtualPurcCd);
@@ -430,11 +430,62 @@ public class ProdPlanServiceImpl implements ProdPlanService {
             orderDetail.setCurrQty(BigDecimal.ZERO);
             
             purchaseOrderDetails.add(orderDetail);
-            System.out.println("✅ 발주서 상세 추가 완료");
+            System.out.println("발주서 상세 추가 완료");
         }
         
-        System.out.println("🎯 최종 발주서 상세 개수: " + purchaseOrderDetails.size());
+        System.out.println("최종 발주서 상세 개수: " + purchaseOrderDetails.size());
         return purchaseOrderDetails;
     }
 
+    // 통합 저장 메소드만 새로 추가
+    public String saveProdPlanWithMrpAndUpdateUser(ProdPlanFullVO fullVO, String empCd) {
+        try {
+            // 1. 기존 방식으로 생산계획 저장
+            saveProdPlan(fullVO);
+            String produPlanCd = fullVO.getPlan().getProduPlanCd();
+            
+            // 2. 기존 방식으로 MRP + 발주서 생성
+            String mrpCd = runMrpAndCreatePurchaseOrder(produPlanCd);
+            
+            // 3. 생성된 데이터들의 등록자 정보를 업데이트
+            if (empCd != null && !empCd.trim().isEmpty() && !"시스템".equals(empCd)) {
+                updateUserInfo(produPlanCd, mrpCd, empCd);
+            }
+            
+            return mrpCd;
+            
+        } catch (Exception e) {
+            System.err.println("통합 저장 및 사용자 정보 업데이트 실패: " + e.getMessage());
+            throw e;
+        }
+    }
+    
+    // 사용자 정보 일괄 업데이트
+    private void updateUserInfo(String produPlanCd, String mrpCd, String empCd) {
+        try {
+            System.out.println("사용자 정보 업데이트 시작 - 등록자: " + empCd);
+            
+            // 생산계획 등록자 업데이트
+            mapper.updateProdPlanRegi(produPlanCd, empCd);
+            System.out.println("생산계획 등록자 업데이트 완료: " + produPlanCd);
+            
+            // MRP 등록자 업데이트
+            mapper.updateMrpRegi(mrpCd, empCd);
+            System.out.println("MRP 등록자 업데이트 완료: " + mrpCd);
+            
+            // 최근 생성된 발주서 찾아서 업데이트 (MRP 생성 직후이므로 가장 최근 것)
+            String purcCd = mapper.getLatestPurchaseOrder();
+            if (purcCd != null) {
+                mapper.updatePurchaseOrderRegi(purcCd, empCd);
+                System.out.println("발주서 등록자 업데이트 완료: " + purcCd);
+            }
+            
+            System.out.println("모든 등록자 정보 업데이트 완료 - " + empCd);
+            
+        } catch (Exception e) {
+            System.err.println("사용자 정보 업데이트 실패: " + e.getMessage());
+            // 업데이트 실패해도 메인 로직에는 영향 없도록 예외를 다시 던지지 않음
+     
+        }
+    }
 }
