@@ -76,10 +76,20 @@ const actualUserType = computed(() => {
   return 'internal';
 });
 
+// 검색 컬럼: 입고 메뉴(from=inbound)에서 온 경우 발주상태 기본값을 '입고 대기(c3)'로 셋팅
 const searchColumns = computed(() => {
-  return actualUserType.value === 'internal' 
-    ? materialStore.internalPurchaseSearchColumns 
+  const base = actualUserType.value === 'internal'
+    ? materialStore.internalPurchaseSearchColumns
     : materialStore.supplierPurchaseSearchColumns;
+
+  // route.query.from === 'inbound' 일 때만 기본값 주입 (SearchForm은 column.default 우선 사용)
+  if (route.query.from === 'inbound') {
+    return base.map(col => col.key === 'purcDStatus'
+      ? { ...col, default: 'c3' } // '입고 대기' value
+      : { ...col });
+  }
+  // 그대로 반환 (참조 유지하지 않도록 map으로 새 배열 생성 -> SearchForm 재초기화 유도)
+  return base.map(col => ({ ...col }));
 });
 
 // InputTable용 컬럼 정의
@@ -407,16 +417,13 @@ onMounted(async () => {
   ]);
   
   await nextTick();
-  loadCleanPurchaseData();
-  
-  // 자재입고 메뉴에서 온 경우 안내 toast 띄우기
+  // 입고 화면에서 넘어온 경우: 기본 필터(입고대기 c3) + 즉시 검색 실행
   if (route.query.from === 'inbound') {
-    toast.add({
-      severity: 'info',
-      summary: '자재 입고 안내',
-      detail: '자재 발주 조회 페이지로 이동합니다. 입고대기 상태의 자재를 선택해주세요.',
-      life: 6000
-    });
+    // 불필요한 전체 로드 대신 바로 상태 필터 검색 실행
+    await onSearch({ purcDStatus: 'c3' });
+  } else {
+    // 일반 진입은 전체 데이터 로드
+    loadCleanPurchaseData();
   }
 });
 </script>

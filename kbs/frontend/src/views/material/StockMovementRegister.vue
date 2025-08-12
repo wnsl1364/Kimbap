@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useStockMovementStore } from '@/stores/stockMovementStore';
@@ -402,6 +402,19 @@ const handleLocationSelectConfirm = (locationData) => {
         };
         
         itemTableData.value.splice(targetRowIndex, 1, updatedItem);
+        // 위치 선택이 확정되면 해당 자재 행을 선택(체크) 상태로 만든다
+        const alreadySelected = selectedItems.value.some(sel => sel.id === updatedItem.id);
+        if (!alreadySelected) {
+          // DOM / DataTable 내부 상태가 갱신된 뒤 selection 반영
+          nextTick(() => {
+            selectedItems.value = [...selectedItems.value, updatedItem];
+          });
+        } else {
+          // 이미 선택된 경우에도 PrimeVue가 참조 변경을 못 잡을 가능성 있으니 강제 재할당
+          nextTick(() => {
+            selectedItems.value = selectedItems.value.map(sel => sel.id === updatedItem.id ? updatedItem : sel);
+          });
+        }
       } else {
         toast.add({
           severity: 'error',
