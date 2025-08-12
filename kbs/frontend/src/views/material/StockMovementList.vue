@@ -361,8 +361,27 @@ watch(selectedMoveRequestInfo, (newValue) => {
 }, { deep: true });
 
 // 승인자 데이터 변경 처리
-const handleApproverDataChange = (newData) => {
-  approverData.value = { ...approverData.value, ...newData };
+// ========== 결합된 상세/승인 테이블 세팅 ==========
+// 이동요청 상세 + 승인자 필드를 하나의 LeftAlignTable 로 표기
+const combinedFields = computed(() => {
+  return [...moveRequestFields.value, ...approverFields.value];
+});
+
+// 결합 데이터 (요청 상세는 읽기 전용, 승인자 관련 필드만 갱신)
+const combinedData = computed(() => ({
+  ...selectedMoveRequestInfo.value,
+  ...approverData.value
+}));
+
+// 결합 테이블 update 이벤트 처리
+const handleCombinedDataChange = (newData) => {
+  if (!newData) return;
+  const { approverName, rejectionReason } = newData;
+  approverData.value = {
+    ...approverData.value,
+    approverName: approverName ?? approverData.value.approverName,
+    rejectionReason: rejectionReason ?? approverData.value.rejectionReason
+  };
 };
 </script>
 
@@ -397,15 +416,32 @@ const handleApproverDataChange = (newData) => {
 
         <!-- 오른쪽: 상세 정보 및 승인 -->
         <div class="space-y-4">
-            <!-- 이동요청 상세 정보 -->
-            <div class="card">
-                <LeftAlignTable
-                    title="이동요청 상세정보"
-                    :data="selectedMoveRequestInfo"
-                    :fields="moveRequestFields"
-                    :buttons="detailFormButtons"
-                    dataKey="moveReqCd"
+            <!-- 이동요청 상세 + 승인 처리 (단일 테이블로 통합) -->
+            <div class="card space-y-6">
+              <LeftAlignTable
+                title="이동요청 상세 / 승인"
+                :data="combinedData"
+                :fields="combinedFields"
+                :buttons="detailFormButtons"
+                dataKey="moveReqCd"
+                @update:data="handleCombinedDataChange"
+              />
+              <div class="flex gap-3 justify-end">
+                <Button
+                  label="승인"
+                  severity="success"
+                  icon="pi pi-check"
+                  :disabled="!canApprove"
+                  @click="handleApprove"
                 />
+                <Button
+                  label="거절"
+                  severity="danger"
+                  icon="pi pi-times"
+                  :disabled="!canReject"
+                  @click="handleReject"
+                />
+              </div>
             </div>
 
             <!-- 요청상세 품목 목록 -->
@@ -420,40 +456,6 @@ const handleApproverDataChange = (newData) => {
                     scrollHeight="300px"
                 />
             </div>
-
-            <!-- 승인자 정보 및 버튼 -->
-            <div class="card">
-                <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-800">승인 처리</h3>
-                    
-                    <!-- 승인자 정보 -->
-                    <LeftAlignTable
-                        :data="approverData"
-                        :fields="approverFields.slice(0, 2)"
-                        :buttons="detailFormButtons"
-                        dataKey="approverName"
-                        @update:data="handleApproverDataChange"
-                    />
-                    
-                    <!-- 승인/거절 버튼 -->
-                    <div class="flex gap-3 justify-end">
-                        <Button
-                            label="승인"
-                            severity="success"
-                            icon="pi pi-check"
-                            :disabled="!canApprove"
-                            @click="handleApprove"
-                        />
-                        <Button
-                            label="거절"
-                            severity="danger"
-                            icon="pi pi-times"
-                            :disabled="!canReject"
-                            @click="handleReject"
-                        />
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -461,91 +463,6 @@ const handleApproverDataChange = (newData) => {
 </template>
 
 <style scoped>
-.card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
-}
 
-.space-y-4 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 1rem;
-}
-
-.space-y-6 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 1.5rem;
-}
-
-.grid {
-    display: grid;
-}
-
-.grid-cols-1 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-}
-
-.gap-6 {
-    gap: 1.5rem;
-}
-
-.gap-3 {
-    gap: 0.75rem;
-}
-
-@media (min-width: 1024px) {
-    .lg\:grid-cols-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-.flex {
-    display: flex;
-}
-
-.justify-end {
-    justify-content: flex-end;
-}
-
-.text-lg {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-}
-
-.font-semibold {
-    font-weight: 600;
-}
-
-.text-gray-800 {
-    color: #1f2937;
-}
-
-.text-gray-700 {
-    color: #374151;
-}
-
-.text-red-500 {
-    color: #ef4444;
-}
-
-.text-sm {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-}
-
-.font-medium {
-    font-weight: 500;
-}
-
-.block {
-    display: block;
-}
-
-.mb-2 {
-    margin-bottom: 0.5rem;
-}
-
-.w-full {
-    width: 100%;
-}
 </style>
 
