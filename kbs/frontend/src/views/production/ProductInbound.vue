@@ -3,7 +3,7 @@ import { ref, onMounted, computed, nextTick, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useProductLoadingStore } from '@/stores/productLoadingStore';
 import { useCommonStore } from '@/stores/commonStore';
-import { useMemberStore } from '@/stores/memberStore'; // 🔥 사용자 정보
+import { useMemberStore } from '@/stores/memberStore'; // 사용자 정보
 import { useToast } from 'primevue/usetoast';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
