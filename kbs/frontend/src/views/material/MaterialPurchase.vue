@@ -385,6 +385,7 @@ const loadExistingOrder = async (purcCd) => {
         mcode: item.mcode,
         mateVerCd: item.mateVerCd,
         cpCd: item.cpCd,
+  std: item.std || '',
         number: item.purcQty,
         unit: getUnitText(item.unit),
         price: item.unitPrice,
@@ -519,7 +520,7 @@ const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
     // 1) mateVerCd가 유효하면 버전 기반 API 우선 시도
     if (selectedMateVerCd && selectedMateVerCd !== 'undefined') {
       try {
-        const response = await getSuppliersByMaterial(selectedMcode, selectedMateVerCd);
+    const response = await getSuppliersByMaterial(selectedMcode, selectedMateVerCd);
         const list = response.data || [];
         if (list.length > 0) {
           return list.map(item => ({
@@ -528,7 +529,9 @@ const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
             repname: item.repname,
             tel: item.cpTel,
             unitPrice: item.unitPrice,
-            ltime: item.ltime
+      ltime: item.ltime,
+      mateVerCd: item.mateVerCd,
+      std: item.std
           }));
         }
         // 결과 0건이면 mcode만으로 재조회
@@ -540,7 +543,7 @@ const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
 
     // 2) 버전정보 없거나 결과가 0이면 mcode-only 조합 API로 대체
     const msResp = await getMaterialsWithSuppliers({ mcode: selectedMcode });
-    const combos = Array.isArray(msResp.data) ? msResp.data : (msResp.data?.data || []);
+  const combos = Array.isArray(msResp.data) ? msResp.data : (msResp.data?.data || []);
     const suppliers = combos
       .filter(it => it.mcode === selectedMcode)
       .map(it => ({
@@ -549,15 +552,16 @@ const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
         repname: it.repname,
         tel: it.cpTel || it.tel,
         unitPrice: it.unitPrice,
-        ltime: it.ltime,
-        mateVerCd: it.mateVerCd
+    ltime: it.ltime,
+    mateVerCd: it.mateVerCd,
+    std: it.std
       }));
 
     return suppliers;
   } catch (error) {
     console.error('❌ 특정 자재의 공급업체 조회 실패(최종):', error);
     // 마지막 fallback: 스토어에 적재된 조합에서 mcode만 필터
-    return materialStore.materialSupplierCombinations
+  return materialStore.materialSupplierCombinations
       .filter(it => it.mcode === selectedMcode)
       .map(it => ({
         cpCd: it.cpCd,
@@ -565,8 +569,9 @@ const loadSuppliersByMaterial = async (selectedMcode, selectedMateVerCd) => {
         repname: it.repname,
         tel: it.cpTel || it.tel,
         unitPrice: it.unitPrice,
-        ltime: it.ltime,
-        mateVerCd: it.mateVerCd
+    ltime: it.ltime,
+    mateVerCd: it.mateVerCd,
+    std: it.std
       }));
   }
 };
@@ -583,6 +588,7 @@ const loadMaterialsBySupplier = async (selectedCpCd) => {
       mateVerCd: item.mateVerCd,
       mateType: item.mateType,
       unit: getUnitText(item.unit),
+  std: item.std,
       unitPrice: item.unitPrice,
       ltime: item.ltime
     }));
@@ -702,6 +708,7 @@ onMounted(async () => {
         cpCd: '',
         number: qty,
         unit: q.unit || '',
+        std: q.std || '',
         price: 0,
         totalPrice: 0,
         date: new Date().toISOString().split('T')[0],
@@ -766,6 +773,7 @@ onMounted(async () => {
               purchaseData.value[0].mateVerCd = chosen.mateVerCd;
             }
             purchaseData.value[0].price = Number(chosen.unitPrice) || 0;
+            if (chosen.std) purchaseData.value[0].std = chosen.std;
             purchaseData.value[0].totalPrice = (Number(purchaseData.value[0].number) || 0) * (Number(chosen.unitPrice) || 0);
           } else {
             toast.add({ severity: 'warn', summary: '공급업체 없음', detail: '이 자재의 공급업체를 찾지 못했습니다. 직접 선택해주세요.', life: 3000 });
@@ -801,6 +809,7 @@ onMounted(async () => {
               item.mateVerCd = chosen.mateVerCd;
             }
             item.price = Number(chosen.unitPrice) || 0;
+            if (chosen.std) item.std = chosen.std;
             item.totalPrice = (Number(item.number) || 0) * (Number(chosen.unitPrice) || 0);
           }
         }

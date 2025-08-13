@@ -1092,9 +1092,12 @@
             c.repname,
             c.tel as cp_tel,
             ms.unit_price,
-            ms.ltime
+            ms.ltime,
+            m.mate_ver_cd,
+            m.std
         FROM mate_supplier ms
         INNER JOIN company c ON ms.cp_cd = c.cp_cd
+        INNER JOIN material m ON ms.mcode = m.mcode AND ms.mate_ver_cd = m.mate_ver_cd
         WHERE ms.mcode = #{mcode} 
         AND ms.mate_ver_cd = #{mateVerCd}
         AND c.is_used = 'f1'
@@ -1109,6 +1112,7 @@
             m.mate_name,
             m.mate_type,
             m.unit,
+            m.std,
             ms.unit_price,
             ms.ltime
         FROM mate_supplier ms
@@ -1283,7 +1287,7 @@
             material_name,
             material_type,
             material_type_text,
-            material_specification,
+            specification,
             factory_code,
             factory_name,
             total_quantity,
