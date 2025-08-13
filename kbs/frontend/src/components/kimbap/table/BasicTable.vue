@@ -16,6 +16,11 @@ const props = defineProps({
         type: String,
         default: ''
     },
+    height: {
+        type: String,
+        default: '55vh'
+    },
+    // 스크롤 높이
     scrollHeight: {
         type: String,
         default: '400px'
@@ -55,7 +60,7 @@ const getAlignClass = (align) => {
 </script>
 
 <template>
-    <div class="border mt-10 p-6 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
+    <div class="border p-4 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
         <h2 class="text-xl font-semibold mb-4">{{ props.title }}</h2>
     <div>
         <DataTable 
