@@ -60,6 +60,7 @@
             f.fac_name,
             pr.note,
             e.emp_name
+        ORDER BY pr.produ_req_cd DESC
     </select>
     <!-- 생산요청상세 조건 검색 -->
     <select id="selectDetailsByProduReqCd"  parameterType="String" resultType="ProdRequestDetailVO">

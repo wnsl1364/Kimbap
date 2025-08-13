@@ -55,6 +55,7 @@
             pp.plan_end_dt,
             f.fac_name,
             pp.note
+        ORDER BY pp.produ_plan_cd DESC
     </select>
     <!-- 생산계획상세 조건 검색 -->
     <select id="selectDetailsByPlanCd"  parameterType="String" resultType="ProdPlanDetailVO">
