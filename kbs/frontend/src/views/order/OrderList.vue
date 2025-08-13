@@ -305,7 +305,8 @@ const handleRowClick = (rowData) => {
     router.push({ path: '/order/orderRegister', query: { ordCd } })
   } else if (['p1', 'p4', 'p5'].includes(memType)) {
     // 사원/관리자/물류는 주문검토 페이지로
-    router.push({ path: '/order/orderReview', query: { ordCd } })
+    const approved = rowData.ordStatusInternal === 'a2' ? '1' : '0'
+    router.push({ path: '/order/orderReview', query: { ordCd, approved } })
   } else {
     console.warn('지원되지 않는 사용자 유형입니다:', memType)
   }

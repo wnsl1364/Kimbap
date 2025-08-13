@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed} from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch} from 'vue'
 import { getOrderList } from '@/api/order'
 import axios from 'axios'
 import LeftAlignTable from '@/components/kimbap/table/LeftAlignTable.vue'
@@ -17,6 +17,7 @@ const toast = useToast();
 // 라우터 설정
 const route = useRoute()
 const ordCd = route.query.ordCd
+const approvedFromQuery = route.query.approved === '1'
 
 // 스토어 인스턴스
 const formStore = useOrderFormStore()
@@ -28,6 +29,9 @@ const { products } = storeToRefs(productStore)
 
 // 거절 사유
 const rejectReason = ref('')
+
+// 승인 여부 상태
+const isApproved = ref(approvedFromQuery)
 
 // form 필드
 const formFields = [
@@ -41,7 +45,6 @@ const formFields = [
   { label: '미수금', field: 'unsettledAmount', type: 'text', readonly: true, formatter: val => (val === null || val === undefined || val === '') ? '' : Number(val).toLocaleString()}
 ]
 
-// 제품 테이블
 // 제품 테이블
 const columns = computed(() => {
   const deliReqDate = formData.value?.deliReqDt
@@ -59,18 +62,19 @@ const columns = computed(() => {
       header: '납기가능일자',
       type: 'calendar',
       minDate: deliReqDate ? subDays(deliReqDate, 7) : null,
-      maxDate: deliReqDate ? addDays(deliReqDate, 10) : null
+      maxDate: deliReqDate ? addDays(deliReqDate, 10) : null,
+      disabled: isApproved.value
     }
   ];
 });
 
 
 // 버튼 설정
-const infoFormButtons = ref({
-  reset: { show: true, label: '승인', severity: 'info' },
-  load: { show: true, label: '주문정보 불러오기', severity: 'success' },
-  delete: { show: true, label: '거절', severity: 'danger' }
-});
+const infoFormButtons = computed(() => ({
+  reset: { show: !isApproved.value, label: '승인', severity: 'info' },
+  load:  { show: !isApproved.value, label: '주문정보 불러오기', severity: 'success' },
+  delete:{ show: !isApproved.value, label: '거절', severity: 'danger' }
+}))
 
 // 제품 추가 영역 버튼 설정
 const purchaseFormButtons = ref({
@@ -124,6 +128,8 @@ const handleLoadOrder = async (selectedRow) => {
     
     const res = await axios.get(`/api/order/${ordCd}`)
     const order = res.data.data
+
+    isApproved.value = order.ordStatusInternal === 'a2'
 
     // 기본정보 세팅
     formStore.setFormData({
