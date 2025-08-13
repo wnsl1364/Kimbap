@@ -63,8 +63,18 @@ const columns = [
   { field: 'pcode', header: '제품코드', type: 'input', readonly: true },
   { field: 'prodName', header: '제품명', type: 'inputsearch', suffixIcon: 'pi pi-search', suffixEvent: 'openQtyModal', },
   { field: 'ordQty', header: '주문수량(box)', type: 'input', inputType: 'number', align: 'right', min: 1, },
-  { field: 'unitPrice', header: '단가(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString()},
-  { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true, formatter: val => Number(val).toLocaleString() }
+  { field: 'unitPrice', header: '단가(원)', type: 'readonly', align: 'right', readonly: true,
+    formatter: (val) => {
+      const n = Number(val);
+      return Number.isFinite(n) ? n.toLocaleString() : '0';
+    }
+  },
+  { field: 'totalAmount', header: '총 금액(원)', type: 'readonly', align: 'right', readonly: true,
+    formatter: (val) => {
+      const n = Number(val);
+      return Number.isFinite(n) ? n.toLocaleString() : '0';
+    }
+  }
 ]
 
 // 주문 상태 코드 정의
@@ -185,8 +195,8 @@ const handleSave = async () => {
         alert(`${i + 1}번 제품의 정보를 선택해주세요.`)
         return
       }
-      if (!item.ordQty || Number(item.ordQty) <= 0) {
-        alert(`${i + 1}번 제품의 수량을 1 이상 입력해주세요.`)
+      if (!item.ordQty || Number(item.ordQty) < 10) {
+        alert(`${i + 1}번 제품의 수량을 최소 10box 이상 입력해주세요.`)
         return
       }
     }
@@ -268,7 +278,7 @@ const handleDelete = async () => {
   } catch (err) {
     console.error('삭제 오류:', err)
     toast.add({ 
-        severity: 'inwarnfo', 
+        severity: 'warn', 
         summary: '주문 삭제 실패', 
         detail: '주문 삭제 중 오류가 발생했습니다.', 
         life: 3000 
