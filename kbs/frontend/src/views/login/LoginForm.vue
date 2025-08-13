@@ -99,7 +99,7 @@ async function handleLogin() {
     }
   } catch (err) {
     console.error('로그인 오류:', err);
-    toast.add({ severity: 'error', summary: '로그인 실패', detail: '사원번호와 비밀번호를 확인해주세요.', life: 3000 });
+    toast.add({ severity: 'error', summary: '로그인 실패', detail: 'ID와 비밀번호를 확인해주세요.', life: 3000 });
   }
 }
 </script>
