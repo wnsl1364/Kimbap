@@ -1,0 +1,16 @@
+services:
+  backend:
+    #build: ./backend
+    image: fghty8856/backend:latest
+    container_name: backend
+    ports:
+      - "8081:8090"
+
+  frontend:
+    #build: ./frontapp
+    image: fghty8856/frontend:latest
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
