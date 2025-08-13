@@ -98,7 +98,7 @@ const searchColumns = ref([
     options: [
       { label: '전체', value: '전체' },
       { label: '대기', value: 'm1' }, // 🔥 원본 코드값 사용
-      { label: '부분출고', value: 'm3' },
+      { label: '부분', value: 'm3' },
       { label: '완료', value: 'm2' },
       { label: '거절', value: 'm4' } // 🔥 거절 옵션 추가
     ]
