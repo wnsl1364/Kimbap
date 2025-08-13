@@ -46,9 +46,9 @@ const approverData = ref({});
 
 // 상세정보 버튼 설정
 const detailFormButtons = computed(() => ({
-  save: { show: false },
+  save: { show: true, label: '승인', severity: 'success' },
   reset: { show: false },
-  delete: { show: false },
+  delete: { show: true, label: '거절', severity: 'danger' },
   load: { show: false }
 }));
 
@@ -390,7 +390,7 @@ const handleCombinedDataChange = (newData) => {
         <!-- 왼쪽: 검색 및 목록 -->
         <div class="space-y-4">
             <!-- 검색 폼 -->
-            <div class="space-y-4 mb-2">
+            <div class="space-y-4 mb-10">
                 <SearchForm 
                     :columns="searchColumns"
                     @search="handleSearch"
@@ -408,7 +408,8 @@ const handleCombinedDataChange = (newData) => {
                     :selection="selectedMoveRequestItem ? [selectedMoveRequestItem] : []"
                     selectionMode="single"
                     dataKey="moveReqCd"
-                    scrollHeight="500px"
+                    scrollHeight="350px"
+                    height="450px"
                     @update:selection="handleRowSelection"
                 />
             </div>
@@ -417,32 +418,16 @@ const handleCombinedDataChange = (newData) => {
         <!-- 오른쪽: 상세 정보 및 승인 -->
         <div class="space-y-4">
             <!-- 이동요청 상세 + 승인 처리 (단일 테이블로 통합) -->
-            <div class="card space-y-6">
-              <LeftAlignTable
+            <LeftAlignTable
                 title="이동요청 상세 / 승인"
                 :data="combinedData"
                 :fields="combinedFields"
                 :buttons="detailFormButtons"
                 dataKey="moveReqCd"
                 @update:data="handleCombinedDataChange"
+                @save="handleApprove"
+                @delete="handleReject"
               />
-              <div class="flex gap-3 justify-end">
-                <Button
-                  label="승인"
-                  severity="success"
-                  icon="pi pi-check"
-                  :disabled="!canApprove"
-                  @click="handleApprove"
-                />
-                <Button
-                  label="거절"
-                  severity="danger"
-                  icon="pi pi-times"
-                  :disabled="!canReject"
-                  @click="handleReject"
-                />
-              </div>
-            </div>
 
             <!-- 요청상세 품목 목록 -->
             <div class="card">
@@ -453,7 +438,8 @@ const handleCombinedDataChange = (newData) => {
                     :selection="[]"
                     selectionMode="none"
                     dataKey="mrdcode"
-                    scrollHeight="300px"
+                    scrollHeight="350px"
+                    height="450px"
                 />
             </div>
         </div>
