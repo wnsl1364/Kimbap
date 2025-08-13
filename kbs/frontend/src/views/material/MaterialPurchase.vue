@@ -191,6 +191,12 @@ const materialColumns = ref([
     readonly: false
   },
   {
+    field: 'std',
+    header: '규격',
+    type: 'readonly',
+    width: '150px'
+  },
+  {
     field: 'number',
     header: '수량',
     type: 'input',

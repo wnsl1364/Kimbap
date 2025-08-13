@@ -120,7 +120,13 @@ const stockStatusColumns = ref([
     field: 'materialName',
     header: '자재명',
     type: 'readonly',
-    width: '170px'
+    width: '150px'
+  },
+  {
+    field: 'specification',
+    header: '규격',
+    type: 'readonly',
+    width: '145px'
   },
   {
     field: 'materialType',
