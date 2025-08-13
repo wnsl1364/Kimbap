@@ -168,7 +168,7 @@ onBeforeMount(() => {
             label: '단위',
             type: 'dropdown',
             options: [
-                { label: 'kg', value: 'g2' },
+                { label: 'ea', value: 'g5' },
                 { label: 'box', value: 'g6' }
             ]
         },
