@@ -120,7 +120,13 @@ const stockStatusColumns = ref([
     field: 'materialName',
     header: '자재명',
     type: 'readonly',
-    width: '170px'
+    width: '150px'
+  },
+  {
+    field: 'specification',
+    header: '규격',
+    type: 'readonly',
+    width: '145px'
   },
   {
     field: 'materialType',
@@ -221,7 +227,8 @@ const tableButtons = ref({
   edit: { show: false },
   load: { show: true, label: '새로고침', severity: 'info' },
   custom1: { show: true, label: '엑셀다운로드', severity: 'secondary' },
-  custom2: { show: true, label: '재고알림', severity: 'warning' }
+  custom2: { show: true, label: '재고알림', severity: 'warning' },
+  excel: { show: true, label: '엑셀 다운로드', severity: 'success' }
 });
 
 // 계산된 속성들

@@ -10,26 +10,26 @@ import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import { getSuppliersMateRel, processMaterialOutboundBatch, updatePurchaseOrderStatus, updateMaterialOutboundStatus, insertMaterialInbound } from '@/api/materials'
 
-// ✨ Store들
+// Store들
 const materialStore = useMaterialStore()
 const memberStore = useMemberStore()
 const commonStore = useCommonStore()
 const toast = useToast()
 
-// 🎯 검색 관련 데이터 (발주번호, 상태, 발주일자만!)
+// 검색 관련 데이터 (발주번호, 상태, 발주일자만!)
 const searchData = ref({
   purcCd: '',          // 발주번호
   status: '',          // 상태
   ordDt: null          // 발주일자
 })
 
-// 🔥 출고 데이터 (실제 API에서 가져온 데이터)
+// 출고 데이터 (실제 API에서 가져온 데이터)
 const outboundData = ref([])
 
-// 🎯 선택된 자재들 (출고 처리용)
+// 선택된 자재들 (출고 처리용)
 const selectedMaterials = ref([])
 
-// 🎨 검색 폼 컬럼 정의 (발주번호, 상태, 발주일자 3개만!)
+// 검색 폼 컬럼 정의 (발주번호, 상태, 발주일자 3개만!)
 const searchColumns = [
   {
     field: 'purcCd',
@@ -59,7 +59,7 @@ const searchColumns = [
   }
 ]
 
-// 🎨 테이블 컬럼 정의 (실제 출고 업무 스펙에 맞게!)
+// 테이블 컬럼 정의
 const outboundColumns = [
   { field: 'purcCd', header: '발주번호', type: 'readonly' },
   { field: 'status', header: '상태', type: 'readonly', align: 'center' },
@@ -67,7 +67,7 @@ const outboundColumns = [
   { field: 'mateName', header: '자재명', type: 'readonly' },
   { field: 'purcQty', header: '요청수량', type: 'readonly', align: 'center' },
   { field: 'unit', header: '단위', type: 'readonly', align: 'center' },
-  { field: 'currQty', header: '누적출고', type: 'readonly', align: 'center' }, // ✅ 읽기전용
+  { field: 'currQty', header: '누적출고', type: 'readonly', align: 'center' }, 
   { field: 'outboundQty', header: '출고수량', type: 'input', inputType: 'number', align: 'center', width: '100px' }, // ✅ 새 필드
   { field: 'leftQty', header: '남은수량', type: 'readonly', align: 'center' },
   { field: 'exDeliDt', header: '납기예정일', type: 'readonly', align: 'center' },
@@ -75,7 +75,7 @@ const outboundColumns = [
   { field: 'note', header: '비고', type: 'input', inputType: 'text', placeholder: '반려사유 등 입력' }
 ]
 
-// 🎨 검색 폼 버튼 설정
+// 검색 폼 버튼 설정
 const searchFormButtons = ref({
   search: { show: true, label: '검색', severity: 'primary' },
   reset: { show: true, label: '초기화', severity: 'secondary' },
@@ -83,7 +83,7 @@ const searchFormButtons = ref({
   delete: { show: false }
 })
 
-// 🎨 테이블 버튼 설정
+// 테이블 버튼 설정
 const materialTableButtons = ref({
   add: { show: false },
   edit: { show: false },
@@ -91,7 +91,7 @@ const materialTableButtons = ref({
   save: { show: false }
 })
 
-// 💫 공통코드 변환 함수들 (null 체크 추가!)
+// 공통코드 변환 함수들
 const getUnitText = (unitCode) => {
   if (!unitCode) return ''
   const unitCodes = commonStore.getCodes ? commonStore.getCodes('0G') : []
@@ -103,7 +103,7 @@ const getUnitText = (unitCode) => {
 const getOutboundStatusText = (statusCode) => {
   if (!statusCode) return ''
   const statusMapping = {
-    // 🔥 발주 상태 코드 (0C)
+    // 발주 상태 코드 (0C)
     'c1': '요청',
     'c2': '승인',
     'c3': '입고대기',
@@ -112,7 +112,7 @@ const getOutboundStatusText = (statusCode) => {
     'c6': '반려',
     'c7': '반품',
 
-    // ⚠️ 자재 이동 상태 코드 (0D) - 사용하지 않아야 함
+    // 자재 이동 상태 코드 (0D) - 필요시 사용
     'd1': '이동요청',
     'd2': '이동승인',
     'd3': '이동거절'
@@ -122,7 +122,7 @@ const getOutboundStatusText = (statusCode) => {
 
 const getWarehouseText = (wcode) => {
   if (!wcode) return ''
-  // 창고 코드 변환 로직 (실제 창고 코드에 맞게 수정 필요)
+  // 창고 코드 변환 로직
   const warehouseMapping = {
     'WH001': '1창고',
     'WH002': '2창고',
@@ -131,14 +131,13 @@ const getWarehouseText = (wcode) => {
   return warehouseMapping[wcode] || wcode
 }
 
-// 📅 날짜 포맷 함수
+// 날짜 포맷 함수
 const formatDate = (date) => {
   if (!date) return ''
   try {
     const dateObj = date instanceof Date ? date : new Date(date)
     return dateObj.toISOString().split('T')[0]
   } catch (error) {
-    console.error('날짜 포맷 에러:', error)
     return ''
   }
 }
@@ -154,29 +153,28 @@ const formatDateForTable = (date) => {
   }
 }
 
-// 🔍 검색 기능
+// 검색 기능
 const handleSearch = () => {
-  console.log('🔍 출고 검색 실행:', searchData.value)
   fetchOutboundData()
 }
 
-// 🔄 검색 초기화
+// 검색 초기화
 const handleReset = () => {
   searchData.value = {
     purcCd: '',
     status: '',
     ordDt: null
   }
-  console.log('🔄 검색 조건 초기화')
+  console.log('검색 조건 초기화')
   fetchOutboundData()
 }
 
-// 🎯 실제 DB에서 출고 데이터 가져오는 함수 (완전한 API 연결!)
+// 실제 DB에서 출고 데이터 가져오는 함수 (완전한 API 연결!)
 const fetchOutboundData = async () => {
   try {
-    console.log('🔍 출고 데이터 조회 시작...')
+    console.log('출고 데이터 조회 시작...')
 
-    // 🔥 실제 API 호출!
+    // 실제 API 호출!
     const searchCriteria = {
       purcCd: searchData.value.purcCd,
       purcDStatus: searchData.value.status || 'c2', // 기본값: 승인
@@ -184,11 +182,11 @@ const fetchOutboundData = async () => {
       ordDtEnd: searchData.value.ordDt ? formatDate(searchData.value.ordDt) : null
     }
 
-    console.log('📤 실제 API 호출 조건:', searchCriteria)
+    console.log('실제 API 호출 조건:', searchCriteria)
     const response = await getSuppliersMateRel(searchCriteria)
-    console.log('📦 DB에서 가져온 실제 출고 목록:', response.data)
+    console.log('DB에서 가져온 실제 출고 목록:', response.data)
 
-    // 🎨 실제 DB 데이터를 테이블용으로 변환
+    // 실제 DB 데이터를 테이블용으로 변환
     outboundData.value = response.data.map((item, index) => ({
       id: index + 1,
       // 기본 정보
@@ -199,9 +197,9 @@ const fetchOutboundData = async () => {
       purcQty: item.purcQty || 0,
       unit: getUnitText(item.unit),
 
-      // ✅ 수정된 수량 필드들
-      currQty: item.currQty || 0,        // DB의 누적 출고량 (읽기전용)
-      outboundQty: 0,                    // 이번에 출고할 수량 (입력용) ⭐ 새로 추가!
+      // 수정된 수량 필드들
+      currQty: item.currQty || 0,        // DB의 누적 출고량
+      outboundQty: 0,                    // 이번에 출고할 수량
       leftQty: (item.purcQty || 0) - (item.currQty || 0), // 남은수량
 
       // 나머지 필드들
@@ -217,20 +215,20 @@ const fetchOutboundData = async () => {
         mateVerCd: item.mateVerCd,
         cpCd: item.cpCd,
         purcQty: item.purcQty,
-        currQty: item.currQty,      // ✅ 원본 currQty 보관
+        currQty: item.currQty,
         unit: item.unit,
         unitPrice: item.unitPrice,
         purcDStatus: item.purcDStatus
       }
     }))
 
-    console.log('✅ 실제 DB 출고 데이터 변환 완료:', outboundData.value.length, '건')
+    console.log('실제 DB 출고 데이터 변환 완료:', outboundData.value.length, '건')
 
   } catch (error) {
-    console.error('❌ 실제 API 호출 실패:', error)
+    console.error('실제 API 호출 실패:', error)
 
-    // 🎭 API 실패 시에만 샘플 데이터로 fallback
-    console.log('⚠️  API 실패로 샘플 데이터 사용')
+    // API 실패 시에만 샘플 데이터로 fallback
+    console.log('API 실패로 샘플 데이터 사용')
     const sampleData = [
       {
         id: 1,
@@ -312,34 +310,32 @@ const fetchOutboundData = async () => {
 //  출고완료 처리 함수 - 완전 수정버전!
 const handleOutboundComplete = async () => {
   try {
-    // 🚨 유효성 검증
+    // 유효성 검증
     if (!selectedMaterials.value || selectedMaterials.value.length === 0) {
       toast.add({
         severity: 'warn',
         summary: '선택 오류',
-        detail: '출고할 자재를 선택해주세요! 😅',
+        detail: '출고할 자재를 선택해주세요.',
         life: 3000
       })
       return
     }
 
-    console.log('📦 선택된 자재들:', selectedMaterials.value)
-
-    // ✅ 실제 출고수량 필터링 수정  
+    // 실제 출고수량 필터링 수정  
     const validMaterials = selectedMaterials.value.filter(material => {
-      const outboundQty = Number(material.outboundQty || 0)        // 새로 출고할 수량
+      const outboundQty = Number(material.outboundQty || 0)
       const currentCurrQty = Number(material._originalData?.currQty || 0)
       const totalPurcQty = Number(material._originalData?.purcQty || 0)
       const newCurrQty = currentCurrQty + outboundQty
 
       // 출고수량 유효성 체크
       if (outboundQty <= 0) {
-        console.warn(`⚠️ ${material.mateName}: 출고수량이 0이하입니다`)
+        console.warn(`${material.mateName}: 출고수량이 0이하입니다`)
         return false
       }
 
       if (newCurrQty > totalPurcQty) {
-        console.warn(`⚠️ ${material.mateName}: 출고수량(${outboundQty})이 남은수량을 초과합니다`)
+        console.warn(`${material.mateName}: 출고수량(${outboundQty})이 남은수량을 초과합니다`)
         return false
       }
 
@@ -356,16 +352,16 @@ const handleOutboundComplete = async () => {
       return
     }
 
-    // ✅ 발주상세 업데이트 데이터 생성 (진짜 수정!)
+    // 발주상세 업데이트 데이터 생성 (진짜 수정!)
     const purcOrderUpdates = validMaterials.map((material) => {
-      // 🔥 Number로 통일해서 확실히 숫자 변환!
+      // Number로 통일해서 확실히 숫자 변환!
       const currentCurrQty = Number(material._originalData?.currQty || 0)
       const outboundQty = Number(material.outboundQty || 0)
       const totalPurcQty = Number(material._originalData?.purcQty || 0)
 
-      const newCurrQty = currentCurrQty + outboundQty  // ✅ curr_qty 제대로 업데이트!
+      const newCurrQty = currentCurrQty + outboundQty
 
-      // 🔥 완전 수정된 상태 판단 로직! (c2 ↔ c3만!)
+      // 완전 수정된 상태 판단 로직
       let newStatus
       if (newCurrQty >= totalPurcQty) {
         newStatus = 'c3'  // 입고대기 (전체 다 출고됨)
@@ -378,18 +374,18 @@ const handleOutboundComplete = async () => {
       return {
         purcDCd: material._originalData?.purcDCd || material.purcDCd,
         purcCd: material._originalData?.purcCd || material.purcCd,
-        currQty: newCurrQty,      // ✅ curr_qty 제대로 업데이트!
-        purcDStatus: newStatus,   // ✅ 올바른 상태!
+        currQty: newCurrQty,
+        purcDStatus: newStatus,
         note: `출고완료 ${outboundQty}${material.unit || '개'} (총 ${newCurrQty}/${totalPurcQty})`  // ✅ 깔끔한 비고!
       }
     })
 
-    // ✅ 자재입고 데이터 생성 (확실한 값 전달!)
+    // 자재입고 데이터 생성 (확실한 값 전달!)
     const mateInboInserts = validMaterials.map((material) => {
       const outboundQty = Number(material.outboundQty || 0)
 
-      // 🔥 디버깅용 로그
-      console.log(`🔍 자재입고 데이터 생성:`, {
+      // 디버깅용 로그
+      console.log(`자재입고 데이터 생성:`, {
         mateName: material.mateName,
         outboundQty: outboundQty,
         originalOutboundQty: material.outboundQty,
@@ -397,19 +393,18 @@ const handleOutboundComplete = async () => {
       })
 
       return {
-        // ✅ MaterialsVO 필드명에 정확히 매핑!
+        // MaterialsVO 필드명에 정확히 매핑
         mcode: material._originalData?.mcode || material.mcode,
         mateVerCd: material._originalData?.mateVerCd || material.mateVerCd || 'V1',
         purcDCd: material._originalData?.purcDCd || material.purcDCd,
 
-        // 🔥 핵심! 확실한 수량 전달 (여러 방법으로!)
-        totalQty: outboundQty,      // DB의 total_qty 컬럼
-        purcQty: outboundQty,       // 혹시 purcQty로 매핑될 수도
-        outboundQty: outboundQty,   // 컨트롤러에서 getOutboundQty()로 접근
+        totalQty: outboundQty,
+        purcQty: outboundQty,
+        outboundQty: outboundQty,
 
-        // ✅ MaterialsVO에 있는 필드들
+        // MaterialsVO에 있는 필드들
         mateName: material.mateName || material._originalData?.mateName,
-        mname: material.mateName || material._originalData?.mateName,  // 혹시 mname으로도
+        mname: material.mateName || material._originalData?.mateName,
         note: `공급업체 출고완료 - ${outboundQty}${material.unit || '개'}`,
 
         // 기타 필수 정보들
@@ -419,45 +414,45 @@ const handleOutboundComplete = async () => {
       }
     })
 
-    console.log('� 발주상세 업데이트 데이터:', purcOrderUpdates)
-    console.log('📥 자재입고 생성 데이터:', mateInboInserts)
+    console.log('발주상세 업데이트 데이터:', purcOrderUpdates)
+    console.log('자재입고 생성 데이터:', mateInboInserts)
 
-    // 🚀 실제 API 호출!
+    // 실제 API 호출
     try {
-      console.log('🚚 출고완료 처리 시작...')
+      console.log('출고완료 처리 시작...')
 
-      // 🎯 1단계: 발주상세 상태 업데이트
+      // 1단계: 발주상세 상태 업데이트
       for (const updateData of purcOrderUpdates) {
         await updatePurchaseOrderStatus(updateData)
-        console.log(`✅ 발주상세 ${updateData.purcDCd} 상태 업데이트 완료! currQty=${updateData.currQty}, status=${updateData.purcDStatus}`)
+        console.log(`발주상세 ${updateData.purcDCd} 상태 업데이트 완료! currQty=${updateData.currQty}, status=${updateData.purcDStatus}`)
       }
 
-      // 🎯 2단계: 자재입고 데이터 생성 
+      // 2단계: 자재입고 데이터 생성 
       const response = await processMaterialOutboundBatch(mateInboInserts)
-      console.log('✅ 자재입고 배치 생성 완료:', response.data)
+      console.log('자재입고 배치 생성 완료:', response.data)
 
-      // 🎉 성공 처리 (메시지도 수정!)
+      // 성공 처리 (메시지도 수정!)
       const c3Count = purcOrderUpdates.filter(item => item.purcDStatus === 'c3').length
       const c2Count = purcOrderUpdates.filter(item => item.purcDStatus === 'c2').length
 
       toast.add({
         severity: 'success',
-        summary: '출고완료 처리 성공! 🎉',
+        summary: '출고완료 처리 성공',
         detail: `${validMaterials.length}건 처리완료! (입고대기: ${c3Count}건, 승인: ${c2Count}건)`,
         life: 5000
       })
 
       // Store에 처리 내역 저장
       try {
-        // Store에 출고 데이터 저장 (올바른 필드명 사용!)
+        // Store에 출고 데이터 저장
         materialStore.setOutboundData({
           completedMaterials: [...validMaterials],
           processedAt: new Date(),
           processedBy: memberStore.user?.empName || '공급업체',
-          totalProcessedCount: validMaterials.length  // 🔥 totalProcessedCount로 수정!
+          totalProcessedCount: validMaterials.length
         })
 
-        // 추가로 처리된 자재 히스토리도 저장
+        // 추가로 처리된 자재 히스토리 저장
         materialStore.addProcessedOutboundMaterials(validMaterials)
 
         // 출고 통계도 업데이트 
@@ -466,15 +461,15 @@ const handleOutboundComplete = async () => {
           todayProcessed: validMaterials.length
         })
 
-        console.log('✅ Store에 출고 처리 내역 저장 완료!')
+        console.log('Store에 출고 처리 내역 저장 완료')
 
       } catch (storeError) {
-        console.warn('⚠️ Store 저장 실패 (중요하지 않음):', storeError)
+        console.warn('Store 저장 실패 (중요하지 않음):', storeError)
         // Store 저장 실패해도 출고 자체는 성공했으니까 무시해도 OK!
       }
 
     } catch (apiError) {
-      console.error('❌ API 호출 실패:', apiError)
+      console.error('API 호출 실패:', apiError)
       throw new Error(`API 호출 실패: ${apiError.message}`)
     }
 
@@ -483,15 +478,15 @@ const handleOutboundComplete = async () => {
     await fetchOutboundData() // 데이터 새로고침
 
   } catch (error) {
-    console.error('❌ 출고완료 처리 중 오류 발생:', error)
+    console.error( '출고완료 처리 중 오류 발생:', error)
 
-    let errorMessage = '출고완료 처리 중 오류가 발생했습니다 😢'
+    let errorMessage = '출고완료 처리 중 오류가 발생했습니다'
 
     if (error.response) {
       errorMessage = `서버 오류: ${error.response.data?.message || '알 수 없는 오류'}`
       console.log('서버 에러 상세:', error.response)
     } else if (error.request) {
-      errorMessage = '서버와 통신할 수 없습니다. 네트워크를 확인해주세요! 📡'
+      errorMessage = '서버와 통신할 수 없습니다. 네트워크를 확인해주세요.'
     }
 
     toast.add({
@@ -503,35 +498,35 @@ const handleOutboundComplete = async () => {
   }
 }
 
-// 🎯 선택된 자재들 watch
+// 선택된 자재들 watch
 watch(selectedMaterials, (newSelection) => {
-  console.log('📋 선택된 자재 변경:', newSelection.length, '개')
+  console.log('선택된 자재 변경:', newSelection.length, '개')
 }, { deep: true })
 
-// 🎯 컴포넌트 초기화
+// 컴포넌트 초기화
 onMounted(async () => {
-  console.log('🚀 MaterialOutbound 컴포넌트 초기화 시작!')
+  console.log('MaterialOutbound 컴포넌트 초기화 시작!')
 
   try {
     // 공통코드 로드 대기 (안전한 방식으로 수정)
     if (!commonStore.getCodes || (commonStore.codes && commonStore.codes.length === 0)) {
-      console.log('⏳ 공통코드 로드 대기 중...')
+      console.log('공통코드 로드 대기 중...')
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
 
     // 실제 출고 데이터 조회
     await fetchOutboundData()
 
-    console.log('✅ MaterialOutbound 초기화 완료!')
+    console.log('MaterialOutbound 초기화 완료!')
   } catch (error) {
-    console.error('❌ MaterialOutbound 초기화 실패:', error)
+    console.error('MaterialOutbound 초기화 실패:', error)
 
     // 에러 발생해도 기본 데이터는 로드
     await fetchOutboundData()
   }
 })
 
-// 🎯 computed로 선택 가능한 항목 수 계산
+// computed로 선택 가능한 항목 수 계산
 const selectableItemsCount = computed(() => {
   return outboundData.value.filter(item =>
     item.status === '승인' // c2 상태만 출고 처리 가능

@@ -240,6 +240,7 @@ export const useMaterialStore = defineStore('material', () => {
         { field: 'mcode', header: '자재코드' },
         { field: 'mateName', header: '자재명' },
         { field: 'cpName', header: '공급업체' },
+        { field: 'std', header: '규격' },
         { field: 'unitPrice', header: '단가(원)' },
         { field: 'unit', header: '단위' },
         { field: 'ltime', header: '리드타임' }
@@ -250,6 +251,7 @@ export const useMaterialStore = defineStore('material', () => {
         buyer: 'cpName',  // 공급업체로 매핑
         mcode: 'mcode',
         mateVerCd: 'mateVerCd',
+        std: 'std',
         cpCd: 'cpCd',
         unit: 'unit',
         price: 'unitPrice',  // 단가 자동 입력
@@ -265,6 +267,7 @@ export const useMaterialStore = defineStore('material', () => {
       columns: [
         { field: 'cpName', header: '공급업체' },
         { field: 'mateName', header: '자재명' },
+        { field: 'std', header: '규격' },
         { field: 'unitPrice', header: '단가(원)' },
         { field: 'ltime', header: '리드타임' },
         { field: 'unit', header: '단위' }
@@ -275,6 +278,7 @@ export const useMaterialStore = defineStore('material', () => {
         materialName: 'mateName',
         mcode: 'mcode',
         mateVerCd: 'mateVerCd', 
+        std: 'std',
         cpCd: 'cpCd',
         unit: 'unit',
         price: 'unitPrice',  // 단가 자동 입력

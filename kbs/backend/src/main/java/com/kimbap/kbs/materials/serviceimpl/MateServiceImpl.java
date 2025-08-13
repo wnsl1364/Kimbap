@@ -433,6 +433,8 @@ public class MateServiceImpl implements MateService {
                         detail.put("mcode", item.getMcode());
                         detail.put("mateVerCd", item.getMateVerCd());
                         detail.put("mateName", item.getMateName());
+                        // 규격(std)도 포함
+                        detail.put("std", item.getStd());
                         detail.put("purcQty", item.getPurcQty());
                         detail.put("unit", item.getUnit());
                         detail.put("unitPrice", item.getUnitPrice());

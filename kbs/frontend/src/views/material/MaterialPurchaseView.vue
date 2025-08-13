@@ -64,7 +64,8 @@ const materialTableButtons = ref({
   add: { show: false },
   edit: { show: false },
   delete: { show: false },
-  save: { show: false }
+  save: { show: false },
+  excel: { show: true, label: '엑셀 다운로드', severity: 'success' }
 });
 
 const actualUserType = computed(() => {
