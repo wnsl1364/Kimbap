@@ -173,9 +173,9 @@ const flattenSearchData = (columns) => {
 
 <template>
     <Fluid>
-        <div class="flex flex-col border-2 border-black-600 gap-8">
+        <div class="flex flex-col gap-8 border border-gray-200 rounded-lg bg-white">
             <!-- 검색 폼 영역 -->
-            <div class="card flex flex-col gap-4 !p-5 !rounded-none">
+            <div class="card flex flex-col gap-4 !p-5">
                 <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
                 <!-- 동적 검색 필드들 - 2열 그리드 -->
                 <div :class="gridClass">

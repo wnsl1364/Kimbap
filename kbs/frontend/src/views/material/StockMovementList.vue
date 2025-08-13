@@ -400,19 +400,17 @@ const handleCombinedDataChange = (newData) => {
             </div>
 
             <!-- 이동요청 목록 -->
-            <div class="card">
-                <BasicTable
-                    :title="`이동요청 목록 (총 ${filteredMoveRequestList.length}건)`"
-                    :data="filteredMoveRequestList"
-                    :columns="moveRequestColumns"
-                    :selection="selectedMoveRequestItem ? [selectedMoveRequestItem] : []"
-                    selectionMode="single"
-                    dataKey="moveReqCd"
-                    scrollHeight="350px"
-                    height="450px"
-                    @update:selection="handleRowSelection"
-                />
-            </div>
+            <BasicTable
+                  :title="`이동요청 목록 (총 ${filteredMoveRequestList.length}건)`"
+                  :data="filteredMoveRequestList"
+                  :columns="moveRequestColumns"
+                  :selection="selectedMoveRequestItem ? [selectedMoveRequestItem] : []"
+                  selectionMode="single"
+                  dataKey="moveReqCd"
+                  scrollHeight="350px"
+                  height="450px"
+                  @update:selection="handleRowSelection"
+              />
         </div>
 
         <!-- 오른쪽: 상세 정보 및 승인 -->
@@ -430,18 +428,16 @@ const handleCombinedDataChange = (newData) => {
               />
 
             <!-- 요청상세 품목 목록 -->
-            <div class="card">
-                <BasicTable
-                    title="요청상세 품목 목록"
-                    :data="moveRequestDetails"
-                    :columns="moveRequestDetailColumns"
-                    :selection="[]"
-                    selectionMode="none"
-                    dataKey="mrdcode"
-                    scrollHeight="350px"
-                    height="450px"
-                />
-            </div>
+            <BasicTable
+                  title="요청상세 품목 목록"
+                  :data="moveRequestDetails"
+                  :columns="moveRequestDetailColumns"
+                  :selection="[]"
+                  selectionMode="none"
+                  dataKey="mrdcode"
+                  scrollHeight="350px"
+                  height="450px"
+              />
         </div>
     </div>
 
