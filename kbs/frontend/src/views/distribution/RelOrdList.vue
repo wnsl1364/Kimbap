@@ -58,7 +58,8 @@ const materialTableButtons = ref({
   add: { show: false },
   edit: { show: false },
   delete: { show: false },
-  save: { show: false }
+  save: { show: false },
+  excel: {show: true, label: '엑셀 다운로드', severity: 'success' }
 });
 
 // 🔥 공통코드 원본값 조회 함수 (검색 시 사용)
@@ -93,7 +94,7 @@ const searchColumns = ref([
     label: '구분',
     value: '전체',
     type: 'radio',
-    gridColumns: 4,
+    gridColumns: 3,
     options: [
       { label: '전체', value: '전체' },
       { label: '대기', value: 'm1' }, // 🔥 원본 코드값 사용
@@ -218,8 +219,9 @@ const handleRowclicked = (row) => {
     <div class="col-12">
       <div class="card">
         <h5>출고지시서 조회</h5>
-        <SearchForm :columns="searchColumns" v-model="searchValues" @search="onSearch" :gridColumns="3"
+        <SearchForm :columns="searchColumns" v-model="searchValues" @search="onSearch" :gridColumns="4"
           @reset="onReset" />
+
 
         <!-- 매핑된 InputTable -->
         <InputTable :columns="inputTableColumns" :data="cleanConvertedData" dataKey="relMasCd" :scroll-height="'50vh'"
@@ -236,4 +238,5 @@ const handleRowclicked = (row) => {
   align-items: center;
   margin-right: 1rem;
 }
+
 </style>

@@ -111,8 +111,8 @@ const model = ref([
                 {
                     label: '주문등록', // 매출업체만
                     to: '/order/orderRegister',
-                    roles: ['p1', 'p2', 'p4'], // 사원, 매출업체, 담당자
-                    teams: ['DEPT-1-1', ''] // 영업팀, 구매팀
+                    roles: ['p2'], // 사원, 매출업체, 담당자
+                    teams: [''] // 영업팀, 구매팀
                 },
                 {
                     label: '주문검토', // 영업

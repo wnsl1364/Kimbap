@@ -177,7 +177,6 @@ const flattenSearchData = (columns) => {
             <!-- 검색 폼 영역 -->
             <div class="card flex flex-col gap-4 !p-5 !rounded-none">
                 <h2 class="text-lg mb-0 font-semibold">{{ title }}</h2>
-
                 <!-- 동적 검색 필드들 - 2열 그리드 -->
                 <div :class="gridClass">
                     <div v-for="(column, index) in searchColumns" :key="column.key" class="flex flex-col gap-2">
@@ -224,7 +223,7 @@ const flattenSearchData = (columns) => {
                             </div>
 
                             <!-- 라디오 버튼 -->
-                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-4 gap-2 w-full">
+                            <div v-else-if="column.type === 'radio'" class="grid grid-cols-5 gap-2 w-full">
                                 <div v-for="option in column.options" :key="option.value"
                                     class="mt-1.5 flex items-center">
                                     <RadioButton :id="`${column.key}_${option.value}`" v-model="column.value"
