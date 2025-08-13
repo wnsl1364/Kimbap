@@ -69,6 +69,7 @@ const filteredModel = computed(() => filterMenu(model.value))
 
 const model = ref([
     {
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
         items: [
             { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
         ]

@@ -52,11 +52,27 @@ const factoryOptions = computed(() => [
     value: { fcode: f.fcode, facVerCd: f.facVerCd }
   }))
 ])
-
+// 현재 날짜 기준으로 기본값 계산
+const getDefaultDateRange = () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-11
+  
+  return {
+    start: new Date(currentYear, currentMonth, 1), // 현재 월의 1일
+    end: new Date() // 현재 날짜
+  };
+};
 // 검색 조건 정의
 const searchColumns = [
   { key: 'produPlanCd', label: '생산계획번호', type: 'text', placeholder: '예: PRP-20250716-01' },
-  { key: 'planDtRange', label: '계획일자', type: 'dateRange', startPlaceholder: '시작일', endPlaceholder: '종료일' },
+  { key: 'planDtRange',
+    label: '계획일자',
+    type: 'dateRange',
+    startPlaceholder: '시작일',
+    endPlaceholder: '종료일',
+    default: getDefaultDateRange()
+  },
   { key: 'planRange', label: '계획기간', type: 'dateRange', startPlaceholder: '시작일', endPlaceholder: '종료일' },
   {
     key: 'factory',

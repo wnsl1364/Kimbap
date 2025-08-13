@@ -429,5 +429,55 @@
         WHERE plan_gene_dt BETWEEN #{startDate} AND #{endDate}
         ORDER BY plan_gene_dt DESC, mrp_cd DESC
     </select>
+    <!-- ================================================ -->
+    <!-- 생산계획 등록자 업데이트 -->
+    <update id="updateProdPlanRegi">
+        UPDATE prod_plan 
+        SET mname = #{empCd}
+        WHERE produ_plan_cd = #{produPlanCd}
+    </update>
+
+    <!-- MRP 등록자 업데이트 -->
+    <update id="updateMrpRegi">
+        UPDATE mrp
+        SET regi = #{empCd}
+        WHERE mrp_cd = #{mrpCd}
+    </update>
+
+    <!-- 발주서 등록자 업데이트 -->
+    <update id="updatePurchaseOrderRegi">
+        UPDATE purc_ord
+        SET regi = #{empCd}
+        WHERE purc_cd = #{purcCd}
+    </update>
+
+    <!-- 최근 생성된 발주서 조회 (Oracle ROWNUM 사용) -->
+    <select id="getLatestPurchaseOrder" resultType="string">
+        SELECT purc_cd 
+        FROM (
+            SELECT purc_cd 
+            FROM purc_ord 
+            WHERE purc_status = 'c1'
+            AND regi = '시스템'
+            ORDER BY ord_dt DESC, purc_cd DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
+
+    <!-- MRP로 생성된 발주서 조회 (Oracle ROWNUM 사용) -->
+    <select id="getPurchaseOrderByMrp" parameterType="string" resultType="string">
+        SELECT purc_cd
+        FROM (
+            SELECT DISTINCT po.purc_cd
+            FROM purc_ord po
+            INNER JOIN purc_ord_d pod ON po.purc_cd = pod.purc_cd
+            INNER JOIN mrp_d md ON pod.mcode = md.mcode AND pod.mate_ver_cd = md.mate_ver_cd
+            WHERE md.mrp_cd = #{mrpCd}
+            AND po.purc_status = 'c1'
+            AND pod.note LIKE '%MRP 자동생성%'
+            ORDER BY po.ord_dt DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
     <!-- ================================================= -->
 </mapper>

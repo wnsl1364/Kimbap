@@ -168,7 +168,7 @@ onBeforeMount(() => {
             label: '단위',
             type: 'dropdown',
             options: [
-                { label: 'kg', value: 'g2' },
+                { label: 'ea', value: 'g5' },
                 { label: 'box', value: 'g6' }
             ]
         },
@@ -178,9 +178,9 @@ onBeforeMount(() => {
             label: '낱개단위',
             type: 'dropdown',
             options: [
-                { label: '매', value: '매' },
                 { label: '장', value: '장' },
-                { label: 'EA', value: 'ea' }
+                { label: '개', value: '개' },
+                { label: '봉', value: '봉' }
             ],
             disabled: (row) => row.unit !== 'g6'
         },

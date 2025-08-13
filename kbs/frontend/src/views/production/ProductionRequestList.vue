@@ -62,14 +62,15 @@ const reqStatusOptions = computed(() => [
     value: s.dcd      // 실제 검색에 사용될 코드값 (예: "b1", "b2", "b3")
   }))
 ])
-// 기본 날짜 값 계산
+// 현재 날짜 기준으로 기본값 계산
 const getDefaultDateRange = () => {
-  const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-11
   
   return {
-    start: firstDayOfMonth,   // 이번달 1일
-    end: today                // 오늘 날짜
+    start: new Date(currentYear, currentMonth, 1), // 현재 월의 1일
+    end: new Date() // 현재 날짜
   };
 };
 // 검색 조건 정의
@@ -80,7 +81,7 @@ const searchColumns = [
     type: 'dateRange',
     startPlaceholder: '시작일',
     endPlaceholder: '종료일',
-    defaultValue: getDefaultDateRange()
+    default: getDefaultDateRange()
   },
   {
     key: 'factory',

@@ -89,19 +89,31 @@ async function handleLogin() {
       sessionStorage.setItem('member', JSON.stringify(user));
       localStorage.setItem('token', token);
 
-      if (rememberId.value) localStorage.setItem('rememberedId', id.value);
-      else localStorage.removeItem('rememberedId');
+      if (rememberId.value) {
+        localStorage.setItem('rememberedId', id.value);
+      } else {
+        localStorage.removeItem('rememberedId');
+      }
 
       toast.add({ severity: 'success', summary: '로그인 성공', detail: `${user.id}님 환영합니다.`, life: 2000 });
-      router.push('/');
+
+      // 🔹 memType 체크해서 경로 분기
+      if (user.memType === 'p2') {
+        router.push('/order/orderRegister');
+      } else if(user.memType === 'p3') {
+        router.push('/material/MaterialPurchaseView');
+      } else {
+        router.push('/');
+      }
     } else {
       toast.add({ severity: 'error', summary: '로그인 오류', detail: '로그인 응답이 올바르지 않습니다.', life: 3000 });
     }
   } catch (err) {
     console.error('로그인 오류:', err);
-    toast.add({ severity: 'error', summary: '로그인 실패', detail: '사원번호와 비밀번호를 확인해주세요.', life: 3000 });
+    toast.add({ severity: 'error', summary: '로그인 실패', detail: 'ID와 비밀번호를 확인해주세요.', life: 3000 });
   }
 }
+
 </script>
 
 <style scoped>
