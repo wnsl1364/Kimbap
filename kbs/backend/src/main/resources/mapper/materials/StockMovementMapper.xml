@@ -503,7 +503,10 @@
                         unit,
                         item_type
                     ) VALUES (
-                        'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-001',
+                        'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-' || 
+                        LPAD((SELECT NVL(MAX(SUBSTR(wslcode, -3)), 0) + 1 
+                        FROM ware_stock 
+                        WHERE wslcode LIKE 'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-%'), 3, '0')
                         src.mate_inbo_cd,
                         src.ware_area_cd,
                         src.move_qty,
@@ -541,7 +544,12 @@
                         unit,
                         item_type
                     ) VALUES (
-                        'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-001',
+                        'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-' ||
+                        LPAD((
+                            SELECT NVL(MAX(SUBSTR(wslcode, -3)), 0) + 1
+                            FROM ware_stock
+                            WHERE wslcode LIKE 'WStock-' || TO_CHAR(SYSDATE, 'YYMMDD') || '-%'
+                        ), 3, '0'),
                         src.prod_inbo_cd,
                         src.ware_area_cd,
                         src.move_qty,
