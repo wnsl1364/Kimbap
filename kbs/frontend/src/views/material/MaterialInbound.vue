@@ -371,6 +371,7 @@ const handleInboundComplete = async () => {
             :columns="materialStore.inboundFields"
             :data="formData" 
             title="자재 입고"
+            :autoResetOnSave="false"
             :buttons="{ 
                 save: { show: true, label: '입고처리', severity: 'success' }, 
                 reset: { show: false, label: '초기화', severity: 'secondary' },
@@ -378,17 +379,18 @@ const handleInboundComplete = async () => {
                 load: { show: false, label: '불러오기', severity: 'info' }
             }"
             @update:data="(newData) => {
-                formData = newData;
+                // ref 업데이트 올바르게 반영
+                formData.value = newData;
 
                 // 안전한 체크 추가
                 if (factoryList.value && Array.isArray(factoryList.value) && newData.fcode) {
                     const selectedFactory = factoryList.value.find(f => f.value === newData.fcode);
                     if (selectedFactory?.facVerCd) {
-                        formData.facVerCd = selectedFactory.facVerCd;
+                        formData.value.facVerCd = selectedFactory.facVerCd;
                     }
                 }
 
-                materialStore.inboundData = { ...formData };
+                materialStore.inboundData = { ...formData.value };
             }"
             @submit="handleInboundComplete"
         />
