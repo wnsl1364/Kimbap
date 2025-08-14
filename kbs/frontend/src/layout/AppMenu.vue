@@ -69,13 +69,13 @@ const filteredModel = computed(() => filterMenu(model.value))
 
 const model = ref([
     {
-        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1'],
         items: [
             { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
         ]
     },
     {
-        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'], // 매출이랑 공급만 안보이게
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1'], // 매출이랑 공급만 안보이게
         items: [{
             label: '기준정보',
             items: [
@@ -103,7 +103,7 @@ const model = ref([
         }]
     },
     {
-        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1'],
         roles: ['p1', 'p2', 'p4'], // 영업팀 사원, 매출업체, 담당자''],
         items: [{
             label: '주문',
@@ -123,12 +123,12 @@ const model = ref([
                     label: '주문목록', // 매출업체, 영업
                     to: '/order/orderList',
                     roles: ['p1', 'p2', 'p4'], // 사원, 매출업체, 담당자
-                    teams: ['DEPT-1-1', ''] // 영업팀, 구매팀,
+                    teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', ''] // 영업팀, 구매팀,
                 },
                 {
                     label: '거래처원장', // 영업
                     to: '/order/orderLedger',
-                    teams: ['DEPT-1-1']
+                    teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1']
                 },
                 {
                     label: '반품관리', // 영업
@@ -139,7 +139,7 @@ const model = ref([
         }]
     },
     {
-        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2',],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1'],
         roles: ['p1', 'p3', 'p4'],
         items: [{
             label: '자재',
@@ -199,7 +199,7 @@ const model = ref([
         }]
     },
     { // 조회페이지는 매추 공급 빼고 다가능
-        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1'],
         items: [{
             label: '생산',
             items: [
@@ -224,13 +224,13 @@ const model = ref([
                 {
                     label: '제품 적재 대기', // 물류 창고1,2
                     to: '/production/productInbound',
-                    teams: ['DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
+                    teams: ['DEPT-4-2', 'DEPT-5-1'],
                 },
             ]
         }]
     },
     {
-        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1', 'DEPT-5-2'],
+        teams: ['DEPT-1-1', 'DEPT-1-2', 'DEPT-2-1', 'DEPT-3-1', 'DEPT-4-1', 'DEPT-4-2', 'DEPT-5-1'],
         items: [{
             label: '물류',
             items: [
@@ -246,7 +246,7 @@ const model = ref([
                 {
                     label: '출고 처리', // 창고1,2
                     to: '/distribution/relSave',
-                    teams: ['DEPT-5-1', 'DEPT-5-2'],
+                    teams: ['DEPT-5-1'],
                 },
                 {
                     label: '완제품 입출고 조회', 
