@@ -3,71 +3,89 @@
 <mapper namespace="com.kimbap.kbs.distribution.mapper.DistributionMapper">
 
   <!-- 입출고 조회 페이지 -->
-  <select id="getInOutCheck" resultType="com.kimbap.kbs.distribution.service.DistributionVO" parameterType="com.kimbap.kbs.distribution.service.DistributionVO">
+<select id="getInOutCheck" 
+        resultType="com.kimbap.kbs.distribution.service.DistributionVO" 
+        parameterType="com.kimbap.kbs.distribution.service.DistributionVO">
     SELECT
-    temp.regDt,
-    temp.type,
-    temp.pCode,
-    temp.prodName,
-    temp.qty,
-    temp.wareAreaCd,
-    temp.stockQty,
-    temp.note
-  FROM (
+        temp.regDt,
+        temp.type,
+        temp.pCode,
+        temp.prodName,
+        temp.qty,
+        temp.wareAreaCd,
+        temp.stockQty,
+        temp.note
+    FROM (
+        /* ✅ 입고 */
+        SELECT 
+            a.inbo_dt AS regDt,
+            '입고' AS type,
+            a.pcode AS pCode,
+            b.prod_name AS prodName,
+            a.inbo_qty AS qty,
+            '' AS note,
+            c.ware_area_cd AS wareAreaCd,
+            c.qty AS stockQty
+        FROM prod_inbo a
+        JOIN product b 
+          ON a.pcode = b.pcode 
+         AND a.prod_ver_cd = b.prod_ver_cd
+        JOIN ware_stock c 
+          ON a.prod_inbo_cd = c.prod_inbo_cd
 
-    SELECT 
-      a.inbo_dt AS regDt,
-      '입고' AS type,
-      a.pcode,
-      b.prod_name AS prodName,
-      a.inbo_qty AS qty,
-      '' AS note,
-      c.ware_area_cd AS wareAreaCd,
-      c.qty AS stockQty
-    FROM prod_inbo a
-    JOIN product b ON a.pcode = b.pcode
-    JOIN ware_stock c ON a.prod_inbo_cd = c.prod_inbo_cd
+        UNION ALL
 
-    UNION ALL
+        /* ✅ 출고 (중복 제거: LOT별 대표 창고만 선택) */
+        SELECT 
+            rom.rel_dt AS regDt,
+            '출고' AS type,
+            b.pcode AS pCode,
+            b.prod_name AS prodName,
+            a.rel_qty AS qty,
+            rom.note,
+            e.ware_area_cd AS wareAreaCd,
+            e.qty AS stockQty
+        FROM prod_rel a
+        JOIN product b 
+          ON a.pcode = b.pcode 
+         AND a.prod_ver_cd = b.prod_ver_cd
+        JOIN release_ord d 
+          ON a.rel_ord_cd = d.rel_ord_cd
+        JOIN release_ord_master rom 
+          ON d.rel_mas_cd = rom.rel_mas_cd
+        JOIN prod_inbo f 
+          ON a.lot_no = f.lot_no
+         AND a.pcode = f.pcode
+         AND a.prod_ver_cd = f.prod_ver_cd
+        JOIN ware_stock e 
+          ON f.prod_inbo_cd = e.prod_inbo_cd
+         AND e.ware_area_cd = (
+              SELECT MIN(ws.ware_area_cd)
+              FROM ware_stock ws
+              WHERE ws.prod_inbo_cd = f.prod_inbo_cd
+         )
+    ) temp
 
-    SELECT 
-      rom.rel_dt AS regDt,
-      '출고' AS type,
-      b.pcode,
-      b.prod_name AS prodName,
-      a.rel_qty AS qty,
-      rom.note,
-      e.ware_area_cd AS wareAreaCd,
-      e.qty AS stockQty
-    FROM prod_rel a
-    JOIN product b ON a.pcode = b.pcode
-    JOIN release_ord d ON a.rel_ord_cd = d.rel_ord_cd
-    JOIN release_ord_master rom ON d.rel_mas_cd = rom.rel_mas_cd
-    JOIN prod_inbo f ON a.lot_no = f.lot_no
-    JOIN ware_stock e ON f.prod_inbo_cd = e.prod_inbo_cd
-  ) temp
-
-  <where>
-    <if test="prodName != null and prodName != ''">
-      AND temp.prodName LIKE '%' || #{prodName} || '%'
-    </if>
-    <if test="pCode != null and pCode != ''">
-      AND temp.pCode LIKE '%' || #{pCode} || '%'
-    </if>
-    <if test="wareAreaCd != null and wareAreaCd != ''">
-      AND temp.wareAreaCd LIKE '%' || #{wareAreaCd} || '%'
-    </if>
-    <if test="type != null and type != '전체'">
-      AND temp.type = #{type}
-    </if>
-    <if test="startDate != null and endDate != null">
-      AND temp.regDt BETWEEN #{startDate} AND #{endDate}
-    </if>
-  </where>
-
+    <where>
+        <if test="prodName != null and prodName != ''">
+            AND temp.prodName LIKE '%' || #{prodName} || '%'
+        </if>
+        <if test="pCode != null and pCode != ''">
+            AND temp.pCode LIKE '%' || #{pCode} || '%'
+        </if>
+        <if test="wareAreaCd != null and wareAreaCd != ''">
+            AND temp.wareAreaCd LIKE '%' || #{wareAreaCd} || '%'
+        </if>
+        <if test="type != null and type != '전체'">
+            AND temp.type = #{type}
+        </if>
+        <if test="startDate != null and endDate != null">
+            AND temp.regDt BETWEEN #{startDate} AND #{endDate}
+        </if>
+    </where>
 
     ORDER BY temp.regDt DESC, temp.type ASC
-  </select>
+</select>
 
   <!-- 출고지시서 조회 -->
 <select id="getRelOrdList" resultType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO" parameterType="com.kimbap.kbs.distribution.service.RelOrderAndResultVO">
