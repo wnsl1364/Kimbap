@@ -3,6 +3,7 @@ package com.kimbap.kbs.standard.serviceimpl;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class MatServiceImpl implements MatService {
         if (mat.getMateVerCd() == null || mat.getMateVerCd().isEmpty()) {
             mat.setMateVerCd("V001");
         }
-        
+
         // 4. 등록자 정보
         if (mat.getRegi() == null || mat.getRegi().isEmpty()) {
             mat.setRegi("admin");
@@ -78,7 +79,7 @@ public class MatServiceImpl implements MatService {
         System.out.println("등록되는 VO: " + mat);
 
         // ✅ 공급사 등록
-       // ✅ 공급사 등록
+        // ✅ 공급사 등록
         if (mat.getSuppliers() != null) {
             int index = matMapper.getSupplierCountByMcode(mcode); // 기존 등록 수
             for (MatSupplierVO supplier : mat.getSuppliers()) {
@@ -99,8 +100,11 @@ public class MatServiceImpl implements MatService {
     public Map<String, Object> getMaterialDetail(String mcode) {
         Map<String, Object> result = new HashMap<>();
 
-        MatVO material = matMapper.getMatDetail(mcode);
-        List<MatSupplierVO> suppliers = matMapper.getMatSuppliers(mcode);
+        MatVO material = matMapper.getMatDetail(mcode); // 여기서 mateVerCd도 나옴
+        List<MatSupplierVO> suppliers = matMapper.selectMatSuppliersByMaterial(
+                mcode,
+                material.getMateVerCd() // 버전 전달
+        );
 
         result.put("material", material);
         result.put("suppliers", suppliers);
@@ -114,74 +118,101 @@ public class MatServiceImpl implements MatService {
     }
 
     @Transactional
-    @Override
-    public void updateMaterial(MatVO newMat) {
-        // 1. 기존 최신 버전 조회
-        MatVO oldMat = matMapper.selectLatestVersion(newMat.getMcode());
-        if (oldMat == null) {
-            throw new RuntimeException("존재하지 않는 자재코드: " + newMat.getMcode());
+@Override
+public void updateMaterial(MatVO newMat) {
+    // 1. 기존 최신 버전 조회
+    MatVO oldMat = matMapper.selectLatestVersion(newMat.getMcode());
+    if (oldMat == null) {
+        throw new RuntimeException("존재하지 않는 자재코드: " + newMat.getMcode());
+    }
+
+    // 2. 기존 공급사 목록 조회
+    List<MatSupplierVO> oldSuppliers = matMapper.selectMatSuppliersByMaterial(
+            oldMat.getMcode(),
+            oldMat.getMateVerCd());
+
+    // 3. 변경 여부 판단
+    boolean isChanged = !Objects.equals(oldMat.getMateName(), newMat.getMateName()) ||
+            !Objects.equals(oldMat.getUnit(), newMat.getUnit()) ||
+            !Objects.equals(oldMat.getMoqty(), newMat.getMoqty()) ||
+            !Objects.equals(oldMat.getSafeStock(), newMat.getSafeStock()) ||
+            !Objects.equals(oldMat.getStd(), newMat.getStd()) ||
+            !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit()) ||
+            !Objects.equals(oldMat.getEdate(), newMat.getEdate());
+
+    boolean suppliersChanged = !isSameSuppliers(oldSuppliers, newMat.getSuppliers());
+
+    if (isChanged) {
+        // ✅ 기존 MATERIAL 비활성화
+        matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), "f2", oldMat.getModi());
+
+        // ✅ 기존 공급사 비활성화
+        matMapper.updateSupplierIsUsed(oldMat.getMcode(), oldMat.getMateVerCd(), "f2");
+
+        // ✅ 새 버전 생성
+        String nextVer = getNextVersion(oldMat.getMateVerCd());
+        newMat.setMateVerCd(nextVer);
+        newMat.setIsUsed("f1");
+        newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+        newMat.setModi(newMat.getModi());
+
+        // ✅ 부모 MATERIAL INSERT
+        matMapper.insertMat(newMat);
+
+        // ✅ 자식 테이블 버전 동기화
+        versionSyncService.syncMaterialVersion(newMat.getMcode(), oldMat.getMateVerCd(), nextVer);
+
+        // ✅ 공급사 등록
+        if (newMat.getSuppliers() != null && !newMat.getSuppliers().isEmpty()) {
+            insertSuppliers(newMat, nextVer); // insertSuppliers 안에서 is_used = f1 세팅
         }
 
-        // 2. 내용 변경 여부 판단 (is_used는 제외)
-        boolean isChanged =
-                !Objects.equals(oldMat.getMateName(), newMat.getMateName()) ||
-                !Objects.equals(oldMat.getUnit(), newMat.getUnit()) ||
-                !Objects.equals(oldMat.getMoqty(), newMat.getMoqty()) ||
-                !Objects.equals(oldMat.getSafeStock(), newMat.getSafeStock()) ||
-                !Objects.equals(oldMat.getStd(), newMat.getStd()) ||
-                !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit()) ||
-                !Objects.equals(oldMat.getEdate(), newMat.getEdate());
+    } else if (suppliersChanged) {
+        // ✅ 공급사만 변경 → 구버전은 그대로, 신규/변경 공급사 f1로 등록
+        matMapper.updateSupplierIsUsed(oldMat.getMcode(), oldMat.getMateVerCd(), "f2");
+        insertSuppliers(newMat, oldMat.getMateVerCd());
+    } else if (!Objects.equals(oldMat.getIsUsed(), newMat.getIsUsed())) {
+        // ✅ 사용여부만 변경
+        matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), newMat.getIsUsed(), newMat.getModi());
+    } else {
+        System.out.println("⚠️ 자재 정보 변경 없음, 처리 생략");
+    }
+}
 
-        if (isChanged) {
-            // ✅ 내용 변경 → 버전 증가
-            matMapper.disableOldVersion(newMat.getMcode());
+    // 공급사 동일 여부 비교 메서드
+    private boolean isSameSuppliers(List<MatSupplierVO> oldList, List<MatSupplierVO> newList) {
+        if (oldList == null)
+            oldList = Collections.emptyList();
+        if (newList == null)
+            newList = Collections.emptyList();
 
-            String nextVer = getNextVersion(oldMat.getMateVerCd());
-            newMat.setMateVerCd(nextVer);
-            newMat.setIsUsed("f1");
-            newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-            newMat.setModi(newMat.getModi());
+        if (oldList.size() != newList.size())
+            return false;
 
-            // ✅ 자재 INSERT
-            matMapper.insertMat(newMat);
+        // 공급사 식별키(예: cpCode) 기준으로 비교
+        for (int i = 0; i < oldList.size(); i++) {
+            MatSupplierVO oldSup = oldList.get(i);
+            MatSupplierVO newSup = newList.get(i);
 
-            // ✅ 자재버전 참조 중인 자식 테이블도 버전 업데이트
-            versionSyncService.syncMaterialVersion(
-                newMat.getMcode(),
-                oldMat.getMateVerCd(),
-                nextVer
-            );
+            if (!Objects.equals(oldSup.getCpCd(), newSup.getCpCd()))
+                return false;
+            if (!Objects.equals(oldSup.getLtime(), newSup.getLtime()))
+                return false;
+            // 필요시 다른 컬럼 비교 추가
+        }
+        return true;
+    }
 
-            // ✅ 공급처 처리
-            if (newMat.getSuppliers() != null && !newMat.getSuppliers().isEmpty()) {
-                // 1) 기존 공급처 삭제
-                matMapper.deleteMatSuppliersByMaterial(newMat.getMcode(), nextVer);
-
-                // 2) 신규 공급처 insert
-                int index = 1;
-                for (MatSupplierVO supplier : newMat.getSuppliers()) {
-                    supplier.setMcode(newMat.getMcode());
-                    supplier.setMateVerCd(nextVer);
-
-                    String mateCpCd = String.format("%s-%s-SUP-%02d", newMat.getMcode(), nextVer, index);
-                    supplier.setMateCpCd(mateCpCd);
-
-                    matMapper.insertMatSupplier(supplier);
-                    index++;
-                }
-            }
-
-        } else if (!Objects.equals(oldMat.getIsUsed(), newMat.getIsUsed())) {
-            // ✅ 사용여부만 변경됨 → update만
-            matMapper.updateIsUsedOnly(
-                oldMat.getMcode(),
-                oldMat.getMateVerCd(),
-                newMat.getIsUsed(),
-                newMat.getModi()
-            );
-        } else {
-            // ❌ 아무것도 안 바뀐 경우
-            System.out.println("⚠️ 자재 정보 변경 없음, 처리 생략");
+    // 공급사 INSERT 공통 처리
+    private void insertSuppliers(MatVO mat, String ver) {
+        int index = 1;
+        for (MatSupplierVO supplier : mat.getSuppliers()) {
+            supplier.setMcode(mat.getMcode());
+            supplier.setMateVerCd(ver);
+            String mateCpCd = String.format("%s-%s-SUP-%02d", mat.getMcode(), ver, index);
+            supplier.setMateCpCd(mateCpCd);
+            matMapper.insertMatSupplier(supplier);
+            index++;
         }
     }
 
@@ -206,37 +237,34 @@ public class MatServiceImpl implements MatService {
             // 🔻 공급처 변경 비교
             for (MatSupplierVO curr : currSuppliers) {
                 MatSupplierVO matchedPrev = prevSuppliers.stream()
-                    .filter(p -> p.getCpCd().equals(curr.getCpCd()))
-                    .findFirst()
-                    .orElse(null);
+                        .filter(p -> p.getCpCd().equals(curr.getCpCd()))
+                        .findFirst()
+                        .orElse(null);
 
                 if (matchedPrev == null) {
                     // 👉 신규 공급처 추가됨
                     changeItems.add(new ChangeItemVO(
-                        "공급처 추가",
-                        "-",
-                        curr.getCpName() + " (단가: " + curr.getUnitPrice() + ", 리드타임: " + curr.getLtime() + ")",
-                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
-                    ));
+                            "공급처 추가",
+                            "-",
+                            curr.getCpName() + " (단가: " + curr.getUnitPrice() + ", 리드타임: " + curr.getLtime() + ")",
+                            current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
                 } else {
                     // 👉 기존 공급처지만 단가 변경됨
                     if (!Objects.equals(curr.getUnitPrice(), matchedPrev.getUnitPrice())) {
                         changeItems.add(new ChangeItemVO(
-                            "공급처 단가 변경",
-                            matchedPrev.getCpName() + ": " + matchedPrev.getUnitPrice(),
-                            curr.getCpName() + ": " + curr.getUnitPrice(),
-                            current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
-                        ));
+                                "공급처 단가 변경",
+                                matchedPrev.getCpName() + ": " + matchedPrev.getUnitPrice(),
+                                curr.getCpName() + ": " + curr.getUnitPrice(),
+                                current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
                     }
 
                     // 👉 리드타임 변경됨
                     if (!Objects.equals(curr.getLtime(), matchedPrev.getLtime())) {
                         changeItems.add(new ChangeItemVO(
-                            "공급처 리드타임 변경",
-                            matchedPrev.getCpName() + ": " + matchedPrev.getLtime(),
-                            curr.getCpName() + ": " + curr.getLtime(),
-                            current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
-                        ));
+                                "공급처 리드타임 변경",
+                                matchedPrev.getCpName() + ": " + matchedPrev.getLtime(),
+                                curr.getCpName() + ": " + curr.getLtime(),
+                                current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
                     }
                 }
             }
@@ -244,15 +272,14 @@ public class MatServiceImpl implements MatService {
             // 🔻 이전에는 있었는데 지금은 사라진 공급처
             for (MatSupplierVO oldSup : prevSuppliers) {
                 boolean removed = currSuppliers.stream()
-                    .noneMatch(c -> c.getCpCd().equals(oldSup.getCpCd()));
+                        .noneMatch(c -> c.getCpCd().equals(oldSup.getCpCd()));
 
                 if (removed) {
                     changeItems.add(new ChangeItemVO(
-                        "공급처 삭제",
-                        oldSup.getCpName(),
-                        "-",
-                        current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()
-                    ));
+                            "공급처 삭제",
+                            oldSup.getCpName(),
+                            "-",
+                            current.getChaRea(), current.getMateVerCd(), current.getRegDt(), current.getModi()));
                 }
             }
 
@@ -298,11 +325,10 @@ public class MatServiceImpl implements MatService {
         if (!histories.isEmpty()) {
             MatVO first = histories.get(histories.size() - 1); // 마지막이 V001
             changeItems.add(new ChangeItemVO(
-                "-", "-", "-", "-", // 변경항목 없음
-                first.getMateVerCd(),
-                first.getRegDt(),
-                first.getModi()
-            ));
+                    "-", "-", "-", "-", // 변경항목 없음
+                    first.getMateVerCd(),
+                    first.getRegDt(),
+                    first.getModi()));
         }
 
         return changeItems;
@@ -315,4 +341,3 @@ public class MatServiceImpl implements MatService {
     }
 
 }
-    
