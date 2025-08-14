@@ -54,7 +54,7 @@ public class ProdServiceImpl implements ProdService{
 
         // 4. 등록자 정보 (임시)
         if (prod.getRegi() == null || prod.getRegi().isEmpty()) {
-            prod.setRegi("admin"); // TODO: 로그인 유저 세팅
+            prod.setRegi("admin");
         }
 
         // 5. 등록 수행
