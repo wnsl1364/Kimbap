@@ -213,6 +213,26 @@ const convertDetailUnitCodes = (list) => {
 const handleReset = async () => {
   condProdRequestList.value = [];
 };
+// 수량 포맷팅 함수 추가
+const formatQuantity = (qty) => {
+  if (!qty) return '0'
+  return Math.round(parseFloat(qty)).toLocaleString()
+}
+// 테이블 표시용 포맷팅된 데이터
+const formattedProdRequestList = computed(() => {
+  return condProdRequestList.value.map(item => ({
+    ...item,
+    sumReqQty: formatQuantity(item.sumReqQty)
+  }))
+})
+// 상세 데이터 포맷팅
+const formattedDetailList = computed(() => {
+  return detailList.value.map(item => ({
+    ...item,
+    reqQty: formatQuantity(item.reqQty) // planQty도 포맷팅 적용
+  }))
+})
+
 </script>
 <template>
   <div>
@@ -227,7 +247,7 @@ const handleReset = async () => {
     <!-- 검색 결과 테이블 표시 -->
     <StandartTable
       :title="'생산요청 제품 목록'"
-      :data="condProdRequestList"
+      :data="formattedProdRequestList"
       :columns="prodRequestColumns"
       dataKey="produReqCd"
       :height="'60vh'"
@@ -245,7 +265,7 @@ const handleReset = async () => {
     <ProdRequestDetailModal
       :visible="detailModalVisible"
       :title="`생산요청 상세 : ${selectedReqCd}`"
-      :detailList="detailList"
+      :detailList="formattedDetailList"
       :columns="detailColumns"
       @update:visible="detailModalVisible = $event"
     />
