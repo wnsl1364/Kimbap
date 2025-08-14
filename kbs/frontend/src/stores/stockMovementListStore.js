@@ -49,7 +49,6 @@ export const useStockMovementListStore = defineStore('stockMovementList', () => 
       type: 'dropdown',
       placeholder: '상태를 선택하세요',
       options: [
-        { label: '전체', value: '' },
         { label: '요청', value: 'd1' },
         { label: '승인', value: 'd2' },
         { label: '거절', value: 'd3' }
@@ -172,9 +171,18 @@ export const useStockMovementListStore = defineStore('stockMovementList', () => 
   const searchMoveRequests = async (searchParam) => {
     isLoading.value = true;
     try {
+      console.log('searchMoveRequests 호출:', searchParam);
+      console.log('searchParam.moveStatus:', searchParam.moveStatus);
+      console.log('searchParam.moveStatus 타입:', typeof searchParam.moveStatus);
+      console.log('searchParam.moveStatus === "":', searchParam.moveStatus === '');
+      
       const response = await searchMoveRequestList(searchParam);
       console.log('이동요청 검색 성공:', response.data);
+      console.log('응답 데이터 길이:', response.data?.length || 0);
+      
       moveRequestList.value = convertMoveRequestList(response.data);
+      console.log('변환된 moveRequestList 길이:', moveRequestList.value.length);
+      
       return response.data;
     } catch (error) {
       console.error('이동요청 검색 실패:', error);
