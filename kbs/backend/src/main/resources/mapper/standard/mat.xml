@@ -275,4 +275,29 @@
         WHERE mcode = #{mcode}
         AND mate_ver_cd = #{mateVerCd}
     </update>
+
+    <!-- 특정 자재코드 + 버전으로 사용 중인 공급사 목록 조회 -->
+    <select id="selectMatSuppliersByMaterial" 
+            resultType="com.kimbap.kbs.standard.service.MatSupplierVO">
+        SELECT  ms.mate_cp_cd,
+                ms.mcode,
+                ms.mate_ver_cd,
+                ms.cp_cd,
+                c.cp_name,
+                ms.unit_price,
+                ms.ltime
+        FROM    MATE_SUPPLIER ms
+        LEFT JOIN COMPANY c ON ms.cp_cd = c.cp_cd
+        WHERE   ms.mcode = #{mcode}
+        AND   ms.mate_ver_cd = #{mateVerCd}
+        AND   ms.is_used = 'f1'
+        ORDER BY ms.mate_cp_cd
+    </select>
+   
+
+    <update id="updateSupplierIsUsed">
+    UPDATE MATE_SUPPLIER
+    SET IS_USED = #{isUsed}
+    WHERE mcode = #{mcode} AND mate_ver_cd = #{mateVerCd}
+</update>
 </mapper>

@@ -17,10 +17,15 @@ public interface MatMapper  {
 	List<MatVO> selectMatHistory(String mcode); // 자재기준정보 이력조회
 	MatVO selectLatestVersion(String mcode); // 최신 버전 조회
 	int disableOldVersion(String mcode); // 기존 버전 비활성화
+	// ✅ 구버전 공급사 비활성화
+    void updateSupplierIsUsed(@Param("mcode") String mcode,
+                              @Param("mateVerCd") String mateVerCd,
+                              @Param("isUsed") String isUsed);
 	int getNextRawMaterialCodeBySeq();
 	int getNextSubMaterialCodeBySeq();
 	int getSupplierCountByMcode(String mcode); // 자재별공급사 코드
 	List<MatSupplierVO> selectAllSuppliersByMcode(String mcode); // 
 	void updateIsUsedOnly(String mcode, String mateVerCd, String isUsed, String modi);
 	void deleteMatSuppliersByMaterial(@Param("mcode") String mcode, @Param("mateVerCd") String mateVerCd);
+	List<MatSupplierVO> selectMatSuppliersByMaterial (@Param("mcode") String mcode, @Param("mateVerCd") String mateVerCd);
 }
