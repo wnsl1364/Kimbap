@@ -114,11 +114,11 @@ onBeforeMount(() => {
         { field: 'wcode', header: '창고코드' },
         { field: 'wareName', header: '창고명' },
         { field: 'wareType', header: '유형' },
-        { key: 'maxRow', label: '최대 행'},
-        { key: 'maxCol', label: '최대 열'},
-        { key: 'maxFloor', label: '최대 층'},
+        { field: 'maxRow', header: '최대 행'},
+        { field: 'maxCol', header: '최대 열'},
+        { field: 'maxFloor', header: '최대 층'},
         { field: 'address', header: '주소' },
-        { key: 'fcode', label: '공장명'},
+        { field: 'fcode', header: '공장명'},
     ]
 });
 

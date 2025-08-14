@@ -69,6 +69,7 @@ const changeColumns = [
     { field: 'changeReason', header: '변경사유' },
     { field: 'regDt', header: '등록일자' }
 ];
+const exportColumns = ref([]);
 
 // 함수 내용만 교체
 const fetchHistoryItems = async () => {
@@ -154,6 +155,17 @@ onBeforeMount(() => {
     inputFormButtons.value = {
         save: { show: isAdmin.value || isManager.value, label: '저장', severity: 'success' }
     };
+    exportColumns.value = [
+        { field: 'pcode', header: '제품코드' },
+        { field: 'prodName', header: '제품명' },
+        { field: 'unit', header: '단위' },
+        { field: 'wei', header: '중량' },
+        { field: 'edate', header: '소비기한(일)',},
+        { field: 'stoTemp', header: '보관온도' },
+        { field: 'safeStock', header: '안전재고',},
+        { field: 'primeCost', header: '원가(원)',},
+        { field: 'prodUnitPrice', header: '제품단가(원)',},
+    ]
 });
 
 // dropdown 한개인경우 자동선택
@@ -246,7 +258,7 @@ const handleSearch = async (searchData) => {
 
   // 조건 키: mcode, mateName, mateType, stoCon
   productList.value = productList.value.filter((item) => {
-    const matchPcode     = !searchData.pcode     || item.pcode?.toLowerCase().includes(searchData.pcode);
+    const matchPcode     = !searchData.pcode     || item.pcode?.toLowerCase().includes(searchData.pcode.toLowerCase());
     const matchProdName  = !searchData.prodName  || item.prodName?.includes(searchData.prodName);
     const matchWei  = !searchData.wei  || item.wei === searchData.wei;
 
@@ -290,6 +302,7 @@ const handleSearch = async (searchData) => {
                 scrollHeight="470px"
                 :showRowCount="true"
                 :showExcelDownload="true"
+                :exportColumns="exportColumns"
                 height="560px"
             />
         </div>
