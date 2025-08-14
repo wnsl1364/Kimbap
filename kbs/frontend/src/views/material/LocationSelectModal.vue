@@ -481,10 +481,10 @@ watch(() => props.loadingQuantity, (newQty) => {
         v-model:visible="modalVisible"
         modal
         header="창고 구역 선택"
-        :style="{ width: '95vw', maxWidth: '1400px', height: '90vh' }"
+        :style="{ width: '95vw', maxWidth: '1400px' }"
         :closable="true"
     >
-        <div class="flex h-[calc(90vh-120px)] gap-4">
+        <div class="flex flex-col gap-4 max-h-[calc(85vh-200px)]">
             <!-- 왼쪽: 정보 패널 -->
             <div class="w-80 flex-shrink-0 space-y-4 overflow-y-auto">
                 <!-- 자재 정보 -->
