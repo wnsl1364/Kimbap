@@ -3,6 +3,7 @@ package com.kimbap.kbs.simjaejine.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.kimbap.kbs.simjaejine.service.EmpCpCheckVO;
 import com.kimbap.kbs.simjaejine.service.LoginSecurityVO;
@@ -39,5 +40,5 @@ public interface MemberMapper {
 	int idCheck(String id);
 
   // 🔽 권한(role) 리스트 조회
-  List<String> selectRolesByMemberId(String memCd);
+  List<String> selectRolesByMemberId(@Param("username") String username);
 }
