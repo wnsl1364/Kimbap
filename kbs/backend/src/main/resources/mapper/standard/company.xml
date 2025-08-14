@@ -183,4 +183,12 @@
         WHERE       cp_type = 'j2'
         ORDER BY    cp_cd
     </select>
+
+    <select id="getNextSupCompanyCodeBySeq" resultType="int">
+    SELECT SEQ_COMPANY_SUP.NEXTVAL FROM DUAL
+    </select>
+
+    <select id="getNextSalCompanyCodeBySeq" resultType="int">
+        SELECT SEQ_COMPANY_SAL.NEXTVAL FROM DUAL
+    </select>
 </mapper>
