@@ -798,9 +798,6 @@ watch(itemTableData, () => {
 .mb-6 {
  margin-bottom: 1.5rem;
 }
-</style>
-
-<style>
 .p-dialog-mask .p-dialog {
   width: 90vw !important;
   max-width: 1200px !important;
@@ -811,5 +808,5 @@ watch(itemTableData, () => {
   overflow: auto !important;
 }
 
-/* 전역 테이블 높이 강제 제거: 개별 컴포넌트에서 scrollHeight로 제어 */
 </style>
+
