@@ -124,15 +124,19 @@ export const useRelsaveStore = defineStore('relsave', () => {
     }
   }
 
-  // ===== LOT별 수량(잔여 포함) 화면용 =====
-  const allocationRows = computed(() =>
-    allocations.value.map(a => {
-      const stock = lotStockMap.value.get(a.lotNo)
-      const totalForLot = getAllocatedQtyByLot(a.lotNo)
-      const remainQty = stock ? Math.max(0, Number(stock.qty) - totalForLot) : ''
-      return { ...a, remainQty }
-    })
-  )
+// ===== LOT별 수량(잔여 포함) 화면용 =====
+const allocationRows = computed(() =>
+  allocations.value.map(a => {
+    const stock = lotStockMap.value.get(a.lotNo);
+    const totalForLot = getAllocatedQtyByLot(a.lotNo);
+    const remainQtyRaw = stock ? Math.max(0, Number(stock.qty) - totalForLot) : '';
+    
+    // remainQty를 10으로 나눈 뒤 반내림
+    const remainQty = remainQtyRaw !== '' ? Math.floor(remainQtyRaw / 40) : '';
+
+    return { ...a, remainQty };
+  })
+);
 
   // ===== 초기화/검증/저장 보조 =====
   const clearAllocations = () => { allocations.value = [] }
