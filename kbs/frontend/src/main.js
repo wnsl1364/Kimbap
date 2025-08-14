@@ -18,6 +18,7 @@ import ToastService from 'primevue/toastservice';
 
 import 'primeicons/primeicons.css';
 import 'primevue/resources/primevue.min.css'; 
+import '@/assets/styles.scss';
 
 const additionalCSS = `
 <style id="primevue-zindex-fix">
@@ -43,7 +44,6 @@ if (typeof document !== 'undefined') {
   document.head.insertAdjacentHTML('beforeend', additionalCSS);
 }
 
-import '@/assets/styles.scss';
 
 const app = createApp(App);
 
