@@ -93,18 +93,25 @@ const loadInitialData = async () => {
 const handleSearch = async (searchData) => {
   try {
     console.log('검색 조건:', searchData);
+    console.log('검색 조건의 moveStatus:', searchData.moveStatus);
+    console.log('moveStatus 타입:', typeof searchData.moveStatus);
     stockMovementListStore.setSearchFilter(searchData);
 
     // 서버 검색 호출 (상태별)
     const param = { ...searchData };
     // dateRange 컴포넌트에서 startDate/endDate 로 넘어오지 않는다면 필요한 매핑 추가 가능
-    await stockMovementListStore.searchMoveRequests({
+    const searchParam = {
       moveReqCd: param.moveReqCd || '',
       requName: param.requName || '',
-      moveStatus: param.moveStatus ?? '', // '' == 전체
+      moveStatus: param.moveStatus || '', // 선택된 상태만
       startDate: param.startDate || param.reqDt?.[0] || '',
       endDate: param.endDate || param.reqDt?.[1] || ''
-    });
+    };
+    
+    console.log('API 호출 파라미터:', searchParam);
+    console.log('API 호출 파라미터 moveStatus:', searchParam.moveStatus);
+    
+    await stockMovementListStore.searchMoveRequests(searchParam);
 
     toast.add({
       severity: 'success',

@@ -110,7 +110,6 @@
         FROM move_req mr
         LEFT JOIN employee e1 ON mr.requ = e1.emp_cd
         LEFT JOIN employee e2 ON mr.appr = e2.emp_cd
-        WHERE mr.move_status = 'd1'
         ORDER BY mr.req_dt DESC, mr.move_req_cd DESC
     </select>
 
@@ -127,11 +126,29 @@
             mr.appr,
             mr.app_dt,
             mr.retu_rea,
-            mr.note
+            mr.note,
+            e1.emp_name as requ_name,
+            e2.emp_name as appr_name,
+            CASE mr.move_type
+                WHEN 'z1' THEN '내부이동'
+                WHEN 'z2' THEN '외부이동'
+                ELSE mr.move_type
+            END as move_type_text,
+            CASE mr.move_status
+                WHEN 'd1' THEN '요청'
+                WHEN 'd2' THEN '승인'
+                WHEN 'd3' THEN '거절'
+                ELSE mr.move_status
+            END as move_status_text
         FROM move_req mr
+        LEFT JOIN employee e1 ON mr.requ = e1.emp_cd
+        LEFT JOIN employee e2 ON mr.appr = e2.emp_cd
         WHERE 1=1
         <if test="moveReqCd != null and moveReqCd != ''">
             AND mr.move_req_cd LIKE '%' || #{moveReqCd} || '%'
+        </if>
+        <if test="requName != null and requName != ''">
+            AND e1.emp_name LIKE '%' || #{requName} || '%'
         </if>
         <if test="requ != null and requ != ''">
             AND mr.requ = #{requ}
