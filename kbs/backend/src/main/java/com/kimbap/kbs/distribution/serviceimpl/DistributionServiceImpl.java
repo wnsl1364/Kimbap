@@ -121,26 +121,64 @@ public class DistributionServiceImpl implements DistributionService {
             String prodVerCd = distributionMapper.selectLatestProdVerCd(item.getPcode());
 
             for (var lot : item.getLots()) {
-                Integer curr = distributionMapper.selectLotQtyForUpdate(lot.getLotNo(), lot.getWareAreaCd());
-                if (curr == null || curr < lot.getAllocQty()) {
-                    throw new IllegalStateException("LOT " + lot.getLotNo() + " 재고부족");
-                }
+    final String lotNo = lot.getLotNo();
+    final String area  = lot.getWareAreaCd();
+    int need = lot.getAllocQty();
 
-                String prodRelCd = distributionMapper.nextProdRelCd();
-                distributionMapper.insertProdRel(
-                        prodRelCd,
-                        lot.getLotNo(),
-                        lot.getAllocQty(),
-                        item.getRelOrdCd(),
-                        item.getOrd_d_cd(),
-                        item.getPcode(),
-                        prodVerCd);
+    // 1) 관련 재고행 전부 잠금(ROWID, QTY) — FIFO/LIFO는 XML의 ORDER BY로 제어
+    java.util.List<java.util.Map<String, Object>> rows =
+        distributionMapper.selectLotQtyRowsForUpdate(lotNo, area);
+    if (rows == null || rows.isEmpty()) {
+        throw new IllegalStateException("LOT " + lotNo + " / " + area + " 재고가 없습니다.");
+    }
 
-                distributionMapper.decreaseLotQty(lot.getLotNo(), lot.getWareAreaCd(), lot.getAllocQty());
+    // 2) 합계 수량 검증
+    int totalQty = 0;
+    for (var r : rows) {
+        Number q = (Number)(r.get("QTY") != null ? r.get("QTY") : r.get("qty")); // 컬럼명 대/소문자 모두 대비
+        totalQty += (q == null ? 0 : q.intValue());
+    }
+    if (totalQty < need) {
+        throw new IllegalStateException("LOT " + lotNo + " / " + area + " 재고부족(필요 " + need + ", 보유 " + totalQty + ")");
+    }
 
-                requestTotal = requestTotal.add(
-                        unitPrice.multiply(java.math.BigDecimal.valueOf(lot.getAllocQty())));
-            }
+    // 3) prod_rel 한 행 INSERT (이번 lot에 대한 출고수량 전체)
+    String prodRelCd = distributionMapper.nextProdRelCd();
+    distributionMapper.insertProdRel(
+            prodRelCd,
+            lotNo,
+            need,
+            item.getRelOrdCd(),
+            item.getOrd_d_cd(),
+            item.getPcode(),
+            prodVerCd);
+
+    // 4) ROWID 기준 분배 차감
+    int remain = need;
+    for (var r : rows) {
+        if (remain <= 0) break;
+
+        String rid = String.valueOf(r.get("RID") != null ? r.get("RID") : r.get("rid"));
+        Number qn = (Number)(r.get("QTY") != null ? r.get("QTY") : r.get("qty"));
+        int rowQty = (qn == null ? 0 : qn.intValue());
+        if (rowQty <= 0) continue;
+
+        int dec = Math.min(rowQty, remain);
+        int updated = distributionMapper.decreaseLotQtyByRowId(rid, dec);
+        if (updated != 1) {
+            throw new IllegalStateException("재고 차감 실패(동시성 가능). RID=" + rid);
+        }
+        remain -= dec;
+    }
+    if (remain != 0) {
+        throw new IllegalStateException("분배 차감 잔여가 0이 아닙니다. remain=" + remain);
+    }
+
+    // 5) 금액 누적
+    requestTotal = requestTotal.add(
+            unitPrice.multiply(java.math.BigDecimal.valueOf(need)));
+}
+
             // ✅ 이 라인(주문상세)이 전량 출고됐는지 확인 후, 전량이면 t3로 상태 변경
             int ordered = distributionMapper.selectOrderQtyByOrdDCd(item.getOrd_d_cd()); // 주문수량
             int released = distributionMapper.sumReleasedQtyByOrdDCd(item.getOrd_d_cd()); // 누적 실제 출고

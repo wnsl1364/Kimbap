@@ -509,25 +509,22 @@ INSERT INTO release_ord_master (
 </select>
 
 
-<select id="selectLotQtyForUpdate" resultType="int">
-  SELECT ws.qty
-    FROM ware_stock ws
-    JOIN prod_inbo pi
-      ON ws.prod_inbo_cd = pi.prod_inbo_cd
-   WHERE pi.lot_no = #{lotNo}
-     AND ws.ware_area_cd = #{wareAreaCd}
-   FOR UPDATE
+<!-- 여러 재고행 잠금: 최신 LOT부터 소진하려면 DESC, FIFO면 ASC -->
+<select id="selectLotQtyRowsForUpdate" resultType="map">
+  SELECT ws.rowid AS rid, ws.qty
+  FROM ware_stock ws
+  JOIN prod_inbo pi ON ws.prod_inbo_cd = pi.prod_inbo_cd
+  WHERE pi.lot_no = #{lotNo}
+    AND ws.ware_area_cd = #{wareAreaCd}
+  ORDER BY pi.inbo_dt DESC  <!-- LIFO(최신부터). FIFO면 ASC로 바꾸세요 -->
+  FOR UPDATE
 </select>
 
-<update id="decreaseLotQty">
-  UPDATE ware_stock ws
-     SET ws.qty = ws.qty - #{qty}
-   WHERE ws.ware_area_cd = #{wareAreaCd}
-     AND ws.prod_inbo_cd IN (
-           SELECT pi.prod_inbo_cd
-             FROM prod_inbo pi
-            WHERE pi.lot_no = #{lotNo}
-         )
+<!-- ROWID 단위 분배 차감 -->
+<update id="decreaseLotQtyByRowId">
+  UPDATE ware_stock
+     SET qty = qty - #{qty}
+   WHERE rowid = #{rid}
 </update>
 
 <select id="selectUnitPriceByOrdDCd" resultType="java.math.BigDecimal">
