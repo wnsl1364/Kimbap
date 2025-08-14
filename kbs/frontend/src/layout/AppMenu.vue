@@ -179,7 +179,7 @@ const model = ref([
                 {
                     label: '자재 적재 대기 목록',
                     to: '/material/mateLoading',
-                    teams: ['DEPT-4-1', 'DEPT-1-2']
+                    teams: ['DEPT-5-1']
                 },
                 {
                     label: '자재 이동 요청 등록',

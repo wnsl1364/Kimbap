@@ -1,6 +1,7 @@
 package com.kimbap.kbs.distribution.mapper;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -60,13 +61,11 @@ public interface DistributionMapper {
   String nextProdRelCd();
 
   // 재고 잠금 & 차감
-  Integer selectLotQtyForUpdate(@Param("lotNo") String lotNo,
-                                @Param("wareAreaCd") String wareAreaCd);
+List<Map<String, Object>> selectLotQtyRowsForUpdate(@Param("lotNo") String lotNo,
+                                                    @Param("wareAreaCd") String wareAreaCd);
 
-  int decreaseLotQty(@Param("lotNo") String lotNo,
-                   @Param("wareAreaCd") String wareAreaCd,
-                   @Param("qty") Integer qty);
-
+int decreaseLotQtyByRowId(@Param("rid") String rid,
+                          @Param("qty") Integer qty);
   // 지시 상태 갱신 및 합계
   int updateRelOrderStatus(@Param("relMasCd") String relMasCd,
       @Param("status") String status);
