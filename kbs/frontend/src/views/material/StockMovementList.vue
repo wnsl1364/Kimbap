@@ -93,9 +93,19 @@ const loadInitialData = async () => {
 const handleSearch = async (searchData) => {
   try {
     console.log('검색 조건:', searchData);
-    
     stockMovementListStore.setSearchFilter(searchData);
-    
+
+    // 서버 검색 호출 (상태별)
+    const param = { ...searchData };
+    // dateRange 컴포넌트에서 startDate/endDate 로 넘어오지 않는다면 필요한 매핑 추가 가능
+    await stockMovementListStore.searchMoveRequests({
+      moveReqCd: param.moveReqCd || '',
+      requName: param.requName || '',
+      moveStatus: param.moveStatus ?? '', // '' == 전체
+      startDate: param.startDate || param.reqDt?.[0] || '',
+      endDate: param.endDate || param.reqDt?.[1] || ''
+    });
+
     toast.add({
       severity: 'success',
       summary: '검색 완료',
@@ -242,8 +252,12 @@ const handleApprove = async () => {
       life: 3000
     });
     
-    // 승인 후 데이터 갱신
+    // 승인 후 데이터 갱신 (전체 재조회)
     await loadInitialData();
+    // 기존 필터가 요청(d1)만 볼 때 승인되어 사라졌다고 느끼지 않도록 자동으로 전체로 전환
+    if (searchFilter.value.moveStatus === 'd1') {
+      stockMovementListStore.setSearchFilter({ ...searchFilter.value, moveStatus: '' });
+    }
     initializeApproverData();
     
   } catch (error) {
@@ -307,6 +321,9 @@ const handleReject = async () => {
     
     // 거절 후 데이터 갱신
     await loadInitialData();
+    if (searchFilter.value.moveStatus === 'd1') {
+      stockMovementListStore.setSearchFilter({ ...searchFilter.value, moveStatus: '' });
+    }
     initializeApproverData();
     
   } catch (error) {

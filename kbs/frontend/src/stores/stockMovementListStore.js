@@ -17,7 +17,8 @@ export const useStockMovementListStore = defineStore('stockMovementList', () => 
   const selectedMoveRequest = ref(null);     // 선택된 이동요청
   const moveRequestDetails = ref([]);        // 이동요청 상세 목록
   const isLoading = ref(false);              // 로딩 상태
-  const searchFilter = ref({});              // 검색 필터
+  // 검색 필터 (moveStatus: '' => 전체)
+  const searchFilter = ref({ moveStatus: '' });              // 검색 필터 기본값: 전체
   
   // ========== UI 설정 ==========
   
@@ -144,11 +145,20 @@ export const useStockMovementListStore = defineStore('stockMovementList', () => 
 
   // 이동요청 목록 조회
   const fetchMoveRequestList = async () => {
+    // 전체 상태 포함(요청/승인/거절) 목록 조회: 검색 API 이용 (moveStatus: '')
     isLoading.value = true;
     try {
-      const response = await getAllMoveRequestList();
-      console.log('이동요청 목록 조회 성공:', response.data);
-      moveRequestList.value = convertMoveRequestList(response.data);
+      let response;
+      try {
+        response = await searchMoveRequestList({ moveStatus: '' });
+        console.log('이동요청 목록(전체 상태) 조회 성공(search):', response.data);
+      } catch (e) {
+        // 혹시 search API 미구현/에러 시 기존 전체 조회 API fallback
+        console.warn('searchMoveRequestList 실패, getAllMoveRequestList fallback 시도:', e?.message);
+        response = await getAllMoveRequestList();
+        console.log('이동요청 목록 조회 성공(fallback list):', response.data);
+      }
+      moveRequestList.value = convertMoveRequestList(response.data || []);
       return response.data;
     } catch (error) {
       console.error('이동요청 목록 조회 실패:', error);
@@ -305,12 +315,15 @@ export const useStockMovementListStore = defineStore('stockMovementList', () => 
 
   // 검색 필터 설정
   const setSearchFilter = (filter) => {
-    searchFilter.value = { ...filter };
+    // moveStatus 미설정(null/undefined) -> '' (전체)
+    const normalized = { ...filter };
+    if (normalized.moveStatus == null) normalized.moveStatus = '';
+    searchFilter.value = normalized;
   };
 
   // 검색 필터 초기화
   const clearSearchFilter = () => {
-    searchFilter.value = {};
+    searchFilter.value = { moveStatus: '' }; // 초기화 시 전체
   };
 
   // 선택된 이동요청 설정
