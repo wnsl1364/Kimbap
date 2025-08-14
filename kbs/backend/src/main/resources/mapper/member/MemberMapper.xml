@@ -48,11 +48,11 @@
       a.id = #{id}
 </select>
 
-<select id="selectRolesByMemberId" parameterType="String" resultType="String"> <!-- 권한 -->
-    SELECT a.role_cd
-    FROM member_role b
-    JOIN role a ON b.role_cd = a.role_cd
-    WHERE b.mem_cd = #{memCd}
+<select id="selectRolesByMemberId" parameterType="string" resultType="string">
+  SELECT mr.role_cd
+  FROM member m
+  JOIN member_role mr ON mr.mem_cd = m.mem_cd
+  WHERE m.id = #{username}
 </select>
 
 <update id="recentLogin" parameterType="LoginSecurityVO"> <!-- 최근 로그인ㅇ -->
