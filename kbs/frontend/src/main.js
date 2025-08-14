@@ -16,8 +16,6 @@ import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
 
-import 'primeicons/primeicons.css';
-import 'primevue/resources/primevue.min.css'; 
 import '@/assets/styles.scss';
 
 const additionalCSS = `
