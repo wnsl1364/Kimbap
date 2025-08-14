@@ -19,6 +19,30 @@ import ToastService from 'primevue/toastservice';
 import 'primeicons/primeicons.css';
 import 'primevue/resources/primevue.min.css'; 
 
+const additionalCSS = `
+<style id="primevue-zindex-fix">
+.p-dialog-mask {
+  z-index: 9999 !important;
+}
+.p-dialog {
+  z-index: 10000 !important;
+}
+.p-dropdown-panel,
+.p-calendar-panel,
+.p-multiselect-panel {
+  z-index: 10001 !important;
+}
+.p-toast {
+  z-index: 10002 !important;
+}
+</style>
+`;
+
+// CSS 주입
+if (typeof document !== 'undefined') {
+  document.head.insertAdjacentHTML('beforeend', additionalCSS);
+}
+
 import '@/assets/styles.scss';
 
 const app = createApp(App);
