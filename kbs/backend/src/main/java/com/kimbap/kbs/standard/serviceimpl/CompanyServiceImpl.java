@@ -35,47 +35,37 @@ public class CompanyServiceImpl implements CompanyService {
         return companyMapper.getSalesList();
     }
     
-    @Transactional
+   @Transactional
     @Override
     public void insertCp(CompanyVO cp) {
-        // 1. 시퀀스를 이용한 거래처 코드 생성
-        int next = companyMapper.getNextRawCompanyCodeBySeq();
         String cpCd;
-
-        // 거래처 유형에 따라 코드 생성
-        String cpType = cp.getCpType(); // 예: "j1", "j2"
+        String cpType = cp.getCpType(); // j1, j2
 
         if ("j1".equalsIgnoreCase(cpType)) {
+            int next = companyMapper.getNextSupCompanyCodeBySeq();
             if (next > 99) {
-                throw new RuntimeException("j1 코드 범위 초과 (CP-006 ~ CP-099)");
+                throw new RuntimeException("j1 코드 범위 초과 (001 ~ 099)");
             }
-            cpCd = String.format("CP-%03d", next); // 예: CP-006, CP-007, ...
+            cpCd = String.format("CP-%03d", next);
         } else if ("j2".equalsIgnoreCase(cpType)) {
-            int j2Code = next + 100;
-            if (j2Code > 199) {
-                throw new RuntimeException("j2 코드 범위 초과 (CP-106 ~ CP-199)");
+            int next = companyMapper.getNextSalCompanyCodeBySeq();
+            if (next > 199) {
+                throw new RuntimeException("j2 코드 범위 초과 (101 ~ 199)");
             }
-            cpCd = String.format("CP-%03d", j2Code); // 예: CP-106, CP-107, ...
+            cpCd = String.format("CP-%03d", next);
         } else {
             throw new RuntimeException("지원하지 않는 거래처 유형: " + cpType);
         }
 
-        System.out.println("생성된 cpCd: " + cpCd);
-
-        // 2. 중복 여부 확인
+        // 중복 체크
         if (companyMapper.existsCpcode(cpCd) > 0) {
             throw new RuntimeException("이미 존재하는 거래처 코드: " + cpCd);
         }
 
-        // 3. 거래처 코드 & 기본 버전 설정
         cp.setCpCd(cpCd);
-
-        // 4. 등록자 정보
         if (cp.getRegi() == null || cp.getRegi().isEmpty()) {
             cp.setRegi("admin");
         }
-
-        // 5. 등록 수행
         companyMapper.insertCp(cp);
         System.out.println("등록되는 VO : " + cp);
     }

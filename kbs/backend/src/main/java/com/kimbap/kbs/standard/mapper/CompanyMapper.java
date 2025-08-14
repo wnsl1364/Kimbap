@@ -10,8 +10,9 @@ public interface CompanyMapper {
     void updateCp(CompanyVO cp); // 거래처 수정
     CompanyVO getCpDetail(String cpCd); // 거래처 단건조회
     int existsCpcode(String cpCd);  // 거래처코드 존재 여부 확인
-    int getNextRawCompanyCodeBySeq(); // 시퀀스 
     List<CompanyVO> getSupplierList(); // 공급업체 목록 조회
     List<CompanyVO> getSalesList(); // 매출업체 목록 조회
     List<CompanyVO> selectCustomerOutstanding(); // 거래처 미수금 내역 조회
+    int getNextSupCompanyCodeBySeq(); // 공급업체용
+    int getNextSalCompanyCodeBySeq(); // 매출업체용
 }
