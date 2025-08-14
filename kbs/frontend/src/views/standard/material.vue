@@ -318,7 +318,7 @@ const handleSearch = async (searchData) => {
 
   // 조건 키: mcode, mateName, mateType, stoCon
   materialList.value = materialList.value.filter((item) => {
-    const matchMcode     = !searchData.mcode     || item.mcode?.toLowerCase().includes(searchData.mcode);
+    const matchMcode     = !searchData.mcode     || item.mcode?.toLowerCase().includes(searchData.mcode.toLowerCase());
     const matchMateName  = !searchData.mateName  || item.mateName?.includes(searchData.mateName);
     const matchMateType  = !searchData.mateType  || item.mateType === searchData.mateType;
     const matchStoCon    = !searchData.stoCon    || item.stoCon === searchData.stoCon;
