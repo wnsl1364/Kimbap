@@ -88,14 +88,14 @@ const formatDate = (date) => {
 
 // 금액 포맷팅
 const formatCurrency = (amount) => {
-  if (!amount) return '0'
-  return parseFloat(amount).toLocaleString() + '원'
+  if (!amount) return '0원'
+  return Math.round(parseFloat(amount)).toLocaleString() + '원'
 }
 
 // 수량 포맷팅
 const formatQuantity = (qty, unit) => {
   if (!qty) return '0'
-  return parseFloat(qty).toFixed(2) + (unit ? ` ${unit}` : '')
+  return Math.round(parseFloat(qty)).toLocaleString() + (unit ? ` ${unit}` : '')
 }
 </script>
 
@@ -142,7 +142,7 @@ const formatQuantity = (qty, unit) => {
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">총 부족 수량:</span>
-                <span class="font-semibold">{{ mrpSummary.totalRequiredQty }}</span>
+                <span class="font-semibold">{{ formatQuantity(mrpSummary.totalRequiredQty) }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">MRP 생성일:</span>
@@ -168,7 +168,7 @@ const formatQuantity = (qty, unit) => {
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">총 발주 수량:</span>
-                <span class="font-semibold">{{ purchaseOrderSummary.totalQty }}</span>
+                <span class="font-semibold">{{ formatQuantity(purchaseOrderSummary.totalQty) }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">총 발주 금액:</span>
