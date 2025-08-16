@@ -154,17 +154,17 @@ const handleDataChange = (newData) => {
     // 구역 선택 후 전체 목록이 손실되는 문제 방지
 };
 
-// 🔥 체크박스 선택 변경 처리 (InputTable에서 호출)
+// 체크박스 선택 변경 처리 (InputTable에서 호출)
 const handleSelectionChange = (newSelection) => {
     selectedItems.value = newSelection || [];
     
-    // 🔥 store에도 즉시 반영
+    // store에도 즉시 반영
     mateLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
 };
 
 //  구역선택 버튼 클릭 처리 (신규)
 const handleLocationSelect = (rowData) => {
-    // ✅ 먼저 체크박스로 선택했는지 확인 (InputTable 수정 없이 동작 제어)
+    // 먼저 체크박스로 선택했는지 확인 (InputTable 수정 없이 동작 제어)
     const isSelected = selectedItems.value.some(item => item.mateInboCd === rowData.mateInboCd);
     if (!isSelected) {
         toast.add({
@@ -201,15 +201,15 @@ const handleLocationSelect = (rowData) => {
     // 선택된 자재 정보 설정
     currentSelectedMaterial.value = {
         ...rowData,
-        // 🔥 모달에서 사용할 총 수량을 사용자가 입력한 적재 수량으로 설정
+        // 모달에서 사용할 총 수량을 사용자가 입력한 적재 수량으로 설정
         totalQty: rowData.qty,
-        // 🔥 분할적재 지원: 이미 할당된 수량이 있으면 전달
+        // 분할적재 지원: 이미 할당된 수량이 있으면 전달
         existingAllocated: rowData.totalAllocated || 0,
         existingPlacementPlan: rowData.placementPlan || [],
         // 공통코드 원본값으로 변환 (API 호출용)
         stoCon: getOriginalStoConCode(rowData.stoCon),
         unit: getOriginalUnitCode(rowData.unit),
-        // 🔥 입고코드 추가 (동일 자재 구분용)
+        // 입고코드 추가 (동일 자재 구분용)
         mateInboCd: rowData.mateInboCd,
         mcode: rowData.mcode
     };
@@ -233,7 +233,7 @@ const getOriginalUnitCode = (displayValue) => {
     return found ? found.dcd : displayValue;
 };
 
-// 🔥 창고 구역 선택 확인 처리 (신규)
+// 창고 구역 선택 확인 처리 (신규)
 const handleWarehouseAreaConfirm = (selectionData) => {
     try {
         // 선택된 적재 계획을 현재 자재에 저장
@@ -247,7 +247,7 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                 material.placementPlan = selectionData.placementPlan;
                 material.totalAllocated = selectionData.totalAllocated;
                 material.remainingQty = selectionData.remainingQty;
-                // 🔥 사용자가 모달에서 입력한 수량도 저장
+                // 사용자가 모달에서 입력한 수량도 저장
                 material.userInputQty = selectionData.userInputQty;
                 
                 // Store가 기대하는 wareAreaCd 필드도 설정 (첫 번째 구역을 대표로)
@@ -268,7 +268,7 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                     }))
                 };
                 
-                // 🔥 자동 체크박스 선택 기능 제거 - 구역 정보만 업데이트
+                // 자동 체크박스 선택 기능 제거 - 구역 정보만 업데이트
                 // 이미 선택된 자재가 있는 경우에만 해당 자재의 구역 정보를 업데이트
                 const existingSelectedIndex = selectedItems.value.findIndex(item => 
                     item.mateInboCd === material.mateInboCd
@@ -293,7 +293,7 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                         // 이미 선택되어 있는 경우에만 해당 항목을 업데이트
                         selectedItems.value[existingSelectedIndex] = { ...convertedMaterial };
                         
-                        // 🔥 store에도 즉시 반영 (이미 선택된 자재만)
+                        // store에도 즉시 반영 (이미 선택된 자재만)
                         mateLoadingStore.setSelectedMateLoadings([...selectedItems.value]);
                     }
                 }
@@ -323,7 +323,7 @@ const handleWarehouseAreaConfirm = (selectionData) => {
 
 // 적재처리 버튼 클릭
 const handleProcessLoading = async () => {
-    // 🔥 체크박스가 체크된 자재가 없는 경우 우선 체크
+    // 체크박스가 체크된 자재가 없는 경우 우선 체크
     if (!selectedItems.value || selectedItems.value.length === 0) {
         toast.add({
             severity: 'warn',
@@ -335,7 +335,7 @@ const handleProcessLoading = async () => {
     }
 
     try {
-        // 🔥 선택된 자재들 중 구역이 설정되지 않은 자재 확인
+        // 선택된 자재들 중 구역이 설정되지 않은 자재 확인
         const itemsWithoutArea = selectedItems.value.filter(item => 
             !(item.wareAreaCd && item.wareAreaCd.trim() !== '') &&
             !(item.placementPlan && item.placementPlan.length > 0)
@@ -375,25 +375,34 @@ const handleProcessLoading = async () => {
         // 다중 적재 처리 실행
         const result = await mateLoadingStore.processBatchLoading();
         
-        // 🔥 결과에 따른 토스트 메시지 (부분/완전 적재 구분)
-        if (result.skippedCount > 0 || result.partiallyProcessedCount > 0) {
+        //  store에서 이미 생성된 메시지를 그대로 사용
+        const message = result.message || '적재 처리가 완료되었습니다.';
+        const skippedCount = result.skippedCount || 0;
+        const partiallyCount = result.partiallyProcessedCount || 0;
+        
+        //  적재 처리 후 반드시 목록 새로고침 먼저 실행
+        await mateLoadingStore.fetchMateLoadingList();
+        
+        //  새로고침 후 선택 항목 완전 초기화
+        selectedItems.value = [];
+        mateLoadingStore.setSelectedMateLoadings([]);
+        
+        //  결과에 따른 토스트 메시지 (부분/완전 적재 구분)
+        if (skippedCount > 0 || partiallyCount > 0) {
             toast.add({
                 severity: 'warn', 
                 summary: '적재 처리 완료',
-                detail: result.message,
+                detail: message,
                 life: 5000
             });
         } else {
             toast.add({
                 severity: 'success',
                 summary: '적재 처리 완료',
-                detail: result.message,
+                detail: message,
                 life: 3000
             });
         }
-        
-        // 처리 완료 후 선택 항목 초기화
-        selectedItems.value = [];
         
     } catch (error) {
         toast.add({
@@ -410,7 +419,7 @@ const handleRowClick = (rowData) => {
     // TODO: 상세 정보 모달 등 구현
 };
 
-// 🔥 selectedItems 변경 감지 (체크박스 선택/해제)
+//  selectedItems 변경 감지 (체크박스 선택/해제)
 watch(selectedItems, (newSelection) => {
     // store에 즉시 반영
     mateLoadingStore.setSelectedMateLoadings([...newSelection]);
@@ -439,7 +448,7 @@ const loadPendingLoadingPlacements = async () => {
     }
 };
 
-// 🔥 구역 선택 시 사용할 기존 배치 정보 생성
+//  구역 선택 시 사용할 기존 배치 정보 생성
 const getPendingPlacementsForArea = () => {
     // 현재 선택된 자재를 제외한 다른 자재들의 배치 계획
     const otherMaterialPlacements = selectedItems.value

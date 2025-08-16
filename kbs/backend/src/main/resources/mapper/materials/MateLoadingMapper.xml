@@ -19,12 +19,10 @@
             mi.supplier_lot_no,
             mi.inbo_dt,
             mi.inbo_status,
-            -- 부분 적재를 고려한 남은 수량 계산
-            (mi.total_qty - COALESCE(
-                (SELECT SUM(ws.qty) 
-                 FROM ware_stock ws 
-                 WHERE ws.mate_inbo_cd = mi.mate_inbo_cd), 0
-            )) as total_qty,
+            -- loaded_qty 컬럼 사용으로 개선 (출고 차감 영향 안받음)
+            mi.total_qty as original_qty,  -- 원본 수량
+            COALESCE(mi.loaded_qty, 0) as loaded_qty,                 -- 적재 완료된 수량 (NULL 처리)
+            (mi.total_qty - COALESCE(mi.loaded_qty, 0)) as total_qty,  -- 적재 대기 수량
             mi.mname,
             mi.note,
             mi.cp_cd,
@@ -52,14 +50,12 @@
         FROM mate_inbo mi
         INNER JOIN material m ON mi.mcode = m.mcode AND mi.mate_ver_cd = m.mate_ver_cd
         INNER JOIN factory f ON mi.fcode = f.fcode AND mi.fac_ver_cd = f.fac_ver_cd
-        WHERE mi.inbo_status = 'c5'  -- 입고완료 상태만 (적재 대기)
+        WHERE mi.inbo_status IN ('c5', 'c8')  -- 적재대기(c5), 적재중(c8) 상태만 (적재완료 c9는 제외)
         AND f.op_status = 'r1'       -- 활성화된 공장만
-        -- 완전히 적재처리되지 않은 자재만 (부분 적재 포함)
-        AND (mi.total_qty - COALESCE(
-            (SELECT SUM(ws.qty) 
-             FROM ware_stock ws 
-             WHERE ws.mate_inbo_cd = mi.mate_inbo_cd), 0
-        )) > 0
+        -- 남은 수량이 있는 자재만 표시 (loaded_qty 기반)
+        <![CDATA[
+        AND (mi.total_qty - COALESCE(mi.loaded_qty, 0)) > 0
+        ]]>
         ORDER BY mi.inbo_dt DESC, mi.mate_inbo_cd DESC
     </select>
 
@@ -137,6 +133,17 @@
             #{unit}
         )
     </insert>
+
+    <!-- 적재 처리 시 loaded_qty 업데이트 및 상태 변경 -->
+    <update id="updateLoadedQtyAndStatus" parameterType="map">
+        UPDATE mate_inbo 
+        SET loaded_qty = COALESCE(loaded_qty, 0) + #{loadedQty},
+            inbo_status = CASE 
+                WHEN (COALESCE(loaded_qty, 0) + #{loadedQty}) >= total_qty THEN 'c9'  -- 완전적재 완료
+                ELSE 'c8'  -- 부분적재 진행중
+            END
+        WHERE mate_inbo_cd = #{mateInboCd}
+    </update>
 
     <!-- 활성화된 공장 목록 조회 (드롭다운용) -->
     <select id="getActiveFactoryList" resultType="com.kimbap.kbs.materials.service.MateLoadingVO">
@@ -273,7 +280,9 @@
         WHERE mi.mcode = #{mcode}
         AND w.fcode = #{fcode}
         AND ws.ware_area_cd != #{excludeAreaCd}
+        <![CDATA[
         AND (wd.vol - NVL(area_stock.current_volume, 0)) > 0  -- 잔여 용량이 있는 곳만
+        ]]>
         ORDER BY available_volume DESC
     </select>
     

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useCommonStore } from '@/stores/commonStore'; // 🔥 공통코드 변환용
-import { useMemberStore } from '@/stores/memberStore'; // 🔥 사용자 정보용
+import { useCommonStore } from '@/stores/commonStore'; // 공통코드 변환용
+import { useMemberStore } from '@/stores/memberStore'; // 사용자 정보용
 import { 
   getMateLoadingWaitList, 
   getMateLoadingByInboCd, 
@@ -164,7 +164,7 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
 
   // 필터링된 목록 computed
   const filteredMateLoadingList = computed(() => {
-    // 🔥 검색 필터가 실제로 값이 있는지 확인 (빈 문자열이나 null/undefined 제외)
+    // 검색 필터가 실제로 값이 있는지 확인 (빈 문자열이나 null/undefined 제외)
     const hasValidFilter = searchFilter.value && 
       Object.keys(searchFilter.value).length > 0 &&
       Object.values(searchFilter.value).some(value => 
@@ -198,10 +198,7 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
         id: item.mateInboCd, // InputTable의 dataKey용
         wareAreaCd: '' // 창고구역 초기값
       }));
-      
-      console.log('자재 적재 대기 목록 조회 완료:', mateLoadingList.value.length, '건');
     } catch (error) {
-      console.error('자재 적재 대기 목록 조회 실패:', error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -215,9 +212,7 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
     try {
       const response = await getMateLoadingFactoryList();
       factoryList.value = response.data;
-      console.log('공장 목록 조회 완료:', factoryList.value.length, '개');
     } catch (error) {
-      console.error('공장 목록 조회 실패:', error);
       throw error;
     }
   };
@@ -229,7 +224,6 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
     try {
       isLoading.value = true;
       const response = await processMateLoadingSingle(mateLoadingData);
-      console.log('단건 적재 처리 완료:', response.data);
       
       // 목록에서 해당 항목 제거
       mateLoadingList.value = mateLoadingList.value.filter(
@@ -238,7 +232,6 @@ export const useMateLoadingStore = defineStore('mateLoading', () => {
       
       return response.data;
     } catch (error) {
-      console.error('단건 적재 처리 실패:', error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -268,19 +261,15 @@ const processBatchLoading = async () => {
         (!item.wareAreaCd || item.wareAreaCd.trim() === '') &&
         (!item.placementPlan || item.placementPlan.length === 0)
       );
-      
-      if (unassignedItems.length > 0) {
-        console.log(`주의: ${unassignedItems.length}개 자재는 창고구역이 설정되지 않아 제외됩니다.`);
-      }
 
       try {
         isLoading.value = true;
         
-        // 🔥 현재 로그인 사용자 정보 가져오기
+        // 현재 로그인 사용자 정보 가져오기
         const memberStore = useMemberStore();
         const currentUser = memberStore.user?.empCd || 'system';
         
-        // 🔥 공통코드에서 단위 코드 변환을 위한 함수
+        // 공통코드에서 단위 코드 변환을 위한 함수
         const getOriginalUnitCode = (displayValue) => {
           const commonStore = useCommonStore(); // 함수 내부에서 호출
           const unitCodes = commonStore.getCodes('0G');
@@ -302,7 +291,7 @@ const processBatchLoading = async () => {
               note: item.note || '',
               // 추가 필요한 필드들
               totalQty: item.totalQty,
-              unit: getOriginalUnitCode(item.unit), // 🔥 화면 표시값을 원본 코드로 변환 (kg → g2)
+              unit: getOriginalUnitCode(item.unit), // 화면 표시값을 원본 코드로 변환 (kg → g2)
               lotNo: item.lotNo,
               inboDt: item.inboDt,
               fcode: item.fcode,
@@ -320,7 +309,7 @@ const processBatchLoading = async () => {
               wareAreaCd: item.wareAreaCd,
               note: item.note || '',
               totalQty: item.totalQty,
-              unit: getOriginalUnitCode(item.unit), // 🔥 화면 표시값을 원본 코드로 변환 (kg → g2)
+              unit: getOriginalUnitCode(item.unit), // 화면 표시값을 원본 코드로 변환 (kg → g2)
               lotNo: item.lotNo,
               inboDt: item.inboDt,
               fcode: item.fcode,
@@ -330,15 +319,13 @@ const processBatchLoading = async () => {
           }
         }).flat(); // 중첩 배열을 평면화
         
-        console.log('백엔드로 전송할 적재 데이터:', processData);
-        
         // 창고구역이 설정된 자재들만 처리
         const response = await processMateLoadingBatch(processData);
-        console.log('다중 적재 처리 완료:', response.data);
         
-        // 🔥 적재 후 수량 업데이트 로직 개선
-        // 각 자재별로 적재된 수량을 계산하고 남은 수량 업데이트
-        const processedResults = response.data.results || response.data; // 백엔드 응답 구조에 따라 조정
+        // 정확한 완전/부분 적재 판단 (메시지 생성용)
+        // 각 자재별로 완전/부분 적재 여부 정확히 판단
+        const fullyProcessedItems = []; // 완전 적재된 항목들
+        const partiallyProcessedItems = []; // 부분 적재된 항목들
         
         assignedItems.forEach(item => {
           const originalItem = mateLoadingList.value.find(original => 
@@ -360,48 +347,31 @@ const processBatchLoading = async () => {
             // 원본 자재의 남은 수량 계산
             const remainingQty = (originalItem.totalQty || 0) - totalLoadedQty;
             
-            console.log(`자재 ${item.mateInboCd}: 원래수량=${originalItem.totalQty}, 적재량=${totalLoadedQty}, 남은수량=${remainingQty}`);
-            
-            if (remainingQty > 0) {
-              // 부분 적재: 남은 수량으로 업데이트
-              originalItem.totalQty = remainingQty;
-              
-              // 적재 계획 정보 초기화 (다시 구역 선택 필요)
-              originalItem.placementPlan = null;
-              originalItem.totalAllocated = null;
-              originalItem.remainingQty = null;
-              originalItem.wareAreaCd = null;
-              originalItem.selectedAreaInfo = null;
-              
-              console.log(`부분 적재 완료: ${item.mateInboCd} - 남은 수량 ${remainingQty}으로 업데이트`);
+            if (remainingQty <= 0) {
+              // 완전 적재
+              fullyProcessedItems.push({
+                mateInboCd: item.mateInboCd,
+                mateName: originalItem.mateName || originalItem.mname,
+                totalLoadedQty: totalLoadedQty
+              });
             } else {
-              // 완전 적재: 목록에서 제거
-              const index = mateLoadingList.value.findIndex(listItem => 
-                listItem.mateInboCd === item.mateInboCd
-              );
-              if (index > -1) {
-                mateLoadingList.value.splice(index, 1);
-                console.log(`완전 적재 완료: ${item.mateInboCd} - 목록에서 제거`);
-              }
+              // 부분 적재
+              partiallyProcessedItems.push({
+                mateInboCd: item.mateInboCd,
+                mateName: originalItem.mateName || originalItem.mname,
+                loadedQty: totalLoadedQty,
+                remainingQty: remainingQty
+              });
             }
           }
         });
         
-        // 처리된 항목들을 selectedMateLoadings에서 제거 (완전 적재된 것만)
-        const fullyProcessedIds = assignedItems.filter(item => {
-          const originalItem = mateLoadingList.value.find(original => 
-            original.mateInboCd === item.mateInboCd
-          );
-          return !originalItem; // 목록에서 제거된 = 완전 적재된 항목
-        }).map(item => item.mateInboCd);
+        // 선택된 항목 초기화
+        selectedMateLoadings.value = [];
         
-        selectedMateLoadings.value = selectedMateLoadings.value.filter(item => 
-          !fullyProcessedIds.includes(item.mateInboCd)
-        );
-        
-        // 🔥 결과 메시지에 부분/완전 적재 상세 포함
-        const fullyProcessedCount = fullyProcessedIds.length;
-        const partiallyProcessedCount = assignedItems.length - fullyProcessedCount;
+        // 정확한 완전/부분 적재 메시지 생성
+        const fullyProcessedCount = fullyProcessedItems.length;
+        const partiallyProcessedCount = partiallyProcessedItems.length;
         
         let resultMessage = '';
         if (unassignedItems.length > 0) {
@@ -414,17 +384,24 @@ const processBatchLoading = async () => {
           }
         }
         
+        // 상세 정보 로그 출력
+        if (fullyProcessedCount > 0) {
+        }
+        if (partiallyProcessedCount > 0) {
+        }
+        
         return {
           ...response.data,
-          message: resultMessage,
+          message: resultMessage, // 메시지로 덮어쓰기
           processedCount: assignedItems.length,
           fullyProcessedCount,
           partiallyProcessedCount,
-          skippedCount: unassignedItems.length
+          skippedCount: unassignedItems.length,
+          fullyProcessedItems,
+          partiallyProcessedItems
         };
         
       } catch (error) {
-        console.error('다중 적재 처리 실패:', error);
         throw error;
       } finally {
         isLoading.value = false;
@@ -436,10 +413,8 @@ const processBatchLoading = async () => {
   const fetchWslCodeByArea = async (wareAreaCd) => {
     try {
       const response = await getWslCodeByArea(wareAreaCd);
-      console.log('wslcode 조회 완료:', response.data);
       return response.data.wslCode;
     } catch (error) {
-      console.error('wslcode 조회 실패:', error);
       throw error;
     }
   };
@@ -454,10 +429,8 @@ const processBatchLoading = async () => {
       isLoading.value = true;
       const response = await getWarehousesByFactory(fcode);
       warehouseList.value = response.data;
-      console.log('공장별 창고 목록 조회 완료:', fcode, '-', warehouseList.value.length, '개');
       return warehouseList.value;
     } catch (error) {
-      console.error('공장별 창고 목록 조회 실패:', error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -472,10 +445,8 @@ const processBatchLoading = async () => {
       isLoading.value = true;
       const response = await getWarehouseAreasWithStock(wcode, floor);
       warehouseAreas.value = response.data;
-      console.log('창고 구역 정보 조회 완료:', wcode, floor + '층', '-', warehouseAreas.value.length, '개');
       return warehouseAreas.value;
     } catch (error) {
-      console.error('창고 구역 정보 조회 실패:', error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -488,10 +459,8 @@ const processBatchLoading = async () => {
   const fetchWareAreaCode = async (wcode, areaRow, areaCol, areaFloor) => {
     try {
       const response = await getWareAreaCode(wcode, areaRow, areaCol, areaFloor);
-      console.log('창고구역코드 조회 완료:', response.data.wareAreaCd);
       return response.data.wareAreaCd;
     } catch (error) {
-      console.error('창고구역코드 조회 실패:', error);
       throw error;
     }
   };
@@ -503,10 +472,8 @@ const processBatchLoading = async () => {
     try {
       const response = await validateAreaAllocation(wareAreaCd, mcode, allocateQty);
       areaValidationResult.value = response.data;
-      console.log('구역 검증 완료:', response.data.message);
       return response.data;
     } catch (error) {
-      console.error('구역 검증 실패:', error);
       throw error;
     }
   };
@@ -518,10 +485,8 @@ const processBatchLoading = async () => {
     try {
       const response = await getSameMaterialAreas(mcode, fcode, excludeAreaCd);
       sameMaterialAreas.value = response.data;
-      console.log('동일 자재 적재 구역 조회 완료:', sameMaterialAreas.value.length, '개');
       return sameMaterialAreas.value;
     } catch (error) {
-      console.error('동일 자재 적재 구역 조회 실패:', error);
       throw error;
     }
   };
@@ -533,7 +498,6 @@ const processBatchLoading = async () => {
     const material = mateLoadingList.value.find(item => item.mateInboCd === mateInboCd);
     if (material) {
       material.wareAreaCd = wareAreaCd;
-      console.log('자재 창고구역 설정:', mateInboCd, '->', wareAreaCd);
     }
   };
 
@@ -569,7 +533,6 @@ const processBatchLoading = async () => {
    */
   const clearSearchFilter = () => {
     searchFilter.value = {};
-    console.log('검색 필터 초기화됨');
   };
 
   /**
