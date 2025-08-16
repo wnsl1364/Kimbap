@@ -88,14 +88,14 @@ const areaGrid = computed(() => {
             const currentVolume = areaInfo?.currentVolume || 0;
             const availableVolume = realMaxVolume - currentVolume;
             
-            // 🔥 같은 자재인지 확인 (DB의 현재 자재 vs 선택하려는 자재)
-            const isSameMaterialInDB = areaInfo?.currentMaterial === props.selectedMaterial?.mcode;
+            // 🔥 같은 자재인지 확인 (DB의 현재 자재 vs 선택하려는 자재) - 수량이 0이면 빈구역으로 처리
+            const isSameMaterialInDB = areaInfo?.currentMaterial === props.selectedMaterial?.mcode && currentVolume > 0;
             
             // 🔥 다른 입고건이 이미 이 위치를 선택했는지 확인
             const isDifferentMaterialSelected = existingPlacement && existingPlacement.mcode !== props.selectedMaterial?.mcode;
             const isSameMaterialSelected = existingPlacement && existingPlacement.mcode === props.selectedMaterial?.mcode;
             
-            // 🔥 다른 자재가 DB에 적재되어 있는지 확인 (핵심!)
+            // 🔥 다른 자재가 DB에 적재되어 있는지 확인 (핵심!) - 수량이 0이면 빈구역으로 처리
             const isDifferentMaterialInDB = areaInfo?.currentMaterial && 
                                           areaInfo.currentMaterial !== props.selectedMaterial?.mcode &&
                                           currentVolume > 0;
@@ -650,7 +650,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                                         <div class="text-xs mt-1">
                                             {{ getCapacityDisplay(area) }}
                                         </div>
-                                        <div v-if="area.currentMaterial" class="text-xs mt-1">
+                                        <div v-if="area.currentMaterial && area.currentVolume > 0" class="text-xs mt-1">
                                             <span v-if="area.isSameMaterial" class="text-green-600 font-semibold">동일자재</span>
                                             <span v-else class="text-red-600 font-semibold">다른자재</span>
                                         </div>
