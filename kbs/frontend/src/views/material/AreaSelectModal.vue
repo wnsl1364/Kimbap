@@ -493,12 +493,17 @@ watch(() => props.loadingQuantity, (newQty) => {
         v-model:visible="modalVisible"
         modal
         header="창고 구역 선택"
-        :style="{ width: '95vw', maxWidth: '1400px', height: '90vh' }"
+        :pt="{
+            root: 'area-modal-root',
+            mask: 'area-modal-mask', 
+            content: 'area-modal-content'
+        }"
         :closable="true"
     >
-        <div class="flex h-[calc(90vh-120px)] gap-4">
+        <div style="display: flex; height: 100%; gap: 1rem;">
             <!-- 왼쪽: 정보 패널 -->
-            <div class="w-80 flex-shrink-0 space-y-4 overflow-y-auto">
+            <div style="width: 320px; flex-shrink: 0; overflow-y: auto;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
                 <!-- 자재 정보 -->
                 <div class="bg-blue-50 p-4 rounded-lg">
                     <h6 class="font-semibold text-blue-800 mb-3">자재 정보</h6>
@@ -587,10 +592,11 @@ watch(() => props.loadingQuantity, (newQty) => {
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- 오른쪽: 창고 선택 -->
-            <div class="flex-1 flex flex-col">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
                 <!-- 창고/층 선택 -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
                     <div class="flex items-center gap-4">
@@ -619,10 +625,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                 </div>
 
                 <!-- 구역 그리드 -->
-                <div v-if="selectedFloor && areaGrid.length > 0" class="flex-1 flex flex-col">
+                <div v-if="selectedFloor && areaGrid.length > 0" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
                     <h6 class="font-semibold mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
 
-                    <div class="flex-1 overflow-auto border rounded-lg p-4 bg-white">
+                    <div style="flex: 1; overflow: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; background: white;">
                         <div class="grid gap-2" :style="{ gridTemplateColumns: `repeat(${areaGrid[0]?.length || 1}, 1fr)` }">
                             <template v-for="(row, rowIndex) in areaGrid" :key="rowIndex">
                                 <div
@@ -681,7 +687,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                     </div>
                 </div>
 
-                <div v-else class="flex-1 flex items-center justify-center text-gray-500">
+                <div v-else style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280;">
                     창고와 층을 먼저 선택해주세요.
                 </div>
             </div>
@@ -697,8 +703,74 @@ watch(() => props.loadingQuantity, (newQty) => {
 </template>
 
 <style scoped>
+/* PassThrough를 이용한 직접 제어 */
+:global(.area-modal-mask) {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+:global(.area-modal-root) {
+    width: 95vw !important;
+    max-width: 1600px !important;
+    height: 90vh !important;
+    max-height: 800px !important;
+    background: white !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+:global(.area-modal-content) {
+    flex: 1 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+/* 내부 레이아웃 */
+.modal-container {
+    display: flex;
+    height: 450px;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.info-panel {
+    width: 300px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.warehouse-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.grid-container {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: white;
+}
+
 .grid {
-    max-width: 100%;
-    overflow-x: auto;
+    display: grid;
+    gap: 0.5rem;
 }
 </style>
