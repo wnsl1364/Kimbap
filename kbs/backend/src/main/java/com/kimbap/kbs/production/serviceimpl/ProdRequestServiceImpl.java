@@ -81,6 +81,10 @@ public class ProdRequestServiceImpl implements ProdRequestService {
     String fcode = request.getFcode();
     String facVerCd = request.getFacVerCd();
 
+    // LOT 번호 생성을 위한 시퀀스 관리
+    String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    int lotSequence = mapper.getMaxLotSequenceForToday(today);
+
     // 신규 또는 수정 분기 처리
     for (ProdRequestDetailVO detail : details) {
       detail.setProduReqCd(produReqCd);
@@ -119,14 +123,14 @@ public class ProdRequestServiceImpl implements ProdRequestService {
                     // 경쟁 등으로 수량 변동 → 현재 수량 재조회 후 가능한 만큼만 재시도
                     BigDecimal cur = mapper.selectQtyByWslcode(stock.getWslcode());
                     if (cur != null && cur.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal retry = cur.min(delta).setScale(0, RoundingMode.CEILING);
-                        if (retry.compareTo(BigDecimal.ZERO) > 0) {
-                            mapper.decreaseWareStock(stock.getWslcode(), retry);
-                            insertMateRel(produProdCd, material, stock, retry, mname, resolveRelType(material.getMcode()));
-                            remaining = remaining.subtract(retry);
-                        } 
+                      BigDecimal retry = cur.min(delta).setScale(0, RoundingMode.CEILING);
+                      if (retry.compareTo(BigDecimal.ZERO) > 0) {
+                        mapper.decreaseWareStock(stock.getWslcode(), retry);
+                        insertMateRel(produProdCd, material, stock, retry, mname, resolveRelType(material.getMcode()));
+                        remaining = remaining.subtract(retry);
+                      } 
                     }
-                    continue;
+                  continue;
                 }
 
                 // 출고 이력 기록
@@ -139,10 +143,14 @@ public class ProdRequestServiceImpl implements ProdRequestService {
             }
         }
 
+      // 제품입고 처리 - 각 제품마다 고유한 LOT 번호 생성
+      lotSequence++; // 시퀀스 증가
+      String lotNo = String.format("LOT-300-%s-%d", today, lotSequence);
+      
       // 제품입고 처리
       ProdInboundVO inbo = new ProdInboundVO();
       inbo.setProdInboCd(createNewProdInboCd());
-      inbo.setLotNo(mapper.getNewLotNo300());
+      inbo.setLotNo(lotNo);
       inbo.setPcode(pcode);
       inbo.setProdVerCd(prodVerCd);
       inbo.setInboQty(reqQty);

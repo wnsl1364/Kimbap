@@ -45,13 +45,14 @@ public interface ProdRequestMapper {
     String getNewMateRelCd();                   // 자재 출고 코드 생성
     void insertMateRel(MateReleaseVO vo);       // 자재 출고 테이블 입력
     String getNewProdInboCd();                  // 제품 입고 코드 생성
-    String getNewLotNo300();                    // 제품 입고 LOT 생성
+    // String getNewLotNo300();                 // 제품 입고 LOT 생성
     void insertProdInbo(ProdInboundVO vo);      // 제품 입고 테이블 입력
     int selectTodayProdInboSeq();               // 제품 입고 코드 가장 최근 값 가져오기
-
+    int getMaxLotSequenceForToday(String today);// 제품 입고 LOT 오늘날짜 MAX값 가져오기
     // 생산요청 상태 업데이트
     void updateProductionReqStatus(@Param("produReqCd") String produReqCd, 
                                   @Param("status") String status);
     // ===================================================
+    
 
 }

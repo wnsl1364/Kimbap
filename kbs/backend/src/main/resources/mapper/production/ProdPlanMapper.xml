@@ -352,7 +352,9 @@
             field
         FROM mrp_d
         WHERE mrp_cd = #{mrpCd}
+        <![CDATA[
         AND required_qty > 0  -- 부족수량이 있는 자재만
+        ]]>
         ORDER BY mcode
     </select>
     

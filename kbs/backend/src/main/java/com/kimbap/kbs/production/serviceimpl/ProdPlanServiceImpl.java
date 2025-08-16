@@ -352,8 +352,8 @@ public class ProdPlanServiceImpl implements ProdPlanService {
                             ", 부족량: " + lackQty);
             
             if (lackQty.compareTo(BigDecimal.ZERO) > 0) {
-                mrpDetail.setRequiredQty(lackQty); // 부족량으로 업데이트
-                mrpDetail.setCurrentStock(stockQty); // 현재고 정보도 추가 (미리보기용)
+                mrpDetail.setRequiredQty(lackQty);      // 부족량으로 업데이트
+                mrpDetail.setCurrentStock(stockQty);    // 현재고 정보도 추가 (미리보기용)
                 mrpDetails.add(mrpDetail);
             }
         }
