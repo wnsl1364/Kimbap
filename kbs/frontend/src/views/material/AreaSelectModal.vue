@@ -391,7 +391,7 @@ const getAreaStyle = (area) => {
     }
     if (area.availableVolume <= 0) {
         // 용량 초과 구역
-        return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75';
+        return 'bg-gray-200 text-gray-800 border-gray-400 cursor-not-allowed opacity-75';
     }
     
     // 빈 구역 - 선택 가능
@@ -492,7 +492,6 @@ watch(() => props.loadingQuantity, (newQty) => {
     <Dialog
         v-model:visible="modalVisible"
         modal
-        header="창고 구역 선택"
         :pt="{
             root: 'area-modal-root',
             mask: 'area-modal-mask', 
@@ -506,34 +505,34 @@ watch(() => props.loadingQuantity, (newQty) => {
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                 <!-- 자재 정보 -->
                 <div class="bg-blue-50 p-4 rounded-lg">
-                    <h6 class="font-semibold text-blue-800 mb-3">자재 정보</h6>
+                    <h6 class="font-bold text-blue-900 mb-3">자재 정보</h6>
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
-                            <span class="font-medium">입고코드:</span>
-                            <span class="text-xs font-mono">{{ selectedMaterial?.mateInboCd }}</span>
+                            <span class="font-bold text-gray-800">입고코드:</span>
+                            <span class="text-xs font-mono font-medium text-gray-900">{{ selectedMaterial?.mateInboCd }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-medium">자재코드:</span>
-                            <span>{{ selectedMaterial?.mcode }}</span>
+                            <span class="font-bold text-gray-800">자재코드:</span>
+                            <span class="font-medium text-gray-900">{{ selectedMaterial?.mcode }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-medium">자재명:</span>
-                            <span>{{ selectedMaterial?.mateName }}</span>
+                            <span class="font-bold text-gray-800">자재명:</span>
+                            <span class="font-medium text-gray-900">{{ selectedMaterial?.mateName }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-medium">보관조건:</span>
-                            <span>{{ getStorageConditionDisplayName(selectedMaterial?.stoCon || 'o1') }}</span>
+                            <span class="font-bold text-gray-800">보관조건:</span>
+                            <span class="font-medium text-gray-900">{{ getStorageConditionDisplayName(selectedMaterial?.stoCon || 'o1') }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-medium">단위:</span>
-                            <span>{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}</span>
+                            <span class="font-bold text-gray-800">단위:</span>
+                            <span class="font-medium text-gray-900">{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-medium">적재수량:</span>
-                            <span class="font-bold text-blue-600">{{ modalInputQty }}</span>
+                            <span class="font-bold text-gray-800">적재수량:</span>
+                            <span class="font-bold text-blue-700">{{ modalInputQty }}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="font-medium">남은수량:</span>
+                            <span class="font-bold text-gray-800">남은수량:</span>
                             <span :class="remainingQty > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">
                                 {{ remainingQty }}
                             </span>
@@ -543,7 +542,7 @@ watch(() => props.loadingQuantity, (newQty) => {
 
                 <!-- 적재 계획 -->
                 <div v-if="placementPlan.length > 0" class="bg-green-50 p-4 rounded-lg">
-                    <h6 class="font-semibold text-green-800 mb-3">적재 계획</h6>
+                    <h6 class="font-bold text-green-900 mb-3">적재 계획</h6>
                     <div class="space-y-3 max-h-48 overflow-y-auto">
                         <div v-for="(plan, index) in placementPlan" :key="index" 
                              class="bg-white p-3 rounded border">
@@ -567,7 +566,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                             </div>
                             
                             <div class="flex items-center gap-2">
-                                <label class="text-sm font-medium min-w-12">수량:</label>
+                                <label class="text-sm font-bold text-gray-800 min-w-12">수량:</label>
                                 <InputNumber
                                     :modelValue="plan.allocateQty"
                                     @update:modelValue="(newValue) => updateAreaQuantity(index, newValue || 0)"
@@ -582,12 +581,12 @@ watch(() => props.loadingQuantity, (newQty) => {
                 
                 <!-- 🔥 다른 입고건의 선택된 구역 정보 -->
                 <div v-if="existingPlacements && existingPlacements.length > 0" class="bg-orange-50 p-4 rounded-lg">
-                    <h6 class="font-semibold text-orange-800 mb-3">다른 입고건 선택 구역</h6>
+                    <h6 class="font-bold text-orange-900 mb-3">다른 입고건 선택 구역</h6>
                     <div class="space-y-2 max-h-32 overflow-y-auto">
                         <div v-for="(placement, index) in (existingPlacements || [])" :key="index" 
                              class="text-xs bg-white p-2 rounded border">
                             <div class="font-mono font-semibold text-orange-700">{{ placement.wareAreaCd }}</div>
-                            <div class="text-gray-600">{{ placement.mateName || placement.mcode }}</div>
+                            <div class="text-gray-800 font-medium">{{ placement.mateName || placement.mcode }}</div>
                             <div class="text-orange-600">{{ placement.allocateQty }}{{ getUnitDisplayName(placement.unit || 'g5') }}</div>
                         </div>
                     </div>
@@ -600,7 +599,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                 <!-- 창고/층 선택 -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
                     <div class="flex items-center gap-4">
-                        <label class="font-medium min-w-20">창고:</label>
+                        <label class="font-bold text-gray-800 min-w-20">창고:</label>
                         <Dropdown
                             v-model="selectedWarehouseType"
                             :options="warehouseTypeOptions"
@@ -612,7 +611,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                     </div>
 
                     <div class="flex items-center gap-4" v-if="selectedWarehouseType">
-                        <label class="font-medium min-w-20">층:</label>
+                        <label class="font-bold text-gray-800 min-w-20">층:</label>
                         <Dropdown
                             v-model="selectedFloor"
                             :options="floorOptions"
@@ -626,7 +625,7 @@ watch(() => props.loadingQuantity, (newQty) => {
 
                 <!-- 구역 그리드 -->
                 <div v-if="selectedFloor && areaGrid.length > 0" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
-                    <h6 class="font-semibold mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
+                    <h6 class="font-bold text-gray-900 mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
 
                     <div style="flex: 1; overflow: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; background: white;">
                         <div class="grid gap-2" :style="{ gridTemplateColumns: `repeat(${areaGrid[0]?.length || 1}, 1fr)` }">
@@ -652,8 +651,8 @@ watch(() => props.loadingQuantity, (newQty) => {
                                     ${area.availableVolume <= 0 && !area.isSameMaterial && !area.isSameMaterialSelected ? '[선택불가] 가용 용량 없음' : ''}`"
                                                                     >
                                     <div class="text-center">
-                                        <div class="font-bold text-sm">{{ area.displayName }}</div>
-                                        <div class="text-xs mt-1">
+                                        <div class="font-bold text-sm text-gray-900">{{ area.displayName }}</div>
+                                        <div class="text-xs mt-1 font-semibold text-gray-800">
                                             {{ getCapacityDisplay(area) }}
                                         </div>
                                         <div v-if="area.currentMaterial && area.currentVolume > 0" class="text-xs mt-1">
@@ -666,7 +665,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                                         <div v-else-if="area.isSameMaterialSelected" class="text-xs mt-1">
                                             <span class="text-orange-600 font-semibold">같은자재</span>
                                         </div>
-                                        <div v-else class="text-xs mt-1 text-gray-500">빈구역</div>
+                                        <div v-else class="text-xs mt-1 text-gray-800">빈구역</div>
                                         
                                         <!-- 🔥 용량 게이지 바 -->
                                         <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
@@ -677,7 +676,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                                         </div>
                                         
                                         <!-- 🔥 실제 용량 정보 -->
-                                        <div class="text-xs text-gray-600 mt-1">
+                                        <div class="text-xs text-gray-900 mt-1 font-medium">
                                             {{ area.availableVolume }}/{{ area.realMaxVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
                                         </div>
                                     </div>
@@ -687,7 +686,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                     </div>
                 </div>
 
-                <div v-else style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280;">
+                <div v-else style="flex: 1; display: flex; align-items: center; justify-content: center; color: #374151;">
                     창고와 층을 먼저 선택해주세요.
                 </div>
             </div>
