@@ -188,9 +188,9 @@
         SELECT fn_create_mate_rel_cd() FROM dual
     </select>
     <!-- 완제품 입고코드 (IN-YYYYMMDD-0001) -->
-    <select id="getNewProdInboCd" resultType="string">
+    <!-- <select id="getNewProdInboCd" resultType="string">
         SELECT fn_create_prod_inbo_cd() FROM dual
-    </select>
+    </select> -->
     <!-- 완제품 입고코드 최근 값 가져오기 -->
     <select id="selectTodayProdInboSeq" resultType="int">
         SELECT NVL(MAX(TO_NUMBER(SUBSTR(prod_inbo_cd, 14))), 0)
@@ -200,6 +200,14 @@
     <!-- 완제품 LOT 번호 (LOT-300-YYYYMMDD-n) -->
     <select id="getNewLotNo300" resultType="string">
         SELECT fn_create_lot_no_300() FROM dual
+    </select>
+    <!-- 오늘 날짜의 최대 LOT 시퀀스 번호 조회 -->
+    <select id="getMaxLotSequenceForToday" parameterType="string" resultType="int">
+        SELECT NVL(MAX(TO_NUMBER(SUBSTR(lot_no, 18))), 0)
+        FROM prod_inbo
+        WHERE SUBSTR(lot_no, 9, 8) = #{today}
+        AND REGEXP_LIKE(SUBSTR(lot_no, 18), '^[0-9]+$')
+        AND lot_no LIKE 'LOT-300-%'
     </select>
     <!-- BOM 구성 자재 조회 -->
     <select id="selectBomMaterials" resultType="BomDetailVO">
