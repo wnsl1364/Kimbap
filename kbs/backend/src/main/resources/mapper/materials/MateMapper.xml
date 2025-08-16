@@ -959,7 +959,9 @@
             
             -- 출고 가능한 상태만 (승인완료 + 잔여수량 있음)
             AND pd.purc_d_status = 'c2'
+            <![CDATA[
             AND (pd.purc_qty - COALESCE(pd.curr_qty, 0)) > 0
+            ]]>
             
             -- 🎯 검색 조건 3개만!
             <if test="purcCd != null and purcCd != ''">

@@ -40,6 +40,9 @@ public interface MateLoadingMapper {
                                         @Param("fcode") String fcode,
                                         @Param("excludeAreaCd") String excludeAreaCd);
   
-  // 🔥 material 테이블에서 자재 정보 조회 (item_type, unit 등)
+  // material 테이블에서 자재 정보 조회 (item_type, unit 등)
   MateLoadingVO getMaterialInfo(@Param("mcode") String mcode);
+  
+  // 적재 처리 시 loaded_qty 업데이트 및 상태 변경 (c8 적재중, c9 적재완료)
+  void updateLoadedQtyAndStatus(@Param("mateInboCd") String mateInboCd, @Param("loadedQty") Integer loadedQty);
 }
