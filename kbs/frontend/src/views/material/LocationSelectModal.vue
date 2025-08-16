@@ -99,15 +99,21 @@ const areaGrid = computed(() => {
             const currentVolume = areaInfo?.currentVolume || 0;
             const availableVolume = realMaxVolume - currentVolume;
             
-            // 같은 자재인지 확인 (DB의 현재 자재 vs 선택하려는 자재)
-            const isSameMaterialInDB = areaInfo?.currentMaterial === props.selectedMaterial?.mcode;
+            // 같은 자재인지 확인 (DB의 현재 자재 vs 선택하려는 자재) - 수량이 0이면 빈구역으로 처리
+            const isSameMaterialInDB = areaInfo?.currentMaterial === props.selectedMaterial?.mcode && currentVolume > 0;
             
             // 다른 자재가 이미 이 위치를 선택했는지 확인
             const isDifferentMaterialSelected = existingPlacement && existingPlacement.mcode !== props.selectedMaterial?.mcode;
             
+            // 다른 자재가 DB에 적재되어 있는지 확인 - 수량이 0이면 빈구역으로 처리
+            const isDifferentMaterialInDB = areaInfo?.currentMaterial && 
+                                          areaInfo.currentMaterial !== props.selectedMaterial?.mcode &&
+                                          currentVolume > 0;
+            
             // 선택 가능 여부 결정
             const isAvailable = !isDifferentMaterialSelected && 
-                              (!areaInfo?.currentMaterial || isSameMaterialInDB);
+                              !isDifferentMaterialInDB &&
+                              (availableVolume > 0 || isSameMaterialInDB);
             
             rowData.push({
                 wareAreaCd: areaCode,
@@ -120,7 +126,8 @@ const areaGrid = computed(() => {
                 existingPlacement: existingPlacement, // 다른 자재의 기존 선택 정보
                 isAvailable: isAvailable,
                 isSameMaterial: isSameMaterialInDB,
-                isDifferentMaterialSelected: isDifferentMaterialSelected
+                isDifferentMaterialSelected: isDifferentMaterialSelected,
+                isDifferentMaterialInDB: isDifferentMaterialInDB // 🔥 다른 자재가 DB에 적재됨 추가
             });
         }
         grid.push(rowData);
@@ -209,6 +216,8 @@ const selectArea = (area) => {
             } else {
                 detail = `다른 자재(${placement.itemName})가 이미 선택된 구역입니다.`;
             }
+        } else if (area.isDifferentMaterialInDB) {
+            detail = `다른 자재(${area.currentMaterial})가 적재된 구역입니다.`;
         } else if (area.currentMaterial) {
             detail = `다른 자재가 적재된 구역입니다.`;
         }
@@ -313,6 +322,8 @@ const getAreaStyle = (area) => {
             return 'bg-yellow-200 text-yellow-900 border-yellow-400 cursor-not-allowed opacity-75';
         }
     }
+    // 🔥 다른 자재가 DB에 적재된 구역 체크 추가
+    if (area.isDifferentMaterialInDB) return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
     if (!area.isAvailable) return 'bg-red-200 text-red-900 border-red-400 cursor-not-allowed opacity-75';
     if (area.isSameMaterial) return 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200';
     if (area.availableVolume <= 0) return 'bg-gray-200 text-gray-600 border-gray-400 cursor-not-allowed opacity-75'; // 🔥 실제 가용 용량 체크
@@ -667,7 +678,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                                                 <span v-else class="text-xs">(등록중)</span>
                                             </span>
                                         </div>
-                                        <div v-else-if="area.currentMaterial" class="text-xs mt-1">
+                                        <div v-else-if="area.currentMaterial && area.currentVolume > 0" class="text-xs mt-1">
                                             <span v-if="area.isSameMaterial" class="text-green-600 font-semibold">동일자재</span>
                                             <span v-else class="text-red-600 font-semibold">다른자재</span>
                                         </div>
