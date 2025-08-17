@@ -172,14 +172,39 @@ const handleDataChange = (newData) => {
     console.log('handleDataChange 호출됨 - 전체 목록 교체 방지');
 };
 
-// 🔥 체크박스 선택 변경 처리 (InputTable에서 호출)
+// 중복 방지를 위한 플래그 추가
+const isUpdatingStore = ref(false);
+
+// 수정된 선택 변경 처리 (중복 제거)
 const handleSelectionChange = (newSelection) => {
-    console.log('선택 변경됨:', newSelection);
-    selectedItems.value = newSelection;
+    console.log('handleSelectionChange 호출:', newSelection.length);
     
-    // 🔥 store에도 즉시 반영
+    // 내부 업데이트 중이면 무시
+    if (isUpdatingStore.value) {
+        console.log('내부 업데이트 중 - 무시');
+        return;
+    }
+    
+    isUpdatingStore.value = true;
+    selectedItems.value = newSelection;
     productLoadingStore.setSelectedProductLoadings([...newSelection]);
+    isUpdatingStore.value = false;
 };
+
+// 수정된 watch (중복 방지)
+watch(selectedItems, (newSelection) => {
+    console.log('selectedItems watch 트리거:', newSelection.length);
+    
+    // 내부 업데이트 중이면 무시
+    if (isUpdatingStore.value) {
+        console.log('내부 업데이트 중 - watch 무시');
+        return;
+    }
+    
+    isUpdatingStore.value = true;
+    productLoadingStore.setSelectedProductLoadings([...newSelection]);
+    isUpdatingStore.value = false;
+}, { deep: true });
 
 //  구역선택 버튼 클릭 처리 (신규)
 const handleLocationSelect = (rowData) => {
@@ -333,43 +358,39 @@ const handleProcessLoading = async () => {
         return;
     }
 
+    // 중복 실행 방지
+    if (isUpdatingStore.value) {
+        console.log('이미 처리 중입니다.');
+        return;
+    }
+
     try {
-        console.log('적재 처리 시작 - 선택된 제품들:', selectedItems.value);
+        isUpdatingStore.value = true;
+        console.log('적재 처리 시작 - 선택된 제품들:', selectedItems.value.length);
         
-        // 🔥 각 제품의 구역 정보 상세 로깅
-        selectedItems.value.forEach((item, index) => {
-            console.log(`제품 ${index + 1}: ${item.prodInboCd}`, {
-                wareAreaCd: item.wareAreaCd,
-                placementPlan: item.placementPlan,
-                hasArea: (item.wareAreaCd && item.wareAreaCd.trim() !== '') || (item.placementPlan && item.placementPlan.length > 0)
-            });
-        });
-        
-        // 선택된 제품들의 구역 설정 상태 확인
+        // 구역 설정 확인
         const itemsWithArea = selectedItems.value.filter(item => 
             (item.wareAreaCd && item.wareAreaCd.trim() !== '') ||
             (item.placementPlan && item.placementPlan.length > 0)
         );
         
-        console.log('구역이 설정된 제품들:', itemsWithArea);
-        
         if (itemsWithArea.length === 0) {
             toast.add({
                 severity: 'warn',
                 summary: '구역 선택 필요',
-                detail: '선택된 제품 중 창고구역이 설정된 제품이 없습니다. 먼저 구역을 선택해주세요.',
+                detail: '선택된 제품 중 창고구역이 설정된 제품이 없습니다.',
                 life: 3000
             });
             return;
         }
         
-        // 선택된 자재들을 store에 설정
-        productLoadingStore.setSelectedProductLoadings([...selectedItems.value]);
+        // store 설정은 한 번만 (중복 제거)
+        console.log('store에 선택된 제품 설정:', itemsWithArea.length + '개');
+        productLoadingStore.setSelectedProductLoadings([...itemsWithArea]);
         
         // 다중 적재 처리 실행
         const result = await productLoadingStore.processBatchLoading();
         
-        // 🔥 결과에 따른 토스트 메시지 (부분/완전 적재 구분)
         if (result.skippedCount > 0 || result.partiallyProcessedCount > 0) {
             toast.add({
                 severity: 'warn', 
@@ -397,6 +418,8 @@ const handleProcessLoading = async () => {
             detail: error.message || '적재 처리 중 오류가 발생했습니다.',
             life: 5000
         });
+    } finally {
+        isUpdatingStore.value = false;
     }
 };
 
