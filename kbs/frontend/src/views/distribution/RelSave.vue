@@ -100,14 +100,14 @@ onBeforeMount(() => {
     ];
     columns.value = [
         { field: 'prodName', header: '제품명', type: 'input', disabled: true },
-        { field: 'ordQty', header: '요청수량', type: 'input', disabled: true },
-        { field: 'relOrdQty', header: '지시수량', type: 'input', disabled: true }
+        { field: 'ordQty', header: '요청수량(box)', type: 'input', disabled: true },
+        { field: 'relOrdQty', header: '지시수량(box)', type: 'input', disabled: true }
     ];
     columns2.value = [
         { field: 'prodName', header: '제품명', type: 'input', disabled: true },
         { field: 'lotNo', header: 'LOT번호', type: 'input', disabled: true },
-        { field: 'allocQty', header: '출고수량', type: 'input' },
-        { field: 'remainQty', header: '잔여수량', type: 'input', disabled: true }
+        { field: 'allocQty', header: '출고수량(box)', type: 'input' },
+        { field: 'remainQty', header: '잔여수량(box)', type: 'input', disabled: true }
     ];
 
 });

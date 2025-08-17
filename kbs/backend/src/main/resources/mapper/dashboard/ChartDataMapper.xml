@@ -5,12 +5,24 @@
   <!-- 대시보드 상단 card 데이터 -->
   <select id="getChartData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
     SELECT
-        (SELECT COUNT(*) FROM prod_inbo) AS prodInbo,
-        (SELECT COUNT(*) FROM prod_return) AS prodReturn,
-        (SELECT COUNT(*) FROM release_ord) AS releaseOrd,
-        (SELECT COUNT(*) FROM prod_rel) AS prodRel
+        (SELECT COUNT(*) 
+         FROM prod_inbo 
+         WHERE TRUNC(inbo_dt) = TRUNC(SYSDATE)) AS prodInbo,
+        
+        (SELECT COUNT(*) 
+         FROM prod_return 
+         WHERE TRUNC(return_dt) = TRUNC(SYSDATE)) AS prodReturn,
+        
+        (SELECT COUNT(*) 
+         FROM release_ord ro
+         JOIN release_ord_master rom ON ro.rel_mas_cd = rom.rel_mas_cd
+         WHERE TRUNC(rom.rel_dt) = TRUNC(SYSDATE)) AS releaseOrd,
+        
+        (SELECT COUNT(*) 
+         FROM prod_rel 
+         WHERE TRUNC(rel_dt) = TRUNC(SYSDATE)) AS prodRel
     FROM dual
-  </select>
+</select>
 
   <!-- 파이차트 데이터 -->
   <select id="getPieData" resultType="com.kimbap.kbs.dashboard.service.ChartVO">
