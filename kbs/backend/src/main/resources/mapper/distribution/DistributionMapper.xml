@@ -506,7 +506,7 @@ INSERT INTO release_ord_master (
          FROM order_d od
         WHERE od.ord_d_cd = #{ordDCd}),
       0
-    ) * #{relQty},
+    ) * (#{relQty} * 40),
 
     SYSTIMESTAMP,
     #{relOrdCd},

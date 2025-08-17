@@ -7,8 +7,15 @@ import { distributionInOutCheck } from '@/api/distribution';
 // api 데이터
 const rawData = ref([]);
 
-// 필터링된 데이터
-const cleanConvertedData = computed(() => Array.isArray(rawData.value) ? rawData.value : []);
+// ✅ 수정: 수량을 * 40으로 변환한 데이터
+const cleanConvertedData = computed(() => {
+  const arr = Array.isArray(rawData.value) ? rawData.value : [];
+  return arr.map(item => ({
+    ...item,
+    qty: (item.qty || 0) * 40, // ✅ 수량을 40배로 변환
+    displayQty: `${(item.qty || 0) * 40}개` // ✅ 단위 표시용 (선택사항)
+  }));
+});
 
 const searchValues = ref({ type: '전체' });
 const onReset = () => { searchValues.value = { type: '전체' } };
@@ -24,6 +31,7 @@ onMounted(async () => {
   }
 });
 
+// ✅ 수정: 카운트 계산 시에도 변환된 데이터 사용
 const inOutCounts = computed(() => {
   const arr = Array.isArray(rawData.value) ? rawData.value : [];
   return arr.reduce((acc, cur) => {
@@ -40,7 +48,6 @@ const materialTableButtons = ref({
   delete: { show: false },
   save: { show: false }
 });
-
 
 const searchColumns = ref([
   {
@@ -66,7 +73,8 @@ const searchColumns = ref([
     label: '일자', 
     type: 'dateRange', 
     startPlaceholder: '시작일', 
-    endPlaceholder: '종료일' },
+    endPlaceholder: '종료일' 
+  },
   {
     key: 'type',
     label: '구분',
@@ -90,11 +98,11 @@ const onSearch = async (searchValues) => {
       pcode,
       wareAreaCd
     } = searchValues;
-
+    
     // 날짜 처리
     const startDate = inOutDtRange?.[0] ?? null;
     const endDate = inOutDtRange?.[1] ?? null;
-
+    
     // 조건 백엔드 전달
     const filter = {
       type,
@@ -104,11 +112,12 @@ const onSearch = async (searchValues) => {
       pcode,
       wareAreaCd
     };
-console.log('🔍 필터 조건:', filter);
+
+    console.log('🔍 필터 조건:', filter);
+    
     // POST 요청
     const result = await distributionInOutCheck(filter);
     rawData.value = result.data;
-
   } catch (e) {
     console.error('검색 실패:', e);
   }
@@ -143,7 +152,7 @@ const inputTableColumns = computed(() => {
     },
     {
       field: 'qty',
-      header: '수량',
+      header: '출고수량(개)', // ✅ 헤더에 단위 명시
       type: 'readonly',
       align: 'right'
     },
@@ -155,7 +164,7 @@ const inputTableColumns = computed(() => {
     },
     {
       field: 'stockQty',
-      header: '잔여재고',
+      header: '잔여재고(개)',
       type: 'readonly',
       align: 'right'
     },
@@ -168,8 +177,6 @@ const inputTableColumns = computed(() => {
   ];
   return baseColumns;
 });
-
-
 </script>
 
 <template>
@@ -177,11 +184,25 @@ const inputTableColumns = computed(() => {
     <div class="col-12">
       <div class="card">
         <h5>완제품 입출고 조회</h5>
-        <SearchForm :columns="searchColumns"  v-model="searchValues" @search="onSearch" :gridColumns="3" @reset="onReset" />
-
+        <SearchForm 
+          :columns="searchColumns"  
+          v-model="searchValues" 
+          @search="onSearch" 
+          :gridColumns="3" 
+          @reset="onReset" 
+        />
+        
         <!-- 매핑된 InputTable -->
-        <InputTable :columns="inputTableColumns" :data="cleanConvertedData" :scroll-height="'50vh'" :height="'60vh'"
-          :title="`완제품 입출고 (총 ${inOutCounts.total}건 / 입고 ${inOutCounts.in}건 · 출고 ${inOutCounts.out}건)`" :buttons="materialTableButtons" :enableRowActions="false" :enableSelection="false" />
+        <InputTable 
+          :columns="inputTableColumns" 
+          :data="cleanConvertedData" 
+          :scroll-height="'50vh'" 
+          :height="'60vh'"
+          :title="`완제품 입출고 (총 ${inOutCounts.total}건 / 입고 ${inOutCounts.in}건 · 출고 ${inOutCounts.out}건)`" 
+          :buttons="materialTableButtons" 
+          :enableRowActions="false" 
+          :enableSelection="false" 
+        />
       </div>
     </div>
   </div>
