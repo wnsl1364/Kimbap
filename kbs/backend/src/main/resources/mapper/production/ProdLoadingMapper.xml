@@ -14,12 +14,12 @@
       pi.inbo_dt,
       pi.fcode,
       pi.fac_ver_cd,
-      -- 부분 적재 고려한 남은 수량
-      (pi.inbo_qty - COALESCE(
-          (SELECT SUM(ws.qty) 
-            FROM ware_stock ws 
-            WHERE ws.prod_inbo_cd = pi.prod_inbo_cd), 0
-      )) AS total_qty,
+      -- 정교한 적재대기 수량 계산
+      -- (입고수량 - 총출고수량) - 현재적재수량 = 적재 필요 수량
+      GREATEST(0, 
+          (pi.inbo_qty - COALESCE(total_released.total_rel_qty, 0)) -     -- 현재 보유 재고
+          COALESCE(current_loaded.current_stock_qty, 0)                   -- 현재 적재된 수량
+      ) AS total_qty,
       p.prod_name,
       p.sto_temp,
       p.unit,
@@ -27,19 +27,47 @@
       p.reg_dt,
       f.fac_name,
       f.op_status,
-      f.address
+      f.address,
+      -- 디버깅 및 상태 확인용 추가 컬럼들
+      pi.inbo_qty as original_inbo_qty,                                   -- 원본 입고수량
+      COALESCE(total_released.total_rel_qty, 0) as total_released_qty,    -- 총 출고수량
+      (pi.inbo_qty - COALESCE(total_released.total_rel_qty, 0)) as current_inventory,  -- 현재 보유 재고
+      COALESCE(current_loaded.current_stock_qty, 0) as current_loaded_qty,             -- 현재 적재수량
+      COALESCE(current_loaded.loaded_areas_count, 0) as loaded_areas_count             -- 적재된 구역 수
     FROM prod_inbo pi
     INNER JOIN product p ON pi.pcode = p.pcode AND pi.prod_ver_cd = p.prod_ver_cd
     INNER JOIN factory f ON pi.fcode = f.fcode AND pi.fac_ver_cd = f.fac_ver_cd
+    -- LOT별 총 출고수량 조회 (prod_rel 테이블)
+    LEFT JOIN (
+      SELECT 
+          pr.lot_no, 
+          SUM(pr.rel_qty) as total_rel_qty,
+          COUNT(*) as release_count
+      FROM prod_rel pr
+      GROUP BY pr.lot_no
+    ) total_released ON total_released.lot_no = pi.lot_no
+    -- 제품입고별 현재 적재수량 조회 (ware_stock 테이블)
+    LEFT JOIN (
+      SELECT 
+        ws.prod_inbo_cd, 
+        SUM(ws.qty) as current_stock_qty,
+        COUNT(DISTINCT ws.ware_area_cd) as loaded_areas_count
+      FROM ware_stock ws
+      <![CDATA[
+      WHERE ws.qty > 0  --  출고로 인해 0이 된 것은 제외
+      ]]>
+      GROUP BY ws.prod_inbo_cd
+    ) current_loaded ON current_loaded.prod_inbo_cd = pi.prod_inbo_cd
     WHERE pi.inbo_status = 'b4'        -- 입고완료 상태
       AND f.op_status = 'r1'           -- 활성 공장
       <![CDATA[
-      AND (pi.inbo_qty - COALESCE(
-            (SELECT SUM(ws.qty) 
-              FROM ware_stock ws 
-              WHERE ws.prod_inbo_cd = pi.prod_inbo_cd), 0
-
-      )) > 0
+      -- 적재가 필요한 수량이 있는 경우만 표시
+      AND GREATEST(0, 
+          (pi.inbo_qty - COALESCE(total_released.total_rel_qty, 0)) -
+          COALESCE(current_loaded.current_stock_qty, 0)
+        ) > 0
+      -- 추가 조건: 아직 재고가 남아있는 경우만 (완전 출고되지 않은 LOT)
+      AND (pi.inbo_qty - COALESCE(total_released.total_rel_qty, 0)) > 0
       ]]>
     ORDER BY pi.inbo_dt DESC, pi.prod_inbo_cd DESC
   </select>
