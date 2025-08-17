@@ -224,185 +224,180 @@ export const useProductLoadingStore  = defineStore('mateLoading', () => {
 * 다중 제품 적재 처리 (적재처리 버튼)
 */
 const processBatchLoading = async () => {
-      if (selectedProdLoadings.value.length === 0) {
-        throw new Error('적재할 제품를 선택해주세요.');
-      }
+  if (selectedProdLoadings.value.length === 0) {
+    throw new Error('적재할 제품를 선택해주세요.');
+  }
 
-      // 창고구역이 설정된 제품들만 필터링 (wareAreaCd 또는 placementPlan이 있는 경우)
-      const assignedItems = selectedProdLoadings.value.filter(item => 
-        (item.wareAreaCd && item.wareAreaCd.trim() !== '') ||
-        (item.placementPlan && item.placementPlan.length > 0)
-      );
-      
-      if (assignedItems.length === 0) {
-        throw new Error('선택된 제품 중 창고구역이 설정된 제품이 없습니다. 먼저 구역을 선택해주세요.');
-      }
+  // 🔥 중복 제거 - 같은 prodInboCd는 한 번만 처리
+  const uniqueProducts = new Map();
+  selectedProdLoadings.value.forEach(item => {
+    const hasArea = (item.wareAreaCd && item.wareAreaCd.trim() !== '') ||
+                   (item.placementPlan && item.placementPlan.length > 0);
+    
+    if (hasArea) {
+      uniqueProducts.set(item.prodInboCd, item);
+    }
+  });
+  
+  const assignedItems = Array.from(uniqueProducts.values());
+  
+  if (assignedItems.length === 0) {
+    throw new Error('선택된 제품 중 창고구역이 설정된 제품이 없습니다. 먼저 구역을 선택해주세요.');
+  }
 
-      // 창고구역이 설정되지 않은 제품이 있으면 알림 (처리는 계속 진행)
-      const unassignedItems = selectedProdLoadings.value.filter(item => 
-        (!item.wareAreaCd || item.wareAreaCd.trim() === '') &&
-        (!item.placementPlan || item.placementPlan.length === 0)
-      );
-      
-      if (unassignedItems.length > 0) {
-        console.log(`주의: ${unassignedItems.length}개 제품은 창고구역이 설정되지 않아 제외됩니다.`);
-      }
+  const unassignedCount = selectedProdLoadings.value.length - assignedItems.length;
 
-      try {
-        isLoading.value = true;
+  try {
+    isLoading.value = true;
+    
+    const memberStore = useMemberStore();
+    const currentUser = memberStore.user?.empCd || 'system';
+    
+    const getOriginalUnitCode = (displayValue) => {
+      const commonStore = useCommonStore();
+      const unitCodes = commonStore.getCodes('0G');
+      const found = unitCodes.find(code => code.cdInfo === displayValue);
+      return found ? found.dcd : displayValue;
+    };
+    
+    // 🔥 핵심 변경: 분할 적재를 개별 항목으로 변환 (기존 백엔드 호환)
+    const processData = [];
+    
+    assignedItems.forEach(item => {
+      if (item.placementPlan && item.placementPlan.length > 0) {
+        // 🔥 분할 적재: 각 구역을 별도 항목으로 변환
+        console.log(`제품 ${item.prodInboCd}: ${item.placementPlan.length}개 구역으로 분할 적재`);
         
-        // 🔥 현재 로그인 사용자 정보 가져오기
-        const memberStore = useMemberStore();
-        const currentUser = memberStore.user?.empCd || 'system';
-        
-        // 🔥 공통코드에서 단위 코드 변환을 위한 함수
-        const getOriginalUnitCode = (displayValue) => {
-          const commonStore = useCommonStore(); // 함수 내부에서 호출
-          const unitCodes = commonStore.getCodes('0G');
-          const found = unitCodes.find(code => code.cdInfo === displayValue);
-          return found ? found.dcd : displayValue;
-        };
-        
-        // 백엔드로 전송할 데이터 변환
-        const processData = assignedItems.map(item => {
-          // placementPlan이 있는 경우 - 다중 구역 적재
-          if (item.placementPlan && item.placementPlan.length > 0) {
-            // 각 구역별로 개별 적재 항목 생성
-            return item.placementPlan.map(plan => ({
-              prodInboCd: item.prodInboCd,
-              pcode: item.pcode,
-              prodVerCd: item.prodVerCd,
-              qty: plan.allocateQty,
-              wareAreaCd: plan.wareAreaCd,
-              note: item.note || '',
-              // 추가 필요한 필드들
-              totalQty: item.totalQty,
-              unit: getOriginalUnitCode(item.unit), // 🔥 화면 표시값을 원본 코드로 변환 (kg → g2)
-              lotNo: item.lotNo,
-              inboDt: item.inboDt,
-              fcode: item.fcode,
-              regi: currentUser // 현재 로그인 사용자 emp_cd
-            }));
-          } 
-          // 기존 방식 - 단일 구역 적재 (wareAreaCd가 직접 설정된 경우)
-          else {
-            return [{
-              prodInboCd: item.prodInboCd,
-              pcode: item.pcode,
-              prodVerCd: item.prodVerCd,
-              qty: item.qty,
-              wareAreaCd: item.wareAreaCd,
-              note: item.note || '',
-              totalQty: item.totalQty,
-              unit: getOriginalUnitCode(item.unit), // 🔥 화면 표시값을 원본 코드로 변환 (kg → g2)
-              lotNo: item.lotNo,
-              inboDt: item.inboDt,
-              fcode: item.fcode,
-              regi: currentUser // 현재 로그인 사용자 emp_cd
-            }];
-          }
-        }).flat(); // 중첩 배열을 평면화
-        
-        console.log('백엔드로 전송할 적재 데이터:', processData);
-        
-        // 창고구역이 설정된 자재들만 처리
-        const response = await processProdLoadingBatch(processData);
-        console.log('다중 적재 처리 완료:', response.data);
-        
-        // 🔥 적재 후 수량 업데이트 로직 개선
-        // 각 자재별로 적재된 수량을 계산하고 남은 수량 업데이트
-        const processedResults = response.data.results || response.data; // 백엔드 응답 구조에 따라 조정
-        
-        assignedItems.forEach(item => {
-          const originalItem = prodLoadingList.value.find(original => 
-            original.prodInboCd === item.prodInboCd
-          );
+        item.placementPlan.forEach((plan, index) => {
+          processData.push({
+            prodInboCd: item.prodInboCd,
+            pcode: item.pcode,
+            prodVerCd: item.prodVerCd,
+            qty: plan.allocateQty,
+            wareAreaCd: plan.wareAreaCd,
+            note: item.note || '',
+            totalQty: item.totalQty,
+            unit: getOriginalUnitCode(item.unit),
+            lotNo: item.lotNo,
+            inboDt: item.inboDt,
+            fcode: item.fcode,
+            regi: currentUser
+          });
           
-          if (originalItem) {
-            // 해당 자재의 총 적재량 계산
-            let totalLoadedQty = 0;
-            
-            if (item.placementPlan && item.placementPlan.length > 0) {
-              // 다중 구역 적재의 경우
-              totalLoadedQty = item.placementPlan.reduce((sum, plan) => sum + plan.allocateQty, 0);
-            } else {
-              // 단일 구역 적재의 경우
-              totalLoadedQty = item.qty || 0;
-            }
-            
-            // 원본 자재의 남은 수량 계산
-            const remainingQty = (originalItem.totalQty || 0) - totalLoadedQty;
-            
-            console.log(`제품 ${item.prodInboCd}: 원래수량=${originalItem.totalQty}, 적재량=${totalLoadedQty}, 남은수량=${remainingQty}`);
-            
-            if (remainingQty > 0) {
-              // 부분 적재: 남은 수량으로 업데이트
-              originalItem.totalQty = remainingQty;
-              
-              // 적재 계획 정보 초기화 (다시 구역 선택 필요)
-              originalItem.placementPlan = null;
-              originalItem.totalAllocated = null;
-              originalItem.remainingQty = null;
-              originalItem.wareAreaCd = null;
-              originalItem.selectedAreaInfo = null;
-              
-              console.log(`부분 적재 완료: ${item.prodInboCd} - 남은 수량 ${remainingQty}으로 업데이트`);
-            } else {
-              // 완전 적재: 목록에서 제거
-              const index = prodLoadingList.value.findIndex(listItem => 
-                listItem.prodInboCd === item.prodInboCd
-              );
-              if (index > -1) {
-                prodLoadingList.value.splice(index, 1);
-                console.log(`완전 적재 완료: ${item.prodInboCd} - 목록에서 제거`);
-              }
-            }
-          }
+          console.log(`  구역 ${index + 1}: ${plan.wareAreaCd} - ${plan.allocateQty}개`);
         });
+      } else {
+        // 🔥 단일 적재: 그대로 전송
+        console.log(`제품 ${item.prodInboCd}: 단일 적재 ${item.wareAreaCd}`);
         
-        // 처리된 항목들을 selectedMateLoadings에서 제거 (완전 적재된 것만)
-        const fullyProcessedIds = assignedItems.filter(item => {
-          const originalItem = prodLoadingList.value.find(original => 
-            original.prodInboCd === item.prodInboCd
-          );
-          return !originalItem; // 목록에서 제거된 = 완전 적재된 항목
-        }).map(item => item.prodInboCd);
+        processData.push({
+          prodInboCd: item.prodInboCd,
+          pcode: item.pcode,
+          prodVerCd: item.prodVerCd,
+          qty: item.qty,
+          wareAreaCd: item.wareAreaCd,
+          note: item.note || '',
+          totalQty: item.totalQty,
+          unit: getOriginalUnitCode(item.unit),
+          lotNo: item.lotNo,
+          inboDt: item.inboDt,
+          fcode: item.fcode,
+          regi: currentUser
+        });
+      }
+    });
+    
+    console.log('🔥 최종 전송 데이터:', processData.length + '개 항목');
+    console.log('전송 상세:', processData);
+    
+    // 🔥 기존 백엔드 API 그대로 호출
+    const response = await processProdLoadingBatch(processData);
+    console.log('다중 적재 처리 완료:', response.data);
+    
+    // 🔥 적재 후 목록 업데이트 (기존 로직 유지)
+    assignedItems.forEach(item => {
+      const originalItem = prodLoadingList.value.find(original => 
+        original.prodInboCd === item.prodInboCd
+      );
+      
+      if (originalItem) {
+        let totalLoadedQty = 0;
         
-        selectedProdLoadings.value = selectedProdLoadings.value.filter(item => 
-          !fullyProcessedIds.includes(item.prodInboCd)
-        );
-        
-        // 🔥 결과 메시지에 부분/완전 적재 상세 포함
-        const fullyProcessedCount = fullyProcessedIds.length;
-        const partiallyProcessedCount = assignedItems.length - fullyProcessedCount;
-        
-        let resultMessage = '';
-        if (unassignedItems.length > 0) {
-          resultMessage = `적재 완료: 완전적재 ${fullyProcessedCount}건, 부분적재 ${partiallyProcessedCount}건 (${unassignedItems.length}건은 구역 미선택으로 제외)`;
+        if (item.placementPlan && item.placementPlan.length > 0) {
+          totalLoadedQty = item.placementPlan.reduce((sum, plan) => sum + plan.allocateQty, 0);
         } else {
-          if (partiallyProcessedCount > 0) {
-            resultMessage = `적재 완료: 완전적재 ${fullyProcessedCount}건, 부분적재 ${partiallyProcessedCount}건`;
-          } else {
-            resultMessage = `${fullyProcessedCount}건 완전 적재 완료`;
-          }
+          totalLoadedQty = item.qty || 0;
         }
         
-        return {
-          ...response.data,
-          message: resultMessage,
-          processedCount: assignedItems.length,
-          fullyProcessedCount,
-          partiallyProcessedCount,
-          skippedCount: unassignedItems.length
-        };
+        const remainingQty = (originalItem.totalQty || 0) - totalLoadedQty;
         
-      } catch (error) {
-        console.error('다중 적재 처리 실패:', error);
-        throw error;
-      } finally {
-        isLoading.value = false;
+        console.log(`제품 ${item.prodInboCd}: 원래수량=${originalItem.totalQty}, 적재량=${totalLoadedQty}, 남은수량=${remainingQty}`);
+        
+        if (remainingQty > 0) {
+          // 부분 적재
+          originalItem.totalQty = remainingQty;
+          originalItem.qty = remainingQty;
+          
+          // 적재 계획 정보 초기화
+          originalItem.placementPlan = null;
+          originalItem.totalAllocated = null;
+          originalItem.remainingQty = null;
+          originalItem.wareAreaCd = '';
+          originalItem.selectedAreaInfo = null;
+          
+          console.log(`부분 적재: ${item.prodInboCd} - 남은 수량 ${remainingQty}으로 업데이트`);
+        } else {
+          // 완전 적재: 목록에서 제거
+          const index = prodLoadingList.value.findIndex(listItem => 
+            listItem.prodInboCd === item.prodInboCd
+          );
+          if (index > -1) {
+            prodLoadingList.value.splice(index, 1);
+            console.log(`완전 적재: ${item.prodInboCd} - 목록에서 제거`);
+          }
+        }
       }
-  };
+    });
+    
+    // 선택 목록 업데이트
+    const remainingProducts = prodLoadingList.value.map(item => item.prodInboCd);
+    selectedProdLoadings.value = selectedProdLoadings.value.filter(item => 
+      remainingProducts.includes(item.prodInboCd)
+    );
+    
+    // 결과 메시지 생성
+    const fullyProcessedCount = assignedItems.filter(item => {
+      return !prodLoadingList.value.find(original => original.prodInboCd === item.prodInboCd);
+    }).length;
+    const partiallyProcessedCount = assignedItems.length - fullyProcessedCount;
+    
+    let resultMessage = '';
+    if (unassignedCount > 0) {
+      resultMessage = `적재 완료: 완전적재 ${fullyProcessedCount}건, 부분적재 ${partiallyProcessedCount}건 (${unassignedCount}건은 구역 미선택으로 제외)`;
+    } else {
+      if (partiallyProcessedCount > 0) {
+        resultMessage = `적재 완료: 완전적재 ${fullyProcessedCount}건, 부분적재 ${partiallyProcessedCount}건`;
+      } else {
+        resultMessage = `${fullyProcessedCount}건 완전 적재 완료`;
+      }
+    }
+    
+    return {
+      ...response.data,
+      message: resultMessage,
+      processedCount: assignedItems.length,
+      fullyProcessedCount,
+      partiallyProcessedCount,
+      skippedCount: unassignedCount
+    };
+    
+  } catch (error) {
+    console.error('다중 적재 처리 실패:', error);
+    throw error;
+  } finally {
+    isLoading.value = false;
+  }
+};
   /**
    * 창고 구역별 wslcode 조회
    */

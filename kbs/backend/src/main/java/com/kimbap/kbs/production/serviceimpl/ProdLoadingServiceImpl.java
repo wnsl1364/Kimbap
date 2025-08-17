@@ -166,7 +166,8 @@ public class ProdLoadingServiceImpl implements ProdLoadingService {
     
     return "자재 적재 처리가 완료되었습니다.";
   }
-    
+  
+  
   @Override
   public String processProdLoadingBatch(List<ProdInboundVO> prodLoadingList) {
     System.out.println("=== 다중 적재 처리 시작 ===");
