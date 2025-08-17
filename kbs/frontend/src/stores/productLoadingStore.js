@@ -228,7 +228,7 @@ const processBatchLoading = async () => {
         throw new Error('적재할 제품를 선택해주세요.');
       }
 
-      // 창고구역이 설정된 자재들만 필터링 (wareAreaCd 또는 placementPlan이 있는 경우)
+      // 창고구역이 설정된 제품들만 필터링 (wareAreaCd 또는 placementPlan이 있는 경우)
       const assignedItems = selectedProdLoadings.value.filter(item => 
         (item.wareAreaCd && item.wareAreaCd.trim() !== '') ||
         (item.placementPlan && item.placementPlan.length > 0)

@@ -33,11 +33,14 @@
     INNER JOIN factory f ON pi.fcode = f.fcode AND pi.fac_ver_cd = f.fac_ver_cd
     WHERE pi.inbo_status = 'b4'        -- 입고완료 상태
       AND f.op_status = 'r1'           -- 활성 공장
+      <![CDATA[
       AND (pi.inbo_qty - COALESCE(
             (SELECT SUM(ws.qty) 
               FROM ware_stock ws 
               WHERE ws.prod_inbo_cd = pi.prod_inbo_cd), 0
-        )) > 0
+
+      )) > 0
+      ]]>
     ORDER BY pi.inbo_dt DESC, pi.prod_inbo_cd DESC
   </select>
   <!-- 구역별 현재 적재 상황 조회 -->
@@ -126,7 +129,7 @@
   <select id="getLastWareStockSequence" parameterType="string" resultType="int">
     SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(wslcode, -3))), 0) as last_seq
     FROM ware_stock
-    WHERE wslcode LIKE 'WStock-' || #{dateStr} || '-%'
+    WHERE wslcode LIKE 'WStock-' || #{datePattern} || '-%'
   </select>
   <!-- 자재 적재 처리 (ware_stock 테이블에 INSERT) -->
   <insert id="insertWareStock" parameterType="com.kimbap.kbs.production.service.ProdInboundVO">
