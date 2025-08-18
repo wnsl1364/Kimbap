@@ -258,6 +258,11 @@ const prodPlanColumns = [
     { field: 'ordDStatus', header: '주문상세상태' }
 ]
 
+const stockAlarmColumns = [
+    { field : 'mateName', header: '자재명' },
+    { field : 'status', header: '상태' }
+]
+
 watch(
     [getPrimary, getSurface, isDarkTheme],
     () => {
@@ -309,7 +314,7 @@ watch(
         </div>
     </div>
     <div class="flex flex-col md:flex-row gap-4 mt-6">
-        <div class="w-full md:basis-[50%]">
+        <div class="w-full md:basis-[35%]">
             <div class="col-span-12 xl:col-span-6 mb-3">
                 <div class="card flex flex-col items-center min-h-[430px]">
                     <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 판매현황</div>
@@ -317,12 +322,20 @@ watch(
                 </div>
             </div>
         </div>
-        <div class="w-full md:basis-[50%]">
+        <div class="w-full md:basis-[35%]">
             <div class="col-span-12 xl:col-span-6 mb-3">
                 <div class="card flex flex-col items-center min-h-[430px]">
                     <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 매출현황</div>
                     <Chart type="bar" :data="barData" :options="barOptions" style="width: 100%; height: 250px"></Chart>
                 </div>
+            </div>
+        </div>
+        <div class="w-full md:basis-[30%]">
+            <!-- 재고현황: 테이블이 카드 전체 너비를 차지하도록 items-center 제거 -->
+                    <div class="card flex flex-col h-[430px]">
+                <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 재고현황</div>
+                        <StandartTable class="w-full h-full" :data="stockStatusData" :columns="stockAlarmColumns" dataKey="index"
+                            scrollHeight="250px" :selectable="false" :showHistoryButton="false" :tableMinWidth="'100%'" />
             </div>
         </div>
     </div>

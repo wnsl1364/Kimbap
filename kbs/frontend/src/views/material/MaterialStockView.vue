@@ -149,18 +149,19 @@ const stockStatusColumns = ref([
     width: '100px',
     align: 'center',
     textColor: (rowData) => {
-      // Ensure property names match your data structure
-      const stock = rowData.totalQuantity !== undefined ? Number(rowData.totalQuantity.toString().replace(/,/g, '')) : 0;
-      const minStock = rowData.safeStock !== undefined ? Number(rowData.safeStock.toString().replace(/,/g, '')) : 0;
-      
-      if (stock <= 0) {
+      // 🎯 백엔드에서 온 원본 상태값으로 판단!
+      const status = rowData.stockStatusOriginal;
+
+      if (status === 'empty') {
         return 'text-red-700 font-bold'; // 재고 없음: 빨간색 + 굵게
-      } else if (stock <= minStock) {
-        return 'text-orange-600'; // 최소재고 이하: 주황색
-      } else if (stock <= minStock * 2) {
-        return 'text-yellow-600'; // 재고 부족: 노란색
+      } else if (status === 'shortage') {
+        return 'text-orange-600'; // 재고 부족: 주황색
+      } else if (status === 'overstock') {
+        return 'text-blue-600'; // 재고 과다: 파란색
+      } else if (status === 'normal') {
+        return 'text-green-600'; // 정상: 초록색
       } else {
-        return 'text-green-600'; // 충분한 재고: 초록색
+        return 'text-gray-600'; // 기타: 회색
       }
     }
   },
@@ -237,7 +238,7 @@ const totalStockItems = computed(() => stockStatusData.value?.length || 0);
 const criticalAlertCount = computed(() => {
   if (!stockStatusData.value) return 0;
   return stockStatusData.value.filter(item =>
-    item.stockStatus === 'empty' || item.stockStatus === 'shortage'
+    item.stockStatusOriginal === 'empty' || item.stockStatusOriginal === 'shortage'  // 🎯 원본값 사용!
   ).length;
 });
 
@@ -336,7 +337,8 @@ const loadStockStatusData = async () => {
       // 재고 상태 텍스트 변환 (백엔드 변환값 우선 사용)
       stockStatusData.value = stockStatusData.value.map(item => ({
         ...item,
-        stockStatus: getStockStatusText(item.stockStatus),
+        stockStatusOriginal: item.stockStatus,  // 🎯 원본 상태값 보존!
+        stockStatus: getStockStatusText(item.stockStatus),  // 화면용 한글 변환
         totalQuantity: item.totalQuantity?.toLocaleString() || '0',
         safeStock: item.safeStock?.toLocaleString() || '0',
         stockDifference: item.stockDifference?.toLocaleString() || '0',
@@ -414,7 +416,7 @@ const navigateToOrderPage = (row) => {
     query: {
       mcode: row.materialCode,
       mateName: row.materialName,
-  mateVerCd: row.mateVerCd || '',
+      mateVerCd: row.mateVerCd || '',
       unit: row.unit, // 이미 텍스트 단위로 변환됨
       qty: shortageQty
     }
@@ -668,11 +670,11 @@ onMounted(async () => {
 </script>
 
 <template>
-    <!-- 검색 폼 (기존 SearchForm.vue 사용) -->
-    <SearchForm title="자재 재고 조회" :columns="searchColumns" :gridColumns="4" @search="onSearch" @reset="onReset" />
+  <!-- 검색 폼 (기존 SearchForm.vue 사용) -->
+  <SearchForm title="자재 재고 조회" :columns="searchColumns" :gridColumns="4" @search="onSearch" @reset="onReset" />
 
-    <!-- 재고 현황 테이블 (기존 InputTable.vue 사용) -->
-     <div class="mt-4">
+  <!-- 재고 현황 테이블 (기존 InputTable.vue 사용) -->
+  <div class="mt-4">
     <InputTable ref="stockTableRef" :data="stockStatusData" :columns="stockStatusColumns"
       :title="`재고 현황 목록 (${totalStockItems}건 / 긴급알림: ${criticalAlertCount}건)`" :buttons="tableButtons"
       :scrollHeight="'55vh'" :height="'65vh'" :loading="stockStatusLoading" :enableRowActions="false"
@@ -681,12 +683,11 @@ onMounted(async () => {
         <Button label="선택 자재 발주" severity="help" icon="pi pi-shopping-cart" @click="handleShortageOrderButton" />
       </template>
     </InputTable>
-    </div>
+  </div>
 
-    <!-- LOT별 재고 조회 모달 (BasicModal 사용!) -->
-    <BasicModal v-model:visible="lotStockModalVisible" :items="lotStockData" :columns="lotStockColumns" itemKey="lotNo"
-      :titleName="selectedMaterialInfo.materialName" :titleCode="selectedMaterialInfo.materialCode" />
+  <!-- LOT별 재고 조회 모달 (BasicModal 사용!) -->
+  <BasicModal v-model:visible="lotStockModalVisible" :items="lotStockData" :columns="lotStockColumns" itemKey="lotNo"
+    :titleName="selectedMaterialInfo.materialName" :titleCode="selectedMaterialInfo.materialCode" />
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

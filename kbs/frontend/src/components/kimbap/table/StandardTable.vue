@@ -1,10 +1,11 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted, nextTick } from 'vue';
 import Button from 'primevue/button';
 
 const props = defineProps({
     data: { type: Array, default: () => [] },
-    height: { type: String, default: '500px' },
+  // 기본 카드 높이를 430px로 통일
+  height: { type: String, default: '430px' },
     columns: { type: Array, default: () => [] },
     title: { type: String, default: '' },
     dataKey: { type: String, default: 'id' },
@@ -33,6 +34,21 @@ watch(selected, (val) => {
 });
 
 const rowCount = computed(() => props.data.length);
+
+// 동적 scrollHeight 계산: 전체 height - (헤더 영역 실제 높이)
+const headerRef = ref(null);
+const containerRef = ref(null);
+const computedScrollHeight = computed(() => {
+  // 명시적 scrollHeight prop 우선
+  if (props.scrollHeight && !props.height) return props.scrollHeight;
+  if (!containerRef.value) return props.scrollHeight;
+  const containerH = containerRef.value.clientHeight;
+  const headerH = headerRef.value ? headerRef.value.clientHeight : 0;
+  // 패딩  (p-4 => 1rem = 16px 상하 32px) 고려
+  const padding = 32;
+  const body = containerH - headerH - padding;
+  return body > 100 ? body + 'px' : props.scrollHeight; // 최소 안전값
+});
 
 // 정렬 클래스
 const getAlignClass = (col) => {
@@ -86,8 +102,8 @@ const downloadExcel = () => {
 </script>
 
 <template>
-    <div class="border p-4 border-gray-200 rounded-lg bg-white" :style="{ height: props.height }">
-        <div class="flex justify-between items-start mb-0">
+  <div ref="containerRef" class="border p-4 border-gray-200 rounded-lg bg-white standard-table-flex flex flex-col" :style="props.height ? { height: props.height } : {}">
+    <div ref="headerRef" class="flex justify-between items-start mb-2 shrink-0">
             <!-- 왼쪽: 제목 + 검색결과 -->
             <div>
                 <h2 v-if="title" class="text-lg font-semibold mb-1">{{ title }}</h2>
@@ -98,20 +114,21 @@ const downloadExcel = () => {
             <Button v-if="props.showExcelDownload" icon="pi pi-file-excel" label="엑셀 다운로드" class="p-button-sm" severity="success" @click="downloadExcel" />
         </div>
 
-        <DataTable
-            :value="data"
-            :tableStyle="{ minWidth: props.tableMinWidth }"
-            showGridlines
-            responsiveLayout="scroll"
-            v-model:selection="selected"
-            :dataKey="dataKey"
-            size="large"
-            scrollable
-            :scrollHeight="scrollHeight"
-            @rowSelect="$emit('row-select', $event.data)"
-            @rowClick="$emit('row-click', $event.data)"
-            :class="{ 'hoverable-rows': props.hoverable }"
-        >
+        <div class="flex-1 min-h-0 overflow-hidden">
+          <DataTable
+              :value="data"
+              :tableStyle="{ minWidth: props.tableMinWidth }"
+              showGridlines
+              responsiveLayout="scroll"
+              v-model:selection="selected"
+              :dataKey="dataKey"
+              size="large"
+              scrollable
+              :scrollHeight="computedScrollHeight"
+              @rowSelect="$emit('row-select', $event.data)"
+              @rowClick="$emit('row-click', $event.data)"
+              :class="[{ 'hoverable-rows': props.hoverable }, 'h-full']"
+          >
             <Column v-if="props.selectable" selectionMode="multiple" headerStyle="width: 3rem" />
 
             <!-- 일반/슬롯 컬럼 렌더링 -->
@@ -133,7 +150,8 @@ const downloadExcel = () => {
                     <Button label="이력조회" size="small" text severity="info" @click="handleClick(slotProps.data)" />
                 </template>
             </Column>
-        </DataTable>
+          </DataTable>
+        </div>
     </div>
 </template>
 
@@ -143,4 +161,10 @@ const downloadExcel = () => {
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
+</style>
+<style>
+/* flex 높이 채움 시 DataTable wrapper가 남은 공간 올바르게 채우도록 */
+.standard-table-flex .p-datatable-wrapper { height: 100%; }
+.standard-table-flex .p-datatable { height: 100%; display: flex; flex-direction: column; }
+.standard-table-flex .p-datatable-scrollable-wrapper { flex: 1 1 auto; }
 </style>
