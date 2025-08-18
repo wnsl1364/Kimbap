@@ -152,7 +152,7 @@ const inputTableColumns = computed(() => {
     },
     {
       field: 'qty',
-      header: '출고수량(개)', // ✅ 헤더에 단위 명시
+      header: '입출고수량(개)', // ✅ 헤더에 단위 명시
       type: 'readonly',
       align: 'right'
     },
@@ -161,12 +161,6 @@ const inputTableColumns = computed(() => {
       header: '창고',
       type: 'readonly',
       align: 'center'
-    },
-    {
-      field: 'stockQty',
-      header: '잔여재고(개)',
-      type: 'readonly',
-      align: 'right'
     },
     {
       field: 'note',

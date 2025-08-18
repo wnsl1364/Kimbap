@@ -82,6 +82,7 @@ int decreaseLotQtyByRowId(@Param("rid") String rid,
                     @Param("lotNo") String lotNo,
                     @Param("relQty") Integer relQty,
                     @Param("relOrdCd") String relOrdCd,
+                    @Param("remainQty") Integer remainQty,
                     @Param("ordDCd") String ordDCd,
                     @Param("pcode") String pcode,
                     @Param("prodVerCd") String prodVerCd);
