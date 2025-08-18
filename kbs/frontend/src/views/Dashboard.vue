@@ -5,6 +5,9 @@ import StandartTable from '@/components/kimbap/table/StandardTable.vue'
 import { dashboardTopData, dashboardPieData, dashboardBarData, dashboardOrderData } from '@/api/dashboard';
 import { useCommonStore } from '@/stores/commonStore'
 import { storeToRefs } from 'pinia';
+import { getMaterialStockStatus } from '@/api/materials';
+
+const stockStatusData = ref([]); // 부족재고 표에 바인딩되는 데이터
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
 
 // 🔥 공통코드 store 추가
@@ -32,37 +35,69 @@ const prodRelCount = ref(0);      // 출고완료
 // 🔥 원본 데이터와 변환된 데이터 분리
 const rawOrderData = ref([]);
 
+// ⬇️ 추가
+const toKoStockStatus = (s) => ({
+  empty: '재고없음',
+  shortage: '재고부족',
+  overstock: '재고과다',
+  normal: '정상',
+}[s] ?? s);
+
+// ⬇️ 추가: 대시보드용 부족재고 데이터 로딩 (정상 제외)
+async function fetchDashboardStockShortage() {
+  try {
+    const res = await getMaterialStockStatus({}); // 서버가 필터 파라미터 지원하면 넣어도 OK
+    const list = res.data?.data ?? res.data ?? [];
+
+    stockStatusData.value = list
+      // ✅ 여기서 정상 제외 (원본 코드값 기준)
+      .filter(r => (r.stockStatus ?? r.status) !== 'normal')
+      .filter(r => (r.stockStatus ?? r.status) !== 'overstock')
+      // 표 컬럼에 맞게 최소 필드만 매핑
+      .map(r => ({
+        mateName: r.materialName ?? r.mateName ?? r.materialCode ?? '-',
+        status: toKoStockStatus(r.stockStatus ?? r.status),
+        statusOriginal: r.stockStatus ?? r.status, // 🎯 원본 상태값 추가!
+      }))
+      .slice(0, 20); // 필요시 상위 n건만
+  } catch (e) {
+    console.error('재고부족 데이터 로딩 실패:', e);
+    stockStatusData.value = [];
+  }
+}
+
 // 🔥 공통코드 형변환 함수
 const convertOrderStatusCodes = (list) => {
-  const statusCodes = commonStore.getCodes('0S'); // 주문상세상태 코드
+    const statusCodes = commonStore.getCodes('0S'); // 주문상세상태 코드
 
-  return list.map((item, index) => {
-    const matchedStatus = statusCodes.find(code => code.dcd === item.ordDStatus);
+    return list.map((item, index) => {
+        const matchedStatus = statusCodes.find(code => code.dcd === item.ordDStatus);
 
-    return {
-      ...item,
-      index: index + 1,
-      ordDStatus: matchedStatus ? matchedStatus.cdInfo : item.ordDStatus,
-    };
-  });
+        return {
+            ...item,
+            index: index + 1,
+            ordDStatus: matchedStatus ? matchedStatus.cdInfo : item.ordDStatus,
+        };
+    });
 };
 
 // 🔥 변환된 주문 데이터 computed
 const condProdPlanList = computed(() => {
-  const dataArray = Array.isArray(rawOrderData.value) ? rawOrderData.value : [];
-  return convertOrderStatusCodes(dataArray);
+    const dataArray = Array.isArray(rawOrderData.value) ? rawOrderData.value : [];
+    return convertOrderStatusCodes(dataArray);
 });
 
 onMounted(async () => {
     setColorOptions();
-    
+
     // 🔥 공통코드 로드
     await commonStore.fetchCommonCodes('0S'); // 주문상세상태 코드
-    
+
     await fetchDashboardCounts(); // 상단 데이터
     await fetchDashboardPieData(); // 파이차트 데이터
     await fetchDashboardBarData(); // 바 차트 데이터
     await fetchDashboardOrderData(); // 금일 요청주문 데이터
+    await fetchDashboardStockShortage(); // 부족재고 데이터
 });
 
 // 대시보드 상단 함수
@@ -193,7 +228,7 @@ async function fetchDashboardOrderData() {
 
         // 🔥 원본 데이터만 저장 (변환은 computed에서 처리)
         rawOrderData.value = Array.isArray(res.data) ? res.data : [];
-        
+
     } catch (err) {
         console.error('금일 요청주문 데이터 조회 실패:', err);
         rawOrderData.value = [];
@@ -258,9 +293,29 @@ const prodPlanColumns = [
     { field: 'ordDStatus', header: '주문상세상태' }
 ]
 
+// 🎯 부족재고 컬럼 설정 - 상태 색상 적용!
 const stockAlarmColumns = [
-    { field : 'mateName', header: '자재명' },
-    { field : 'status', header: '상태' }
+    { field: 'mateName', header: '자재명' },
+    { 
+        field: 'status', 
+        header: '상태',
+        textColor: (rowData) => {
+            // 🎯 백엔드에서 온 원본 상태값으로 판단!
+            const status = rowData.statusOriginal;
+
+            if (status === 'empty') {
+                return 'text-red-700 font-bold'; // 재고 없음: 빨간색 + 굵게
+            } else if (status === 'shortage') {
+                return 'text-orange-600'; // 재고 부족: 주황색
+            } else if (status === 'overstock') {
+                return 'text-blue-600'; // 재고 과다: 파란색
+            } else if (status === 'normal') {
+                return 'text-green-600'; // 정상: 초록색
+            } else {
+                return 'text-gray-600'; // 기타: 회색
+            }
+        }
+    }
 ]
 
 watch(
@@ -307,14 +362,15 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div><span class="block text-muted-color font-medium mb-4">반품접수</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodReturnCount }}건</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodReturnCount }}건
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="flex flex-col md:flex-row gap-4 mt-6">
-        <div class="w-full md:basis-[35%]">
+        <div class="w-full md:basis-[40%]">
             <div class="col-span-12 xl:col-span-6 mb-3">
                 <div class="card flex flex-col items-center min-h-[430px]">
                     <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 판매현황</div>
@@ -322,7 +378,7 @@ watch(
                 </div>
             </div>
         </div>
-        <div class="w-full md:basis-[35%]">
+        <div class="w-full md:basis-[42.5%]">
             <div class="col-span-12 xl:col-span-6 mb-3">
                 <div class="card flex flex-col items-center min-h-[430px]">
                     <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 매출현황</div>
@@ -330,12 +386,12 @@ watch(
                 </div>
             </div>
         </div>
-        <div class="w-full md:basis-[30%]">
-            <!-- 재고현황: 테이블이 카드 전체 너비를 차지하도록 items-center 제거 -->
-                    <div class="card flex flex-col h-[430px]">
-                <div class="font-semibold text-xl mb-4">{{ currentMonthLabel }} 재고현황</div>
-                        <StandartTable class="w-full h-full" :data="stockStatusData" :columns="stockAlarmColumns" dataKey="index"
-                            scrollHeight="250px" :selectable="false" :showHistoryButton="false" :tableMinWidth="'100%'" />
+        <div class="w-full md:basis-[27.5%]">
+            <div class="flex flex-col h-[430px]">
+                <div class="font-semibold text-xl"></div>
+                <StandartTable class="w-full h-full" title="부족재고" :data="stockStatusData" :columns="stockAlarmColumns"
+                    dataKey="index" scrollHeight="250px" :selectable="false" :showHistoryButton="false"
+                    :tableMinWidth="'100%'" />
             </div>
         </div>
     </div>

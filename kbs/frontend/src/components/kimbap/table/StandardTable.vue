@@ -57,6 +57,14 @@ const getAlignClass = (col) => {
     return 'text-left';
 };
 
+// 🎯 텍스트 컬러 클래스 생성 함수 (새로 추가!)
+const getTextColorClass = (col, rowData) => {
+    if (col.textColor && typeof col.textColor === 'function') {
+        return col.textColor(rowData);
+    }
+    return '';
+};
+
 const downloadExcel = () => {
   import('xlsx').then((xlsx) => {
     let rowsToDownload;
@@ -131,13 +139,20 @@ const downloadExcel = () => {
           >
             <Column v-if="props.selectable" selectionMode="multiple" headerStyle="width: 3rem" />
 
-            <!-- 일반/슬롯 컬럼 렌더링 -->
+            <!-- 일반/슬롯 컬럼 렌더링 (textColor 지원 추가!) -->
             <template v-for="col in columns" :key="col.field">
-                <Column v-if="!col.slot" :field="col.field" :header="col.header" headerClass="text-center" :bodyClass="getAlignClass(col)" />
+                <Column v-if="!col.slot" :field="col.field" :header="col.header" headerClass="text-center" :bodyClass="getAlignClass(col)">
+                    <!-- 🎯 textColor 함수가 있는 경우 커스텀 렌더링 -->
+                    <template v-if="col.textColor" #body="slotProps">
+                        <div :class="[getAlignClass(col), getTextColorClass(col, slotProps.data)]">
+                            {{ slotProps.data[col.field] }}
+                        </div>
+                    </template>
+                </Column>
                 <Column v-else :header="col.header" headerClass="text-center" :bodyClass="getAlignClass(col)">
                     <template #body="slotProps">
-                        <!-- 기본 text 정렬용 slot -->
-                        <div :class="getAlignClass(col)">
+                        <!-- 기본 text 정렬용 slot (textColor도 적용) -->
+                        <div :class="[getAlignClass(col), getTextColorClass(col, slotProps.data)]">
                             {{ slotProps.data[col.field] }}
                         </div>
                     </template>
