@@ -218,4 +218,26 @@
         WHERE   fcode = #{fcode}
         AND     fac_ver_cd = #{facVerCd}
     </update>
+
+    <select id="selectFacMaxbyFactory" resultType="com.kimbap.kbs.standard.service.FacMaxVO">
+        SELECT
+            max_produ_cd,
+            fcode,
+            fac_ver_cd,
+            pcode,
+            mpqty,
+            is_used
+        FROM factory_max
+        WHERE fcode = #{fcode}
+        AND fac_ver_cd = #{facVerCd}
+        AND is_used = 'f1'
+        ORDER BY max_produ_cd
+    </select>
+
+    <update id="updateFacMaxIsUsed">
+        UPDATE factory_max
+        SET is_used = #{isUsed}
+        WHERE fcode = #{fcode}
+        AND   fac_ver_cd = #{facVerCd}
+    </update>
 </mapper>

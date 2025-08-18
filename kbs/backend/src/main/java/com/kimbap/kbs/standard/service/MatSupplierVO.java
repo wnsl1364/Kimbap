@@ -17,4 +17,5 @@ public class MatSupplierVO {
     private String cpName;     // 거래처이름 
     private Integer unitPrice; // ✅ null 허용 가능성 고려해서 int → Integer
     private Integer ltime;     // ✅ same
+    private String isUsed; // 사용여부
 }

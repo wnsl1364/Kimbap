@@ -118,66 +118,66 @@ public class MatServiceImpl implements MatService {
     }
 
     @Transactional
-@Override
-public void updateMaterial(MatVO newMat) {
-    // 1. 기존 최신 버전 조회
-    MatVO oldMat = matMapper.selectLatestVersion(newMat.getMcode());
-    if (oldMat == null) {
-        throw new RuntimeException("존재하지 않는 자재코드: " + newMat.getMcode());
-    }
-
-    // 2. 기존 공급사 목록 조회
-    List<MatSupplierVO> oldSuppliers = matMapper.selectMatSuppliersByMaterial(
-            oldMat.getMcode(),
-            oldMat.getMateVerCd());
-
-    // 3. 변경 여부 판단
-    boolean isChanged = !Objects.equals(oldMat.getMateName(), newMat.getMateName()) ||
-            !Objects.equals(oldMat.getUnit(), newMat.getUnit()) ||
-            !Objects.equals(oldMat.getMoqty(), newMat.getMoqty()) ||
-            !Objects.equals(oldMat.getSafeStock(), newMat.getSafeStock()) ||
-            !Objects.equals(oldMat.getStd(), newMat.getStd()) ||
-            !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit()) ||
-            !Objects.equals(oldMat.getEdate(), newMat.getEdate());
-
-    boolean suppliersChanged = !isSameSuppliers(oldSuppliers, newMat.getSuppliers());
-
-    if (isChanged) {
-        // ✅ 기존 MATERIAL 비활성화
-        matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), "f2", oldMat.getModi());
-
-        // ✅ 기존 공급사 비활성화
-        matMapper.updateSupplierIsUsed(oldMat.getMcode(), oldMat.getMateVerCd(), "f2");
-
-        // ✅ 새 버전 생성
-        String nextVer = getNextVersion(oldMat.getMateVerCd());
-        newMat.setMateVerCd(nextVer);
-        newMat.setIsUsed("f1");
-        newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
-        newMat.setModi(newMat.getModi());
-
-        // ✅ 부모 MATERIAL INSERT
-        matMapper.insertMat(newMat);
-
-        // ✅ 자식 테이블 버전 동기화
-        versionSyncService.syncMaterialVersion(newMat.getMcode(), oldMat.getMateVerCd(), nextVer);
-
-        // ✅ 공급사 등록
-        if (newMat.getSuppliers() != null && !newMat.getSuppliers().isEmpty()) {
-            insertSuppliers(newMat, nextVer); // insertSuppliers 안에서 is_used = f1 세팅
+    @Override
+    public void updateMaterial(MatVO newMat) {
+        // 1. 기존 최신 버전 조회
+        MatVO oldMat = matMapper.selectLatestVersion(newMat.getMcode());
+        if (oldMat == null) {
+            throw new RuntimeException("존재하지 않는 자재코드: " + newMat.getMcode());
         }
 
-    } else if (suppliersChanged) {
-        // ✅ 공급사만 변경 → 구버전은 그대로, 신규/변경 공급사 f1로 등록
-        matMapper.updateSupplierIsUsed(oldMat.getMcode(), oldMat.getMateVerCd(), "f2");
-        insertSuppliers(newMat, oldMat.getMateVerCd());
-    } else if (!Objects.equals(oldMat.getIsUsed(), newMat.getIsUsed())) {
-        // ✅ 사용여부만 변경
-        matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), newMat.getIsUsed(), newMat.getModi());
-    } else {
-        System.out.println("⚠️ 자재 정보 변경 없음, 처리 생략");
+        // 2. 기존 공급사 목록 조회
+        List<MatSupplierVO> oldSuppliers = matMapper.selectMatSuppliersByMaterial(
+                oldMat.getMcode(),
+                oldMat.getMateVerCd());
+
+        // 3. 변경 여부 판단
+        boolean isChanged = !Objects.equals(oldMat.getMateName(), newMat.getMateName()) ||
+                !Objects.equals(oldMat.getUnit(), newMat.getUnit()) ||
+                !Objects.equals(oldMat.getMoqty(), newMat.getMoqty()) ||
+                !Objects.equals(oldMat.getSafeStock(), newMat.getSafeStock()) ||
+                !Objects.equals(oldMat.getStd(), newMat.getStd()) ||
+                !Objects.equals(oldMat.getPieceUnit(), newMat.getPieceUnit()) ||
+                !Objects.equals(oldMat.getEdate(), newMat.getEdate());
+
+        boolean suppliersChanged = !isSameSuppliers(oldSuppliers, newMat.getSuppliers());
+
+        if (isChanged) {
+            // ✅ 기존 MATERIAL 비활성화
+            matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), "f2", oldMat.getModi());
+
+            // ✅ 기존 공급사 비활성화
+            matMapper.updateSupplierIsUsed(oldMat.getMcode(), oldMat.getMateVerCd(), "f2");
+
+            // ✅ 새 버전 생성
+            String nextVer = getNextVersion(oldMat.getMateVerCd());
+            newMat.setMateVerCd(nextVer);
+            newMat.setIsUsed("f1");
+            newMat.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
+            newMat.setModi(newMat.getModi());
+
+            // ✅ 부모 MATERIAL INSERT
+            matMapper.insertMat(newMat);
+
+            // ✅ 자식 테이블 버전 동기화
+            versionSyncService.syncMaterialVersion(newMat.getMcode(), oldMat.getMateVerCd(), nextVer);
+
+            // ✅ 공급사 등록
+            if (newMat.getSuppliers() != null && !newMat.getSuppliers().isEmpty()) {
+                insertSuppliers(newMat, nextVer); // insertSuppliers 안에서 is_used = f1 세팅
+            }
+
+        } else if (suppliersChanged) {
+            // ✅ 공급사만 변경 → 구버전은 그대로, 신규/변경 공급사 f1로 등록
+            matMapper.updateSupplierIsUsed(oldMat.getMcode(), oldMat.getMateVerCd(), "f2");
+            insertSuppliers(newMat, oldMat.getMateVerCd());
+        } else if (!Objects.equals(oldMat.getIsUsed(), newMat.getIsUsed())) {
+            // ✅ 사용여부만 변경
+            matMapper.updateIsUsedOnly(oldMat.getMcode(), oldMat.getMateVerCd(), newMat.getIsUsed(), newMat.getModi());
+        } else {
+            System.out.println("⚠️ 자재 정보 변경 없음, 처리 생략");
+        }
     }
-}
 
     // 공급사 동일 여부 비교 메서드
     private boolean isSameSuppliers(List<MatSupplierVO> oldList, List<MatSupplierVO> newList) {
