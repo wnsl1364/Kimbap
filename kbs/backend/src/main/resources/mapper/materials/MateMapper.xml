@@ -1185,14 +1185,16 @@
                 m.mcode,
                 i.total_qty AS qty,
                 m.unit,
-                wh.ware_name,
+                COALESCE(wh.ware_name, '창고 미배정') AS ware_name,
                 i.lot_no,
                 i.note
             FROM mate_inbo i
             JOIN material m 
             ON i.mcode = m.mcode 
             AND i.mate_ver_cd = m.mate_ver_cd
-            LEFT JOIN warehouse wh ON i.wcode = wh.wcode
+            LEFT JOIN ware_stock ws ON i.mate_inbo_cd = ws.mate_inbo_cd
+            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+            LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
 
             UNION ALL
 
@@ -1251,13 +1253,15 @@
                 m.mcode,
                 i.total_qty AS qty,
                 m.unit,
-                wh.ware_name,
+                COALESCE(wh.ware_name, '창고 미배정') AS ware_name,
                 i.lot_no,
                 i.note
             FROM mate_inbo i
             JOIN material m ON i.mcode = m.mcode
             AND i.mate_ver_cd = m.mate_ver_cd
-            LEFT JOIN warehouse wh ON i.wcode = wh.wcode
+            LEFT JOIN ware_stock ws ON i.mate_inbo_cd = ws.mate_inbo_cd
+            LEFT JOIN ware_d wd ON ws.ware_area_cd = wd.ware_area_cd
+            LEFT JOIN warehouse wh ON wd.wcode = wh.wcode AND wd.ware_ver_cd = wh.ware_ver_cd
 
             UNION ALL
 
