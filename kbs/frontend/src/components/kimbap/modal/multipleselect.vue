@@ -21,6 +21,45 @@ const emit = defineEmits(['update:visible', 'update:modelValue', 'update:items']
 const searchText = ref('')
 const selectedItems = ref([])
 
+// 🎯 기본 스타일 그대로 유지하는 PassThrough 설정들
+const dialogPT = {
+  root: { class: '' },
+  mask: { class: '' },
+  content: { class: '' },
+  header: { class: '' }
+}
+
+const dataTablePT = {
+  root: { class: '' },
+  wrapper: { class: '' },
+  table: { class: '' },
+  thead: { class: '' },
+  tbody: { class: '' },
+  bodyRow: { class: '' },
+  bodyCell: { class: '' },
+  headerCell: { class: '' }
+}
+
+const inputTextPT = {
+  root: { class: '' }
+}
+
+const inputNumberPT = {
+  root: { class: '' },
+  input: { class: '' }
+}
+
+const buttonPT = {
+  root: { class: '' },
+  label: { class: '' }
+}
+
+const columnPT = {
+  root: { class: '' },
+  headerCell: { class: '' },
+  bodyCell: { class: '' }
+}
+
 // 입력 값들을 추적하는 reactive 객체
 const inputValues = ref({})
 // 모달이 열릴 때의 초기 상태를 저장 (취소 시 복원용)
@@ -184,6 +223,7 @@ function getInputValue(itemId, field) {
     header="항목 선택"
     :style="{ width: '60rem' }"
     :closable="false"
+    :pt="dialogPT"
   >
     <!-- 🔍 검색창 -->
     <div class="mb-4">
@@ -191,6 +231,7 @@ function getInputValue(itemId, field) {
         v-model="searchText"
         placeholder="검색어를 입력하세요"
         class="w-full"
+        :pt="inputTextPT"
       />
     </div>
 
@@ -204,12 +245,14 @@ function getInputValue(itemId, field) {
       showGridlines
       scrollable
       scrollHeight="384px"
+      :pt="dataTablePT"
     >
       <Column
         selectionMode="multiple"
         headerClass="bg-gray-100 text-center"
         bodyClass="text-center"
         headerStyle="width: 3rem"
+        :pt="columnPT"
       />
 
       <Column
@@ -219,6 +262,7 @@ function getInputValue(itemId, field) {
         :header="col.header"
         :headerClass="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''"
         :bodyClass="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''"
+        :pt="columnPT"
       >
         <template #body="slotProps" v-if="col.type === 'input'">
           <InputNumber
@@ -231,6 +275,7 @@ function getInputValue(itemId, field) {
             class="w-full"
             size="small"
             :step="1"
+            :pt="inputNumberPT"
           />
           <InputText
             v-else
@@ -239,6 +284,7 @@ function getInputValue(itemId, field) {
             :placeholder="col.placeholder || ''"
             class="w-full"
             size="small"
+            :pt="inputTextPT"
           />
         </template>
         <template #body="slotProps" v-else>
@@ -249,8 +295,18 @@ function getInputValue(itemId, field) {
 
     <!-- 하단 버튼 -->
     <div class="flex justify-end gap-2 mt-4">
-      <Button label="취소" severity="secondary" @click="onClose" />
-      <Button label="확인" @click="onConfirm" :disabled="!selectedItems.length" />
+      <Button 
+        label="취소" 
+        severity="secondary" 
+        @click="onClose" 
+        :pt="buttonPT"
+      />
+      <Button 
+        label="확인" 
+        @click="onConfirm" 
+        :disabled="!selectedItems.length" 
+        :pt="buttonPT"
+      />
     </div>
   </Dialog>
 </template>

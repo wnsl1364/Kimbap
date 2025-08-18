@@ -13,8 +13,7 @@ const props = defineProps({
     itemKey: { type: String, default: 'id' },
     fetchItems: Function,
     selectedItem: Object,
-    // ✅ 추가: 모달 제목 구성용
-    titleName: { type: String, default: '' },     // 이름 (예: 공장명 / 거래처명)
+    titleName: { type: String, default: '' },
     titleCode: { type: String, default: '' }, 
 });
 
@@ -24,7 +23,23 @@ const emit = defineEmits(['update:visible']);
 // 검색용 상태
 const filteredItems = ref([]);
 
-// 🔧 핵심 수정 1: 중복된 watch 제거하고 하나로 통합
+// 🎯 기본 스타일 그대로 유지하는 PassThrough
+const dialogPT = {
+    root: { class: '' },
+    mask: { class: '' },
+    content: { class: '' }
+};
+
+const dataTablePT = {
+    root: { class: '' },
+    wrapper: { class: '' },
+    table: { class: '' }
+};
+
+const buttonPT = {
+    root: { class: '' }
+};
+
 watch(
     () => props.items,
     (newItems) => {
@@ -41,7 +56,14 @@ function onClose() {
 </script>
 
 <template>
-    <Dialog :visible="visible" @update:visible="emit('update:visible', $event)" modal :style="{ width: '60rem' }" :closable="false">
+    <Dialog 
+        :visible="visible" 
+        @update:visible="emit('update:visible', $event)" 
+        modal 
+        :style="{ width: '60rem' }" 
+        :closable="false"
+        :pt="dialogPT"
+    >
         <!-- ✅ 헤더 커스텀 -->
         <template #header>
             <div class="flex justify-between items-center">
@@ -51,7 +73,7 @@ function onClose() {
             </div>
         </template>
         
-        <!-- 🔧 핵심 수정 2: dataKey를 props.itemKey로 동적 설정 -->
+        <!-- 🔧 핵심 수정 2: PassThrough 추가 -->
         <DataTable 
             :value="filteredItems" 
             :dataKey="props.itemKey" 
@@ -59,6 +81,7 @@ function onClose() {
             showGridlines 
             scrollable 
             scrollHeight="384px"
+            :pt="dataTablePT"
         >
             <Column v-for="col in columns" :key="String(col.field)" :field="String(col.field)" :header="col.header">
                 <template #body="slotProps">
@@ -69,7 +92,12 @@ function onClose() {
 
         <!-- 닫기 버튼 -->
         <div class="flex justify-end gap-2 mt-4">
-            <Button label="닫기" severity="secondary" @click="onClose" />
+            <Button 
+                label="닫기" 
+                severity="secondary" 
+                @click="onClose" 
+                :pt="buttonPT"
+            />
         </div>
     </Dialog>
 </template>
