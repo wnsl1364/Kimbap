@@ -39,10 +39,11 @@ const exportColumns = ref([]); // 엑셀 다운로드
 
 // 공장 목록 조회
 onMounted(async () => {
+  condProdRequestList.value = [];
   await fetchFactoryList() // 공장정보 가져오기
   await common.fetchCommonCodes('0G') // 공통코드 가져오기
   await common.fetchCommonCodes('0B') // 공통코드 가져오기
-  condProdRequestList.value = convertUnitCodes(condProdRequestList.value); // 공통코드 변환
+  //condProdRequestList.value = convertUnitCodes(condProdRequestList.value); // 공통코드 변환
 
 })
 
