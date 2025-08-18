@@ -3,6 +3,7 @@ package com.kimbap.kbs.standard.serviceimpl;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,57 +93,103 @@ public class FacServiceImpl  implements FacService{
     @Transactional
     @Override
     public void updateFactory(FacVO newFac) {
-        // 기존 최신 버전 조회
+        // 1) 기존 최신 버전 조회
         FacVO oldFac = facMapper.selectLatestVersion(newFac.getFcode());
         if (oldFac == null) {
             throw new RuntimeException("존재하지 않는 공장코드: " + newFac.getFcode());
         }
 
-        // ✅ 내용 변경 여부 (opStatus는 제외)
+        // 2) 기존 FacMax(자식) 목록 조회
+        List<FacMaxVO> oldFacMaxList = facMapper.selectFacMaxbyFactory(
+                oldFac.getFcode(),
+                oldFac.getFacVerCd()
+        );
+
+        // 3) 변경 여부 판단 (opStatus는 제외 → 자재의 기준정보 변경과 동일 개념)
         boolean isChanged =
                 !Objects.equals(oldFac.getFacName(), newFac.getFacName()) ||
                 !Objects.equals(oldFac.getAddress(), newFac.getAddress()) ||
                 !Objects.equals(oldFac.getTel(), newFac.getTel());
 
+        // 4) FacMax(자식) 변경 여부 판단 (자재의 suppliersChanged와 동일)
+        boolean facMaxChanged = !isSameFacMax(oldFacMaxList, newFac.getFacMaxList());
+
         if (isChanged) {
-            // ✅ 실제 내용 변경 → 버전 증가
+            // ✅ 본체 내용 변경 → 버전 증가 (자재와 동일)
+            // 기존 본체 비활성화
             facMapper.disableOldVersion(newFac.getFcode());
 
+            // 기존 FacMax 비활성화 (자재의 updateSupplierIsUsed에 해당)
+            facMapper.updateFacMaxIsUsed(oldFac.getFcode(), oldFac.getFacVerCd(), "f2");
+
+            // 새 버전 생성
             String nextVer = getNextVersion(oldFac.getFacVerCd());
             newFac.setFacVerCd(nextVer);
             newFac.setRegDt(Timestamp.valueOf(LocalDateTime.now()));
             newFac.setModi(newFac.getModi());
 
+            // 새 버전 본체 INSERT
             facMapper.insertFac(newFac);
 
-            // ✅ 공장버전 참조 중인 자식 테이블도 버전 업데이트
-            versionSyncService.syncFactoryVersion(
-                newFac.getFcode(),
-                oldFac.getFacVerCd(),
-                nextVer
-            );
+            // 자식 테이블 버전 참조 동기화 (자재의 versionSyncService.syncMaterialVersion과 동일)
+            versionSyncService.syncFactoryVersion(newFac.getFcode(), oldFac.getFacVerCd(), nextVer);
 
-            // 최대 생산량 정보 insert
-            if (newFac.getFacMaxList() != null) {
-                int index = 1;
-                for (FacMaxVO facmax : newFac.getFacMaxList()) {
-                    facmax.setFcode(newFac.getFcode());
-                    facmax.setFacVerCd(newFac.getFacVerCd());
-
-                    String maxProduCd = String.format("%s-%s-FAC-%02d", newFac.getFcode(), newFac.getFacVerCd(), index);
-                    facmax.setMaxProduCd(maxProduCd);
-
-                    facMapper.insertFacMax(facmax);
-                    index++;
-                }
+            // 공급사에 해당하는 FacMax 등록 (새 버전으로)
+            if (newFac.getFacMaxList() != null && !newFac.getFacMaxList().isEmpty()) {
+                insertFacMaxes(newFac, nextVer);
             }
 
+        } else if (facMaxChanged) {
+            // ✅ FacMax만 변경 → 구버전은 그대로, 자식만 교체 (자재의 suppliersChanged 분기와 동일)
+            facMapper.updateFacMaxIsUsed(oldFac.getFcode(), oldFac.getFacVerCd(), "f2");
+            insertFacMaxes(newFac, oldFac.getFacVerCd()); // 같은 버전에 f1로 재등록
+
         } else if (!Objects.equals(oldFac.getOpStatus(), newFac.getOpStatus())) {
-            // ✅ 내용 동일, 가동여부(opStatus)만 변경 → update만 수행
-            facMapper.updateOpStatusOnly(oldFac.getFcode(), oldFac.getFacVerCd(), newFac.getOpStatus(), newFac.getModi());
+            // ✅ 사용여부에 해당하는 운영상태만 변경 → 필드만 update (자재의 is_used만 변경 분기와 동일)
+            facMapper.updateOpStatusOnly(oldFac.getFcode(), oldFac.getFacVerCd(),
+                    newFac.getOpStatus(), newFac.getModi());
+
         } else {
-            // ❌ 아무것도 바뀐 게 없음
             System.out.println("⚠️ 공장 정보 변경 없음, 처리 생략");
+        }
+    }
+
+    /** FacMax 동일 여부 비교 메서드 (자재의 isSameSuppliers와 동일한 스타일: 인덱스/핵심필드 비교) */
+    private boolean isSameFacMax(List<FacMaxVO> oldList, List<FacMaxVO> newList) {
+        if (oldList == null) oldList = Collections.emptyList();
+        if (newList == null) newList = Collections.emptyList();
+
+        if (oldList.size() != newList.size()) return false;
+
+        // 공장 최대생산량 식별/핵심 키 기준 비교 (자재의 cpCd/ltime과 유사)
+        for (int i = 0; i < oldList.size(); i++) {
+            FacMaxVO oldV = oldList.get(i);
+            FacMaxVO newV = newList.get(i);
+
+            // 예시: 제품코드 + 리드타임 비교 (필요시 unit/maxQty 등 추가)
+            if (!Objects.equals(oldV.getPcode(), newV.getPcode())) return false;
+            if (!Objects.equals(oldV.getMpqty(), newV.getMpqty())) return false;
+
+            // 필요 시 추가 비교
+            // if (!Objects.equals(oldV.getUnit(), newV.getUnit())) return false;
+            // if (!Objects.equals(oldV.getMaxQty(), newV.getMaxQty())) return false;
+        }
+        return true;
+    }
+
+    /** FacMax INSERT 공통 처리 (자재의 insertSuppliers와 동일 패턴) */
+    private void insertFacMaxes(FacVO fac, String ver) {
+        int index = 1;
+        if (fac.getFacMaxList() == null) return;
+
+        for (FacMaxVO max : fac.getFacMaxList()) {
+            max.setFcode(fac.getFcode());
+            max.setFacVerCd(ver);
+            String maxProduCd = String.format("%s-%s-FAC-%02d", fac.getFcode(), ver, index);
+            max.setMaxProduCd(maxProduCd);
+
+            facMapper.insertFacMax(max);
+            index++;
         }
     }
 
@@ -152,7 +199,9 @@ public class FacServiceImpl  implements FacService{
         Map<String, Object> result = new HashMap<>();
 
         FacVO factory = facMapper.getFacDetail(fcode);
-        List<FacMaxVO> facMax = facMapper.getFacMaxs(fcode);
+        List<FacMaxVO> facMax = facMapper.selectFacMaxbyFactory(
+            fcode,
+            factory.getFacVerCd());
 
         result.put("factory", factory);
         result.put("facMax", facMax);

@@ -2,6 +2,8 @@ package com.kimbap.kbs.standard.mapper;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Param;
+
 import com.kimbap.kbs.standard.service.FacMaxVO;
 import com.kimbap.kbs.standard.service.FacVO;
 
@@ -19,4 +21,6 @@ public interface FacMapper {
     boolean existsFcode(String fcode);
     List<FacMaxVO> selectAllFacMaxByFcode(String fcode); //
     void updateOpStatusOnly(String fcode, String facVerCd, String opStatus, String modi); // 사용여부만 업데이트
+    List<FacMaxVO> selectFacMaxbyFactory (@Param("fcode") String fcode, @Param("facVerCd") String facVerCd) ;
+    void updateFacMaxIsUsed(@Param("fcode") String fcode, @Param("facVerCd") String facVerCd, @Param("isUsed") String isUsed);
 }
