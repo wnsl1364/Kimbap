@@ -13,6 +13,14 @@ const props = defineProps({
   columns: Array, // [{ field: 'code', header: 'Code' }, ...]
   modelValue: Object, // 선택된 항목
   fetchItems: Function, // 선택적으로 비동기 항목 로드
+  dialogStyle: {
+    type: Object,
+    default: () => ({ width: '800px' })
+  },
+  dialogPt: {
+    type: Object,
+    default: () => ({})
+  }
 })
 
 const emit = defineEmits(['update:visible', 'update:modelValue'])
@@ -59,7 +67,8 @@ function onConfirm() {
     @update:visible="emit('update:visible', $event)"
     modal
     header="항목 선택"
-    :style="{ width: '60rem' }"
+    :style="dialogStyle"
+    :pt="dialogPt"
     :closable="false"
   >
     <!-- 🔍 검색 -->

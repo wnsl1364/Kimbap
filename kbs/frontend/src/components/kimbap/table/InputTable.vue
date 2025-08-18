@@ -95,6 +95,13 @@ const props = defineProps({
     selection: {
         type: Array,
         default: () => []
+    },
+    modalStyleConfig: {
+        type: Object,
+        default: () => ({
+            dialogStyle: { width: '800px' },
+            dialogPt: {}
+        })
     }
 });
 
@@ -608,7 +615,9 @@ const downloadExcel = () => {
             @update:modelValue="handleModalSelect" @update:visible="handleModalClose"
             :items="props.modalDataSets[currentField]?.items || []"
             :columns="props.modalDataSets[currentField]?.columns || []"
-            :itemKey="props.modalDataSets[currentField]?.itemKey || props.dataKey" />
+            :itemKey="props.modalDataSets[currentField]?.itemKey || props.dataKey"
+            :dialogStyle="props.modalStyleConfig.dialogStyle"
+            :dialogPt="props.modalStyleConfig.dialogPt" />
     </div>
 </template>
 <style>
