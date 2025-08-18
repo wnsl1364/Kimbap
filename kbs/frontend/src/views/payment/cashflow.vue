@@ -235,7 +235,7 @@ const handleSearch = async (searchData) => {
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
-                title="입출금 기준정보 목록"
+                title="입출금 목록"
                 :data="convertedcashflowList"
                 dataKey="statementCd"
                 :columns="cashflowColumns"
