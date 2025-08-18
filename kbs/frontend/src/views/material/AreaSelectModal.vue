@@ -499,7 +499,7 @@ watch(() => props.loadingQuantity, (newQty) => {
         }"
         :closable="true"
     >
-        <div style="display: flex; height: 100%; gap: 1rem;">
+        <div style="display: flex; height: 100%; gap: 1rem; padding-left:20px;">
             <!-- 왼쪽: 정보 패널 -->
             <div style="width: 320px; flex-shrink: 0; overflow-y: auto;">
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -509,7 +509,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="font-bold text-gray-800">입고코드:</span>
-                            <span class="text-xs font-mono font-medium text-gray-900">{{ selectedMaterial?.mateInboCd }}</span>
+                            <span class="font-medium text-gray-900">{{ selectedMaterial?.mateInboCd }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="font-bold text-gray-800">자재코드:</span>
@@ -548,7 +548,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                              class="bg-white p-3 rounded border">
                             <div class="flex justify-between items-start mb-2">
                                 <div>
-                                    <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
+                                    <div class="text-sm font-semibold" style="color:black">{{ plan.wareAreaCd }}</div>
                                     <!-- <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
                                     <div class="text-xs text-blue-600">
                                         최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
@@ -595,7 +595,7 @@ watch(() => props.loadingQuantity, (newQty) => {
             </div>
 
             <!-- 오른쪽: 창고 선택 -->
-            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding-right:20px;">
                 <!-- 창고/층 선택 -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
                     <div class="flex items-center gap-4">
@@ -624,7 +624,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                 </div>
 
                 <!-- 구역 그리드 -->
-                <div v-if="selectedFloor && areaGrid.length > 0" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                <div v-if="selectedFloor && areaGrid.length > 0" style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 15px;">
                     <h6 class="font-bold text-gray-900 mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
 
                     <div style="flex: 1; overflow: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; background: white;">
@@ -693,7 +693,7 @@ watch(() => props.loadingQuantity, (newQty) => {
         </div>
 
         <template #footer>
-            <div class="flex justify-end gap-2">
+            <div class="flex justify-end gap-2 p-6">
                 <Button label="취소" severity="secondary" @click="handleCancel" />
                 <Button label="확인" severity="success" @click="handleConfirm" :disabled="!isConfirmEnabled" />
             </div>

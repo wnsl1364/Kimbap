@@ -498,9 +498,9 @@ watch(() => props.loadingQuantity, (newQty) => {
         }"
         :closable="true"
     >
-        <div class="modal-container">
-            <!-- 왼쪽: 자재 정보 및 수량 입력 -->
-            <div class="info-panel">
+        <div style="display: flex; height: 100%; gap: 1rem; padding-left:20px;">
+            <!-- 왼쪽: 정보 패널 -->
+            <div style="width: 320px; flex-shrink: 0; overflow-y: auto;">
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                 <!-- 자재 정보 -->
                 <div class="bg-blue-50 p-4 rounded-lg">
@@ -570,7 +570,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                              class="bg-white p-3 rounded border">
                             <div class="flex justify-between items-start mb-2">
                                 <div>
-                                    <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
+                                    <div class="text-sm font-semibold" style="color: black;">{{ plan.wareAreaCd }}</div>
                                     <!-- <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
                                     <div class="text-xs text-blue-600">
                                         최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedMaterial?.unit || 'g5') }}
@@ -604,7 +604,7 @@ watch(() => props.loadingQuantity, (newQty) => {
             </div>
 
             <!-- 오른쪽: 창고 선택 -->
-            <div class="warehouse-panel">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding-right:20px;">
                 <!-- 창고/층 선택 -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
                     <div class="flex items-center gap-4">
@@ -645,11 +645,11 @@ watch(() => props.loadingQuantity, (newQty) => {
                 </div>
 
                 <!-- 구역 그리드 -->
-                <div v-if="selectedFloor && areaGrid.length > 0" class="warehouse-panel">
+                <div v-if="selectedFloor && areaGrid.length > 0" style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 15px;">
                     <h6 class="font-bold text-gray-900 mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
 
-                    <div class="grid-container">
-                        <div class="grid" :style="{ gridTemplateColumns: `repeat(${areaGrid[0]?.length || 1}, 1fr)` }">
+                    <div style="flex: 1; overflow: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; background: white;">
+                        <div class="grid gap-2" :style="{ gridTemplateColumns: `repeat(${areaGrid[0]?.length || 1}, 1fr)` }">
                             <template v-for="(row, rowIndex) in areaGrid" :key="rowIndex">
                                 <div
                                     v-for="(area, colIndex) in row"
@@ -715,7 +715,7 @@ watch(() => props.loadingQuantity, (newQty) => {
         </div>
 
         <template #footer>
-            <div class="flex justify-end gap-2">
+            <div class="flex justify-end gap-2 p-6">
                 <Button label="취소" severity="secondary" @click="handleCancel" />
                 <Button label="확인" severity="success" @click="handleConfirm" :disabled="!isConfirmEnabled" />
             </div>
@@ -741,8 +741,8 @@ watch(() => props.loadingQuantity, (newQty) => {
 :global(.area-modal-root) {
     width: 95vw !important;
     max-width: 1600px !important;
-    height: 95vh !important;
-    max-height: 1000px !important;
+    height: 90vh !important;
+    max-height: 800px !important;
     background: white !important;
     border-radius: 8px !important;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
@@ -760,7 +760,7 @@ watch(() => props.loadingQuantity, (newQty) => {
 /* 내부 레이아웃 */
 .modal-container {
     display: flex;
-    height: 850px;
+    height: 450px;
     gap: 1rem;
     padding: 1.5rem;
 }
