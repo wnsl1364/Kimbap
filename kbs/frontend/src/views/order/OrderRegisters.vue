@@ -691,6 +691,14 @@ onUnmounted(() => {
         scrollHeight="360px" height="460px" :dataKey="'pcode'" :deleteKey="'ordDCd'" :deleteEventName="'handleProductDeleteList'"
         @handleProductDeleteList="handleProductDeleteList"
         :modalDataSets="productModalConfig"
+        :modalStyleConfig="{
+          dialogStyle: { width: '900px', maxHeight: '80vh' },
+          dialogPt: {
+            header: { class: 'text-lg font-semibold border-b pb-2 mb-3' },
+            footer: { class: 'flex justify-end gap-3 pt-4 border-t mt-4' },
+            content: { style: { padding: '1.5rem' } }
+          }
+        }"
         :autoCalculation="{enabled: true, quantityField: 'ordQty', priceField: 'unitPrice', totalField: 'totalAmount' }"
         :enableRowActions="!isProductAddDisabled" :enableSelection="!isProductAddDisabled"/>
         <!-- 하단 합계 영역 -->
