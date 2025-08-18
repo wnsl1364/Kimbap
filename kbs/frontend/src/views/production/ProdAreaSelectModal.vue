@@ -41,7 +41,7 @@ const remainingQty = computed(() => {
 
 const warehouseTypeOptions = computed(() => {
     // const stoConMap = { 'o1': 'q1', 'o2': 'q2', 'o3': 'q3' };
-    // const allowedType = stoConMap[props.selectedMaterial?.stoCon];
+    // const allowedType = stoConMap[props.selectedProduct?.stoCon];
     const allowedType = 'q3';
     return warehouseTypes.value
     .filter(warehouse => warehouse.wareType === allowedType)
@@ -176,7 +176,7 @@ const selectArea = (area) => {
         toast.add({
             severity: 'warn',
             summary: '구역 선택 불가',
-            detail: `다른 자재가 적재된 구역입니다.`,
+            detail: `다른 제품이 적재된 구역입니다.`,
             life: 3000
         });
         return;
@@ -348,6 +348,9 @@ watch(() => props.visible, (newVal) => {
     if (newVal) {
         modalInputQty.value = props.loadingQuantity || 0;
         loadWarehouseTypes();
+    } else {
+        // 🔥 모달이 닫힐 때 초기화
+        resetModal();
     }
 });
 
@@ -362,80 +365,85 @@ watch(() => props.loadingQuantity, (newQty) => {
     <Dialog
         v-model:visible="modalVisible"
         modal
-        header="창고 구역 선택"
-        :style="{ width: '95vw', maxWidth: '1400px', height: '90vh' }"
+        :pt="{
+            root: 'prod-area-modal-root',
+            mask: 'prod-area-modal-mask', 
+            content: 'prod-area-modal-content'
+        }"
         :closable="true"
     >
-        <div class="flex h-[calc(90vh-120px)] gap-4">
+        <div style="display: flex; height: 100%; gap: 1rem;">
             <!-- 왼쪽: 정보 패널 -->
-            <div class="w-80 flex-shrink-0 space-y-4 overflow-y-auto">
-                <!-- 제품 정보 -->
-                <div class="bg-blue-50 p-4 rounded-lg">
-                    <h6 class="font-semibold text-blue-800 mb-3">제품 정보</h6>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="font-medium">제품코드:</span>
-                            <span>{{ selectedProduct?.pcode }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="font-medium">제품명:</span>
-                            <span>{{ selectedProduct?.prodName }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="font-medium">보관온도:</span>
-                            <span>{{ getStorageConditionDisplayName(selectedProduct?.stoTemp || 'o1') }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="font-medium">단위:</span>
-                            <span>{{ getUnitDisplayName(selectedProduct?.unit || 'g5') }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="font-medium">적재수량:</span>
-                            <span class="font-bold text-blue-600">{{ modalInputQty }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="font-medium">남은수량:</span>
-                            <span :class="remainingQty > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">
-                                {{ remainingQty }}
-                            </span>
+            <div style="width: 320px; flex-shrink: 0; overflow-y: auto;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- 제품 정보 -->
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h6 class="font-bold text-blue-900 mb-3">제품 정보</h6>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-gray-800">제품코드:</span>
+                                <span class="font-medium text-gray-900">{{ selectedProduct?.pcode }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-bold text-gray-800">제품명:</span>
+                                <span class="font-medium text-gray-900">{{ selectedProduct?.prodName }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-bold text-gray-800">보관온도:</span>
+                                <span class="font-medium text-gray-900">{{ getStorageConditionDisplayName(selectedProduct?.stoTemp || 'o1') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-bold text-gray-800">단위:</span>
+                                <span class="font-medium text-gray-900">{{ getUnitDisplayName(selectedProduct?.unit || 'g5') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-bold text-gray-800">적재수량:</span>
+                                <span class="font-bold text-blue-700">{{ modalInputQty }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-bold text-gray-800">남은수량:</span>
+                                <span :class="remainingQty > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">
+                                    {{ remainingQty }}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 적재 계획 -->
-                <div v-if="placementPlan.length > 0" class="bg-green-50 p-4 rounded-lg">
-                    <h6 class="font-semibold text-green-800 mb-3">적재 계획</h6>
-                    <div class="space-y-3 max-h-48 overflow-y-auto">
-                        <div v-for="(plan, index) in placementPlan" :key="index" 
-                             class="bg-white p-3 rounded border">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
-                                    <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
-                                    <div class="text-xs text-blue-600">
-                                        최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedProdcut?.unit || 'g5') }}
+                    <!-- 적재 계획 -->
+                    <div v-if="placementPlan.length > 0" class="bg-green-50 p-4 rounded-lg">
+                        <h6 class="font-bold text-green-900 mb-3">적재 계획</h6>
+                        <div class="space-y-3 max-h-48 overflow-y-auto">
+                            <div v-for="(plan, index) in placementPlan" :key="index" 
+                                 class="bg-white p-3 rounded border">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div class="font-mono text-sm font-semibold">{{ plan.wareAreaCd }}</div>
+                                        <div class="text-xs text-gray-600">{{ plan.selectedArea.displayName }}</div>
+                                        <div class="text-xs text-blue-600">
+                                            최대 {{ plan.selectedArea.availableVolume }}{{ getUnitDisplayName(selectedProduct?.unit || 'g5') }}
+                                        </div>
                                     </div>
+                                    <Button
+                                        size="small"
+                                        severity="danger"
+                                        text
+                                        @click="removePlan(index)"
+                                        class="p-1 h-6 w-6"
+                                    >
+                                        ×
+                                    </Button>
                                 </div>
-                                <Button
-                                    size="small"
-                                    severity="danger"
-                                    text
-                                    @click="removePlan(index)"
-                                    class="p-1 h-6 w-6"
-                                >
-                                    ×
-                                </Button>
-                            </div>
-                            
-                            <div class="flex items-center gap-2">
-                                <label class="text-sm font-medium min-w-12">수량:</label>
-                                <InputNumber
-                                    :modelValue="plan.allocateQty"
-                                    @update:modelValue="(newValue) => updateAreaQuantity(index, newValue || 0)"
-                                    :min="0"
-                                    :max="plan.selectedArea.availableVolume"
-                                    class="flex-1"
-                                />
+                                
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm font-bold text-gray-800 min-w-12">수량:</label>
+                                    <InputNumber
+                                        :modelValue="plan.allocateQty"
+                                        @update:modelValue="(newValue) => updateAreaQuantity(index, newValue || 0)"
+                                        :min="0"
+                                        :max="plan.selectedArea.availableVolume"
+                                        class="flex-1"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -443,11 +451,11 @@ watch(() => props.loadingQuantity, (newQty) => {
             </div>
 
             <!-- 오른쪽: 창고 선택 -->
-            <div class="flex-1 flex flex-col">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
                 <!-- 창고/층 선택 -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-4 space-y-3">
                     <div class="flex items-center gap-4">
-                        <label class="font-medium min-w-20">창고:</label>
+                        <label class="font-bold text-gray-800 min-w-20">창고:</label>
                         <Dropdown
                             v-model="selectedWarehouseType"
                             :options="warehouseTypeOptions"
@@ -459,7 +467,7 @@ watch(() => props.loadingQuantity, (newQty) => {
                     </div>
 
                     <div class="flex items-center gap-4" v-if="selectedWarehouseType">
-                        <label class="font-medium min-w-20">층:</label>
+                        <label class="font-bold text-gray-800 min-w-20">층:</label>
                         <Dropdown
                             v-model="selectedFloor"
                             :options="floorOptions"
@@ -472,10 +480,10 @@ watch(() => props.loadingQuantity, (newQty) => {
                 </div>
 
                 <!-- 구역 그리드 -->
-                <div v-if="selectedFloor && areaGrid.length > 0" class="flex-1 flex flex-col">
-                    <h6 class="font-semibold mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
+                <div v-if="selectedFloor && areaGrid.length > 0" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <h6 class="font-bold text-gray-900 mb-3">구역 선택 ({{ selectedFloor }}층)</h6>
 
-                    <div class="flex-1 overflow-auto border rounded-lg p-4 bg-white">
+                    <div style="flex: 1; overflow: auto; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; background: white;">
                         <div class="grid gap-2" :style="{ gridTemplateColumns: `repeat(${areaGrid[0]?.length || 1}, 1fr)` }">
                             <template v-for="(row, rowIndex) in areaGrid" :key="rowIndex">
                                 <div
@@ -497,15 +505,15 @@ ${!area.isAvailable ? '[선택불가] 다른 제품이 적재된 구역' : ''}
 ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
                                 >
                                     <div class="text-center">
-                                        <div class="font-bold text-sm">{{ area.displayName }}</div>
-                                        <div class="text-xs mt-1">
+                                        <div class="font-bold text-sm text-gray-900">{{ area.displayName }}</div>
+                                        <div class="text-xs mt-1 font-semibold text-gray-800">
                                             {{ getCapacityDisplay(area) }}
                                         </div>
                                         <div v-if="area.currentProduct" class="text-xs mt-1">
                                             <span v-if="area.isSameProduct" class="text-green-600 font-semibold">동일제품</span>
                                             <span v-else class="text-red-600 font-semibold">다른제품</span>
                                         </div>
-                                        <div v-else class="text-xs mt-1 text-gray-500">빈구역</div>
+                                        <div v-else class="text-xs mt-1 text-gray-800">빈구역</div>
                                         
                                         <!-- 🔥 용량 게이지 바 -->
                                         <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
@@ -516,7 +524,7 @@ ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
                                         </div>
                                         
                                         <!-- 🔥 실제 용량 정보 -->
-                                        <div class="text-xs text-gray-600 mt-1">
+                                        <div class="text-xs text-gray-900 mt-1 font-medium">
                                             {{ area.availableVolume }}/{{ area.realMaxVolume }}{{ getUnitDisplayName(selectedProduct?.unit || 'g5') }}
                                         </div>
                                     </div>
@@ -526,7 +534,7 @@ ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
                     </div>
                 </div>
 
-                <div v-else class="flex-1 flex items-center justify-center text-gray-500">
+                <div v-else style="flex: 1; display: flex; align-items: center; justify-content: center; color: #374151;">
                     창고와 층을 먼저 선택해주세요.
                 </div>
             </div>
@@ -542,8 +550,74 @@ ${area.availableVolume <= 0 ? '[선택불가] 가용 용량 없음' : ''}`"
 </template>
 
 <style scoped>
+/* PassThrough를 이용한 직접 제어 */
+:global(.prod-area-modal-mask) {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+:global(.prod-area-modal-root) {
+    width: 95vw !important;
+    max-width: 1600px !important;
+    height: 90vh !important;
+    max-height: 800px !important;
+    background: white !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+:global(.prod-area-modal-content) {
+    flex: 1 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+/* 내부 레이아웃 */
+.modal-container {
+    display: flex;
+    height: 450px;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.info-panel {
+    width: 300px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.warehouse-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.grid-container {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: white;
+}
+
 .grid {
-    max-width: 100%;
-    overflow-x: auto;
+    display: grid;
+    gap: 0.5rem;
 }
 </style>
