@@ -210,6 +210,18 @@ watch(selectedItems, (newSelection) => {
 const handleLocationSelect = (rowData) => {
     console.log('구역선택 클릭:', rowData);
     
+    // 먼저 체크박스로 선택했는지 확인 (MateLoding.vue와 동일한 로직)
+    const isSelected = selectedItems.value.some(item => item.prodInboCd === rowData.prodInboCd);
+    if (!isSelected) {
+        toast.add({
+            severity: 'warn',
+            summary: '제품 선택 필요',
+            detail: '구역을 선택하려면 먼저 제품을 선택하세요.',
+            life: 3000
+        });
+        return; // 선택 안된 경우 실행 중단
+    }
+    
     // 적재 수량이 입력되지 않은 경우 경고
     if (!rowData.qty || rowData.qty <= 0) {
         toast.add({
@@ -295,25 +307,32 @@ const handleWarehouseAreaConfirm = (selectionData) => {
                     }))
                 };
                 
-                // 🔥 자동으로 체크박스 체크하기 - 수정된 product 객체 사용
-                if (product && !selectedItems.value.some(item => item.prodInboCd === product.prodInboCd)) {
-                    // 변환된 데이터가 아닌 원본 product 객체를 사용하되, 화면 표시용 정보도 포함
-                    const productForSelection = {
-                        ...product,
-                        // 화면 표시용 변환된 정보도 포함
-                        unit: convertedProdLoadingList.value.find(item => item.prodInboCd === product.prodInboCd)?.unit || product.unit
-                    };
+                const existingSelectedIndex = selectedItems.value.findIndex(item => 
+                    item.prodInboCd === product.prodInboCd
+                );
+
+                // convertedProdLoadingList에서 해당 아이템을 찾기
+                const convertedProduct = convertedProdLoadingList.value.find(item => 
+                    item.prodInboCd === product.prodInboCd
+                );
+
+                if (convertedProduct) {
+                    // 변환된 데이터에 구역 정보를 업데이트
+                    convertedProduct.placementPlan = product.placementPlan;
+                    convertedProduct.totalAllocated = product.totalAllocated;
+                    convertedProduct.remainingQty = product.remainingQty;
+                    convertedProduct.userInputQty = product.userInputQty;
+                    convertedProduct.wareAreaCd = product.wareAreaCd;
+                    convertedProduct.selectedAreaInfo = product.selectedAreaInfo;
+                    convertedProduct.qty = product.qty;
                     
-                    selectedItems.value.push(productForSelection);
-                    console.log('자동 체크박스 선택 완료:', productForSelection.prodInboCd);
-                    console.log('선택된 제품의 placementPlan:', productForSelection.placementPlan);
-                    console.log('선택된 제품의 wareAreaCd:', productForSelection.wareAreaCd);
-                    
-                    // 🔥 store에도 즉시 반영
-                    productLoadingStore.setSelectedProductLoadings([...selectedItems.value]);
-                    
-                    // 🔥 InputTable의 선택 상태만 업데이트 (전체 데이터는 변경하지 않음)
-                    console.log('구역 선택 후 체크박스 상태 업데이트 완료');
+                    if (existingSelectedIndex >= 0) {
+                        // 이미 선택되어 있는 경우에만 해당 항목을 업데이트
+                        selectedItems.value[existingSelectedIndex] = { ...convertedProduct };
+                        
+                        // store에도 즉시 반영 (이미 선택된 제품만)
+                        productLoadingStore.setSelectedProductLoadings([...selectedItems.value]);
+                    }
                 }
             }
         }
