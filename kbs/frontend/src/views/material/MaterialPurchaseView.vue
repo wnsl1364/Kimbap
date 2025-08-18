@@ -72,7 +72,7 @@ const actualUserType = computed(() => {
   if (showTestControls.value) return userType.value;
   
   const memType = memberStore.user?.memType;
-  if (memType === 'p1' || memType === 'p4') return 'internal';
+  if (memType === 'p1' || memType === 'p4' || memType === 'p5') return 'internal';
   if (memType === 'p3') return 'supplier';
   return 'internal';
 });
@@ -385,12 +385,8 @@ const handleRowClick = (rowData) => {
   if (!purcCd) return;
 
   // 사용자 타입에 따른 페이지 이동
-  if (memType === 'p3' || memType === 'p5') {
-    console.log('[MaterialPurchaseView.vue] 공급업체 → 발주승인 페이지')
-    // 공급업체는 모든 발주를 승인 페이지로
-    router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
-  } else if (memType === 'p1' || memType === 'p4' || memType === 'p5') {
-    // 내부직원(사원, 담당자): 입고대기 상태만 자재입고 페이지로, 나머지는 발주승인 페이지로
+  if (memType === 'p1' || memType === 'p4' || memType === 'p5') {
+    // 내부직원(사원, 담당자, 관리자): 입고대기 상태만 자재입고 페이지로, 나머지는 발주승인 페이지로
     if (purcDStatus === '입고 대기' || purcDStatus === '입고대기' || rowData.purcDStatus === 'c3') {
       console.log('[MaterialPurchaseView.vue] 내부직원 + 입고대기 → 자재입고 페이지')
       router.push({ path: '/material/materialInbound', query: { purcCd } })
@@ -398,6 +394,10 @@ const handleRowClick = (rowData) => {
       console.log('[MaterialPurchaseView.vue] 내부직원 + 다른상태 → 발주승인 페이지')
       router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
     }
+  } else if (memType === 'p3') {
+    console.log('[MaterialPurchaseView.vue] 공급업체 → 발주승인 페이지')
+    // 공급업체는 모든 발주를 승인 페이지로
+    router.push({ path: '/material/MaterialPurchaseApproval', query: { purcCd } })
   } else {
     console.warn('지원되지 않는 사용자 유형입니다:', memType)
   }
