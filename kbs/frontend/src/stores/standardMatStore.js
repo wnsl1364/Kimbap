@@ -13,6 +13,25 @@ export const useStandardMatStore = defineStore('standardMat', () => {
   const formData = ref({});          // 단건 자재 정보
   const supplierData = ref([]);      // 자재별 공급처 정보
   const changeHistory = ref([]);    // 변경 이력 조회
+  const defaultSuppliers = () => []; // 항상 배열
+  const resetForm = () => {
+    formData.value = defaultForm();       // 객체(폼)는 “같은 모양”으로 초기화
+    supplierData.value = defaultSuppliers(); // 공급사 리스트는 빈 배열 유지
+  };
+  
+  const defaultForm = () => ({
+    mcode: null,
+    mateVerCd: null,
+    mateName: null,
+    unit: null,
+    moqty: null,
+    safeStock: null,
+    std: null,
+    pieceUnit: null,
+    edate: null,
+    converQty: null,
+    // 필요 필드 추가
+  });
 
   // 빈문자열 처리함수
   function sanitizeFormData(obj) {
@@ -154,6 +173,8 @@ export const useStandardMatStore = defineStore('standardMat', () => {
     formData,
     supplierData,
     changeHistory,
+    defaultForm,
+    resetForm,
     fetchMaterials,
     fetchSuppliers,
     addMaterial,

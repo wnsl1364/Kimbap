@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeMount, onMounted, computed } from 'vue';
+import { ref, onBeforeMount, onMounted, computed, onUnmounted } from 'vue';
 import { format } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
 import { useStandardCpStore } from '@/stores/standardCpStore';
@@ -14,7 +14,7 @@ import StandardTable from '@/components/kimbap/table/StandardTable.vue';
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardCpStore();
 const { companyList, formData, changeHistory } = storeToRefs(store);
-const { fetchCompanys, saveCompany, fetchCompanyDetail } = store;
+const { resetForm,fetchCompanys, saveCompany, fetchCompanyDetail } = store;
 const memberStore = useMemberStore();
 const { user } = storeToRefs(memberStore);
 const toast = useToast();
@@ -230,6 +230,11 @@ const handleSearch = async (searchData) => {
     });
   }
 };
+
+onUnmounted(() => {
+  resetForm();
+});
+
 </script>
 <template>
     <!-- 검색 영역 -->
