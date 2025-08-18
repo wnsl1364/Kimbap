@@ -123,49 +123,55 @@ public class DistributionServiceImpl implements DistributionService {
             for (var lot : item.getLots()) {
                 final String lotNo = lot.getLotNo();
                 final String area = lot.getWareAreaCd();
-                int need = lot.getAllocQty(); // 출고수량 (예: 1박스)
-                
-                // ✅ 수정: 출고수량 1당 40개씩 재고에서 차감
-                int actualStockReduction = need * 40; // 실제 재고 차감량
-            
-                // 1) 관련 재고행 전부 잠금(ROWID, QTY) — FIFO/LIFO는 XML의 ORDER BY로 제어
-                java.util.List<java.util.Map<String, Object>> rows =
-                    distributionMapper.selectLotQtyRowsForUpdate(lotNo, area);
+
+                final int UNITS_PER_BOX = 40; // 1박스 = 40개
+                final int qtyBox = Math.max(0, lot.getAllocQty()); // 출고수량(박스)
+                final int need = qtyBox * UNITS_PER_BOX; // 재고 차감(개수)
+
+                // 1) 관련 재고행 잠금 (해당 LOT / 창고구역)
+                java.util.List<java.util.Map<String, Object>> rows = distributionMapper.selectLotQtyRowsForUpdate(lotNo,
+                        area);
                 if (rows == null || rows.isEmpty()) {
                     throw new IllegalStateException("LOT " + lotNo + " / " + area + " 재고가 없습니다.");
                 }
-            
-                // 2) 합계 수량 검증 - 실제 차감량 기준으로 검증
+
+                // 2) 현재 보유 합계(개) 계산
                 int totalQty = 0;
                 for (var r : rows) {
-                    Number q = (Number)(r.get("QTY") != null ? r.get("QTY") : r.get("qty"));
+                    Number q = (Number) (r.get("QTY") != null ? r.get("QTY") : r.get("qty"));
                     totalQty += (q == null ? 0 : q.intValue());
                 }
-                if (totalQty < actualStockReduction) { // ✅ 실제 차감량으로 비교
-                    throw new IllegalStateException("LOT " + lotNo + " / " + area + " 재고부족(필요 " + actualStockReduction + ", 보유 " + totalQty + ")");
+                if (totalQty < need) {
+                    throw new IllegalStateException(
+                            "LOT " + lotNo + " / " + area + " 재고부족(필요 " + need + ", 보유 " + totalQty + ")");
                 }
-            
-                // 3) prod_rel 한 행 INSERT (출고수량은 원래대로 기록)
+
+                // ✅ 3) 차감 후 잔여(개) = 현재합계 - 필요개수
+                int remainUnits = totalQty - need;
+
+                // 4) prod_rel INSERT — rel_qty는 '박스', remain_qty는 '개'
                 String prodRelCd = distributionMapper.nextProdRelCd();
                 distributionMapper.insertProdRel(
                         prodRelCd,
                         lotNo,
-                        need, // 출고수량은 원래 값 (1박스)
+                        qtyBox, // rel_qty(박스)
                         item.getRelOrdCd(),
+                        remainUnits, // ✅ remain_qty(개)
                         item.getOrd_d_cd(),
                         item.getPcode(),
                         prodVerCd);
-            
-                // 4) ROWID 기준 분배 차감 - 실제 차감량으로 처리
-                int remain = actualStockReduction; // ✅ 실제 차감량으로 시작
+
+                // 5) 창고 재고 차감(개 단위)
+                int remain = need;
                 for (var r : rows) {
-                    if (remain <= 0) break;
-            
+                    if (remain <= 0)
+                        break;
                     String rid = String.valueOf(r.get("RID") != null ? r.get("RID") : r.get("rid"));
-                    Number qn = (Number)(r.get("QTY") != null ? r.get("QTY") : r.get("qty"));
+                    Number qn = (Number) (r.get("QTY") != null ? r.get("QTY") : r.get("qty"));
                     int rowQty = (qn == null ? 0 : qn.intValue());
-                    if (rowQty <= 0) continue;
-            
+                    if (rowQty <= 0)
+                        continue;
+
                     int dec = Math.min(rowQty, remain);
                     int updated = distributionMapper.decreaseLotQtyByRowId(rid, dec);
                     if (updated != 1) {
@@ -176,10 +182,10 @@ public class DistributionServiceImpl implements DistributionService {
                 if (remain != 0) {
                     throw new IllegalStateException("분배 차감 잔여가 0이 아닙니다. remain=" + remain);
                 }
-            
-                // 5) 금액 누적 - 출고수량 기준으로 계산
+
+                // 6) 금액 누적(단가가 개당이면 need 사용)
                 requestTotal = requestTotal.add(
-                        unitPrice.multiply(java.math.BigDecimal.valueOf(need))); // 출고수량 기준
+                        unitPrice.multiply(java.math.BigDecimal.valueOf(need)));
             }
 
             // ✅ 이 라인(주문상세)이 전량 출고됐는지 확인 후, 전량이면 t3로 상태 변경

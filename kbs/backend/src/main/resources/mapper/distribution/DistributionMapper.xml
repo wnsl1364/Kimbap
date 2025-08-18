@@ -35,7 +35,7 @@
 
         UNION ALL
 
-        /* ✅ 출고 (중복 제거: LOT별 대표 창고만 선택) */
+        /* ✅ 출고: 잔여재고는 prod_rel.remain_qty 사용 */
         SELECT 
             rom.rel_dt AS regDt,
             '출고' AS type,
@@ -44,7 +44,7 @@
             a.rel_qty AS qty,
             rom.note,
             e.ware_area_cd AS wareAreaCd,
-            e.qty AS stockQty
+            a.remain_qty AS stockQty
         FROM prod_rel a
         JOIN product b 
           ON a.pcode = b.pcode 
@@ -473,6 +473,7 @@ INSERT INTO release_ord_master (
     prod_rel_cd,
     lot_no,
     rel_qty,
+    remain_qty,          <!-- ✅ 추가: 잔여재고(개) -->
     unit_price,
     rel_total_amount,
     rel_dt,
@@ -484,7 +485,7 @@ INSERT INTO release_ord_master (
     #{prodRelCd},
     #{lotNo},
     #{relQty},
-
+    #{remainQty},        <!-- ✅ 추가 -->
     /* 단가: relOrdCd 우선 → 없으면 ord_d_cd로 */
     COALESCE(
       (SELECT od.unit_price
@@ -495,8 +496,7 @@ INSERT INTO release_ord_master (
          FROM order_d od
         WHERE od.ord_d_cd = #{ordDCd})
     ),
-
-    /* 총금액 = 단가 × 출고수량 */
+    /* 총금액 = 단가 × 출고수량(개) → 박스 × 40 */
     COALESCE(
       (SELECT od.unit_price
          FROM order_d od
@@ -507,7 +507,6 @@ INSERT INTO release_ord_master (
         WHERE od.ord_d_cd = #{ordDCd}),
       0
     ) * (#{relQty} * 40),
-
     SYSTIMESTAMP,
     #{relOrdCd},
     #{pcode},

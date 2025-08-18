@@ -275,8 +275,7 @@ watch(
                     <div><span class="block text-muted-color font-medium mb-4">생산완료</span>
                         <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodInboCount }}건</div>
                     </div>
-                </div><span class="text-primary font-medium">24 new </span>
-                <span class="text-muted-color">since last visit</span>
+                </div>
             </div>
         </div>
         <div>
@@ -286,8 +285,7 @@ watch(
                         <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodRelCount }}건
                         </div>
                     </div>
-                </div><span class="text-primary font-medium">24 new </span>
-                <span class="text-muted-color">since last visit</span>
+                </div>
             </div>
         </div>
         <div>
@@ -297,8 +295,7 @@ watch(
                         <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ releaseOrdCount }}건
                         </div>
                     </div>
-                </div><span class="text-primary font-medium">24 new </span>
-                <span class="text-muted-color">since last visit</span>
+                </div>
             </div>
         </div>
         <div>
@@ -307,8 +304,7 @@ watch(
                     <div><span class="block text-muted-color font-medium mb-4">반품접수</span>
                         <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ prodReturnCount }}건</div>
                     </div>
-                </div><span class="text-primary font-medium">24 new </span>
-                <span class="text-muted-color">since last visit</span>
+                </div>
             </div>
         </div>
     </div>
