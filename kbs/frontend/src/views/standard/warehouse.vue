@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeMount, onMounted, computed, watch } from 'vue';
+import { ref, onBeforeMount, onMounted, computed, watch, onUnmounted } from 'vue';
 import { format } from 'date-fns';
 import { useCommonStore } from '@/stores/commonStore';
 import { useStandardWhStore } from '@/stores/standardWhStore';
@@ -14,7 +14,7 @@ import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardWhStore();
 const { warehouseList, factoryList, formData, changeHistory } = storeToRefs(store);
-const { fetchWarehouses, saveWarehouse, fetchWarehouseDetail, fetchChangeHistory, fetchFactoryList } = store;
+const { resetForm, fetchWarehouses, saveWarehouse, fetchWarehouseDetail, fetchChangeHistory, fetchFactoryList } = store;
 const memberStore = useMemberStore();
 const { user } = storeToRefs(memberStore);
 const toast = useToast();
@@ -277,6 +277,10 @@ watch(
         }
     }
 );
+onUnmounted(() => {
+  resetForm();
+});
+
 </script>
 <template>
     <!-- 검색 영역 -->

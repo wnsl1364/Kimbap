@@ -11,6 +11,11 @@ export const useStandardFacStore = defineStore('standardFac', () => {
     const formData = ref({}); // 단건 조회
     const changeHistory = ref([]); // 변경 이력 조회
     const facMaxData = ref([]); // 공장 최대생산량  정보
+    const defaultForm = () => [];
+    const resetForm = () => {
+        formData.value = {};
+        facMaxData.value = defaultForm();
+    }
 
     // 빈문자열 처리함수
     function sanitizeFormData(obj) {
@@ -136,6 +141,7 @@ export const useStandardFacStore = defineStore('standardFac', () => {
         formData,
         changeHistory,
         facMaxData,
+        resetForm,
         setSearchFilter,
         fetchFactorys,
         fetchFacMax,

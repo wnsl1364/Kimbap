@@ -1,21 +1,21 @@
 <script setup>
-import { ref, onBeforeMount, onMounted, computed } from 'vue';
-import { format } from 'date-fns';
-import { storeToRefs } from 'pinia';
-import { useCommonStore } from '@/stores/commonStore';
-import { useStandardFacStore } from '@/stores/standardFacStore';
-import { useMemberStore } from '@/stores/memberStore';
-import { useToast } from 'primevue/usetoast';
+import BasicModal from '@/components/kimbap/modal/basicModal.vue';
 import SearchForm from '@/components/kimbap/searchform/SearchForm.vue';
 import InputForm from '@/components/kimbap/searchform/inputForm.vue';
 import InputTable from '@/components/kimbap/table/InputTable.vue';
 import StandardTable from '@/components/kimbap/table/StandardTable.vue';
-import BasicModal from '@/components/kimbap/modal/basicModal.vue';
+import { useCommonStore } from '@/stores/commonStore';
+import { useMemberStore } from '@/stores/memberStore';
+import { useStandardFacStore } from '@/stores/standardFacStore';
+import { format } from 'date-fns';
+import { storeToRefs } from 'pinia';
+import { useToast } from 'primevue/usetoast';
+import { computed, onBeforeMount, onMounted, ref, onUnmounted } from 'vue';
 
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardFacStore();
 const { factoryList, facMaxList, formData, changeHistory, facMaxData } = storeToRefs(store);
-const { fetchFactorys, fetchFacMax, saveFactory, fetchFactoryDetail, fetchChangeHistory } = store;
+const { resetForm, fetchFactorys, fetchFacMax, saveFactory, fetchFactoryDetail, fetchChangeHistory } = store;
 const memberStore = useMemberStore();
 const { user } = storeToRefs(memberStore);
 const toast = useToast();
@@ -150,8 +150,8 @@ onBeforeMount(() => {
         { field: 'mname', header: '담당자명' },
         { field: 'pcode', header: '제품코드' },
         { field: 'prodName', header: '제품명' },
-        { field: 'mpqty', header: '최대생산량' },
-    ]
+        { field: 'mpqty', header: '최대생산량' }
+    ];
 });
 
 const visibleFacMaxColumns = computed(() => facMaxColumns.value.filter((col) => col.field !== 'prodVerCd'));
@@ -192,17 +192,17 @@ const handleSaveFactory = async () => {
 
     if (result === '등록 성공' || result === '수정 성공') {
         toast.add({
-        severity: 'success',
-        summary: result,
-        detail: `공장이 정상적으로 ${result.replace('성공', '')}되었습니다.`,
-        life: 3000
+            severity: 'success',
+            summary: result,
+            detail: `공장이 정상적으로 ${result.replace('성공', '')}되었습니다.`,
+            life: 3000
         });
     } else {
         toast.add({
-        severity: 'error',
-        summary: result.includes('예외') ? '예외 발생' : '저장 실패',
-        detail: result,
-        life: 3000
+            severity: 'error',
+            summary: result.includes('예외') ? '예외 발생' : '저장 실패',
+            detail: result,
+            life: 3000
         });
     }
 };
@@ -265,24 +265,29 @@ const handleSearch = async (searchData) => {
 };
 
 const mergedExportData = computed(() => {
-  // 공장 정보가 있는 경우에만
-  return factoryList.value.flatMap(factory => {
-    const facMaxForFactory = facMaxData.value.filter(fm => fm.fcode === factory.fcode);
+    // 공장 정보가 있는 경우에만
+    return factoryList.value.flatMap((factory) => {
+        const facMaxForFactory = facMaxData.value.filter((fm) => fm.fcode === factory.fcode);
 
-    // 공장별 최대생산량이 있으면 각각 매핑, 없으면 공장 단독 1건 반환
-    return facMaxForFactory.length > 0
-      ? facMaxForFactory.map(fm => ({
-          ...factory,
-          ...fm  // mpqty, pcode, prodName, prodVerCd 등
-        }))
-      : [{
-          ...factory,
-          pcode: '',
-          prodName: '',
-          prodVerCd: '',
-          mpqty: ''
-        }];
-  });
+        // 공장별 최대생산량이 있으면 각각 매핑, 없으면 공장 단독 1건 반환
+        return facMaxForFactory.length > 0
+            ? facMaxForFactory.map((fm) => ({
+                  ...factory,
+                  ...fm // mpqty, pcode, prodName, prodVerCd 등
+              }))
+            : [
+                  {
+                      ...factory,
+                      pcode: '',
+                      prodName: '',
+                      prodVerCd: '',
+                      mpqty: ''
+                  }
+              ];
+    });
+});
+onUnmounted(() => {
+    resetForm();
 });
 </script>
 
@@ -306,7 +311,7 @@ const mergedExportData = computed(() => {
                 height="320px"
                 :showRowCount="true"
                 :showExcelDownload="true"
-                :exportData="mergedExportData"  
+                :exportData="mergedExportData"
                 :exportColumns="exportColumns"
                 class="mb-2"
             />
@@ -316,6 +321,14 @@ const mergedExportData = computed(() => {
             <InputForm title="공장정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveFactory" />
         </div>
     </div>
-    <BasicModal v-model:visible="historyModalVisible" :items="changeHistory" :columns="changeColumns" :itemKey="'version'" :fetchItems="fetchHistoryItems" 
-    :selectedItem="selectedFactory" :titleName="selectedFactory.facName" :titleCode="selectedFactory.fcode" />
+    <BasicModal
+        v-model:visible="historyModalVisible"
+        :items="changeHistory"
+        :columns="changeColumns"
+        :itemKey="'version'"
+        :fetchItems="fetchHistoryItems"
+        :selectedItem="selectedFactory"
+        :titleName="selectedFactory.facName"
+        :titleCode="selectedFactory.fcode"
+    />
 </template>

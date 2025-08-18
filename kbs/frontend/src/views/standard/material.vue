@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeMount, onMounted, computed } from 'vue';
+import { ref, onBeforeMount, onMounted, computed, onUnmounted} from 'vue';
 import { storeToRefs } from 'pinia';
 import { format, min } from 'date-fns';
 import { useStandardMatStore } from '@/stores/standardMatStore';
@@ -51,7 +51,7 @@ const convertUnitCodes = (list) => {
 // Pinia Store 상태 및 함수 바인딩
 const store = useStandardMatStore();
 const { materialList, supplierList, formData, supplierData, changeHistory } = storeToRefs(store);
-const { fetchMaterials, fetchSuppliers, fetchMaterialDetail, saveMaterial } = store;
+const { resetForm, fetchMaterials, fetchSuppliers, fetchMaterialDetail, saveMaterial } = store;
 
 // UI 상태 정의
 const searchColumns = ref([]); // 검색 컬럼
@@ -370,6 +370,10 @@ const mergedExportData = computed(() => {
           ltime: ''
         }];
   });
+});
+
+onUnmounted(() => {
+  resetForm();
 });
 
 </script>

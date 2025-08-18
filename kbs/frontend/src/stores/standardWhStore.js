@@ -10,6 +10,9 @@ export const useStandardWhStore = defineStore('standardWh', () => {
     const searchFilter     = ref({});    // 검색 필터
     const formData = ref({});          // 단건 조회
     const changeHistory = ref([]);    // 변경 이력 조회
+    const resetForm = () => {
+        formData.value = {};
+    }
 
     // 빈문자열 처리함수
     function sanitizeFormData(obj) {
@@ -107,6 +110,7 @@ export const useStandardWhStore = defineStore('standardWh', () => {
         searchFilter,
         formData,
         changeHistory,
+        resetForm,
         fetchWarehouses,
         saveWarehouse,
         fetchWarehouseDetail,
