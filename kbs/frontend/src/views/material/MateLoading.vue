@@ -390,7 +390,7 @@ const handleProcessLoading = async () => {
         //  결과에 따른 토스트 메시지 (부분/완전 적재 구분)
         if (skippedCount > 0 || partiallyCount > 0) {
             toast.add({
-                severity: 'warn', 
+                severity: 'success', 
                 summary: '적재 처리 완료',
                 detail: message,
                 life: 5000
