@@ -73,13 +73,39 @@
             pr.seq,
             p.unit,
             p.prod_name,
-            pr.ex_produ_dt
+            pr.ex_produ_dt,
+            -- 생산계획 정보 추가
+            pp.plan_qty,
+            COALESCE(req_summary.total_req_qty, 0) AS total_req_qty,
+            (pp.plan_qty - COALESCE(req_summary.total_req_qty, 0)) AS remaining_qty
         FROM prod_req pr
         JOIN product p
             ON pr.pcode = p.pcode
             AND pr.prod_ver_cd = p.prod_ver_cd
-        WHERE produ_req_cd = #{produReqCd}
-        ORDER BY produ_prod_cd
+        -- 생산계획 상세 정보 조인 추가
+        LEFT JOIN production_req main_req 
+            ON pr.produ_req_cd = main_req.produ_req_cd
+        LEFT JOIN prod_plan_d pp 
+            ON main_req.produ_plan_cd = pp.produ_plan_cd
+            AND pr.pcode = pp.pcode
+            AND pr.prod_ver_cd = pp.prod_ver_cd
+        -- 전체 요청수량 집계 서브쿼리
+        LEFT JOIN (
+            SELECT
+                sub_pr.pcode,
+                sub_pr.prod_ver_cd,
+                sub_req.produ_plan_cd,
+                SUM(sub_pr.req_qty) AS total_req_qty
+            FROM prod_req sub_pr
+            JOIN production_req sub_req ON sub_pr.produ_req_cd = sub_req.produ_req_cd
+            WHERE sub_req.produ_plan_cd IS NOT NULL
+            GROUP BY sub_pr.pcode, sub_pr.prod_ver_cd, sub_req.produ_plan_cd
+        ) req_summary 
+            ON pr.pcode = req_summary.pcode 
+            AND pr.prod_ver_cd = req_summary.prod_ver_cd
+            AND main_req.produ_plan_cd = req_summary.produ_plan_cd
+        WHERE pr.produ_req_cd = #{produReqCd}
+        ORDER BY pr.produ_prod_cd
     </select>
     <!-- 제품목록 검색 -->
     <select id="selectAllProducts" resultType="ProdsVO">
