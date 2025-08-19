@@ -221,17 +221,22 @@
 
     <select id="selectFacMaxbyFactory" resultType="com.kimbap.kbs.standard.service.FacMaxVO">
         SELECT
-            max_produ_cd,
-            fcode,
-            fac_ver_cd,
-            pcode,
-            mpqty,
-            is_used
-        FROM factory_max
-        WHERE fcode = #{fcode}
-        AND fac_ver_cd = #{facVerCd}
-        AND is_used = 'f1'
-        ORDER BY max_produ_cd
+            fm.max_produ_cd,
+            fm.fcode,
+            fm.fac_ver_cd,
+            fm.pcode,
+            fm.prod_ver_cd,
+            fm.mpqty,
+            fm.is_used,
+            p.prod_name
+        FROM factory_max fm
+        JOIN product p
+        ON p.pcode = fm.pcode
+        AND p.prod_ver_cd = fm.prod_ver_cd
+        WHERE fm.fcode = #{fcode}
+        AND fm.fac_ver_cd = #{facVerCd}
+        AND fm.is_used = 'f1'
+        ORDER BY fm.max_produ_cd
     </select>
 
     <update id="updateFacMaxIsUsed">

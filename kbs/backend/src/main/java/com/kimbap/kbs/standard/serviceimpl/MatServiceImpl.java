@@ -179,26 +179,27 @@ public class MatServiceImpl implements MatService {
         }
     }
 
-    // 공급사 동일 여부 비교 메서드
     private boolean isSameSuppliers(List<MatSupplierVO> oldList, List<MatSupplierVO> newList) {
-        if (oldList == null)
-            oldList = Collections.emptyList();
-        if (newList == null)
-            newList = Collections.emptyList();
+        List<MatSupplierVO> o = oldList == null ? Collections.emptyList() : oldList;
+        List<MatSupplierVO> n = newList == null ? Collections.emptyList() : newList;
 
-        if (oldList.size() != newList.size())
-            return false;
+        // ✅ 유효 데이터만 비교
+        o = o.stream().filter(s -> "f1".equalsIgnoreCase(s.getIsUsed())).toList();
+        n = n.stream().filter(s -> "f1".equalsIgnoreCase(s.getIsUsed())).toList();
 
-        // 공급사 식별키(예: cpCode) 기준으로 비교
-        for (int i = 0; i < oldList.size(); i++) {
-            MatSupplierVO oldSup = oldList.get(i);
-            MatSupplierVO newSup = newList.get(i);
+        if (o.size() != n.size()) return false;
 
-            if (!Objects.equals(oldSup.getCpCd(), newSup.getCpCd()))
-                return false;
-            if (!Objects.equals(oldSup.getLtime(), newSup.getLtime()))
-                return false;
-            // 필요시 다른 컬럼 비교 추가
+        // ✅ cpCd 기준 매핑 후 핵심 속성 비교
+        Map<String, MatSupplierVO> om = new HashMap<>();
+        for (MatSupplierVO s : o) om.put(String.valueOf(s.getCpCd()), s);
+
+        for (MatSupplierVO s : n) {
+            MatSupplierVO prev = om.get(String.valueOf(s.getCpCd()));
+            if (prev == null) return false;
+
+            // 🔸 실제로 바꾸는 필드들을 여기에 추가 
+            if (!Objects.equals(prev.getUnitPrice(), s.getUnitPrice())) return false;
+            if (!Objects.equals(prev.getLtime(), s.getLtime())) return false;
         }
         return true;
     }
@@ -222,6 +223,9 @@ public class MatServiceImpl implements MatService {
         List<ChangeItemVO> changeItems = new ArrayList<>();
 
         List<MatSupplierVO> allSuppliers = matMapper.selectAllSuppliersByMcode(mcode);
+        // ✅ 유효한 행(f1)만 사용
+        allSuppliers.removeIf(s -> !"f1".equalsIgnoreCase(s.getIsUsed()));
+
         Map<String, List<MatSupplierVO>> supplierMap = new HashMap<>();
         for (MatSupplierVO s : allSuppliers) {
             supplierMap.computeIfAbsent(s.getMateVerCd(), k -> new ArrayList<>()).add(s);
