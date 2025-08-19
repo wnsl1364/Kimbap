@@ -26,4 +26,9 @@ public class ProdRequestDetailVO {
   // 검색 호출용
   private String unit;            // 단위
   private String prodName;        // 제품명
+
+  // 생산요청 불러오기 용
+  private Integer planQty;    // 계획수량
+  private Integer totalReqQty;    // 기요청수량
+  private Integer remainingQty;   // 계획수량 - 요청수량 = 잔존수량
 }
