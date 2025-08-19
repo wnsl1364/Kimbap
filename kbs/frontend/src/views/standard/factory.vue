@@ -292,10 +292,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <!-- 검색 영역 -->
     <SearchForm :columns="searchColumns" @search="handleSearch" @reset="handleReset" :gridColumns="3" />
 
-    <!-- 메인 영역 -->
     <div class="flex flex-col md:flex-row gap-4 mt-6">
         <div class="w-full md:basis-[55%]">
             <StandardTable
@@ -321,6 +319,7 @@ onUnmounted(() => {
             <InputForm title="공장정보" :columns="inputColumns" v-model:data="formData" :buttons="inputFormButtons" @submit="handleSaveFactory" />
         </div>
     </div>
+    
     <BasicModal
         v-model:visible="historyModalVisible"
         :items="changeHistory"
