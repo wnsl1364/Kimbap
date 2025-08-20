@@ -729,7 +729,7 @@ watch(itemTableData, () => {
       ref="inputFormRef"
       :columns="headerFormFields"
       :data="headerFormData"
-      title="자재 이동 요청 목록"
+      title="자재 이동 요청 등록"
       :buttons="{ 
         save: { show: true, label: '등록', icon: 'pi pi-save' },
         reset: { show: false },
